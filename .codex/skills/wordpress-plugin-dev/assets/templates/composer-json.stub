@@ -1,0 +1,43 @@
+{
+  "name": "{{COMPOSER_VENDOR}}/{{PLUGIN_SLUG}}",
+  "description": "{{PLUGIN_DESCRIPTION}}",
+  "version": "{{PLUGIN_VERSION}}",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "autoload": {
+    "psr-4": {
+      "{{VENDOR_NAMESPACE}}\\\\{{PLUGIN_NAMESPACE}}\\\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">={{REQUIRES_PHP}}"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^9.6 || ^10.5 || ^11.0",
+    "squizlabs/php_codesniffer": "^3.9",
+    "wp-coding-standards/wpcs": "^3.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint": "phpcs --standard=phpcs.xml.dist",
+    "lint:php": "phpcs --standard=phpcs.xml.dist",
+    "format": "phpcbf --standard=phpcs.xml.dist",
+    "format:php": "phpcbf --standard=phpcs.xml.dist",
+    "test:php": "phpunit --configuration phpunit.xml.dist"
+  },
+  "extra": {
+    "wordpress-plugin": {
+      "name": "{{PLUGIN_NAME}}",
+      "slug": "{{PLUGIN_SLUG}}",
+      "text-domain": "{{TEXT_DOMAIN}}",
+      "namespace": "{{VENDOR_NAMESPACE}}\\\\{{PLUGIN_NAMESPACE}}"
+    }
+  }
+}

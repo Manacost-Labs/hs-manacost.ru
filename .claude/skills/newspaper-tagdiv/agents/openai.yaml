@@ -1,0 +1,4 @@
+interface:
+  display_name: "Newspaper tagDiv"
+  short_description: "Безопасные изменения темы Newspaper и tagDiv"
+  default_prompt: "Use $newspaper-tagdiv to plan and verify a safe Newspaper or tagDiv change."

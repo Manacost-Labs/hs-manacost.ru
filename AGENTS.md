@@ -23,7 +23,9 @@
 
 Перед началом изменения агент обязан определить тип задачи, назвать применяемые скиллы в рабочем сообщении и полностью прочитать соответствующие `SKILL.md`. Скиллы являются обязательным процессом, а не рекомендацией. Не нужно загружать весь набор сразу: используются базовые скиллы и только относящиеся к задаче специализации.
 
-Точный реестр и маршрутизация находятся в `config/ai-skills.json`. Специальный WordPress/PHP skill хранится внутри проекта: `.agents/skills/wordpress-plugin-dev/SKILL.md`. Остальные имена установлены глобально и доступны Codex, Claude Code и другим агентам на сервере.
+Точный реестр и маршрутизация находятся в `config/ai-skills.json`. Канонические проектные копии скиллов лежат в `.agents/skills`; синхронизированные копии для Claude Code и Codex лежат в `.claude/skills` и `.codex/skills`. Нельзя менять только одну копию: после изменения канонического скилла выполнить `./ops/sync-ai-skills.sh`.
+
+Официальные WordPress-скиллы зафиксированы на конкретном commit `WordPress/agent-skills`. Они сейчас ориентированы на WordPress 7.0+, а проект работает на WordPress 6.9.7, поэтому version-sensitive API обязательно сверять с установленным core и исходниками проекта.
 
 ### Для каждого изменения кода
 
@@ -35,7 +37,9 @@
 4. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
 5. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
 
-Для PHP, WordPress, темы, плагинов, REST/AJAX, WP-CLI, cron, БД или wp-admin дополнительно всегда использовать `wordpress-plugin-dev`. Его правила WordPress Coding Standards, capabilities/nonces, sanitization/validation/escaping, bounded queries, кэширования и совместимости обязательны.
+Для любой WordPress-задачи сначала использовать `wordpress-router` и `wp-project-triage`, затем профильный `wp-plugin-development`, `wp-rest-api`, `wp-wpcli-and-ops`, `wp-performance` или `wp-phpstan`. Проектный `wordpress-plugin-dev` применяется вместе с ними и задаёт локальные ограничения hs-manacost.ru.
+
+Для любого изменения `Newspaper_new`, tagDiv Composer/Standard Pack/Cloud Library, Cloud Templates, блоков, модулей, Theme API, CSS темы или child theme обязательно использовать `newspaper-tagdiv`. Прямое изменение родительской темы или `td-*` плагина допускается только после поиска поддерживаемой точки расширения и запуска `.agents/skills/newspaper-tagdiv/scripts/audit_newspaper_change.py`.
 
 ### По типу задачи
 
@@ -54,6 +58,8 @@ SEO-скиллы не имеют права превращать зеркало 
 
 - Не коммитить `.env`, `wp-config.php`, пароли, токены, cookies, сертификаты, приватные ключи, дампы БД, медиатеку, логи, кэши и резервные копии.
 - Не копировать в Git содержимое S3/Object Storage и `wp-content/uploads`.
+- Полный список regular plugins, их зафиксированные версии и статус на момент снимка хранится в `config/wordpress-plugins.json`; исходники находятся в `wordpress/plugins`.
+- Настройки, лицензионные ключи и runtime-состояние плагинов не входят в репозиторий. Плагины нельзя обновлять вместе с несвязанной задачей; commercial/tagDiv-пакеты нельзя публиковать вне приватного репозитория.
 - Не выводить секреты в команды, CI-логи, issues, pull requests или документацию.
 - Nginx-конфиги в `ops/nginx` являются версионированной конфигурацией. Их применение требует отдельной проверки `nginx -t`; обычный WordPress deployment их автоматически не заменяет.
 - Прокси не получают отдельную копию WordPress: они обслуживают тот же origin. Pipeline очищает настроенные кэши и проверяет каждый edge отдельно.
