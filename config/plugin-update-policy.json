@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "audit_schedule": "weekly",
+  "target_environment": "isolated integration, then test.hs-manacost.ru",
+  "maximum_plugins_per_change": 1,
+  "production_auto_update": false,
+  "manual_only_origins": [
+    "commercial",
+    "tagdiv"
+  ],
+  "required_evidence": [
+    "version and vulnerability report",
+    "PHP syntax and repository quality checks",
+    "WordPress integration suite",
+    "visual regression suite",
+    "staging smoke check",
+    "rollback commit and previous package are identified"
+  ],
+  "promotion": "Production promotion is manual and pins the exact staging-tested commit SHA."
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=HS Manacost independent S3 media snapshot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/hs-manacost/backup.env
+WorkingDirectory=/srv/projects/wordpress/hs-manacost.ru
+ExecStart=/srv/projects/wordpress/hs-manacost.ru/ops/backup/s3-snapshot.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+TimeoutStartSec=24h

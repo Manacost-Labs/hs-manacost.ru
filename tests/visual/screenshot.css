@@ -1,0 +1,28 @@
+*, *::before, *::after {
+  animation: none !important;
+  caret-color: transparent !important;
+  transition: none !important;
+}
+
+iframe,
+.adsbygoogle,
+[class*="td-a-rec"],
+[id*="adrotate"],
+.update-nag,
+.notice-success,
+.wp-pointer,
+#wp-auth-check-wrap {
+  visibility: hidden !important;
+}
+
+.td-post-date,
+.td-post-views,
+.current-time,
+#last-edit,
+#wp-admin-bar-updates,
+.update-plugins,
+.plugin-count,
+#footer-upgrade,
+#footer-thankyou {
+  opacity: 0 !important;
+}

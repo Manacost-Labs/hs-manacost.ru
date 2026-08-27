@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily HS Manacost independent S3 media snapshot
+
+[Timer]
+OnCalendar=*-*-* 02:40:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -2,6 +2,8 @@
 
 Приватный репозиторий кода и серверной конфигурации единого проекта Manacost: основного `hs-manacost.ru`, зеркала `hs-manacost.com` и изолированного `test.hs-manacost.ru`.
 
+Integration-тесты WordPress, визуальные regression-тесты, проверяемые восстановления бэкапов и процесс безопасного обновления плагинов описаны в [`docs/operational-safety.md`](docs/operational-safety.md).
+
 ## Что хранится в Git
 
 - активная тема `Newspaper_new`;
