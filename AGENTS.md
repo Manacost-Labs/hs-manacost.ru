@@ -41,10 +41,13 @@
 
 Для любого изменения `Newspaper_new`, tagDiv Composer/Standard Pack/Cloud Library, Cloud Templates, блоков, модулей, Theme API, CSS темы или child theme обязательно использовать `newspaper-tagdiv`. Прямое изменение родительской темы или `td-*` плагина допускается только после поиска поддерживаемой точки расширения и запуска `.agents/skills/newspaper-tagdiv/scripts/audit_newspaper_change.py`.
 
+Для любого нового или изменяемого экрана `wp-admin`, страницы настроек плагина, dashboard, таблицы, формы, фильтров, bulk actions, модального окна или editor sidebar обязательно использовать `wordpress-admin-ui`. Навык применяется вместе с WordPress/security-скиллами и требует проверки реального сценария на desktop и mobile, а не только просмотра скриншота.
+
 ### По типу задачи
 
 | Задача | Обязательные скиллы | Обязательная проверка |
 |---|---|---|
+| Админ-панель, настройки, dashboard, таблицы и формы | `wordpress-admin-ui`, `wp-project-triage`, `wp-plugin-development`, `agent-frontend-ui-engineering`, `web-quality-accessibility`, `agent-browser-testing-with-devtools` | Роли и capability, nonce/REST permissions, create/edit/filter/paginate/error/delete, keyboard, 320/768/1024/1440 px |
 | Интерфейс, тема, CSS/JS, адаптивность | `agent-frontend-ui-engineering`, `frontend-design`, `web-quality-accessibility`, `agent-browser-testing-with-devtools` | Desktop и mobile, клавиатура, состояния loading/empty/error, отсутствие горизонтального скролла |
 | SEO, шаблоны страниц, мета и индексация | `seo`, `seo-technical` и профильный `seo-page`/`seo-schema`/`seo-images`/`seo-sitemap` | Каноникал только на `.ru`; `.com` остаётся noindex-зеркалом; `test` остаётся полностью noindex |
 | Производительность и кэширование | `agent-performance-optimization`, `web-quality-performance`, `web-quality-core-web-vitals` | Измерение до/после, отсутствие регрессии LCP/INP/CLS, проверка origin и обоих RU-прокси |
