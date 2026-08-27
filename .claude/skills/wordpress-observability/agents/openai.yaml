@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Observability"
+  short_description: "Состояние WordPress, S3, cron и прокси"
+  default_prompt: "Используй $wordpress-observability, чтобы собрать безопасный отчёт о здоровье hs-manacost.ru."

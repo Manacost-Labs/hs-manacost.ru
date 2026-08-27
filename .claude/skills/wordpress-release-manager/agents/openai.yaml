@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Release Manager"
+  short_description: "Staging, выпуск и откат WordPress"
+  default_prompt: "Используй $wordpress-release-manager, чтобы провести изменение через staging и безопасный выпуск."

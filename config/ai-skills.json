@@ -47,6 +47,54 @@
       "required_for": ["wp-rocket", "redis", "cloudflare", "proxy-cache", "perfmatters", "all-in-one-seo", "wordfence", "redirection", "plugin-update", "cache-purge", "waf"]
     },
     {
+      "name": "wordpress-incident-response",
+      "path": ".agents/skills/wordpress-incident-response/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["outage", "incident", "dns", "tls", "broken-site", "regional-failure", "production-regression"]
+    },
+    {
+      "name": "wordpress-media-integrity",
+      "path": ".agents/skills/wordpress-media-integrity/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["media", "image", "duplicate-filename", "image-optimizer", "webp", "avif", "s3-offload", "broken-image", "media-recovery"]
+    },
+    {
+      "name": "wordpress-database-migrations",
+      "path": ".agents/skills/wordpress-database-migrations/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["database-migration", "bulk-data", "search-replace", "postmeta-migration", "options-migration", "schema-change"]
+    },
+    {
+      "name": "wordpress-release-manager",
+      "path": ".agents/skills/wordpress-release-manager/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["release", "pull-request", "staging-deployment", "production-promotion", "hotfix", "rollback"]
+    },
+    {
+      "name": "wordpress-observability",
+      "path": ".agents/skills/wordpress-observability/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["health-report", "monitoring", "availability", "latency", "cron-health", "capacity", "post-release-observation"]
+    },
+    {
+      "name": "wordpress-content-integrity",
+      "path": ".agents/skills/wordpress-content-integrity/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["content-audit", "broken-link", "broken-shortcode", "wrong-image", "canonical-audit", "post-publication-check"]
+    },
+    {
       "name": "wordpress-router",
       "path": ".agents/skills/wordpress-router/SKILL.md",
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
@@ -134,8 +182,13 @@
     "seo": ["seo", "seo-technical", "seo-page", "seo-schema", "seo-images", "seo-sitemap"],
     "performance": ["wp-performance", "agent-performance-optimization", "web-quality-performance", "web-quality-core-web-vitals"],
     "web_quality_audit": ["web-quality-web-quality-audit", "web-quality-best-practices", "web-quality-accessibility"],
-    "incident": ["agent-debugging-and-error-recovery", "agent-test-driven-development"],
-    "infrastructure": ["agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-security-and-hardening"]
+    "incident": ["wordpress-incident-response", "agent-debugging-and-error-recovery", "agent-test-driven-development"],
+    "media_integrity": ["wordpress-media-integrity", "wordpress-article-editor", "wordpress-runtime-stack", "wp-wpcli-and-ops"],
+    "database_migration": ["wordpress-database-migrations", "wp-wpcli-and-ops", "wordpress-plugin-dev", "agent-security-and-hardening"],
+    "release": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-git-workflow-and-versioning"],
+    "observability": ["wordpress-observability", "wordpress-runtime-stack", "wp-performance", "agent-performance-optimization"],
+    "content_integrity": ["wordpress-content-integrity", "wordpress-article-editor", "wordpress-media-integrity", "seo-technical"],
+    "infrastructure": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-security-and-hardening"]
   },
   "domain_invariants": {
     "canonical_and_indexable": "hs-manacost.ru",

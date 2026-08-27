@@ -51,6 +51,10 @@
 
 Для изменения или диагностики WP Rocket, Redis, Cloudflare, регионального proxy cache, Perfmatters, All in One SEO, Wordfence, Redirection, обновления активного плагина, WAF или `manacost-cache-purge` обязательно использовать `wordpress-runtime-stack`. Сначала определяется владеющий проблемой слой; массовая очистка всех кэшей, Redis flush и отключение защиты не являются первым диагностическим действием.
 
+Для production-инцидента, недоступности, DNS/TLS/502/504, региональной ошибки или массовой поломки обязательно использовать `wordpress-incident-response`. Для отсутствующих, неправильных, перезаписанных или тяжёлых изображений, одинаковых имён файлов, WebP/AVIF, `hs-local-image-optimizer`, `uploads-webpc` и S3 использовать `wordpress-media-integrity`. Оптимизатор создаёт sidecar-файлы и не имеет права заменять исходное изображение.
+
+Для изменения production-данных, `postmeta`, options, URL, сериализованных значений или собственных таблиц использовать `wordpress-database-migrations`. Для PR, staging deployment, production promotion, hotfix и rollback использовать `wordpress-release-manager`. Для health/performance/cron/capacity отчёта использовать `wordpress-observability`. Для проверки опубликованных статей, ссылок, шорткодов, изображений, canonical и robots использовать `wordpress-content-integrity`.
+
 ### По типу задачи
 
 | Задача | Обязательные скиллы | Обязательная проверка |
@@ -62,8 +66,13 @@
 | SEO, шаблоны страниц, мета и индексация | `seo`, `seo-technical` и профильный `seo-page`/`seo-schema`/`seo-images`/`seo-sitemap` | Каноникал только на `.ru`; `.com` остаётся noindex-зеркалом; `test` остаётся полностью noindex |
 | Производительность и кэширование | `agent-performance-optimization`, `web-quality-performance`, `web-quality-core-web-vitals` | Измерение до/после, отсутствие регрессии LCP/INP/CLS, проверка origin и обоих RU-прокси |
 | Полный аудит пользовательского качества | `web-quality-web-quality-audit`, `web-quality-best-practices`, `web-quality-accessibility` | Реальный браузер и приоритизированный список измеримых проблем |
-| Ошибка или production-инцидент | `agent-debugging-and-error-recovery`, `agent-test-driven-development` | Воспроизведение → локализация → минимальный fix → regression test → smoke-check |
-| Pipeline, nginx, deployment и прокси | `agent-ci-cd-and-automation`, `agent-shipping-and-launch`, `agent-security-and-hardening` | Staging первым, backup/rollback, `nginx -t`, проверка `.ru`, `.com`, origin, Москвы и Новосибирска |
+| Ошибка или production-инцидент | `wordpress-incident-response`, `agent-debugging-and-error-recovery`, `agent-test-driven-development` | Воспроизведение → локализация → минимальный fix → regression test → smoke-check |
+| Pipeline, nginx, deployment и прокси | `wordpress-release-manager`, `agent-ci-cd-and-automation`, `agent-shipping-and-launch`, `agent-security-and-hardening` | Staging первым, backup/rollback, `nginx -t`, проверка `.ru`, `.com`, origin, Москвы и Новосибирска |
+| Изображения, одинаковые имена, WebP/AVIF, S3 и восстановление media | `wordpress-media-integrity`, `wordpress-article-editor`, `wordpress-runtime-stack` | SHA256/MIME/dimensions, неизменный source image, sidecar, S3, modern/legacy Accept и оба RU-прокси |
+| Миграция БД или массовое изменение контента | `wordpress-database-migrations`, `wp-wpcli-and-ops`, `agent-security-and-hardening` | Dry-run/count, idempotence, verified restore, bounded batch, staging и rollback |
+| Выпуск, promotion или rollback | `wordpress-release-manager`, `agent-ci-cd-and-automation`, `agent-shipping-and-launch` | Один staging-проверенный SHA, gates, production workflow и региональная проверка |
+| Наблюдаемость и health-отчёт | `wordpress-observability`, `wordpress-runtime-stack`, `wp-performance` | Измеряемый интервал, cold/warm, cron/S3/backup/capacity, origin и регионы |
+| Целостность опубликованного контента | `wordpress-content-integrity`, `wordpress-article-editor`, `wordpress-media-integrity`, `seo-technical` | Stored/rendered content, links/shortcodes/media/views, canonical/robots по хостам |
 
 SEO-скиллы не имеют права превращать зеркало `.com` в конкурирующий индексируемый сайт. Performance-скиллы не имеют права отключать безопасность, корректность счётчиков, персонализацию или очистку кэша ради синтетического результата. Design-скиллы не имеют права ухудшать доступность или скорость.
 

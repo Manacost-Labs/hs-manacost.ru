@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Content Integrity"
+  short_description: "Проверка статей, ссылок и SEO-хостов"
+  default_prompt: "Используй $wordpress-content-integrity, чтобы проверить опубликованный материал на всех доменах."

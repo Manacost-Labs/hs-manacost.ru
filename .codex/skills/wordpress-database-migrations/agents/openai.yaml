@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Database Migrations"
+  short_description: "Безопасные миграции данных WordPress"
+  default_prompt: "Используй $wordpress-database-migrations, чтобы подготовить обратимую миграцию данных WordPress."

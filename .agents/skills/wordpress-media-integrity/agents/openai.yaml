@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Media Integrity"
+  short_description: "Целостность изображений, S3 и оптимизация"
+  default_prompt: "Используй $wordpress-media-integrity, чтобы проверить изображения от загрузки до S3 и прокси."

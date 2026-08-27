@@ -17,6 +17,11 @@ Use `config/ai-skills.json` as the machine-readable source. This guide explains 
 | SEO/canonical/schema/sitemap | `seo` |
 | Cache/performance/Core Web Vitals | `performance` and usually `wordpress_runtime_stack` |
 | Production failure | `incident`, then the owning functional route |
+| Missing/wrong/heavy image, duplicate filename, WebP/AVIF/S3 | `media_integrity` |
+| Database/postmeta/options/serialized bulk change | `database_migration` |
+| PR, staging deployment, production promotion or rollback | `release` |
+| Health, latency, cron, queue, backup or capacity report | `observability` |
+| Article/link/shortcode/media/canonical audit | `content_integrity` |
 | Pipeline/nginx/proxy/deployment | `infrastructure` |
 
 All code changes also load the baseline skills in `baseline_for_code_changes`. Do not omit testing, security, review or Git workflow because a specialist skill already mentions them.
@@ -32,8 +37,8 @@ All code changes also load the baseline skills in `baseline_for_code_changes`. D
 Examples:
 
 - “Add an editor button”: project + article editor + admin UI; add Newspaper only if rendering/template code changes.
-- “Images stale in Moscow”: project + runtime stack + incident; do not load editor UI unless uploads themselves fail.
+- “Images stale in Moscow”: project + media integrity + runtime stack + incident; do not load editor UI unless uploads themselves fail.
 - “Change article layout”: project + Newspaper + frontend; add SEO if headings/schema/canonical output changes.
-- “Migrate post metadata”: project + WP operations + plugin development; read data/migration rules before any write.
+- “Migrate post metadata”: project + database migration + WP operations + plugin development; read data/migration rules before any write.
 
 When two rules conflict, follow system/developer/user scope first, then the nearest `AGENTS.md`, then project skills. Surface unresolved product or data ambiguity instead of silently choosing.

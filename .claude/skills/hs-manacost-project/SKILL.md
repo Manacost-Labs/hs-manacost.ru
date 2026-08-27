@@ -32,6 +32,12 @@ Always use this skill plus the task route:
 
 - Article editor, TinyMCE/Gutenberg, autosave/revisions, editor media or shortcodes: `wordpress-article-editor` and `wordpress-admin-ui`; add `newspaper-tagdiv` when tagDiv is involved.
 - WP Rocket, Redis, Cloudflare, proxy cache, Perfmatters, AIOSEO, Wordfence, Redirection or plugin operations: `wordpress-runtime-stack`.
+- Outage, DNS/TLS, 5xx, regional failure or production regression: `wordpress-incident-response`.
+- Missing, wrong, overwritten or heavy images, duplicate filenames, WebP/AVIF or S3 offload: `wordpress-media-integrity`.
+- Database, postmeta/options, serialized data or bulk content changes: `wordpress-database-migrations`.
+- Pull request, staging deploy, production promotion, hotfix or rollback: `wordpress-release-manager`.
+- Health, latency, cron, queue, capacity or post-release monitoring: `wordpress-observability`.
+- Article/link/shortcode/media/canonical integrity audit: `wordpress-content-integrity`.
 - Newspaper parent theme, Composer, Cloud Templates, blocks/modules or theme CSS: `newspaper-tagdiv`.
 - Any wp-admin screen or internal workflow: `wordpress-admin-ui`.
 - WordPress plugin, REST, WP-CLI, performance, SEO, incident, frontend or infrastructure work: use the exact route in `config/ai-skills.json` together with project baseline skills.
