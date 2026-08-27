@@ -9,3 +9,29 @@
 *.ttf binary
 *.pdf binary
 
+# Keep third-party production snapshots byte-stable, including their original
+# CRLF/LF choices. First-party plugin source continues to use Git defaults.
+wordpress/plugins/ad-inserter/** -text
+wordpress/plugins/ads-txt/** -text
+wordpress/plugins/all-in-one-seo-pack/** -text
+wordpress/plugins/cackle/** -text
+wordpress/plugins/classic-editor/** -text
+wordpress/plugins/cloudflare/** -text
+wordpress/plugins/cyr2lat/** -text
+wordpress/plugins/imagify/** -text
+wordpress/plugins/maintenance/** -text
+wordpress/plugins/members/** -text
+wordpress/plugins/perfmatters/** -text
+wordpress/plugins/query-monitor/** -text
+wordpress/plugins/redirection/** -text
+wordpress/plugins/redis-cache/** -text
+wordpress/plugins/shortcodes-ultimate/** -text
+wordpress/plugins/shortcodes-ultimate-extra/** -text
+wordpress/plugins/shortcodes-ultimate-skins/** -text
+wordpress/plugins/td-cloud-library/** -text
+wordpress/plugins/td-composer/** -text
+wordpress/plugins/td-mobile-plugin/** -text
+wordpress/plugins/td-standard-pack/** -text
+wordpress/plugins/tinymce-advanced/** -text
+wordpress/plugins/wordfence/** -text
+wordpress/plugins/wp-rocket/** -text

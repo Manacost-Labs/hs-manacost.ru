@@ -1,0 +1,3 @@
+var tdbFiltersLoop={};
+(function(){tdbFiltersLoop={items:[],init:function(){tdbFiltersLoop.items=[]},item:function(){this.jqueryObj=this.blockAtts=this.blockUid=void 0;this._is_initialized=this.inComposer=!1},_initialize_item:function(a){!0!==a._is_initialized&&(a._is_initialized=!0)},addItem:function(a){if("undefined"===typeof a.blockUid)throw"item.blockUid is not defined";tdbFiltersLoop.items.push(a);tdbFiltersLoop._initialize_item(a)},deleteItem:function(a){for(var b=0;b<tdbFiltersLoop.items.length;b++)if(tdbFiltersLoop.items[b].blockUid===a)return tdbFiltersLoop.items.splice(b,
+1),!0;return!1}}})();jQuery().ready(function(){tdbFiltersLoop.init()});

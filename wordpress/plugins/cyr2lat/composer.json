@@ -1,0 +1,89 @@
+{
+  "name": "mihdan/cyr2lat",
+  "description": "Cyr-To-Lat",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "cyrillic",
+    "latin",
+    "l10n",
+    "russian",
+    "rustolat",
+    "slugs",
+    "translations",
+    "transliteration",
+    "cyr2lat"
+  ],
+  "homepage": "https://wordpress.org/plugins/cyr2lat/",
+  "type": "wordpress-plugin",
+  "authors": [
+    {
+      "name": "Sergey Biryukov",
+      "homepage": "https://profiles.wordpress.org/sergeybiryukov/"
+    },
+    {
+      "name": "Mikhail Kobzarev",
+      "email": "mikhail@kobzarev.com",
+      "homepage": "https://www.kobzarev.com/"
+    },
+    {
+      "name": "Igor Gergel",
+      "email": "info@kagg.eu",
+      "homepage": "https://kagg.eu/en/"
+    }
+  ],
+  "support": {
+    "issues": "https://wordpress.org/support/plugin/cyr2lat"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "allow-plugins": {
+      "kylekatarnls/update-helper": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "require": {
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-latest",
+    "10up/wp_mock": "^1.1.0",
+    "lucatume/function-mocker": "^2.0.0",
+    "phpcompatibility/php-compatibility": "^9.3.5",
+    "phpcompatibility/phpcompatibility-wp": "^2.1.8",
+    "phpunit/phpunit": "9.6.34 - 13.0.0",
+    "squizlabs/php_codesniffer": "^3.13.5",
+    "wp-coding-standards/wpcs": "^3.3.0",
+    "wp-phpunit/wp-phpunit": "^6.9.4",
+    "yoast/phpunit-polyfills": "^4.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "CyrToLat\\": "src/php"
+    },
+    "classmap": [
+      "libs"
+    ],
+    "files": [
+      "src/php/includes/deprecated.php"
+    ],
+    "exclude-from-classmap": [
+      "src/php/includes/deprecated.php"
+    ]
+  },
+  "autoload-dev": {
+    "classmap": [
+      "tests/unit/Stubs"
+    ],
+    "psr-4": {
+      "CyrToLat\\": "src/php",
+      "CyrToLat\\Tests\\Integration\\": "tests/integration",
+      "CyrToLat\\Tests\\Unit\\": "tests/unit"
+    }
+  },
+  "scripts": {
+    "phpcs": "vendor/bin/phpcs --colors --standard=phpcs.xml",
+    "integration": "vendor/bin/phpunit -c phpunit.integration.xml",
+    "unit": "vendor/bin/phpunit"
+  }
+}

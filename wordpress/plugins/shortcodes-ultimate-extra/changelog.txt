@@ -1,0 +1,140 @@
+### 1.8.2
+
+- Added compatibility with PHP 8
+- Fixed JS-error in `su_content_slider`
+- Minor improvements in the settings page
+
+
+### 1.8.1
+
+- Updated in-plugin links
+- Fixed thin style of progress_bar, in mobile view
+
+
+### 1.8.0
+
+**What's new**
+
+- Added support for WP 5.5 automatic updates
+- New option `max_width` for `[su_pricing_table]`
+- New option `padding` for `[su_panel]`
+
+**Fixes**
+
+- Fixed issue with Pricing Table options on mobile devices
+- Various minor fixes
+
+
+### 1.7.4
+
+- Fixed fatal error on plugin activation (if the core plugin isn't active)
+
+
+### 1.7.3
+
+- Added *Activate License Key* link at the Plugins screen
+- Added .pot file for translations
+- Fixed issue with Content Slider, where some elements are partially hidden
+- Fixed issue with Icon Panel link target
+- Minor improvements to UI and codebase
+
+
+### 1.7.2
+
+- Fixed `Fatal error: Cannot redeclare su_adjust_brightness()`
+
+
+### 1.7.1
+
+- Fixed images size within content slider
+- Fixed `Invalid hex color length` notice in `[su_progress_bar]` and `[su_pricing_table]` shortcodes
+- Fixed `A non-numeric value encountered` warning in `[su_icon_text]` shortcode
+- Fixed `Undefined index: height` notice in the `[su_icon]` shortcode
+
+
+### 1.7.0
+
+**What’s new**
+
+- New option `fullwidth` for the `[su_section]` shortcode. Allows stretching of a section to full page, instead of just content area
+- New option `animation` for the `[su_progress_bar]` shortcode. Allows disabling progress bar animation
+
+
+**Improvements**
+
+- License key at plugin settings page can now be revealed by focusing the *License key* field
+
+
+**Fixes**
+
+- Fixed doubled navigation in Content Slider on mobile devices
+
+
+### 1.6.1
+
+**Fixes**
+
+- Issues with Content Slider
+- Issues with Progress Pie
+
+### 1.6.0
+
+**Important: This add-on requires Shortcodes Ultimate version 5.2.0 or higher**
+
+**What’s new**
+
+- New attribute *target* for *su_panel*, *su_photo_panel*, *su_icon_panel*, *su_icon_text* and *su_section* shortcodes, which allow open custom links in a new window
+- New option *autoheight* for *su_content_slider* shortcode, which allows disabling auto height feature
+- New filter *su* */extra/pricing_plan/options_tags*, which allow to add extra tags to *su_pricing_plan* options
+- New option *custom_btn* for *su_plan* shortcode, which allows specifying custom button for each pricing plan
+
+### 1.5.12
+
+Fixes:
+
+- Progress pie now works when loaded through ajax
+- Plugin updates now also available from within iThemes sync control panel
+- Plugin updates will be visible even without license key
+- Quick fix for content slider on Safari. See [OwlCarousel issue](https://github.com/OwlCarousel2/OwlCarousel2/issues/556).
+
+### 1.5.11
+
+- Fixed: scrolling issue with progress bars/pies in Samsung Internet Browser;
+- Changed: Inview.js library replaced with [jQuery.Inview](https://github.com/protonet/jquery.inview);
+- Added: [su_panel], [su_photo_panel], [su_icon_panel] and [su_icon_text] gets new attribute ‘target’, which allow to open panel links in a new window.
+
+### 1.5.10
+
+- **[Important change]** Updated: OwlCarousel to version 2.2
+- Improved: compatibility with ‘Plugin Organizer’
+- Added: ‘Install core plugin’ notice
+- Fixed: panels width (panels were too wide on some themes)
+
+### 1.5.9
+
+- Fixed: section’s parallax is now disabled on mobile devices
+- Fixed: PHP warning at settings page, when license key is saved
+
+### 1.5.8
+
+**IMPORTANT:** this add-on requires **Shortcodes Ultimate version 5.0.0** (or higher). Please update Shortcodes Ultimate before updating this add-on. [Upgrade guide](http://docs.getshortcodes.com/article/77-full-guidance-for-update-of-shortcodes-ultimate-from-version-4-to-version-5).
+
+- Fixed: ‘Invalid license key’ error;
+- Fixed: license key deactivation error;
+- Added: saved license key is now hidden at plugin settings page;
+- Added: new attribute ‘background_position’ for Section shortcode, [section background_position=“left top”];
+- Added: new attribute ‘cover’ for Section shortcode, [section cover=“yes”];
+- Updated: ‘ru_RU’ translation.
+
+### 1.5.7
+
+- **IMPORTANT**: this add-on requires **Shortcodes Ultimate version 5.0.0** (or higher). Please update Shortcodes Ultimate before updating this add-on;
+- Fixed: minor bugs in parallax section;
+- Improved: compatibility with Shortcodes Ultimate 5+;
+- Text domain changed from ‘sue’ to ‘shortcodes-ultimate-extra’;
+- Languages folder renamed from ‘lang’ to ‘languages’.
+
+### 1.5.6
+
+- Added: alt attribute for photo panels
+- Tested compatibility with WordPress 4.4

@@ -1,0 +1,285 @@
+/* the label */
+.td-page-o-custom-label {
+
+  position: absolute;
+  left:0;
+  top:7px;
+  display: block;
+  width: 120px;
+  font-size:13px;
+  font-weight: bold;
+  line-height: 19px;
+
+
+
+  &.td-full-width-label {
+    width:100%;
+  }
+
+}
+
+
+/* the inline help text */
+.td-page-o-info {
+  color:#c7c7c7;
+  font-size:12px;
+  display: block;
+  max-width: 549px;
+}
+
+.td-meta-box-inside {
+
+  // drop downs
+  .td-select-style-overwrite {
+    display: inline-block;
+    margin-bottom: 4px;
+    position: relative;
+    top:3px;
+    left:1px;
+  }
+
+  // text input
+  input[type=text],
+  input[type=number]#tds-locker-credits {
+    height: 32px !important;
+    border: 1px solid #e6e6e6 !important;
+    color: #555555;
+    box-shadow: none !important;
+    padding-left: 10px;
+    width: 549px;
+
+    @media (max-width: 1260px) {
+      width: 100% !important;
+    }
+
+  }
+
+  // tds-locker-credits
+  input[type=number]#tds-locker-credits {
+    width: 222px !important;
+  }
+
+  // text area style
+  textarea {
+    width: 549px;
+    display: inline-block;
+    height: 103px;
+    min-height: 103px;
+    border: 1px solid #e6e6e6;
+    box-shadow: none;
+    font-size: 12px;
+    color: #555555;
+
+
+    @media (max-width: 1100px) {
+      width: 99%;
+    }
+  }
+
+
+  // visual select
+  .td-page-o-visual-select-modules {
+    max-width: 650px;
+  }
+
+
+  p {
+    max-width: 549px;
+  }
+
+
+  //delete button from review
+  .dodelete {
+    position: relative;
+    top:5px;
+  }
+}
+
+
+
+/*  ----------------------------------------------------------------------------
+    review system
+*/
+// fix the reviews (row in row and the labels that are added via js on "add rating category" button)
+.td-meta-box-row {
+  .td-meta-box-row {
+    .td-page-o-custom-label {
+      display: none;
+    }
+    padding-left: 0;
+  }
+
+  .wpa_group {
+    margin: 15px 0 15px 0;
+  }
+}
+
+// fix the button
+.td-page-option-panel {
+  .docopy-p_review_stars,
+  .docopy-p_review_percents,
+  .docopy-p_review_points {
+    position: relative;
+    left:135px;
+  }
+
+  .td-textarea-subtitle {
+    /* responsive portrait phone */
+    @media (max-width: 1260px) {
+        width: 100%;
+    }
+  }
+}
+
+
+
+/*  ----------------------------------------------------------------------------
+    post gallery images
+*/
+
+.td-gallery-imgs-items {
+  width: 549px;
+  margin-bottom: 4px;
+
+  &,
+  * {
+    box-sizing: border-box;
+  }
+}
+
+.td-gipi-inner {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 10px;
+  margin-left: -5px;
+  margin-right: -5px;
+}
+
+.td-gipi-item {
+  position: relative;
+  width: 12.5%;
+  min-height: 60px;
+  padding-left: 5px;
+  padding-right: 5px;
+
+  img {
+    display: block;
+    width: 100%;
+    border-radius: 3px;
+  }
+}
+
+.td-gipi-item.ui-sortable-placeholder:before,
+.td-gipi-item-inner {
+  position: relative;
+  background-color: #fff;
+  border-radius: 4px;
+}
+
+.td-gipi-item.ui-sortable-placeholder:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 5px;
+  width: calc(~'100% - 10px');
+  height: calc(~'100% - 2px');
+  border: 1px solid #eeeeee;
+}
+
+.td-gipi-item.ui-sortable-placeholder:after {
+  content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M448 80c8.8 0 16 7.2 16 16V415.8l-5-6.5-136-176c-4.5-5.9-11.6-9.3-19-9.3s-14.4 3.4-19 9.3L202 340.7l-30.5-42.7C167 291.7 159.8 288 152 288s-15 3.7-19.5 10.1l-80 112L48 416.3l0-.3V96c0-8.8 7.2-16 16-16H448zM64 32C28.7 32 0 60.7 0 96V416c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zm80 192a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" fill="%23ddd"/></svg>');
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+  width: 16px;
+  height: auto;
+  line-height: 0;
+}
+
+.td-gipi-item-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 3px;
+  transition: border-color .2s ease-in-out;
+  border: 1px solid #e6e6e6;
+  cursor: grab;
+}
+
+.td-gipi-item-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(25%, -25%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
+  width: 19px;
+  height: 19px;
+  padding-bottom: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  border-radius: 100%;
+  cursor: pointer;
+  transition: background-color .2s ease-in-out; 
+
+  &:hover {
+    background-color: red;
+  }
+}
+
+.td-gipi-item-inner:hover {
+  border-color: #bbbbbb;
+
+  .td-gipi-item-delete {
+    display: flex;
+  }
+}
+
+.td-gipi-add {
+  .td-gipi-item-inner {
+    cursor: pointer;
+    transition: border-color .2s ease-in-out;
+
+    &:hover {
+      border-color: green;
+      
+      svg {
+        fill: green;
+      }
+    }
+  }
+
+  svg {
+    width: 20px;
+    height: auto;
+    fill: #666;
+    transition: fill .2s ease-in-out;
+  }
+}
+
+.attachment.td-selected {
+  //pointer-events: none;
+  box-shadow: 0 0 0 3px #fff inset, 0 0 0 7px #0073aa inset !important;
+
+  .attachment-preview {
+    &:before {
+      content: "";
+      display: block;
+      padding-top: 100%;
+      background: rgba(0, 0, 0, 0.15);
+      z-index: 1;
+      position: relative;
+    }
+  }
+
+  .thumbnail {
+    opacity: 0.25 !important;
+  }
+}
