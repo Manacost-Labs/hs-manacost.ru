@@ -15,6 +15,14 @@
       "required_for": ["all-project-tasks", "architecture", "context", "data-boundaries", "delivery", "incident", "handoff"]
     },
     {
+      "name": "wordpress-clean-code",
+      "path": ".agents/skills/wordpress-clean-code/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["first-party-code", "php", "javascript", "css", "refactor", "review", "wpcs", "phpcompatibilitywp", "phpstan"]
+    },
+    {
       "name": "newspaper-tagdiv",
       "path": ".agents/skills/newspaper-tagdiv/SKILL.md",
       "version": "1.0.0",
@@ -163,6 +171,7 @@
     "hs-manacost-project"
   ],
   "baseline_for_code_changes": [
+    "wordpress-clean-code",
     "agent-test-driven-development",
     "agent-code-review-and-quality",
     "agent-code-simplification",
@@ -171,6 +180,7 @@
   ],
   "task_routes": {
     "wordpress": ["hs-manacost-project", "wordpress-router", "wp-project-triage", "wordpress-plugin-dev"],
+    "code_quality": ["wordpress-clean-code", "wp-project-triage", "wp-phpstan", "wordpress-plugin-dev"],
     "newspaper_tagdiv": ["newspaper-tagdiv", "wp-project-triage", "wp-plugin-development"],
     "wordpress_admin_ui": ["wordpress-admin-ui", "wp-project-triage", "wp-plugin-development", "agent-frontend-ui-engineering", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
     "wordpress_article_editor": ["wordpress-article-editor", "wordpress-admin-ui", "newspaper-tagdiv", "wp-project-triage", "wp-plugin-development", "agent-browser-testing-with-devtools"],

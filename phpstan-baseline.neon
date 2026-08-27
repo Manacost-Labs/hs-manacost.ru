@@ -1,0 +1,157 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_array\(\) with array\<string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: wordpress/mu-plugins/hs-admin-ajax-guard.php
+
+		-
+			message: '#^Found usage of constant DOING_AJAX\. Use wp_doing_ajax\(\) instead\.$#'
+			identifier: phpstanWP.wpConstant.fetch
+			count: 1
+			path: wordpress/mu-plugins/hs-admin-ajax-guard.php
+
+		-
+			message: '#^Static method HS_Admin_Ajax_Guard\:\:record_lightweight_newspaper_view_from_monitoring\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: wordpress/mu-plugins/hs-admin-ajax-guard.php
+
+		-
+			message: '#^Static method HS_Admin_Ajax_Guard\:\:update_newspaper_rolling_counters\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: wordpress/mu-plugins/hs-admin-ajax-guard.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: wordpress/mu-plugins/hs-admin-ajax-guard.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 2
+			path: wordpress/mu-plugins/hs-admin-load-trim.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''AIOSEO\\\\Plugin\\\\Common\\\\Admin\\\\WritingAssistant'' and class\-string will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: wordpress/mu-plugins/hs-admin-load-trim.php
+
+		-
+			message: '#^Function hs_smart_tooltip_render_bgs_search_box not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: wordpress/mu-plugins/hs-editor-workspace.php
+
+		-
+			message: '#^Function hs_smart_tooltip_render_search_box not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: wordpress/mu-plugins/hs-editor-workspace.php
+
+		-
+			message: '#^Function hs_smart_tooltip_render_toggle_box not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: wordpress/mu-plugins/hs-editor-workspace.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 1
+			path: wordpress/mu-plugins/hs-local-image-optimizer.php
+
+		-
+			message: '#^Offset ''mime'' on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: wordpress/mu-plugins/hs-local-image-optimizer/src/ImageWorker.php
+
+		-
+			message: '#^Offset ''exitcode'' on array\{command\: string, pid\: int, running\: bool, signaled\: bool, stopped\: bool, exitcode\: int, termsig\: int, stopsig\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: wordpress/mu-plugins/hs-local-image-optimizer/src/ProcessRunner.php
+
+		-
+			message: '#^Found usage of constant DOING_AJAX\. Use wp_doing_ajax\(\) instead\.$#'
+			identifier: phpstanWP.wpConstant.fetch
+			count: 1
+			path: wordpress/mu-plugins/hs-manacost-newspaper-trim.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 2
+			path: wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array\<WP_Term\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: wordpress/mu-plugins/manacost-aioseo-addon.php
+
+		-
+			message: '#^Instanceof between WP_Term and WP_Term will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: wordpress/mu-plugins/manacost-aioseo-addon.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''autoptimizeCache'' and ''clearall'' will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: wordpress/mu-plugins/manacost-cache-purge.php
+
+		-
+			message: '#^Offset ''message'' on array\{name\: string, status\: string, message\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: wordpress/mu-plugins/manacost-cache-purge.php
+
+		-
+			message: '#^Offset ''name'' on array\{name\: string, status\: string, message\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: wordpress/mu-plugins/manacost-cache-purge.php
+
+		-
+			message: '#^Offset ''status'' on array\{name\: string, status\: string, message\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: wordpress/mu-plugins/manacost-cache-purge.php
+
+		-
+			message: '#^Offset ''status'' on array\{name\: string, status\: string, message\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: wordpress/mu-plugins/manacost-cache-purge.php
+
+		-
+			message: '#^Static method Manacost_Cache_Purge\:\:maybe_disable_top_decks_page_cache\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: wordpress/mu-plugins/manacost-cache-purge.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<WP_Term\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: wordpress/mu-plugins/manacost-guide-pdf.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: wordpress/mu-plugins/manacost-media-unique-filenames.php
+
+		-
+			message: '#^Static method Manacost_Performance_Optimizer\:\:async_mobile_noncritical_css\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: wordpress/mu-plugins/manacost-performance-optimizer.php

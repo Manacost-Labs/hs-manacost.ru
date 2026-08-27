@@ -1,0 +1,15 @@
+{
+  "wp_cli_compatibility": "2.12.x",
+  "allowed_environments": [
+    "local",
+    "staging"
+  ],
+  "packages": {
+    "wp-cli/doctor-command": "2.3.1",
+    "wp-cli/profile-command": "2.1.5"
+  },
+  "bundled_commands": [
+    "wp core verify-checksums",
+    "wp plugin verify-checksums"
+  ]
+}

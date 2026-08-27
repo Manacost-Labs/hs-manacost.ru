@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ruleset name="HS Manacost first-party WordPress code">
+    <description>WordPress Coding Standards for project-owned MU-plugins only.</description>
+
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+
+    <file>wordpress/mu-plugins</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/.artifacts/*</exclude-pattern>
+
+    <rule ref="WordPress"/>
+
+    <config name="minimum_supported_wp_version" value="6.9"/>
+</ruleset>

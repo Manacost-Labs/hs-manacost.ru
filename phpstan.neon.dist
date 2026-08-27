@@ -1,0 +1,13 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - wordpress/mu-plugins
+    excludePaths:
+        analyseAndScan:
+            - wordpress/mu-plugins/**/vendor/**
+    tmpDir: .artifacts/phpstan
+    reportUnmatchedIgnoredErrors: true
