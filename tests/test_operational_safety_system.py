@@ -23,6 +23,9 @@ class OperationalSafetySystemTests(unittest.TestCase):
             "capabilities",
         ):
             self.assertIn(contract_type, inventory["contracts"])
+        serialized = json.dumps(inventory)
+        self.assertNotIn("/docs/", serialized)
+        self.assertNotIn("/tests/", serialized)
 
         subprocess.run(
             ["python3", "ops/contracts/scan-wordpress-contracts.py", "--check"],

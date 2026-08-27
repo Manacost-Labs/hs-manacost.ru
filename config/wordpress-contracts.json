@@ -24,27 +24,6 @@
         "line": 209
       },
       {
-        "name": "_bad_fixture_value",
-        "resolved": true,
-        "api": "update_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/compatibility-plugin/src/ClassicEditorBad.php",
-        "line": 23
-      },
-      {
-        "name": "_compatibility_fixture_note",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/compatibility-plugin/src/ClassicEditorGood.php",
-        "line": 22
-      },
-      {
-        "name": "_compatibility_fixture_note",
-        "resolved": true,
-        "api": "update_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/compatibility-plugin/src/ClassicEditorGood.php",
-        "line": 44
-      },
-      {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
@@ -1335,13 +1314,6 @@
         "line": 1064
       },
       {
-        "name": "design_fixture_options",
-        "resolved": true,
-        "api": "get_option",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/design-plugin/src/GoodAdminPage.php",
-        "line": 63
-      },
-      {
         "name": "hs_decks_announcement_button_text",
         "resolved": true,
         "api": "get_option",
@@ -1790,27 +1762,6 @@
         "line": 955
       },
       {
-        "name": "sample_fixture_plugin_message",
-        "resolved": true,
-        "api": "get_option",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/sample-plugin/blocks/sample-block/render.php",
-        "line": 15
-      },
-      {
-        "name": "sample_fixture_plugin_message",
-        "resolved": true,
-        "api": "get_option",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/sample-plugin/src/Admin/Settings_Page.php",
-        "line": 50
-      },
-      {
-        "name": "sample_fixture_plugin_message",
-        "resolved": true,
-        "api": "get_option",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/sample-plugin/src/Rest/Safe_Controller.php",
-        "line": 66
-      },
-      {
         "name": "spqi_descriptions",
         "resolved": true,
         "api": "get_option",
@@ -1986,27 +1937,6 @@
         "api": "add_shortcode",
         "file": "wordpress/plugins/wp-kolodahearthstone-banner/wp-banner.php",
         "line": 16
-      },
-      {
-        "name": "compatibility_fixture_card",
-        "resolved": true,
-        "api": "add_shortcode",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/compatibility-plugin/src/ThemeGood.php",
-        "line": 8
-      },
-      {
-        "name": "design_fixture_bad",
-        "resolved": true,
-        "api": "add_shortcode",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/design-plugin/src/BadFrontendOutput.php",
-        "line": 11
-      },
-      {
-        "name": "design_fixture_good",
-        "resolved": true,
-        "api": "add_shortcode",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/design-plugin/src/GoodFrontendOutput.php",
-        "line": 8
       },
       {
         "name": "hs_arena_decks",
@@ -2319,20 +2249,6 @@
         "api": "register_rest_route",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-rest-controller.php",
         "line": 36
-      },
-      {
-        "name": "performance-plugin/v1/items",
-        "resolved": true,
-        "api": "register_rest_route",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/performance-plugin/src/SafeExamples.php",
-        "line": 66
-      },
-      {
-        "name": "sample-fixture-plugin/v1/fixture-unsafe",
-        "resolved": true,
-        "api": "register_rest_route",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/sample-plugin/unsafe-example.php",
-        "line": 16
       },
       {
         "name": "spqi/v1/items",
@@ -2678,13 +2594,6 @@
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/compatibility-plugin/src/ClassicEditorGood.php",
-        "line": 39
-      },
-      {
-        "name": "edit_post",
-        "resolved": true,
-        "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
         "line": 1023
       },
@@ -2939,27 +2848,6 @@
         "api": "current_user_can",
         "file": "wordpress/plugins/separator-placeholder-quick-insert/includes/class-spqi-admin.php",
         "line": 152
-      },
-      {
-        "name": "manage_options",
-        "resolved": true,
-        "api": "current_user_can",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/design-plugin/src/GoodAdminPage.php",
-        "line": 59
-      },
-      {
-        "name": "manage_options",
-        "resolved": true,
-        "api": "current_user_can",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/sample-plugin/src/Admin/Settings_Page.php",
-        "line": 46
-      },
-      {
-        "name": "read",
-        "resolved": true,
-        "api": "current_user_can",
-        "file": "wordpress/plugins/wp-manacost-decks_old/docs/wordpress-skills/test-fixtures/sample-plugin/src/Rest/Safe_Controller.php",
-        "line": 49
       }
     ]
   }

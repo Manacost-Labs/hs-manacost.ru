@@ -13,6 +13,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY = ROOT / "config/wordpress-contracts.json"
+EXCLUDED_SOURCE_PARTS = {"docs", "tests", "test-fixtures", "vendor", "node_modules"}
 
 CONSTANT_RE = re.compile(
     r"(?:private\s+|protected\s+|public\s+)?const\s+([A-Z][A-Z0-9_]*)\s*=\s*(['\"])(.*?)\2\s*;"
@@ -166,6 +167,9 @@ def build_inventory() -> dict[str, Any]:
             continue
         scanned.append(root.relative_to(ROOT).as_posix())
         for path in sorted(root.rglob("*.php")):
+            relative_parts = path.relative_to(root).parts
+            if EXCLUDED_SOURCE_PARTS.intersection(relative_parts):
+                continue
             for kind, entries in scan_file(path).items():
                 contracts[kind].extend(entries)
 
