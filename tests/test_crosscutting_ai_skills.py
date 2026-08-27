@@ -156,6 +156,15 @@ class CrosscuttingAISkillTests(unittest.TestCase):
         for name in self.SKILL_RESOURCES:
             self.assertIn(name, routing)
 
+    def test_editor_snapshot_removes_only_dynamic_autosave_notice(self) -> None:
+        visual_spec = (ROOT / "tests/visual/wordpress.spec.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("removeDynamicEditorNotices", visual_spec)
+        self.assertIn(".notice-warning", visual_spec)
+        self.assertIn('a[href*="revision.php"]', visual_spec)
+        self.assertNotIn("updateSnapshots", visual_spec)
+
 
 if __name__ == "__main__":
     unittest.main()
