@@ -13,9 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          tools: composer
+      - name: Install locked PHP quality tools
+        run: composer install --no-interaction --prefer-dist
+      - name: Check first-party WordPress code quality
+        env:
+          CODE_QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: make code-quality
       - name: Check repository
         run: make check
 

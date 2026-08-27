@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Clean Code"
+  short_description: "Clean, secure WordPress code gates"
+  default_prompt: "Use $wordpress-clean-code to implement or review this WordPress change with project quality gates."

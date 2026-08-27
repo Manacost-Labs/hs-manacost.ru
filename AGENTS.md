@@ -33,17 +33,18 @@
 
 Использовать последовательно:
 
-1. `agent-test-driven-development` — зафиксировать требуемое поведение тестом или воспроизводимой проверкой.
-2. `agent-code-review-and-quality` — проверить корректность, безопасность, поддержку, тесты и влияние на пользователей.
-3. `agent-code-simplification` — убрать лишнюю сложность без несвязанных рефакторингов и изменения поведения.
-4. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
-5. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
+1. `wordpress-clean-code` — применить проектные правила чистого WordPress-кода и запустить WPCS, PHPCompatibilityWP и PHPStan только для first-party surface.
+2. `agent-test-driven-development` — зафиксировать требуемое поведение тестом или воспроизводимой проверкой.
+3. `agent-code-review-and-quality` — проверить корректность, безопасность, поддержку, тесты и влияние на пользователей.
+4. `agent-code-simplification` — убрать лишнюю сложность без несвязанных рефакторингов и изменения поведения.
+5. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
+6. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
 
 Постоянный baseline любого проектного задания хранится в `baseline_for_project_tasks`, а baseline изменений кода — в `baseline_for_code_changes`. Внешние AI entrypoints (`CLAUDE.md`, `.github/copilot-instructions.md`) обязаны вести к этому файлу и реестру, а не дублировать собственные расходящиеся правила.
 
 Для любой WordPress-задачи сначала использовать `wordpress-router` и `wp-project-triage`, затем профильный `wp-plugin-development`, `wp-rest-api`, `wp-wpcli-and-ops`, `wp-performance` или `wp-phpstan`. Проектный `wordpress-plugin-dev` применяется вместе с ними и задаёт локальные ограничения hs-manacost.ru.
 
-Для любого изменения `Newspaper_new`, tagDiv Composer/Standard Pack/Cloud Library, Cloud Templates, блоков, модулей, Theme API, CSS темы или child theme обязательно использовать `newspaper-tagdiv`. Прямое изменение родительской темы или `td-*` плагина допускается только после поиска поддерживаемой точки расширения и запуска `.agents/skills/newspaper-tagdiv/scripts/audit_newspaper_change.py`.
+Для любого изменения `Newspaper_new`, tagDiv Composer/Standard Pack/Cloud Library, Cloud Templates, блоков, модулей, Theme API, CSS темы или child theme обязательно использовать `newspaper-tagdiv` вместе с `wordpress-clean-code`. Прямое изменение родительской темы или `td-*` плагина допускается только после поиска поддерживаемой точки расширения и запуска `.agents/skills/newspaper-tagdiv/scripts/audit_newspaper_change.py`.
 
 Для любого нового или изменяемого экрана `wp-admin`, страницы настроек плагина, dashboard, таблицы, формы, фильтров, bulk actions, модального окна или editor sidebar обязательно использовать `wordpress-admin-ui`. Навык применяется вместе с WordPress/security-скиллами и требует проверки реального сценария на desktop и mobile, а не только просмотра скриншота.
 

@@ -6,6 +6,7 @@ Use `config/ai-skills.json` as the machine-readable source. This guide explains 
 |---|---|
 | Any project task | `hs-manacost-project` |
 | General WordPress/PHP ownership | `wordpress`, then the exact WP specialization |
+| First-party code, refactor, lint or static analysis | `code_quality`, then the owning WordPress specialization |
 | Classic/TinyMCE/Gutenberg article editing | `wordpress_article_editor` |
 | wp-admin screen/form/list/settings | `wordpress_admin_ui` |
 | Newspaper/tagDiv/theme template | `newspaper_tagdiv` |

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ruleset name="HS Manacost PHP compatibility">
+    <description>PHP 8.2 through 8.4 compatibility for project-owned MU-plugins.</description>
+
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+
+    <file>wordpress/mu-plugins</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/.artifacts/*</exclude-pattern>
+
+    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.2-8.4"/>
+</ruleset>

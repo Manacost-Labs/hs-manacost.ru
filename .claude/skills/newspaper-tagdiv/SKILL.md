@@ -21,6 +21,7 @@ Protect the production publishing surface while changing Newspaper 12.7.3 and it
 
 1. Run `python3 .agents/skills/newspaper-tagdiv/scripts/audit_newspaper_change.py --repo . --base HEAD --include-untracked` before editing to see the protected surface.
 2. Read only the relevant guide:
+   - ownership, update survival, visual regression, and rollback: [change-safety.md](change-safety.md)
    - Composer pages and editor behavior: [composer.md](composer.md)
    - Cloud Templates and assignment: [cloud-templates.md](cloud-templates.md)
    - `td_api_*` registration and overrides: [theme-api.md](theme-api.md)

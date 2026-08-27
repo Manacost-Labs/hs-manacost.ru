@@ -39,6 +39,7 @@ Always use this skill plus the task route:
 - Health, latency, cron, queue, capacity or post-release monitoring: `wordpress-observability`.
 - Article/link/shortcode/media/canonical integrity audit: `wordpress-content-integrity`.
 - Newspaper parent theme, Composer, Cloud Templates, blocks/modules or theme CSS: `newspaper-tagdiv`.
+- Any first-party PHP, JavaScript, CSS, MU-plugin, refactor, review, WPCS, PHPCompatibilityWP or PHPStan task: `wordpress-clean-code`; pair it with `newspaper-tagdiv` for theme/tagDiv work.
 - Any wp-admin screen or internal workflow: `wordpress-admin-ui`.
 - WordPress plugin, REST, WP-CLI, performance, SEO, incident, frontend or infrastructure work: use the exact route in `config/ai-skills.json` together with project baseline skills.
 

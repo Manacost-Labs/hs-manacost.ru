@@ -1,6 +1,12 @@
-.PHONY: check php-lint test shell-check contracts contract-check integration visual plugin-audit
+.PHONY: check composer-validate code-quality php-lint test shell-check contracts contract-check integration visual plugin-audit
 
-check: php-lint contract-check test shell-check
+check: composer-validate php-lint contract-check test shell-check
+
+composer-validate:
+	@composer validate --strict --no-check-publish
+
+code-quality: composer-validate
+	@ops/code-quality/run.sh
 
 php-lint:
 	@find wordpress config -type f -name '*.php' -print0 | xargs -0 -n 1 php -l >/dev/null
