@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress External Integrations"
+  short_description: "Надёжность API, ботов и вебхуков"
+  default_prompt: "Use $wordpress-external-integrations to review or change an external WordPress integration safely."

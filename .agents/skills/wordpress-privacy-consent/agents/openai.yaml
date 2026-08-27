@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Privacy Consent"
+  short_description: "Приватность, согласия и персональные данные"
+  default_prompt: "Use $wordpress-privacy-consent to audit privacy and consent behavior for this WordPress flow."

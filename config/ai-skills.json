@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "compatibility": {
     "wordpress_core": "6.9.7",
     "newspaper": "12.7.3",
@@ -117,6 +117,38 @@
       "source": "project",
       "license": "project-internal",
       "required_for": ["advertising", "playerok", "banner", "plausible", "article-events", "view-counter", "analytics-cache", "regional-ad-delivery"]
+    },
+    {
+      "name": "wordpress-editorial-publish-gate",
+      "path": ".agents/skills/wordpress-editorial-publish-gate/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["pre-publication", "publish-approval", "schedule-approval", "editorial-release", "publication-evidence"]
+    },
+    {
+      "name": "wordpress-privacy-consent",
+      "path": ".agents/skills/wordpress-privacy-consent/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["privacy", "consent", "personal-data", "cookies", "forms", "comments", "telegram-notification", "retention", "erasure"]
+    },
+    {
+      "name": "wordpress-accessibility",
+      "path": ".agents/skills/wordpress-accessibility/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["accessibility", "wcag", "keyboard", "screen-reader", "focus", "contrast", "zoom", "responsive-accessibility"]
+    },
+    {
+      "name": "wordpress-external-integrations",
+      "path": ".agents/skills/wordpress-external-integrations/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["external-api", "telegram-bot", "webhook", "oauth-callback", "embed", "s3-integration", "timeout", "retry", "idempotency"]
     },
     {
       "name": "cloudflare",
@@ -273,6 +305,10 @@
     "frontend_design": ["agent-frontend-ui-engineering", "frontend-design", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
     "seo": ["wordpress-seo-editorial", "wordpress-content-integrity", "seo", "seo-technical", "seo-page", "seo-schema", "seo-images", "seo-sitemap"],
     "ads_analytics": ["wordpress-ads-analytics", "wordpress-runtime-stack", "wordpress-observability", "playwright", "web-perf"],
+    "editorial_publish_gate": ["wordpress-editorial-publish-gate", "wordpress-article-editor", "wordpress-content-integrity", "wordpress-media-integrity", "wordpress-seo-editorial", "wordpress-accessibility", "wordpress-ads-analytics"],
+    "privacy_consent": ["wordpress-privacy-consent", "wordpress-external-integrations", "wordpress-runtime-stack", "wordpress-admin-ui", "agent-security-and-hardening"],
+    "accessibility": ["wordpress-accessibility", "playwright", "wordpress-admin-ui", "newspaper-tagdiv", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
+    "external_integrations": ["wordpress-external-integrations", "wordpress-privacy-consent", "wp-rest-api", "wordpress-runtime-stack", "wordpress-observability", "agent-security-and-hardening"],
     "performance": ["wp-performance", "agent-performance-optimization", "web-perf", "web-quality-performance", "web-quality-core-web-vitals"],
     "web_quality_audit": ["web-quality-web-quality-audit", "web-quality-best-practices", "web-quality-accessibility"],
     "incident": ["wordpress-incident-response", "agent-debugging-and-error-recovery", "agent-test-driven-development"],
