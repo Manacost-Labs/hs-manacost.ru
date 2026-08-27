@@ -43,11 +43,17 @@
 
 Для любого нового или изменяемого экрана `wp-admin`, страницы настроек плагина, dashboard, таблицы, формы, фильтров, bulk actions, модального окна или editor sidebar обязательно использовать `wordpress-admin-ui`. Навык применяется вместе с WordPress/security-скиллами и требует проверки реального сценария на desktop и mobile, а не только просмотра скриншота.
 
+Для любого изменения редактора статей, Classic Editor, TinyMCE, Gutenberg, редакторских metabox/sidebar, autosave, revisions, предпросмотра, медиазагрузки, S3-вставки, редакторского shortcode или `hs-editor-workspace` обязательно использовать `wordpress-article-editor` вместе с `wordpress-admin-ui`. Если затронут Newspaper/tagDiv, одновременно обязателен `newspaper-tagdiv`. Нельзя считать изменение проверенным без сохранения черновика, autosave, восстановления revision, preview, публикации и проверки сохранённого `post_content`.
+
+Для изменения или диагностики WP Rocket, Redis, Cloudflare, регионального proxy cache, Perfmatters, All in One SEO, Wordfence, Redirection, обновления активного плагина, WAF или `manacost-cache-purge` обязательно использовать `wordpress-runtime-stack`. Сначала определяется владеющий проблемой слой; массовая очистка всех кэшей, Redis flush и отключение защиты не являются первым диагностическим действием.
+
 ### По типу задачи
 
 | Задача | Обязательные скиллы | Обязательная проверка |
 |---|---|---|
 | Админ-панель, настройки, dashboard, таблицы и формы | `wordpress-admin-ui`, `wp-project-triage`, `wp-plugin-development`, `agent-frontend-ui-engineering`, `web-quality-accessibility`, `agent-browser-testing-with-devtools` | Роли и capability, nonce/REST permissions, create/edit/filter/paginate/error/delete, keyboard, 320/768/1024/1440 px |
+| Редактор статей, TinyMCE/Gutenberg, autosave, revisions, media и shortcodes | `wordpress-article-editor`, `wordpress-admin-ui`, `wp-project-triage`, `wp-plugin-development`; при tagDiv также `newspaper-tagdiv` | Draft/autosave/revision/preview/publish, no-op `post_content`, роли, keyboard/mobile, S3 и frontend rendering |
+| WP Rocket, Redis, Cloudflare/proxy cache, Perfmatters, AIOSEO, Wordfence, Redirection и обновления плагинов | `wordpress-runtime-stack`, `wp-wpcli-and-ops`, `wp-performance`, `agent-performance-optimization`, `agent-security-and-hardening` | Владеющий слой, targeted purge, cold/warm, anonymous/authenticated, staging, origin и оба RU-прокси, rollback |
 | Интерфейс, тема, CSS/JS, адаптивность | `agent-frontend-ui-engineering`, `frontend-design`, `web-quality-accessibility`, `agent-browser-testing-with-devtools` | Desktop и mobile, клавиатура, состояния loading/empty/error, отсутствие горизонтального скролла |
 | SEO, шаблоны страниц, мета и индексация | `seo`, `seo-technical` и профильный `seo-page`/`seo-schema`/`seo-images`/`seo-sitemap` | Каноникал только на `.ru`; `.com` остаётся noindex-зеркалом; `test` остаётся полностью noindex |
 | Производительность и кэширование | `agent-performance-optimization`, `web-quality-performance`, `web-quality-core-web-vitals` | Измерение до/после, отсутствие регрессии LCP/INP/CLS, проверка origin и обоих RU-прокси |

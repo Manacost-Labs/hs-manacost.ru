@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Runtime Stack"
+  short_description: "Кэш, SEO, безопасность и плагины Manacost"
+  default_prompt: "Используй $wordpress-runtime-stack, чтобы безопасно изменить кэш или настройки активных runtime-плагинов Manacost."
