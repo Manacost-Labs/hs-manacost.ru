@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Ads & Analytics"
+  short_description: "Проверяет рекламу, аналитику и просмотры"
+  default_prompt: "Use $wordpress-ads-analytics to verify banners, Plausible, article views, caches, and regional delivery without double counting."

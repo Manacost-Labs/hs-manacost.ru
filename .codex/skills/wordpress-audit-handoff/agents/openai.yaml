@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Audit Handoff"
+  short_description: "Готовит проверяемый релизный и SRE-отчёт"
+  default_prompt: "Use $wordpress-audit-handoff to turn verified WordPress release evidence into a self-contained handoff with gates, monitoring, and rollback."
