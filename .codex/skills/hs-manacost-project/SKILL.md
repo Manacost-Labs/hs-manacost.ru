@@ -40,6 +40,10 @@ Always use this skill plus the task route:
 - Article/link/shortcode/media/canonical integrity audit: `wordpress-content-integrity`.
 - Editorial SEO, title/schema/canonical/sitemap/internal-link/image policy: `wordpress-seo-editorial`.
 - Playerok or other banners, Plausible, article events, view counters or regional advertising drift: `wordpress-ads-analytics`.
+- Approval before publishing, scheduling or republishing editorial content: `wordpress-editorial-publish-gate` plus every specialist skill for the changed surface.
+- Cookies, consent, forms, comments, Telegram payloads, retention, exports or personal-data deletion: `wordpress-privacy-consent`.
+- Keyboard, screen-reader names, focus, headings, contrast, zoom, mobile accessibility or WCAG regressions: `wordpress-accessibility`.
+- Telegram bots, APIs, webhooks, OAuth callbacks, embeds, S3 or third-party failure handling: `wordpress-external-integrations`.
 - Newspaper parent theme, Composer, Cloud Templates, blocks/modules or theme CSS: `newspaper-tagdiv`.
 - Any first-party PHP, JavaScript, CSS, MU-plugin, refactor, review, WPCS, PHPCompatibilityWP or PHPStan task: `wordpress-clean-code`; pair it with `newspaper-tagdiv` for theme/tagDiv work.
 - Any wp-admin screen or internal workflow: `wordpress-admin-ui`.

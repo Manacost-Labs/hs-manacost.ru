@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Publish Gate"
+  short_description: "Проверка материала перед публикацией"
+  default_prompt: "Use $wordpress-editorial-publish-gate to verify this WordPress material before publication."

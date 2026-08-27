@@ -11,6 +11,13 @@ async function stabilize(page: Page): Promise<void> {
   });
 }
 
+async function removeDynamicEditorNotices(page: Page): Promise<void> {
+  const autosaveNotice = page.locator('.notice-warning').filter({
+    has: page.locator('a[href*="revision.php"]'),
+  });
+  await autosaveNotice.evaluateAll(notices => notices.forEach(notice => notice.remove()));
+}
+
 test.beforeEach(async ({ context }) => {
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
@@ -57,6 +64,7 @@ test('article editor', async ({ page }) => {
     .getAttribute('href');
   if (!editUrl) throw new Error('Seed article edit link not found');
   await page.goto(editUrl, { waitUntil: 'domcontentloaded' });
+  await removeDynamicEditorNotices(page);
   await stabilize(page);
   await expect(page).toHaveScreenshot('editor.png');
 });

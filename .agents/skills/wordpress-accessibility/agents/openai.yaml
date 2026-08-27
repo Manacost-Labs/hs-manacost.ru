@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Accessibility"
+  short_description: "Доступность сайта и редакторских экранов"
+  default_prompt: "Use $wordpress-accessibility to verify this WordPress interface for keyboard, screen reader, and mobile accessibility."
