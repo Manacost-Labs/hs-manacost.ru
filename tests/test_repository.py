@@ -112,6 +112,8 @@ class RepositoryPolicyTests(unittest.TestCase):
         for name in (
             "newspaper-tagdiv",
             "wordpress-admin-ui",
+            "wordpress-article-editor",
+            "wordpress-runtime-stack",
             "wordpress-router",
             "wp-performance",
             "wp-phpstan",
@@ -126,6 +128,8 @@ class RepositoryPolicyTests(unittest.TestCase):
 
         self.assertIn("newspaper-tagdiv", routes["newspaper_tagdiv"])
         self.assertIn("wordpress-admin-ui", routes["wordpress_admin_ui"])
+        self.assertIn("wordpress-article-editor", routes["wordpress_article_editor"])
+        self.assertIn("wordpress-runtime-stack", routes["wordpress_runtime_stack"])
 
 
 if __name__ == "__main__":

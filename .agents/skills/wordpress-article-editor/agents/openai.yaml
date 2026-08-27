@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Article Editor"
+  short_description: "Безопасные изменения редактора статей Manacost"
+  default_prompt: "Используй $wordpress-article-editor, чтобы безопасно улучшить редактор статей Manacost и проверить весь редакционный сценарий."
