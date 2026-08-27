@@ -23,6 +23,8 @@
 
 Перед началом изменения агент обязан определить тип задачи, назвать применяемые скиллы в рабочем сообщении и полностью прочитать соответствующие `SKILL.md`. Скиллы являются обязательным процессом, а не рекомендацией. Не нужно загружать весь набор сразу: используются базовые скиллы и только относящиеся к задаче специализации.
 
+Для любой задачи в этом проекте первым обязательно использовать `hs-manacost-project`: прочитать его `SKILL.md` и выполнить `.agents/skills/hs-manacost-project/scripts/context-snapshot.sh`. Он задаёт карту source/runtime/data, выбор специализаций, staging/production и формат доказательств. Затем загружать только профильный маршрут из `config/ai-skills.json`.
+
 Точный реестр и маршрутизация находятся в `config/ai-skills.json`. Канонические проектные копии скиллов лежат в `.agents/skills`; синхронизированные копии для Claude Code и Codex лежат в `.claude/skills` и `.codex/skills`. Нельзя менять только одну копию: после изменения канонического скилла выполнить `./ops/sync-ai-skills.sh`.
 
 Официальные WordPress-скиллы зафиксированы на конкретном commit `WordPress/agent-skills`. Они сейчас ориентированы на WordPress 7.0+, а проект работает на WordPress 6.9.7, поэтому version-sensitive API обязательно сверять с установленным core и исходниками проекта.
@@ -36,6 +38,8 @@
 3. `agent-code-simplification` — убрать лишнюю сложность без несвязанных рефакторингов и изменения поведения.
 4. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
 5. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
+
+Постоянный baseline любого проектного задания хранится в `baseline_for_project_tasks`, а baseline изменений кода — в `baseline_for_code_changes`. Внешние AI entrypoints (`CLAUDE.md`, `.github/copilot-instructions.md`) обязаны вести к этому файлу и реестру, а не дублировать собственные расходящиеся правила.
 
 Для любой WordPress-задачи сначала использовать `wordpress-router` и `wp-project-triage`, затем профильный `wp-plugin-development`, `wp-rest-api`, `wp-wpcli-and-ops`, `wp-performance` или `wp-phpstan`. Проектный `wordpress-plugin-dev` применяется вместе с ними и задаёт локальные ограничения hs-manacost.ru.
 

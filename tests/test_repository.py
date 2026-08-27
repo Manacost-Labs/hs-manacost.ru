@@ -110,6 +110,7 @@ class RepositoryPolicyTests(unittest.TestCase):
 
         local_skills = {item["name"]: item for item in registry["project_local"]}
         for name in (
+            "hs-manacost-project",
             "newspaper-tagdiv",
             "wordpress-admin-ui",
             "wordpress-article-editor",
@@ -130,6 +131,8 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("wordpress-admin-ui", routes["wordpress_admin_ui"])
         self.assertIn("wordpress-article-editor", routes["wordpress_article_editor"])
         self.assertIn("wordpress-runtime-stack", routes["wordpress_runtime_stack"])
+        self.assertIn("hs-manacost-project", registry["baseline_for_project_tasks"])
+        self.assertIn("hs-manacost-project", routes["wordpress"])
 
 
 if __name__ == "__main__":
