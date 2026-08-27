@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "database": {
+    "source": "production MariaDB dump captured by server-backup-core.timer",
+    "schedule": "daily",
+    "maximum_backup_age_hours": 36,
+    "retention": {
+      "daily": 14,
+      "weekly": 8,
+      "monthly": 6
+    }
+  },
+  "object_storage": {
+    "source": "OVH Object Storage media bucket",
+    "schedule": "daily",
+    "independent_destination_required": true,
+    "retention_days": 90,
+    "strategy": "rclone sync to current with changed and deleted objects retained in dated versions"
+  },
+  "restore_drill": {
+    "schedule": "monthly",
+    "database": "restore latest dump into disposable MariaDB 10.11 and verify WordPress tables",
+    "object_storage": "download a deterministic object twice from the independent backup and verify bytes"
+  },
+  "success_definition": "A backup is healthy only after the latest scheduled restore drill succeeds."
+}

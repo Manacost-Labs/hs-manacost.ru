@@ -1,0 +1,14 @@
+[Unit]
+Description=HS Manacost database and S3 restore drill
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/hs-manacost/backup.env
+WorkingDirectory=/srv/projects/wordpress/hs-manacost.ru
+ExecStart=/srv/projects/wordpress/hs-manacost.ru/ops/backup/restore-drill.sh
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+TimeoutStartSec=8h

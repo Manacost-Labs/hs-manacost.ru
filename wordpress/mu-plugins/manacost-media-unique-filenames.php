@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Media Unique Filenames
  * Description: Keeps WordPress upload names unique after older media files have been offloaded from local storage.
- * Version: 1.0.0
+ * Version: 1.0.1
  */
 
 declare(strict_types=1);
@@ -13,9 +13,6 @@ if (!defined('ABSPATH')) {
 
 final class Manacost_Media_Unique_Filenames
 {
-    /** @var array<string, array<int, string>> */
-    private static array $attachment_filename_cache = [];
-
     public static function bootstrap(): void
     {
         // WordPress uses this list to avoid future image-subsize collisions.
@@ -181,11 +178,6 @@ final class Manacost_Media_Unique_Filenames
             return [];
         }
 
-        $cache_key = $wpdb->postmeta . '|' . $relative_directory;
-        if (isset(self::$attachment_filename_cache[$cache_key])) {
-            return self::$attachment_filename_cache[$cache_key];
-        }
-
         $prefix  = $relative_directory === '' ? '' : $relative_directory . '/';
         $pattern = $wpdb->esc_like($prefix) . '%';
         $query   = $wpdb->prepare(
@@ -214,8 +206,10 @@ final class Manacost_Media_Unique_Filenames
             }
         }
 
-        self::$attachment_filename_cache[$cache_key] = array_values(array_unique($filenames));
-        return self::$attachment_filename_cache[$cache_key];
+        // Do not cache this query within the request: WordPress and bulk importers
+        // can create several attachments in one request. A cached empty list would
+        // allow the next upload to reuse an offloaded attachment's filename.
+        return array_values(array_unique($filenames));
     }
 }
 

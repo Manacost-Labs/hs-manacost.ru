@@ -41,6 +41,10 @@ upgrade/
 .vscode/
 .phpunit.result.cache
 coverage/
+node_modules/
+playwright-report/
+test-results/
+.artifacts/
 __pycache__/
 *.py[cod]
 *.log

@@ -1,0 +1,33 @@
+name: Plugin audit report
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build active plugin compatibility report
+        run: python3 ops/plugins/audit-updates.py --output-dir .artifacts/plugin-audit
+      - name: Scan vendored plugin source for known vulnerable dependencies
+        continue-on-error: true
+        uses: google/osv-scanner-action/osv-scanner-action@v2.2.3
+        with:
+          scan-args: |-
+            --recursive
+            --format=json
+            --output-file=.artifacts/plugin-audit/osv-results.json
+            wordpress/plugins
+      - name: Upload read-only report
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-compatibility-and-vulnerability-report
+          path: .artifacts/plugin-audit/
+          retention-days: 30

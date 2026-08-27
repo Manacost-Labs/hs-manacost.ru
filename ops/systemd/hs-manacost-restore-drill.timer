@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly HS Manacost test restoration
+
+[Timer]
+OnCalendar=monthly
+RandomizedDelaySec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

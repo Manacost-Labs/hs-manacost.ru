@@ -87,3 +87,11 @@ make check
 ```
 
 Для ручного deployment сначала использовать dry-run из `ops/deploy.sh`. Не обходить GitHub pipeline для обычных production-релизов.
+
+## Контракты, integration и эксплуатационная безопасность
+
+- При изменении post meta, options, shortcodes, AJAX/REST endpoints, cron hooks или capabilities выполнить `make contracts`, проверить diff `config/wordpress-contracts.json` и добавить поведенческий тест скрытой зависимости.
+- При изменении публикации, редактора, media/S3, каноникалов, просмотров или cache purge обязательно выполнить `make integration`.
+- При изменении Newspaper, CSS, frontend или `wp-admin` выполнить `make visual`; новые эталоны принимать только после ручного просмотра и генерировать в зафиксированном Playwright-контейнере.
+- Обновляется только один regular plugin за изменение. Commercial и tagDiv/Newspaper обновляются вручную, сначала в integration и staging; production auto-update запрещён.
+- Бэкап нельзя считать успешным только по exit code копирования: требуется свежий успешный restore-drill БД и независимой S3-копии. Production БД никогда не является целью тестового восстановления.

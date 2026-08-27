@@ -1,0 +1,55 @@
+services:
+  database:
+    image: mariadb:10.11@sha256:ce66c7be32a03aabe7241d0a10993a2db827ef652a35d25727d92a832ac8ef73
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: ${WP_TEST_DB_PASSWORD:?set by start.sh}
+      MARIADB_ROOT_PASSWORD: ${WP_TEST_DB_ROOT_PASSWORD:?set by start.sh}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+    tmpfs:
+      - /var/lib/mysql
+
+  wordpress:
+    image: wordpress:php8.2-apache@sha256:eb3f6cc56445dadea9c5cc6442fb60fbacfc433b2d253a96b6d8ffd4c5b2c0cf
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WP_TEST_PORT:-8888}:80"
+    environment:
+      WORDPRESS_DB_HOST: database
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${WP_TEST_DB_PASSWORD:?set by start.sh}
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: "1"
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_ENVIRONMENT_TYPE', 'local' );
+        define( 'WP_DEBUG_DISPLAY', false );
+        @ini_set( 'display_errors', '0' );
+        define( 'DISABLE_WP_CRON', true );
+        define( 'MANACOST_PERF_ENABLED', false );
+        define( 'WP_HOME', 'http://127.0.0.1:${WP_TEST_PORT:-8888}' );
+        define( 'WP_SITEURL', 'http://127.0.0.1:${WP_TEST_PORT:-8888}' );
+    volumes:
+      - ${WP_TEST_SITE_PATH:?set by start.sh}:/var/www/html
+
+  cli:
+    image: wordpress:cli-php8.2@sha256:837d55d02196b5f4c92d236317c6d089ab1471348b31d1708888d444a0390979
+    entrypoint: ["wp"]
+    depends_on:
+      database:
+        condition: service_healthy
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: database
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${WP_TEST_DB_PASSWORD:?set by start.sh}
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - ${WP_TEST_SITE_PATH:?set by start.sh}:/var/www/html
+    working_dir: /var/www/html
