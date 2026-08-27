@@ -1,0 +1,4 @@
+interface:
+  display_name: "HS Manacost Project"
+  short_description: "Полный контекст и процесс разработки Manacost"
+  default_prompt: "Используй $hs-manacost-project, чтобы безопасно выполнить задачу в проекте hs-manacost.ru от анализа до проверенного staging."

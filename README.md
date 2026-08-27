@@ -37,6 +37,8 @@
 
 Все AI-агенты обязаны прочитать `AGENTS.md`, выбрать скиллы по `config/ai-skills.json` и применить их до изменения кода. Специальный WordPress/PHP skill закреплён прямо в `.agents/skills/wordpress-plugin-dev`, поэтому его правила не зависят от состояния глобального каталога сервера.
 
+Первым для любой задачи используется проектный skill `hs-manacost-project`. Его read-only команда `.agents/skills/hs-manacost-project/scripts/context-snapshot.sh` выдаёт компактный актуальный контекст без секретов: Git-состояние, домены, версии, активный стек и обязательный маршрут дальнейшей работы. `CLAUDE.md` и `.github/copilot-instructions.md` направляют Claude Code и GitHub Copilot к тем же каноническим правилам.
+
 Базовый quality gate включает тестирование, code review, упрощение, security-проверку и Git-процесс. Для UI автоматически добавляются дизайн, доступность и browser testing; для SEO — техническое SEO и профильные проверки; для производительности — измерения Core Web Vitals до и после изменения. Проектные `wordpress-article-editor` и `wordpress-runtime-stack` отдельно закрепляют безопасную работу с редактором статей и активным стеком WP Rocket/Redis/Cloudflare/Perfmatters/AIOSEO/Wordfence/Redirection.
 
 ## Обычный процесс изменений
