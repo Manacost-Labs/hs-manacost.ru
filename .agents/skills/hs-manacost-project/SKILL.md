@@ -38,9 +38,14 @@ Always use this skill plus the task route:
 - Pull request, staging deploy, production promotion, hotfix or rollback: `wordpress-release-manager`.
 - Health, latency, cron, queue, capacity or post-release monitoring: `wordpress-observability`.
 - Article/link/shortcode/media/canonical integrity audit: `wordpress-content-integrity`.
+- Editorial SEO, title/schema/canonical/sitemap/internal-link/image policy: `wordpress-seo-editorial`.
+- Playerok or other banners, Plausible, article events, view counters or regional advertising drift: `wordpress-ads-analytics`.
 - Newspaper parent theme, Composer, Cloud Templates, blocks/modules or theme CSS: `newspaper-tagdiv`.
 - Any first-party PHP, JavaScript, CSS, MU-plugin, refactor, review, WPCS, PHPCompatibilityWP or PHPStan task: `wordpress-clean-code`; pair it with `newspaper-tagdiv` for theme/tagDiv work.
 - Any wp-admin screen or internal workflow: `wordpress-admin-ui`.
+- Cloudflare platform, Worker, WAF, cache, DNS or Turnstile work: use the pinned official `cloudflare`, `workers-best-practices`, `wrangler`, `web-perf`, or `turnstile-spin` skill selected by `config/ai-skills.json`. Never use an automation skill to bypass a challenge or weaken protection.
+- Browser E2E, request interception, visual regression or accessibility automation: use the pinned `playwright` skill. Never commit browser authentication state.
+- WordPress 6.9 compatibility review: use `update-to-wordpress-6-9`; for release evidence/handoff use `wordpress-audit-handoff` with `wordpress-release-manager`.
 - WordPress plugin, REST, WP-CLI, performance, SEO, incident, frontend or infrastructure work: use the exact route in `config/ai-skills.json` together with project baseline skills.
 
 Do not load every specialist skill. Progressive context is deliberate: read [architecture.md](references/architecture.md) for ownership, then only the reference needed by the current task.

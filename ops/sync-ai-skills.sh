@@ -6,7 +6,10 @@ canonical="$repo_root/.agents/skills"
 
 for target in "$repo_root/.claude/skills" "$repo_root/.codex/skills"; do
   mkdir -p "$target"
-  rsync -a --delete "$canonical/" "$target/"
+  rsync -a --delete --delete-excluded \
+    --exclude='__pycache__/' \
+    --exclude='*.pyc' \
+    "$canonical/" "$target/"
 
   # Imported skills can contain CRLF files. The repository enforces LF, so
   # normalize known text resources after copying to keep `git status` clean.

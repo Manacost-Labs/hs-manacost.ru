@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "compatibility": {
     "wordpress_core": "6.9.7",
     "newspaper": "12.7.3",
@@ -103,6 +103,88 @@
       "required_for": ["content-audit", "broken-link", "broken-shortcode", "wrong-image", "canonical-audit", "post-publication-check"]
     },
     {
+      "name": "wordpress-seo-editorial",
+      "path": ".agents/skills/wordpress-seo-editorial/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["editorial-seo", "canonical", "robots", "schema", "sitemap", "internal-links", "seo-images", "mirror-seo"]
+    },
+    {
+      "name": "wordpress-ads-analytics",
+      "path": ".agents/skills/wordpress-ads-analytics/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["advertising", "playerok", "banner", "plausible", "article-events", "view-counter", "analytics-cache", "regional-ad-delivery"]
+    },
+    {
+      "name": "cloudflare",
+      "path": ".agents/skills/cloudflare/SKILL.md",
+      "source": "cloudflare/skills",
+      "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "license": "Apache-2.0",
+      "required_for": ["cloudflare-platform", "cloudflare-waf", "cloudflare-cache", "cloudflare-dns"]
+    },
+    {
+      "name": "web-perf",
+      "path": ".agents/skills/web-perf/SKILL.md",
+      "source": "cloudflare/skills",
+      "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "license": "Apache-2.0",
+      "required_for": ["core-web-vitals", "browser-performance", "network-waterfall"]
+    },
+    {
+      "name": "workers-best-practices",
+      "path": ".agents/skills/workers-best-practices/SKILL.md",
+      "source": "cloudflare/skills",
+      "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "license": "Apache-2.0",
+      "required_for": ["cloudflare-worker", "worker-review", "edge-code"]
+    },
+    {
+      "name": "wrangler",
+      "path": ".agents/skills/wrangler/SKILL.md",
+      "source": "cloudflare/skills",
+      "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "license": "Apache-2.0",
+      "required_for": ["wrangler", "worker-deployment", "cloudflare-cli"]
+    },
+    {
+      "name": "turnstile-spin",
+      "path": ".agents/skills/turnstile-spin/SKILL.md",
+      "source": "cloudflare/skills",
+      "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "license": "Apache-2.0",
+      "required_for": ["turnstile", "captcha", "form-spam", "bot-protection"]
+    },
+    {
+      "name": "playwright",
+      "path": ".agents/skills/playwright/SKILL.md",
+      "source": "magnus919/agent-skills",
+      "source_commit": "531ff6753784823c878c92b988c6e55266ce09a9",
+      "adaptation": "Project routing replaces missing sibling skills and forbids challenge or access-control bypass.",
+      "license": "MIT",
+      "required_for": ["playwright", "browser-e2e", "request-interception", "visual-regression", "accessibility-browser-test"]
+    },
+    {
+      "name": "update-to-wordpress-6-9",
+      "path": ".agents/skills/update-to-wordpress-6-9/SKILL.md",
+      "source": "gaambo/wp-upgrade-skills",
+      "source_commit": "21146338c82e626af31abbcc3b49d339c58df90d",
+      "license": "GPL-3.0",
+      "required_for": ["wordpress-6.9-upgrade", "wordpress-core-compatibility", "core-dev-notes"]
+    },
+    {
+      "name": "wordpress-audit-handoff",
+      "path": ".agents/skills/wordpress-audit-handoff/SKILL.md",
+      "source": "courtneyr-dev/wp-release-audit-method",
+      "source_commit": "3d9a3cee8ae244ee5ac00543359a3bc585f34bf3",
+      "adaptation": "Condensed into a self-contained hs-manacost release handoff because upstream sibling references are not standalone.",
+      "license": "GPL-2.0",
+      "required_for": ["release-audit", "sre-handoff", "release-readiness-report"]
+    },
+    {
       "name": "wordpress-router",
       "path": ".agents/skills/wordpress-router/SKILL.md",
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
@@ -189,16 +271,20 @@
     "rest_api": ["wp-rest-api", "wordpress-plugin-dev"],
     "wordpress_operations": ["wp-wpcli-and-ops", "wordpress-plugin-dev"],
     "frontend_design": ["agent-frontend-ui-engineering", "frontend-design", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
-    "seo": ["seo", "seo-technical", "seo-page", "seo-schema", "seo-images", "seo-sitemap"],
-    "performance": ["wp-performance", "agent-performance-optimization", "web-quality-performance", "web-quality-core-web-vitals"],
+    "seo": ["wordpress-seo-editorial", "wordpress-content-integrity", "seo", "seo-technical", "seo-page", "seo-schema", "seo-images", "seo-sitemap"],
+    "ads_analytics": ["wordpress-ads-analytics", "wordpress-runtime-stack", "wordpress-observability", "playwright", "web-perf"],
+    "performance": ["wp-performance", "agent-performance-optimization", "web-perf", "web-quality-performance", "web-quality-core-web-vitals"],
     "web_quality_audit": ["web-quality-web-quality-audit", "web-quality-best-practices", "web-quality-accessibility"],
     "incident": ["wordpress-incident-response", "agent-debugging-and-error-recovery", "agent-test-driven-development"],
     "media_integrity": ["wordpress-media-integrity", "wordpress-article-editor", "wordpress-runtime-stack", "wp-wpcli-and-ops"],
     "database_migration": ["wordpress-database-migrations", "wp-wpcli-and-ops", "wordpress-plugin-dev", "agent-security-and-hardening"],
-    "release": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-git-workflow-and-versioning"],
+    "release": ["wordpress-release-manager", "wordpress-audit-handoff", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-git-workflow-and-versioning"],
     "observability": ["wordpress-observability", "wordpress-runtime-stack", "wp-performance", "agent-performance-optimization"],
     "content_integrity": ["wordpress-content-integrity", "wordpress-article-editor", "wordpress-media-integrity", "seo-technical"],
-    "infrastructure": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-security-and-hardening"]
+    "cloudflare": ["cloudflare", "wrangler", "workers-best-practices", "web-perf", "wordpress-runtime-stack", "wordpress-release-manager"],
+    "bot_protection": ["turnstile-spin", "cloudflare", "wordpress-runtime-stack", "agent-security-and-hardening"],
+    "wordpress_core_upgrade": ["update-to-wordpress-6-9", "wordpress-release-manager", "wp-project-triage", "wp-phpstan", "agent-test-driven-development"],
+    "infrastructure": ["wordpress-release-manager", "cloudflare", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-security-and-hardening"]
   },
   "domain_invariants": {
     "canonical_and_indexable": "hs-manacost.ru",

@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress SEO Editorial"
+  short_description: "Защищает SEO-контракты редакции и зеркала"
+  default_prompt: "Use $wordpress-seo-editorial to audit this WordPress editorial or SEO change across the primary, mirror, and staging hosts."
