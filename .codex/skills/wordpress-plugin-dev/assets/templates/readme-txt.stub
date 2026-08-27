@@ -1,0 +1,47 @@
+=== {{PLUGIN_NAME}} ===
+Contributors: {{WP_ORG_USER}}
+Tags: blocks, settings, rest-api
+Requires at least: {{REQUIRES_WP}}
+Tested up to: {{TESTED_UP_TO}}
+Requires PHP: {{REQUIRES_PHP}}
+Stable tag: {{PLUGIN_VERSION}}
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+{{PLUGIN_DESCRIPTION}}
+
+Text domain: `{{TEXT_DOMAIN}}`
+
+== Description ==
+
+{{LONG_DESCRIPTION}}
+
+== Installation ==
+
+1. Upload the plugin folder to `/wp-content/plugins/{{PLUGIN_SLUG}}`.
+2. Activate the plugin through the Plugins screen in WordPress.
+3. Open the plugin settings screen if configuration is required.
+
+== Frequently Asked Questions ==
+
+= Does this plugin store personal data? =
+
+{{PRIVACY_FAQ_ANSWER}}
+
+= Where can I report bugs or request features? =
+
+{{SUPPORT_FAQ_ANSWER}}
+
+== Screenshots ==
+
+1. {{SCREENSHOT_1_DESCRIPTION}}
+
+== Changelog ==
+
+= {{PLUGIN_VERSION}} =
+* {{CHANGELOG_ENTRY}}
+
+== Upgrade Notice ==
+
+= {{PLUGIN_VERSION}} =
+{{UPGRADE_NOTICE}}

@@ -10,7 +10,7 @@ test:
 	@python3 -m unittest discover -s tests -v
 
 shell-check:
-	@bash -n ops/deploy.sh ops/smoke-check.sh ops/ci/hs-manacost-ci-deploy
-	@if command -v shellcheck >/dev/null 2>&1; then shellcheck ops/deploy.sh ops/smoke-check.sh ops/ci/hs-manacost-ci-deploy; fi
+	@bash -n ops/deploy.sh ops/smoke-check.sh ops/sync-ai-skills.sh ops/ci/hs-manacost-ci-deploy
+	@if command -v shellcheck >/dev/null 2>&1; then shellcheck ops/deploy.sh ops/smoke-check.sh ops/sync-ai-skills.sh ops/ci/hs-manacost-ci-deploy; fi
 	@if command -v actionlint >/dev/null 2>&1; then actionlint .github/workflows/*.yml; fi
 	@echo "Shell syntax: OK"

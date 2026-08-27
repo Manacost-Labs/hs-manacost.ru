@@ -1,0 +1,181 @@
+#ai-wrap {
+  width: 735px;
+}
+
+#ai-wrap h1 {
+  margin-bottom: 50px;
+}
+
+.ai-rounded {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid rgb(221, 221, 221);
+  border-radius: 5px;
+}
+
+.ai-field-editor, .ai-field-editor-image, .ai-field-selection, .ai-field-checkboxes, .ai-field-checkbox {
+  margin: 8px 0;
+}
+
+a.simple-link {
+  text-decoration: none;
+  box-shadow: 0 0 0;
+  color: #0073aa;
+}
+
+.ai-field-wrapper {
+  margin-top: 20px;
+}
+
+.ai-field-textarea {
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+
+  background-color:#F9F9F9;
+  font-family: monospace, Courier, 'Courier New';
+  font-size: 13px;
+  line-height: 18.2px;
+}
+
+input[type=submit] {
+  float: right;
+  vertical-align: middle;
+  font-weight: bold;
+  padding: .4em 1em !important;
+  border: 1px solid #d3d3d3;
+  border-radius: 4px;
+  background: #e6e6e6 url(images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
+  color: #666;
+  cursor: pointer;
+}
+
+h2.ai-global-field-name {
+  margin: 1.5em 10px 0 0;
+}
+
+.ai-field-viewport-image {
+  display: inline-block;
+  margin-right: 20px;
+  vertical-align: top;
+}
+
+.ai-field-image {
+  width: 150px;
+  height: 125px;
+  margin-top: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: center;
+  align-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #777;
+  cursor: pointer;
+}
+
+.ai-close-button {
+  position: relative;
+  margin-top: -24px;
+  width: 24px;
+  height: 24px;
+  top: 24px;
+  left: 139px;
+  background: url('images/close-button.png') no-repeat center center;
+  cursor: pointer;
+  z-index: 9;
+  display: none;
+}
+
+.ai-field-image-viewports {
+  width: 150px;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+
+
+
+div.ai-tooltip {
+  z-index: 203;
+}
+
+#ai-tooltip {
+  position: absolute;
+  z-index: 30000;
+  max-width: 300px;
+  text-align: justify;
+  padding: 4px;
+  font-family: arial;
+  font-size: 11px;
+  color: #FFF!important;
+  border: 1px solid #c6c6c6;
+  background: #ddd url(images/ui-bg_highlight-soft_50_dddddd_1x100.png) 50% 50% repeat-x;
+  border-radius: 5px;
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+  user-select: none;
+}
+
+#ai-tooltip div {
+  margin: 0;
+  padding: 5px;
+  background: #606060;
+}
+
+#ai-tooltip h3 {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 5px;
+  margin: 0;
+  color: #fff;
+  background: #444;
+  text-shadow: #000 1px 1px 0;
+}
+
+#ai-tooltip a {
+  color: transparent;
+  text-decoration: none;
+  box-shadow: 0 0 0;
+}
+
+#ai-tooltip .tooltip-code {
+  color: #5f5;
+}
+
+#ai-tooltip .tooltip-icon {
+  color: #9cf;
+}
+
+
+
+.CodeMirror-gutters {
+  border-right: none;
+}
+
+.CodeMirror-lint-markers {
+  width: 0 !important;
+}
+
+.CodeMirror {
+  height: auto!important;
+
+  border-top:    1px solid #d7d7d7;
+  border-left:   1px solid #e7e5e5;
+  border-right:  1px solid #e7e5e5;
+  border-bottom: 1px solid #ffffff;
+
+  border-radius: 2px;
+
+  box-shadow:
+   inset 1px 1px 2px rgba(0, 0, 0, 0.25),
+   inset -1px -1px 2px rgba(255, 255, 255, 0.8);
+}
+
+
+
+
+.attachment-details .setting, .media-sidebar .setting {
+  margin: 0 0 6px;
+}

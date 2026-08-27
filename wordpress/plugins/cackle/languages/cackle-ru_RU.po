@@ -1,0 +1,161 @@
+msgid ""
+msgstr ""
+
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.4\n"
+
+msgid "Comments"
+msgstr "Комментарии"
+
+msgid "Cackle plugin installation"
+msgstr "Установка плагина Cackle"
+
+msgid "Check status"
+msgstr "Проверка статуса установки и акккаунта"
+
+msgid "Export comments"
+msgstr "Экспорт комментариев"
+
+msgid "Sync comments"
+msgstr "Синхронизация комментариев"
+
+msgid "Cackle plugin status and account availiable options"
+msgstr "Статус установки плагина и активные опции аккаунта Cackle"
+
+msgid "Warnings and errors"
+msgstr "Ошибки, предупреждения, уведомления"
+
+msgid "Enable SSO"
+msgstr "Единая авторизация(вкл)"
+
+msgid "Enable sync(SEO)"
+msgstr "Синхронизация(вкл)"
+
+msgid "Activate"
+msgstr "Активировать"
+
+msgid "Plugin activated"
+msgstr "Статус активации плагина"
+
+msgid "Single sign on"
+msgstr "Единая авторизация"
+
+msgid "This will export your existing WordPress comments to Cackle"
+msgstr "Экспорт существующих в БД Wordpress комментариев в виджет Cackle"
+
+msgid "This will download your Cackle comments and store them locally in WordPress"
+msgstr "Синхронизация комментариев с виджета Cackle в локальную БД Wordpress"
+
+msgid "Start"
+msgstr "Начать"
+
+msgid "Continue"
+msgstr "Продолжить"
+
+msgid "Stop"
+msgstr "Остановить"
+
+msgid "Cackle moderate"
+msgstr "Cackle модерация"
+
+msgid "Cackle settings"
+msgstr "Cackle настройки"
+
+msgid "Paid white label option"
+msgstr "Оплачена опция Без копирайта"
+
+msgid "Paid Single Sign On option"
+msgstr "Оплачена опция Единая авторизация"
+
+msgid "Cackle widget language"
+msgstr "Локализация виджета"
+
+msgid "Processed export comments for post_id = "
+msgstr "Экспорт комментариев для поста с id = "
+
+msgid "Processed export comments was stopped for post_id = "
+msgstr "Экспорт комментариев был остановлен для поста с id = "
+
+msgid "All comments were exported successfully to Cackle!"
+msgstr "Все комментарии были успешно экспортированы в Cackle!"
+
+msgid "Processed sync comments for post_id = "
+msgstr "Синхронизация комментариев для поста с id = "
+
+msgid "Processed sync comments was stopped for post_id = "
+msgstr "Синхронизация комментариев была прервана для поста с id = "
+
+msgid "All comments were synchronized successfully to Cackle!"
+msgstr "Все комментарии были успешно синхронизованы в БД Wordpress!"
+
+#curl errors messages
+
+msgid "You need to enable curl extension in your hosting server, and then click to Activate button again."
+msgstr "Для успешной работы синхронизации вам необходимо активировать расширение curl для php в настройках вашего сервера. <br> 1. Откройте файл php.ini (по дефолту /etc/php5/cli/php.ini) <br>2. Найдите строку с  <b>;extension=php_curl.dll </b> и разкомментируйте ее, в итоге должно получиться <b>extension=php_curl.dll</b> <br>3. Перейдите в Cackle настройки и кликните кнопку Активировать."
+
+msgid "Open_basedir have some value and sync cannot work with it. Go to the php.ini and set ; before it to disable, and then click to Activate button again."
+msgstr "Для правильной работы синхронизации параметр open_basedir должен быть пустым. <br> 1. Откройте файл php.ini (по дефолту /etc/php5/cli/php.ini) <br>2. Найдите параметр open_basedir и закомментируйте его, в итоге должно получиться <b>;openbase_dir</b> <br>3. Перейдите в Cackle настройки и кликните кнопку Активировать."
+
+msgid "Safe mode is enabled and sync cannot work with it. Go to the php.ini and set safe_mode = off to disable, and then click to Activate button again."
+msgstr "Для правильной работы синхронизации параметр safe mode должен быть выключен.<br> 1. Откройте файл php.ini (по дефолту /etc/php5/cli/php.ini) <br>2. Найдите параметр  safe_mode и установите значение off, в итоге должно получиться <b> safe_mode = off</b> <br>3. Перейдите в Cackle настройки и кликните кнопку Активировать."
+
+msgid "Warning"
+msgstr "Предупреждение"
+
+msgid "Success"
+msgstr "Успешная активация!"
+
+msgid "Plugin was successfully activated!"
+msgstr "Плагин был успешно активирован!"
+
+msgid "The entered keys are wrong. Please check it again. Plugin was not activated"
+msgstr "Введены неверные ключи. Проверьте правильность ввода ключей. Плагин не активирован!"
+
+msgid "Plugin was not activated, check keys"
+msgstr "Плагин не был активирован, проверьте ключи и активируйте снова"
+
+msgid "Plugin was successfully activated"
+msgstr "Плагин был успешно активирован и готов к работе!"
+
+msgid "Export process"
+msgstr "Процесс экспорта"
+
+msgid "Sync process"
+msgstr "Процесс синхронизации"
+
+msgid "with specified error: "
+msgstr " со следующей ошибкой: "
+
+msgid "Error 500. Unable to connect server. Check server or internet"
+msgstr "Ошибка 500. Невозможно соединиться с сервером. Проверьте работу сервера или интернет соединения"
+
+msgid "Unable to connect with Cackle"
+msgstr "Невозможно связаться с сервером Cackle"
+
+msgid "Last successfull exported comments was for post_id = "
+msgstr "Последние удачно экспортированные комментарии для поста с id = "
+
+msgid "Last successfull synced comments was for post_id = "
+msgstr "Последние удачно синхронизованные комментарии для поста с id = "
+
+msgid "(comments)"
+msgstr "(комментариев)"
+
+msgid "Comments counter in post number or word"
+msgstr "Счетчик комментариев в посте цифрой или словом"
+
+msgid "Comments counter in preview number or word"
+msgstr "Счетчик комментариев в превью цифрой или словом"
+
+msgid "Posts prepared for import"
+msgstr "Подготовка списка постов для синхронизации"
+
+msgid "You should use php 5.3 at least for proper working"
+msgstr "Вы должны использовать php версию не ниже 5.3 для нормальной работы"
+
+
+
+

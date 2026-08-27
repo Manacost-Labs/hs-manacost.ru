@@ -11,13 +11,23 @@ wp-config.php
 *.crt
 .htpasswd
 
+# Public verification material shipped by the vendored Wordfence plugin.
+!wordpress/plugins/wordfence/lib/noc1.key
+!wordpress/plugins/wordfence/vendor/wordfence/wf-waf/src/falsepositive.key
+!wordpress/plugins/wordfence/vendor/wordfence/wf-waf/src/rules.key
+!wordpress/plugins/wordfence/vendor/wordfence/wf-waf/src/cacert.pem
+
 # Runtime data and exports
 uploads/
 **/uploads/
 cache/
 **/cache/
+!wordpress/plugins/wp-rocket/views/cache/
+!wordpress/plugins/wp-rocket/views/cache/**
 upgrade/
 **/upgrade/
+!wordpress/plugins/shortcodes-ultimate/includes/upgrade/
+!wordpress/plugins/shortcodes-ultimate/includes/upgrade/**
 *.sql
 *.sql.gz
 *.dump
@@ -42,4 +52,3 @@ __pycache__/
 # WordPress core and third-party packages are provisioned separately
 wordpress/core/
 wordpress/vendor-plugins/
-

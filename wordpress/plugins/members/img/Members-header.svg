@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" aria-label="Members">
+  <!-- Three-person icon -->
+  <g transform="translate(10, 40)">
+    <g opacity="0.55" fill="#cbd5e1">
+      <circle cx="44" cy="42" r="18"/>
+      <path d="M12 114 C12 84 26 72 44 72 C62 72 76 84 76 114 Z"/>
+    </g>
+    <g opacity="0.55" fill="#cbd5e1">
+      <circle cx="136" cy="42" r="18"/>
+      <path d="M104 114 C104 84 118 72 136 72 C154 72 168 84 168 114 Z"/>
+    </g>
+    <circle cx="90" cy="32" r="24" fill="#f8fafc"/>
+    <path d="M48 120 C48 86 66 72 90 72 C114 72 132 86 132 120 Z" fill="#f8fafc"/>
+    <circle cx="116" cy="16" r="13" fill="#0E4598" stroke="#0b1220" stroke-width="3"/>
+    <path d="M110 16 L114 21 L122 11" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Members. wordmark -->
+  <text x="210" y="148" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-weight="900" font-size="140" letter-spacing="-5" fill="#f8fafc">Members<tspan fill="#0E4598">.</tspan></text>
+</svg>

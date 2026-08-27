@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<bundle name="Members">
+    <domain name="members">
+        <project name="Members" slug="members">
+            <source>
+                <directory>.</directory>
+            </source>
+            <target>
+                <directory base="WP_LANG_DIR">plugins</directory>
+            </target>
+        </project>
+    </domain>
+    <exclude>
+        <directory>vendor</directory>
+        <directory>tests</directory>
+        <directory>script</directory>
+        <directory>node_modules</directory>
+        <directory>bin</directory>
+        <directory>public</directory>
+    </exclude>
+</bundle>

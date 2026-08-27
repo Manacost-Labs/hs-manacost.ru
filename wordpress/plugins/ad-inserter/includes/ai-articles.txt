@@ -1,0 +1,145 @@
+<!--| The Best WordPress Plugins |-->
+<p>To understand which are the best WordPress Plugins for your website you first need to understand what a Plug-ins are.</p>
+<p>If you were a website developer some years ago you would need to be proficient at a number of coding languages in order to add functions to your website. If you think of something simple like adding a social button to your site like Twitter for example. The web developer would need to write a piece of code or a link to Twitter and add an image on all the pages.</p>
+<p>With the introduction of WordPress and its many associated Plug-ins, this is no longer the case. All a developer or site builder needs to do now is search for a Plug-in and install it with the click of a button.</p>
+<h2>Why Do We Need WordPress Plugins?</h2>
+<p>We can't truly understand why we need plugins until we've planned our site and understood what we want from our site. When we have a good idea of the functions on the site requires, we can begin to understand are the best WordPress Plugins for its needs.</p>
+<h2>What Do WordPress Plugins Do?</h2>
+<p>To understand WordPress Plugins, is to understand that there's nothing they cannot do. WordPress.org is an open source project meaning anyone can produce any Plug-in they wish. This means for every problem with a WordPress website, there is a solution in the form of a Plug-in. Many plugins are used for data capture and SEO. We will take at look at some of the best SEO WordPress plugin shortly because it's on the list.</p>
+<h2>Which WordPress Plugins Do I need?</h2>
+<p>The first thing to do here is please, please never have more than one Plugin doing the same job. If you do, only failure will follow.</p>
+<p>Secondly, the Akismet anti-spam plugin which is by now the best know Plugin is no longer free, so I suggest using WP-spam shield or SI CAPTCHA anti-spam.</p>
+<h2>So What Are The Best WordPress Plugins, And Which Ones Do I Need?</h2>
+<p>For this WordPress Plugin tutorial, I am going to outline what I believe to be the minimum requirements to run WordPress website safely and successfully, starting with a list of WordPress plugins and a description of the function.</p>
+<p>So, let's get started with our list.</p>
+<ol>
+  <li>All in one SEO Pack</li>
+  <li>Google XML Sitemaps</li>
+  <li>Hide Title</li>
+  <li>Mail Subscribe List</li>
+  <li>Pretty Links</li>
+  <li>SEO Smart Links</li>
+  <li>SI CAPTCHA Anti-Spam</li>
+  <li>Sociable</li>
+  <li>WP Fastest Cache</li>
+  <li>WP Spam shield</li>
+  <li>Table Maker</li>
+  <li>Contact Form 7 + Download Monitor + Email Before Download</li>
+</ol>
+<p>Notice that number 12 contains 3 plugins which I want to talk about as a whole because these are used together in order to create a subscription before download function to your site.</p>
+<p>Also, as a starting note, it's always wise to run on as few plugins as possible due to the recourses these plugins use. Don't start to panic, it's just something to consider when you're adding your plugins because the more you install, the more resources that will be used. This could end up affecting the efficiency of the site, such as loading speeds.</p>
+<h2>All In One SEO Pack</h2>
+<p>The all in one SEO pack does what it says on the tin. One of the best SEO WordPress plugin ever! Essentially, it installs an interface that allows you to configure your site SEO, so the search engine can easily make sense of your content.</p>
+<p>It includes all these options</p>
+<ul>
+  <li>XML Sitemap support - submit your sitemap to Google and Bing and improve your SEO</li>
+  <li>Google Analytics support</li>
+  <li>Support for SEO on Custom Post Types</li>
+  <li>Fine tune Page Navigational Links</li>
+  <li>Built-in API so other plugins/themes can access and extend functionality</li>
+  <li>ONLY free plugin to provide SEO Integration for e-Commerce sites, including WooCommerce</li>
+  <li>Nonce Security built into All in One SEO Pack</li>
+  <li>Support for CMS-style WordPress installations</li>
+  <li>Automatically optimizes your titles for Google and other search engines</li>
+  <li>Generates META tags automatically</li>
+  <li>Avoids the typical duplicate content found on WordPress blogs</li>
+</ul>
+<p>For beginners, you don't even have to look at the options, it works out-of-the-box. Just install.</p>
+<p>For advanced users, you can fine-tune everything to optimize your SEO</p>
+<h2>Google XML Sitemaps</h2>
+<p>The Google XML sitemap plugin will generate an XML sitemap to help search engines such as Google, Bing, Yahoo and Ask.com to better index your blog. This sitemap describes your site to the crawlers sent out by the search engines, meaning those search engines understand your pages and can serve these pages to people looking for your content.</p>
+<p>The plugin supports all kinds of WordPress generated pages and custom URLs, and notifies all major search engines every time you create a new post or page.</p>
+<p>This plugin has been around for 9 years and highly rated as a plugin providing a complete XML sitemap for search engines without slowing your site down. so clearly one of the best WordPress plugins in my view.</p>
+<h2>Hide Title</h2>
+<p>This is a simple plugin that you will appreciate once you start creating pages and posts. If your page has the same name as you content title, then this will appear twice at the top of your page. What if you wanted you page name and content title to be the same but only show once at the top of the page. This plugin allows you to hide the page name to give you a single view.</p>
+<h2>Mail Subscribe List</h2>
+<p>If you plan to create a mailing list then a subscriber mailing list will be essential for you.</p>
+<p>Visitors are allowed to enter their name and email address on your website and the details are stored and available to view and modify. The data capture can be added to your WordPress site as a widget or added to a page using a shortcut code.</p>
+<p>Advanced features include 3rd party integration, mass emailing and double opt-in options to qualify your leads.</p>
+<p>Clever coding means this plugin works with all email service providers as well as allowing the exportation of the mailing list. The customization is also impressive including all the following areas that can be displayed as you prefer.</p>
+<p>"prepend" -&gt; Adds a paragraph of text just inside the top of the form.</p>
+<p>"showname" -&gt; If true, this with show the name label and input field for capturing the users name.</p>
+<p>"nametxt" -&gt; Text that is displayed to the left of the name input field.</p>
+<p>"nameholder" -&gt; Text that is displayed inside the name input box as a place holder.</p>
+<p>"emailtxt" -&gt; Text that is displayed to the left of the email input field.</p>
+<p>"emailholder" -&gt; Text that is displayed inside the email input box as a place holder.</p>
+<p>"showsubmit" -&gt; If true, this with show the submit button, return required to submit form.</p>
+<p>"submittxt" -&gt; Text/value that will be displayed on the form submit button.</p>
+<p>"jsthanks" -&gt; If true, this will display a JavaScript Alert Thank You message instead of a paragraph above the form.</p>
+<p>"thankyou" -&gt; Thank you message that will be displayed when someone subscribes. (Will not show if blank)</p>
+<p>The list of customization are longer than this article allows, but I think you get the idea of just how versatile this plugin really is.</p>
+<h2>Pretty Links</h2>
+<p>Pretty Link, is a must have plugin for any affiliate marketer in order to protect their affiliate links, and also makes their readers feel better about navigating to product pages.</p>
+<p>A typical affiliate link may look something like this.</p>
+<p><code>mywebsite.com/?@=?00006454543/img-4988c?-8976756thef?-/hojbv599977ee444=0</code></p>
+<p>As you can see it is not very attractive and some people do not want to click on such a link, but what if you could change that link to something like this</p>
+<p><code>mywebsite.com/MyProductOffer</code></p>
+<p>Instantly, it's more friendly and more descriptive, and all you need to do was enter your original URL into Pretty Link and add the link name of your choice and click a button.</p>
+<p>In addition to cleaning up your links and protecting potentially valuable affiliate links being stolen, Pretty Link can also track and report on the use of your links. Without a doubt one of the best WordPress plugins out there.</p>
+<h2>SEO Smart Links</h2>
+<p>This is another amazing SEO WordPress plugin, helping you create internal links between your pages and posts, which in turns tells the search engine crawlers how important certain page are, and really helps with your SEO.</p>
+<p>The SEO Smart Links can automatically link keywords and phrases in your posts and comments with corresponding posts, pages transparently.</p>
+<h2>SI CAPTCHA Anti-Spam</h2>
+<p>Whenever a reader leaves a comment on your post they will need to enter CAPTCHA anti-spam before submitting.</p>
+<p>This is to prevent to spam attacks that that fill your comment intray within hours.</p>
+<p>Features include:</p>
+<ul>
+  <li>Configure from Admin panel</p>
+  <li>Valid HTML</li>
+  <li>Allows Trackbacks and Pingbacks.</li>
+  <li>Setting to hide the CAPTCHA from logged in users and or admins</li>
+  <li>Setting to show the CAPTCHA on the forms for comments, registration, lost password, login, or all.</li>
+</ul>
+<h2>Sociable</h2>
+<p>Sociable gives you the option to add multiple social buttons to your site.</p>
+<p>It is a feature-packed plugin allowing a degree of customization so you can select and customize features like text, color, and length in order to ensure visitors have a great Sociable Experience.</p>
+<p>This is a free Plug-in with over 1.5 million downloads so far which is a testament to its abilities and popularity as one of the best WordPress plugins</p>
+<h2>WP Fastest Cache</h2>
+<p>Every time a web page is opened by a user, both the server the website it's on, and the computer viewing the website utilizes resources such as CPU, Memory. When pages are rendered, PHP and MySQL are used on the server taking up precious resources. The more users or visitors the more resources used</p>
+<p>This plugin helps the process along by creating static HTML files from your dynamic WordPress site, meaning fewer resources are used and load times are reduced.</p>
+<p>The setup is simple. You don't need to modify the .htacces file. It will be modified automatically.</p>
+<h2>WP Spamshield</h2>
+<p>This is WordPress anti-spam protection with NO CAPTCHAs to challenge visitors, working instead, silently in the background.</p>
+<p>Most spam hitting a site originates from bots sent out by the spammers, but there's still quite a lot sent by real humans too. This plugin works like a firewall to ensure that your commenters are in fact, human, but also that those humans aren't spamming you.</p>
+<p>It's a powerful and user-friendly WordPress anti-spam plugin that eliminates comment spam &amp; registration spam.</p>
+<h2><strong>Table Maker</strong></h2>
+<p>This is a very simple Plugin to use that helps you to create different comparison tables. It has functions which allow you to use plugins to create different types of tables, comparison, TOP, specification tables, etc.</p>
+<p>Features:</p>
+<ul>
+  <li>Responsive option (stacks)</li>
+  <li>Predefined icons</li>
+  <li>Rows or Cols lines</li>
+  <li>Option to mark first column for specification labels</li>
+  <li>Option to add labels and featured row and cols</li>
+  <li>Works with shortcodes</li>
+  <li>Option to add subheaders</li>
+  <li>Option to choose color of header</li>
+  <li>Great and simple design</li>
+  <li>Option to upload and use images</li>
+  <li>Optional center aligning</li>
+  <li>Export tables to XML. Import ones from XML/CSV</li>
+</ul>
+<p>Contact Form 7 + Download Monitor + Email Before Download</p>
+<h2>Contact Form 7</h2>
+<p>Contact Form 7 is another simple plugin that allows you to add a contact form to a page or post with a Short Code. You can create multiple contact forms that can be customized with simple markup. Should you wish to use it, the plugin also supports CAPTCHA, Akismet spam filtering and so on.</p>
+<h2>Download Monitor</h2>
+<p>If you want to offer downloadable file this plugin is for you. Download Monitor provides an interface for uploading and downloading so you can insert download links into post and pages.</p>
+<h2>Email Before Download</h2>
+<p>Presents your readers with a form where they submit information, such as name and email address before allowing them to download a file. This integrates with the Contact Form 7 and Download Monitor plugins, allowing you to create any form you like and manage your file downloads.</p>
+<p>Not only that, you can also export the list of users that downloaded files and create your contact/leads list.</p>
+<h2>FINAL THOUGHTS</h2>
+<p>WordPress Websites with WordPress Plugins are now the de facto route to website ownership for millions of individuals and small companies alike. The versatility and ease of creating the sites and adding functionality for free and without knowledge or experience of coding means owning and running a money making websites is now truly democratic.</p>
+<p>Now, anyone with an idea and the dedication can create and run an online business.</p>
+<p>Add to this, the ability to install SEO and mobile friendly themes and it makes WordPress websites the only viable option for those on a budget and limited experience.</p>
+
+[AI]
+
+<!--| Can You Do Without WordPress Plugins? |-->
+<p>If you don't know the first thing about WordPress plugins, you should know that they're actually certain pieces of programming code that make your website function in a certain way. For example, on type of plugin blocks spam comments from ever reaching your website. While there are many brands for the same type of plugin, easily, the most popular spam comment filtering plugin available is that of Akismet.</p>
+<p>Then there are WordPress plugins like All-in-One SEO that website optimize your content so that your website ranks for your most relevant keyword on Google. And then there's another plugin called Contact Form 7 through which your website visitors can email you. If you think blocking spam comments, ranking on Google and having your website visitors keep in touch with you are important, then there's no way in this world that you can live without WordPress plugins.</p>
+<p>There are thousands of website that provide all kinds of functions anyone can think of, however, there are really just two types of plugins: the free and the paid. Akismet, Contact Form 7 and All-in-One SEO are free, although All-in-One SEO has a paid version which also lets you optimize for social media.</p>
+<p>In order to install a WordPress plugin, you first need to install WordPress on your website. If you're new to all this, register a domain name (good for one year) and then subscribe to a monthly hosting account using that domain name. Point your domain name to the DNS of your website hosting account.</p>
+<p>When everything's set up, your hosting company should provide you with the loin details to your cPanel. Login to your cPanel to install WordPress. When your WordPress is installed, login to your website's WordPress panel using the user name and password you provided at the time of the installation.</p>
+<p>Once logged on, you can then install your plugins. Most, if not all, website these days are built using WordPress because WordPress websites are really much easier to manage. Publishing content is really easy, and if there are any functionality you would like added to your website, you just have to install the appropriate plugin. Aside from the plugins we mentioned above, one of the most important plugins you can install on your website is the social share plugin, which lets your website's visitors share their most favorite content on your website.</p>
+<p>When you already have your website set up, you might be tempted to install as many plugins as the you possibly need, however, we would advise you against doing such a thing. Why? Because having too many plugins can affect the speed of your website, which can turn off your visitors. Also, there are plugins that can affect your website's WordPress theme (design) and cause it to not display properly.</p>
+<p>There are also plugins that can affect how other plugins work. That said, whenever possible, you should install only the most basic of plugins whenever possible. But if you can't help it, do so at your own risk.</p>

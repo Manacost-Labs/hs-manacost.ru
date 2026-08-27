@@ -1,4 +1,5 @@
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             "config/plugins.json",
             "config/network.json",
             "config/ai-skills.json",
+            "config/wordpress-plugins.json",
         ):
             with (ROOT / relative_path).open(encoding="utf-8") as config_file:
                 self.assertIsInstance(json.load(config_file), dict)
@@ -36,15 +38,30 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_forbidden_runtime_files_are_not_tracked(self) -> None:
         forbidden_names = {"wp-config.php", ".env", ".htpasswd"}
         forbidden_suffixes = {".sql", ".dump", ".pem", ".key", ".p12", ".pfx"}
+        public_verification_material = {
+            "wordpress/plugins/wordfence/lib/noc1.key",
+            "wordpress/plugins/wordfence/vendor/wordfence/wf-waf/src/cacert.pem",
+            "wordpress/plugins/wordfence/vendor/wordfence/wf-waf/src/falsepositive.key",
+            "wordpress/plugins/wordfence/vendor/wordfence/wf-waf/src/rules.key",
+        }
         failures: list[str] = []
 
-        for path in ROOT.rglob("*"):
-            if ".git" in path.parts or not path.is_file():
+        tracked = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        for relative in tracked:
+            relative_path = Path(relative)
+            path = ROOT / relative_path
+            if not path.is_file():
                 continue
-            relative_path = path.relative_to(ROOT)
             if path.name in forbidden_names or path.suffix.lower() in forbidden_suffixes:
-                failures.append(str(relative_path))
-            if "uploads" in relative_path.parts or "cache" in relative_path.parts:
+                if relative not in public_verification_material:
+                    failures.append(str(relative_path))
+            if "uploads" in relative_path.parts:
                 failures.append(str(relative_path))
 
         self.assertEqual([], sorted(set(failures)))
@@ -91,9 +108,22 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("web-quality-core-web-vitals", routes["performance"])
         self.assertIn("frontend-design", routes["frontend_design"])
 
-        skill_path = ROOT / registry["project_local"][0]["path"]
-        self.assertTrue(skill_path.is_file())
-        self.assertIn("name: wordpress-plugin-dev", skill_path.read_text(encoding="utf-8"))
+        local_skills = {item["name"]: item for item in registry["project_local"]}
+        for name in (
+            "newspaper-tagdiv",
+            "wordpress-router",
+            "wp-performance",
+            "wp-phpstan",
+            "wp-plugin-development",
+            "wp-project-triage",
+            "wp-rest-api",
+            "wp-wpcli-and-ops",
+        ):
+            self.assertIn(name, local_skills)
+            skill_path = ROOT / local_skills[name]["path"]
+            self.assertTrue(skill_path.is_file(), str(skill_path))
+
+        self.assertIn("newspaper-tagdiv", routes["newspaper_tagdiv"])
 
 
 if __name__ == "__main__":

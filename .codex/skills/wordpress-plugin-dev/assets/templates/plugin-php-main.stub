@@ -1,0 +1,71 @@
+<?php
+/**
+ * Plugin Name:       {{PLUGIN_NAME}}
+ * Description:       {{PLUGIN_DESCRIPTION}}
+ * Version:           {{PLUGIN_VERSION}}
+ * Requires at least: {{REQUIRES_WP}}
+ * Requires PHP:      {{REQUIRES_PHP}}
+ * Author:            {{AUTHOR_NAME}}
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       {{TEXT_DOMAIN}}
+ * Domain Path:       /languages
+ *
+ * @package {{VENDOR_NAMESPACE}}\{{PLUGIN_NAMESPACE}}
+ */
+
+namespace {
+	defined( 'ABSPATH' ) || exit;
+
+	define( '{{CONSTANT_PREFIX}}_VERSION', '{{PLUGIN_VERSION}}' );
+	define( '{{CONSTANT_PREFIX}}_SLUG', '{{PLUGIN_SLUG}}' );
+	define( '{{CONSTANT_PREFIX}}_FILE', __FILE__ );
+	define( '{{CONSTANT_PREFIX}}_DIR', plugin_dir_path( __FILE__ ) );
+	define( '{{CONSTANT_PREFIX}}_URL', plugin_dir_url( __FILE__ ) );
+
+	$autoload = __DIR__ . '/vendor/autoload.php';
+	if ( file_exists( $autoload ) ) {
+		require_once $autoload;
+	}
+
+	register_activation_hook( __FILE__, array( '{{VENDOR_NAMESPACE}}\\{{PLUGIN_NAMESPACE}}\\Plugin', 'activate' ) );
+	register_deactivation_hook( __FILE__, array( '{{VENDOR_NAMESPACE}}\\{{PLUGIN_NAMESPACE}}\\Plugin', 'deactivate' ) );
+
+	add_action(
+		'plugins_loaded',
+		static function (): void {
+			( new {{VENDOR_NAMESPACE}}\{{PLUGIN_NAMESPACE}}\Plugin() )->register();
+		}
+	);
+}
+
+namespace {{VENDOR_NAMESPACE}}\{{PLUGIN_NAMESPACE}} {
+	final class Plugin {
+		public static function activate(): void {
+			// Add activation-only setup here. Flush rewrite rules only if this plugin registers rewrite rules.
+		}
+
+		public static function deactivate(): void {
+			// Add lightweight cleanup here. Do not delete user data on deactivation.
+		}
+
+		public function register(): void {
+			$this->load_textdomain();
+			add_action( 'init', array( $this, 'init' ) );
+		}
+
+		public function init(): void {
+			// Register hooks, post types, taxonomies, blocks, REST controllers, or admin services here.
+		}
+
+		public function load_textdomain(): void {
+			load_plugin_textdomain(
+				'{{TEXT_DOMAIN}}',
+				false,
+				dirname( plugin_basename( {{CONSTANT_PREFIX}}_FILE ) ) . '/languages'
+			);
+		}
+
+		public function __construct() {}
+	}
+}

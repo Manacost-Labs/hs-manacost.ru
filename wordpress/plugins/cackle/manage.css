@@ -1,0 +1,38 @@
+ul#cackle-tabs li {
+}
+ul#cackle-tabs li.selected {
+    border-bottom: 3px solid #F55076;
+}
+ul#cackle-tabs li {
+    float: left;
+    color: #555;
+    padding: 0.25em;
+    height: 16px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+ul#cackle-tabs {
+    display: block;
+    height: 21px;
+    list-style: none;
+    margin: 15px 0;
+    padding: 0;
+    border: 0;
+    position: absolute;
+    right: 11px;
+}
+
+select.cackle-replace {
+    border-color: #C6D9D9;
+}
+
+.cackle-content h2 {
+    line-height: 41px;
+    margin: 15px 0 10px;
+    padding: 0 0 0 150px;
+}
+.cackle-complete{
+    display: none;
+}
+
