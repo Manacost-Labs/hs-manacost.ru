@@ -1,0 +1,27 @@
+{
+  "project": "hs-manacost",
+  "origin": {
+    "region": "eu-limburg",
+    "ipv4": "151.80.21.140"
+  },
+  "edges": [
+    {
+      "region": "ru-moscow",
+      "ipv4": "194.67.92.242"
+    },
+    {
+      "region": "ru-novosibirsk",
+      "ipv4": "186.246.28.244"
+    }
+  ],
+  "domains": {
+    "production": "hs-manacost.ru",
+    "mirror": "hs-manacost.com",
+    "staging": "test.hs-manacost.ru"
+  },
+  "routing": {
+    "production_and_mirror": "DNS -> RU edge -> reverse tunnel -> origin",
+    "staging": "DNS -> RU edge -> origin with HTTP Basic Auth",
+    "wordpress_runtime_on_edges": false
+  }
+}

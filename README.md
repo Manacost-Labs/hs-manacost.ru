@@ -1,6 +1,6 @@
 # hs-manacost.ru
 
-Приватный репозиторий кода и серверной конфигурации основного сайта Manacost.
+Приватный репозиторий кода и серверной конфигурации единого проекта Manacost: основного `hs-manacost.ru`, зеркала `hs-manacost.com` и изолированного `test.hs-manacost.ru`.
 
 ## Что хранится в Git
 
@@ -29,6 +29,7 @@
 |---|---|---|
 | Тестирование | `test.hs-manacost.ru` | `/var/www/koloda/data/www/test-hs-manacost-wordpress` |
 | Production | `hs-manacost.ru` | `/var/www/koloda/data/www/hs-manacost.ru` |
+| Production-зеркало | `hs-manacost.com` | тот же WordPress и корень, что у `.ru` |
 
 Текущие версии и перечень внешних зависимостей находятся в [`config/site.json`](config/site.json) и [`config/plugins.json`](config/plugins.json).
 
@@ -36,13 +37,14 @@
 
 1. Изменить код в этом репозитории, не в `/var/www`.
 2. Запустить `make check`.
-3. Посмотреть, что будет скопировано на тестовый сайт: `./ops/deploy.sh test`.
-4. Применить изменения на тестовом сайте: `./ops/deploy.sh test --apply`.
-5. Проверить интерфейс, публикацию, изображения, счётчик просмотров и очистку кэша.
-6. После одобрения посмотреть production dry-run: `./ops/deploy.sh production`.
-7. Применить: `./ops/deploy.sh production --apply --confirm-production`.
+3. Сделать commit и push. Успешный `Quality` автоматически выкладывает этот SHA на `test.hs-manacost.ru`.
+4. Проверить интерфейс, публикацию, изображения и поведение тестового сайта.
+5. Открыть GitHub Actions → `Promote production`, указать полный SHA проверенного commit и запустить workflow.
+6. Pipeline повторно проверит код, перенесёт тот же SHA на общий runtime `.ru`/`.com`, очистит настроенные кэши и проверит origin, Москву и Новосибирск.
 
-Перед применением сценарий делает локальную резервную копию изменяемых каталогов. Он не изменяет базу, загрузки, WordPress core и сторонние плагины.
+Для аварийного ручного процесса сохранён `ops/deploy.sh`: сначала запускать его без `--apply`, чтобы увидеть dry-run.
+
+Перед применением pipeline делает локальную резервную копию изменяемых каталогов. Он не изменяет базу, загрузки, WordPress core и сторонние плагины. Топология origin и прокси зафиксирована в `config/network.json`, а внешняя проверка — в `ops/smoke-check.sh`.
 
 ## Первичное развёртывание
 

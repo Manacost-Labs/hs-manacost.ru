@@ -1,0 +1,94 @@
+name: Promote production
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Full 40-character SHA already verified on staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: hs-manacost-production
+  cancel-in-progress: false
+
+jobs:
+  verify-staging:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.validate.outputs.commit_sha }}
+    steps:
+      - name: Require an exact commit and successful staging deployment
+        id: validate
+        uses: actions/github-script@v8
+        env:
+          REQUESTED_SHA: ${{ inputs.commit_sha }}
+        with:
+          script: |
+            const sha = process.env.REQUESTED_SHA.trim().toLowerCase();
+            if (!/^[0-9a-f]{40}$/.test(sha)) {
+              core.setFailed('A full 40-character commit SHA is required.');
+              return;
+            }
+
+            await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+            });
+
+            const deployments = await github.paginate(github.rest.repos.listDeployments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: 'staging',
+              ref: sha,
+              per_page: 100,
+            });
+
+            let verified = false;
+            for (const deployment of deployments) {
+              const statuses = await github.rest.repos.listDeploymentStatuses({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployment.id,
+                per_page: 100,
+              });
+              if (statuses.data.some((status) => status.state === 'success')) {
+                verified = true;
+                break;
+              }
+            }
+
+            if (!verified) {
+              core.setFailed(`Commit ${sha} has no successful staging deployment.`);
+              return;
+            }
+            core.setOutput('commit_sha', sha);
+
+  deploy:
+    needs: verify-staging
+    runs-on: [self-hosted, linux, x64, hs-manacost-production]
+    environment:
+      name: production
+      url: https://hs-manacost.ru
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.verify-staging.outputs.commit_sha }}
+          clean: true
+
+      - name: Run quality gate again
+        run: make check
+
+      - name: Deploy the verified revision
+        env:
+          DEPLOY_SHA: ${{ needs.verify-staging.outputs.commit_sha }}
+        run: sudo /usr/local/sbin/hs-manacost-ci-deploy production "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
+
+      - name: Verify primary, mirror, origin and both RU proxies
+        run: ./ops/smoke-check.sh production

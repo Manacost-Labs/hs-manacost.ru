@@ -1,0 +1,2 @@
+# Dedicated hs-manacost GitHub runner may invoke only the validated deploy wrapper.
+hs-manacost-runner ALL=(root) NOPASSWD: /usr/local/sbin/hs-manacost-ci-deploy staging *, /usr/local/sbin/hs-manacost-ci-deploy production *

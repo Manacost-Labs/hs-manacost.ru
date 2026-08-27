@@ -1,0 +1,72 @@
+name: Deploy staging
+
+on:
+  workflow_run:
+    workflows: [Quality]
+    types: [completed]
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: hs-manacost-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: [self-hosted, linux, x64, hs-manacost-production]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          clean: true
+
+      - name: Verify checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Run quality gate
+        run: make check
+
+      - name: Deploy isolated staging
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: sudo /usr/local/sbin/hs-manacost-ci-deploy staging "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
+
+      - name: Verify staging and both RU proxies
+        run: ./ops/smoke-check.sh staging
+
+      - name: Record successful staging deployment
+        uses: actions/github-script@v8
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: process.env.DEPLOY_SHA,
+              environment: 'staging',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Verified on test.hs-manacost.ru and both RU proxies',
+              transient_environment: false,
+              production_environment: false,
+            });
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment: 'staging',
+              environment_url: 'https://test.hs-manacost.ru',
+              description: 'Staging smoke checks passed',
+            });

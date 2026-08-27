@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 3 ]]; then
+  echo 'Usage: hs-manacost-ci-deploy <staging|production> <commit-sha> <workspace>' >&2
+  exit 2
+fi
+
+environment="$1"
+commit_sha="$2"
+workspace="$3"
+runner_user='hs-manacost-runner'
+expected_workspace='/opt/actions-runner/hs-manacost/_work/hs-manacost.ru/hs-manacost.ru'
+
+if [[ ! "$commit_sha" =~ ^[0-9a-f]{40}$ ]]; then
+  echo 'A full 40-character commit SHA is required.' >&2
+  exit 2
+fi
+
+workspace_real="$(realpath -e "$workspace")"
+if [[ "$workspace_real" != "$expected_workspace" ]]; then
+  echo 'Deployment source is outside the dedicated runner workspace.' >&2
+  exit 1
+fi
+
+if [[ "$(stat -c '%U' "$workspace_real")" != "$runner_user" ]]; then
+  echo 'Deployment workspace has an unexpected owner.' >&2
+  exit 1
+fi
+
+case "$environment" in
+  staging) target_root='/var/www/koloda/data/www/test-hs-manacost-wordpress' ;;
+  production) target_root='/var/www/koloda/data/www/hs-manacost.ru' ;;
+  *) echo 'Unknown deployment environment.' >&2; exit 2 ;;
+esac
+
+if [[ "$(git -C "$workspace_real" rev-parse HEAD)" != "$commit_sha" ]]; then
+  echo 'Checked-out commit does not match the requested deployment SHA.' >&2
+  exit 1
+fi
+
+if [[ -n "$(git -C "$workspace_real" status --porcelain)" ]]; then
+  echo 'Deployment workspace must be clean.' >&2
+  exit 1
+fi
+
+if find "$workspace_real/wordpress" "$workspace_real/public" -type l -print -quit | grep -q .; then
+  echo 'Symbolic links are not allowed in deployment payloads.' >&2
+  exit 1
+fi
+
+for required_path in \
+  "$workspace_real/wordpress/mu-plugins" \
+  "$workspace_real/wordpress/plugins" \
+  "$workspace_real/wordpress/themes/Newspaper_new" \
+  "$workspace_real/public" \
+  "$target_root/wp-config.php" \
+  "$target_root/wp-content"; do
+  if [[ ! -e "$required_path" ]]; then
+    echo "Required deployment path is missing: $required_path" >&2
+    exit 1
+  fi
+done
+
+backup_root="/var/backups/hs-manacost-deploy/$environment/$(date -u +%Y%m%dT%H%M%SZ)-$commit_sha"
+mkdir -p "$backup_root/wp-content/plugins" "$backup_root/wp-content/themes"
+
+backup_path() {
+  local relative_path="$1"
+  if [[ -e "$target_root/$relative_path" ]]; then
+    mkdir -p "$backup_root/$(dirname "$relative_path")"
+    cp -a "$target_root/$relative_path" "$backup_root/$relative_path"
+  fi
+}
+
+backup_path 'wp-content/mu-plugins'
+backup_path 'wp-content/themes/Newspaper_new'
+for plugin_dir in "$workspace_real"/wordpress/plugins/*; do
+  [[ -d "$plugin_dir" ]] || continue
+  backup_path "wp-content/plugins/$(basename "$plugin_dir")"
+done
+
+maintenance_file=''
+if [[ "$environment" == staging ]]; then
+  maintenance_file="$target_root/.staging-refresh"
+  touch "$maintenance_file"
+fi
+
+cleanup() {
+  if [[ -n "$maintenance_file" ]]; then
+    rm -f "$maintenance_file"
+  fi
+}
+trap cleanup EXIT
+
+sync_owned_tree() {
+  local source="$1"
+  local destination="$2"
+  mkdir -p "$destination"
+  rsync -a --delete-delay --safe-links --chown=koloda:koloda "$source/" "$destination/"
+}
+
+sync_owned_tree "$workspace_real/wordpress/mu-plugins" "$target_root/wp-content/mu-plugins"
+for plugin_dir in "$workspace_real"/wordpress/plugins/*; do
+  [[ -d "$plugin_dir" ]] || continue
+  sync_owned_tree "$plugin_dir" "$target_root/wp-content/plugins/$(basename "$plugin_dir")"
+done
+sync_owned_tree "$workspace_real/wordpress/themes/Newspaper_new" "$target_root/wp-content/themes/Newspaper_new"
+
+for public_file in "$workspace_real"/public/*; do
+  [[ -f "$public_file" ]] || continue
+  install -o koloda -g koloda -m 0644 "$public_file" "$target_root/$(basename "$public_file")"
+done
+
+runuser -u koloda -- /usr/local/bin/wp --path="$target_root" core is-installed
+runuser -u koloda -- /usr/local/bin/wp --path="$target_root" theme is-active Newspaper_new
+runuser -u koloda -- /usr/local/bin/wp --path="$target_root" cache flush
+
+if [[ "$environment" == production ]]; then
+  runuser -u koloda -- /usr/local/bin/wp --path="$target_root" eval \
+    'Manacost_Cache_Purge::run_async_purge("ci_deploy");'
+  purge_failures="$(runuser -u koloda -- /usr/local/bin/wp --path="$target_root" option pluck manacost_cache_purge_last_results failed 2>/dev/null || printf '1')"
+  if [[ "$purge_failures" != '0' ]]; then
+    echo 'Production cache purge reported a failure.' >&2
+    exit 1
+  fi
+fi
+
+cleanup
+trap - EXIT
+echo "Deployed $commit_sha to $environment. Backup: $backup_root"

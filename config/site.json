@@ -2,6 +2,7 @@
   "site": {
     "name": "Manacost",
     "primary_url": "https://hs-manacost.ru",
+    "mirror_url": "https://hs-manacost.com",
     "staging_url": "https://test.hs-manacost.ru",
     "timezone": "Europe/Moscow",
     "permalink_structure": "/%postname%/"
@@ -24,6 +25,8 @@
     "database_in_git": false,
     "uploads_in_git": false,
     "secrets_in_git": false,
-    "runtime_cache_in_git": false
+    "runtime_cache_in_git": false,
+    "production_and_mirror_share_runtime": true,
+    "staging_uses_isolated_database": true
   }
 }
