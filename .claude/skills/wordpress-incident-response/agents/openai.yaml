@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Incident Response"
+  short_description: "Аварии WordPress, DNS, S3 и прокси"
+  default_prompt: "Используй $wordpress-incident-response, чтобы безопасно диагностировать и устранить инцидент hs-manacost.ru."
