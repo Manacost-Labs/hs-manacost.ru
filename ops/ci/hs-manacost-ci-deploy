@@ -29,8 +29,14 @@ if [[ "$(stat -c '%U' "$workspace_real")" != "$runner_user" ]]; then
 fi
 
 case "$environment" in
-  staging) target_root='/var/www/koloda/data/www/test-hs-manacost-wordpress' ;;
-  production) target_root='/var/www/koloda/data/www/hs-manacost.ru' ;;
+  staging)
+    target_root='/var/www/koloda/data/www/test-hs-manacost-wordpress'
+    wordpress_host='test.hs-manacost.ru'
+    ;;
+  production)
+    target_root='/var/www/koloda/data/www/hs-manacost.ru'
+    wordpress_host='hs-manacost.ru'
+    ;;
   *) echo 'Unknown deployment environment.' >&2; exit 2 ;;
 esac
 
@@ -112,14 +118,22 @@ for public_file in "$workspace_real"/public/*; do
   install -o koloda -g koloda -m 0644 "$public_file" "$target_root/$(basename "$public_file")"
 done
 
-runuser -u koloda -- /usr/local/bin/wp --path="$target_root" core is-installed
-runuser -u koloda -- /usr/local/bin/wp --path="$target_root" theme is-active Newspaper_new
-runuser -u koloda -- /usr/local/bin/wp --path="$target_root" cache flush
+run_wp() {
+  runuser -u koloda -- env \
+    REQUEST_URI='/' \
+    HTTP_HOST="$wordpress_host" \
+    HTTPS='on' \
+    SERVER_PORT='443' \
+    /usr/local/bin/wp --path="$target_root" "$@"
+}
+
+run_wp core is-installed
+run_wp theme is-active Newspaper_new
+run_wp cache flush
 
 if [[ "$environment" == production ]]; then
-  runuser -u koloda -- /usr/local/bin/wp --path="$target_root" eval \
-    'Manacost_Cache_Purge::run_async_purge("ci_deploy");'
-  purge_failures="$(runuser -u koloda -- /usr/local/bin/wp --path="$target_root" option pluck manacost_cache_purge_last_results failed 2>/dev/null || printf '1')"
+  run_wp eval 'Manacost_Cache_Purge::run_async_purge("ci_deploy");'
+  purge_failures="$(run_wp option pluck manacost_cache_purge_last_results failed 2>/dev/null || printf '1')"
   if [[ "$purge_failures" != '0' ]]; then
     echo 'Production cache purge reported a failure.' >&2
     exit 1
