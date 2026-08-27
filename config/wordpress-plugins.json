@@ -1,7 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "captured_at": "2026-08-27",
-  "source": "production WP-CLI inventory and wp-content/plugins source tree",
+  "source": "production WP-CLI active regular plugin inventory and wp-content/plugins source tree",
+  "selection_policy": "Only regular plugins with production status=active are versioned. Inactive plugins, MU plugins and runtime drop-ins are not part of this index.",
   "plugins": [
     {"slug": "ad-inserter", "status": "active", "version": "2.8.15", "origin": "wordpress.org"},
     {"slug": "ads-txt", "status": "active", "version": "1.4.6", "origin": "wordpress.org"},
@@ -10,26 +11,18 @@
     {"slug": "classic-editor", "status": "active", "version": "1.6.7", "origin": "wordpress.org"},
     {"slug": "cloudflare", "status": "active", "version": "4.14.3", "origin": "wordpress.org"},
     {"slug": "cyr2lat", "status": "active", "version": "7.0.2", "origin": "wordpress.org"},
-    {"slug": "hs-deck", "status": "inactive", "version": "2.0.0", "origin": "custom"},
-    {"slug": "hs-deck-manager", "status": "inactive", "version": "2.0.0", "origin": "custom"},
     {"slug": "hs-manacost-inline-deck", "status": "active", "version": "1.0.1", "origin": "custom"},
     {"slug": "hs-tooltip", "status": "active", "version": "1.1.8", "origin": "custom"},
-    {"slug": "imagify", "status": "inactive", "version": "2.2.7", "origin": "wordpress.org"},
-    {"slug": "kolodahs-manacost-sync", "status": "inactive", "version": "1.2.4", "origin": "custom"},
-    {"slug": "maintenance", "status": "inactive", "version": "4.21", "origin": "wordpress.org"},
     {"slug": "manacost-arena-feed", "status": "active", "version": "1.1.5", "origin": "custom"},
     {"slug": "members", "status": "active", "version": "3.2.21", "origin": "wordpress.org"},
     {"slug": "perfmatters", "status": "active", "version": "2.6.2", "origin": "commercial"},
-    {"slug": "query-monitor", "status": "inactive", "version": "4.0.6", "origin": "wordpress.org"},
     {"slug": "redirection", "status": "active", "version": "5.7.5", "origin": "wordpress.org"},
     {"slug": "redis-cache", "status": "active", "version": "2.8.0", "origin": "wordpress.org"},
     {"slug": "separator-placeholder-quick-insert", "status": "active", "version": "0.2.0", "origin": "custom"},
     {"slug": "shortcodes-ultimate", "status": "active", "version": "7.5.3", "origin": "wordpress.org"},
     {"slug": "shortcodes-ultimate-extra", "status": "active", "version": "1.8.2", "origin": "commercial"},
     {"slug": "shortcodes-ultimate-skins", "status": "active", "version": "1.6.1", "origin": "commercial"},
-    {"slug": "td-cloud-library", "status": "inactive", "version": "3.9.2 (2025-10-22 build)", "origin": "tagdiv"},
     {"slug": "td-composer", "status": "active", "version": "5.4.2 (2025-10-22 build)", "origin": "tagdiv"},
-    {"slug": "td-mobile-plugin", "status": "inactive", "version": "2.7 (2025-10-22 build)", "origin": "tagdiv"},
     {"slug": "td-standard-pack", "status": "active", "version": "2.7.1 (2025-10-22 build)", "origin": "tagdiv"},
     {"slug": "tinymce-advanced", "status": "active", "version": "5.9.2", "origin": "wordpress.org"},
     {"slug": "wordfence", "status": "active", "version": "9.0.0", "origin": "wordpress.org"},
@@ -38,23 +31,12 @@
     {"slug": "wp-manacost-decks_old", "status": "active", "version": "2.0.4", "origin": "legacy"},
     {"slug": "wp-rocket", "status": "active", "version": "3.21.3", "origin": "commercial"}
   ],
-  "runtime_exclusions": [
-    "wp-content/advanced-cache.php and wp-content/object-cache.php are runtime-generated drop-ins",
-    "plugin settings and licenses remain in the WordPress database or secret configuration",
-    "uploads, caches, logs, backups, temporary files and test .env files are excluded",
-    "nested source-control and AI-tool metadata copied into production plugin folders are excluded"
-  ],
-  "source_repairs": [
-    {
-      "path": "wordpress/plugins/td-cloud-library/shortcodes/single/tdb_single_post_views.php",
-      "reason": "Removed a stray character after a PHP statement that caused the production package copy to fail syntax validation. The plugin remains inactive."
-    }
-  ],
-  "known_issues": [
-    {
-      "plugin": "hs-deck-manager",
-      "status": "inactive",
-      "issue": "The production snapshot contains literal backslashes in filenames instead of nested directories. Preserve it for forensic parity, but do not activate it until it is repackaged and tested."
-    }
+  "excluded_runtime_categories": [
+    "inactive regular plugins",
+    "MU plugins, which are versioned separately under wordpress/mu-plugins",
+    "wp-content/advanced-cache.php and wp-content/object-cache.php runtime drop-ins",
+    "plugin settings, license keys and database state",
+    "uploads, caches, logs, backups, temporary files and test .env files",
+    "nested source-control and AI-tool metadata"
   ]
 }
