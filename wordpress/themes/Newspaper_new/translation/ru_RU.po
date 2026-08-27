@@ -1,0 +1,2011 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru_RU\n"
+
+
+msgid "View all results"
+msgstr "Просмотреть все результаты"
+
+
+msgid "No results"
+msgstr "Нет результатов"
+
+
+msgid "Home"
+msgstr "Домой"
+
+
+msgid "CLOSE"
+msgstr "ЗАКРЫТЬ"
+
+
+msgid "Page"
+msgstr "Страница"
+
+
+msgid "All"
+msgstr "Все"
+
+
+msgid "By"
+msgstr "От"
+
+
+msgid "Load more"
+msgstr "Загрузить больше"
+
+
+msgid "View all posts in"
+msgstr "Просмотреть все посты в"
+
+
+msgid "Tags"
+msgstr "Теги"
+
+
+msgid "Previous article"
+msgstr "Предыдущая статья"
+
+
+msgid "Next article"
+msgstr "Следующая статья"
+
+
+msgid "Authors"
+msgstr "Авторы"
+
+
+msgid "Author"
+msgstr "Автор"
+
+
+msgid "RELATED ARTICLES"
+msgstr "ЭТО МОЖЕТ БЫТЬ ИНТЕРЕСНО"
+
+
+msgid "MORE FROM AUTHOR"
+msgstr "ЕЩЕ ОТ АВТОРА"
+
+
+msgid "VIA"
+msgstr "ЧЕРЕЗ"
+
+
+msgid "SOURCE"
+msgstr "ИСТОЧНИК"
+
+
+msgid "TAGS"
+msgstr "ТЕГИ"
+
+
+msgid "SHARE"
+msgstr "ПОДЕЛИТЬСЯ"
+
+
+msgid "Continue"
+msgstr "Продолжить"
+
+
+msgid "Read more"
+msgstr "Узнать больше"
+
+
+msgid "Name:"
+msgstr "Имя:"
+
+
+msgid "Email:"
+msgstr "Электронная почта:"
+
+
+msgid "Website:"
+msgstr "Веб-Сайт:"
+
+
+msgid "Comment:"
+msgstr "Комментарий:"
+
+
+msgid "LEAVE A REPLY"
+msgstr "ОСТАВЬТЕ ОТВЕТ"
+
+
+msgid "Post Comment"
+msgstr "Опубликовать Комментарий"
+
+
+msgid "Cancel reply"
+msgstr "Отменить ответ"
+
+
+msgid "Reply"
+msgstr "Ответить"
+
+
+msgid "Log in to leave a comment"
+msgstr "Войдите, чтобы оставить комментарий"
+
+
+msgid "NO COMMENTS"
+msgstr "НЕТ КОММЕНТАРИЕВ"
+
+
+msgid "1 COMMENT"
+msgstr "1 КОММЕНТАРИЙ"
+
+
+msgid "COMMENTS"
+msgstr "КОММЕНТАРИИ"
+
+
+msgid "REVIEW OVERVIEW"
+msgstr "ОЦЕНИТЬ ОБЗОР"
+
+
+msgid "SUMMARY"
+msgstr "ИТОГ"
+
+
+msgid "OVERALL SCORE"
+msgstr "КОНЕЧНЫЙ РЕЗУЛЬТАТ"
+
+
+msgid "Ooops... Error 404"
+msgstr "Упс... Ошибка 404"
+
+
+msgid "Sorry, but the page you are looking for doesn't exist."
+msgstr "Извините, но страница, которую Вы ищете, не существует."
+
+
+msgid "You can go to the"
+msgstr "Вы можете перейти на"
+
+
+msgid "HOMEPAGE"
+msgstr "ГЛАВНАЯ СТРАНИЦА"
+
+
+msgid "OUR LATEST POSTS"
+msgstr "НАШИ ПОСЛЕДНИЕ ПОСТЫ"
+
+
+msgid "Posts by"
+msgstr "Посты от"
+
+
+msgid "POSTS"
+msgstr "ПОСТЫ"
+
+
+msgid "Posts tagged with"
+msgstr "Посты с тегами"
+
+
+msgid "Tag"
+msgstr "Тег"
+
+
+msgid "Daily Archives:"
+msgstr "Ежедневные Архивы:"
+
+
+msgid "Monthly Archives:"
+msgstr "Ежемесячные Архивы:"
+
+
+msgid "Yearly Archives:"
+msgstr "Ежегодные Архивы:"
+
+
+msgid "Archives"
+msgstr "Архивы"
+
+
+msgid "LATEST ARTICLES"
+msgstr "САМЫЕ ПОСЛЕДНИЕ СТАТЬИ"
+
+
+msgid "search results"
+msgstr "результаты поиска"
+
+
+msgid "Search"
+msgstr "Поиск"
+
+
+msgid "If you're not happy with the results, please do another search"
+msgstr "Если результаты Вас не удовлетворяют, пожалуйста, попробуйте еще раз"
+
+
+msgid "Contact us"
+msgstr "Свяжитесь с нами"
+
+
+msgid "Page %CURRENT_PAGE% of %TOTAL_PAGES%"
+msgstr "Страница %CURRENT_PAGE% из %TOTAL_PAGES%"
+
+
+msgid "Next"
+msgstr "След"
+
+
+msgid "Prev"
+msgstr "Пред"
+
+
+msgid "No results for your search"
+msgstr "Нет результатов по Вашему запросу"
+
+
+msgid "No posts to display"
+msgstr "Нет постов для отображения"
+
+
+msgid "LOG IN"
+msgstr "ВОЙТИ"
+
+
+msgid "Sign in / Join"
+msgstr "Регистрация / Авторизация"
+
+
+msgid "Log In"
+msgstr "Войти"
+
+
+msgid "REGISTER"
+msgstr "ЗАРЕГИСТРИРОВАТЬСЯ"
+
+
+msgid "Send My Pass"
+msgstr "Отправить Мой Пароль"
+
+
+msgid "Forgot your password?"
+msgstr "Вы забыли свой пароль?"
+
+
+msgid "Please wait..."
+msgstr "Пожалуйста, подождите..."
+
+
+msgid "User or password incorrect!"
+msgstr "Неверное имя пользователя или пароль!"
+
+
+msgid "Email or username incorrect!"
+msgstr "Неверный адрес электронной почты или пароль!"
+
+
+msgid "Email incorrect!"
+msgstr "Неверный адрес электронной почты!"
+
+
+msgid "User or email already exists!"
+msgstr "Пользователь или адрес электронной почты уже существует!"
+
+
+msgid "Please check you email (index or spam folder), the password was sent there."
+msgstr "Пожалуйста, проверьте свою электронную почту (входящие или спам), пароль был выслан по Вашему адресу."
+
+
+msgid "Email address not found!"
+msgstr "Адрес электронной почты не найден!"
+
+
+msgid "Your password is reset, check your email."
+msgstr "Ваш пароль сброшен, проверьте свою электронную почту."
+
+
+msgid "Welcome! Log into your account"
+msgstr "Добро пожаловать! Войдите в свою учётную запись"
+
+
+msgid "Register for an account"
+msgstr "Зарегистрируйтесь для создания учетной записи"
+
+
+msgid "Recover your password"
+msgstr "Восстановите свой пароль"
+
+
+msgid "your username"
+msgstr "Ваше имя пользователя"
+
+
+msgid "your password"
+msgstr "Ваш пароль"
+
+
+msgid "your email"
+msgstr "Ваш адрес электронной почты"
+
+
+msgid "A password will be e-mailed to you."
+msgstr "Пароль будет выслан Вам по электронной почте."
+
+
+msgid "Logout"
+msgstr "Выйти"
+
+
+msgid "Like"
+msgstr "Мне нравится"
+
+
+msgid "Fans"
+msgstr "Фанаты"
+
+
+msgid "Follow"
+msgstr "Читать"
+
+
+msgid "Followers"
+msgstr "Читатели"
+
+
+msgid "Subscribe"
+msgstr "Подписаться"
+
+
+msgid "Subscribers"
+msgstr "Подписчики"
+
+
+msgid "MORE STORIES"
+msgstr "БОЛЬШЕ ИСТОРИЙ"
+
+
+msgid "Latest"
+msgstr "Последнее"
+
+
+msgid "Featured posts"
+msgstr "Обсуждаемые посты"
+
+
+msgid "Most popular"
+msgstr "Самое популярное"
+
+
+msgid "7 days popular"
+msgstr "Популярное за 7 дней"
+
+
+msgid "By review score"
+msgstr "По оценкам в отзывах"
+
+
+msgid "Random"
+msgstr "Случайно"
+
+
+msgid "Trending Now"
+msgstr "Сейчас В Тренде"
+
+
+msgid "POPULAR CATEGORY"
+msgstr "ПОПУЛЯРНЫЕ КАТЕГОРИИ"
+
+
+msgid "EVEN MORE NEWS"
+msgstr "ЕЩЁ БОЛЬШЕ НОВОСТЕЙ"
+
+
+msgid "Previous (Left arrow key)"
+msgstr "Предыдущий (Кнопка влево)"
+
+
+msgid "Next (Right arrow key)"
+msgstr "Следующий (Кнопка вправо)"
+
+
+msgid "%curr% of %total%"
+msgstr "%curr% из %total%"
+
+
+msgid "The content from %url% could not be loaded."
+msgstr "Содержимое %url% не может быть загружено."
+
+
+msgid "The image #%curr% could not be loaded."
+msgstr "Изображение #%curr% не удалось загрузить."
+
+
+msgid "Blog"
+msgstr "Блог"
+
+
+msgid "Share on Facebook"
+msgstr "Поделиться в Facebook"
+
+
+msgid "Tweet on Twitter"
+msgstr "Твитнуть"
+
+
+msgid "EDITOR PICKS"
+msgstr "Выбор редактора"
+
+
+msgid "POPULAR POSTS"
+msgstr "Популярные посты"
+
+
+msgid "FOLLOW US"
+msgstr "Следуйте за нами"
+
+
+msgid "ABOUT US"
+msgstr "О НАС"
+
+
+msgid "More"
+msgstr "Подробнее"
+
+
+msgid "Featured"
+msgstr "Рекомендуемые"
+
+
+msgid "All time popular"
+msgstr "Все время популярные"
+
+
+msgid "Likes"
+msgstr "Лайки"
+
+
+msgid "Register"
+msgstr "Регистрация"
+
+
+msgid "of"
+msgstr "из"
+
+
+msgid "Euro Member Countries"
+msgstr "Страны-члены евро"
+
+
+msgid "Your comment is awaiting moderation"
+msgstr "Ваш комментарий ожидает модерации"
+
+
+msgid "Follow us on Instagram"
+msgstr "следуйте за нами на Instagram"
+
+
+msgid "Back"
+msgstr "назад"
+
+
+msgid "Sign in"
+msgstr "войти в систему"
+
+
+msgid "Sign up"
+msgstr "Зарегистрироваться"
+
+
+msgid "Join"
+msgstr "присоединиться"
+
+
+msgid "Welcome!"
+msgstr "Добро пожаловат!"
+
+
+msgid "Log into your account"
+msgstr "Войдите в свой аккаунт"
+
+
+msgid "Password recovery"
+msgstr "восстановление пароля"
+
+
+msgid "Please check your email (index or spam folder), the password was sent there."
+msgstr "пожалуйста, проверьте свою электронную почту (индекс или спам папки), пароль был направлен туда."
+
+
+msgid "Australian Dollar"
+msgstr "Австралийский доллар"
+
+
+msgid "Bulgarian Lev"
+msgstr "болгарский лев"
+
+
+msgid "Brazilian Real"
+msgstr "бразильский реал"
+
+
+msgid "Canadian Dollar"
+msgstr "канадский доллар"
+
+
+msgid "Swiss Franc"
+msgstr "швейцарский франк"
+
+
+msgid "Chinese Yuan Renminbi"
+msgstr "китайский юань"
+
+
+msgid "Czech Republic Koruna"
+msgstr "чехия крона"
+
+
+msgid "Danish Krone"
+msgstr "Датская крона"
+
+
+msgid "British Pound"
+msgstr "английский фунт"
+
+
+msgid "Hong Kong Dollar"
+msgstr "Гонконгский доллар"
+
+
+msgid "Croatian Kuna"
+msgstr "хорватская куна"
+
+
+msgid "Hungarian Forint"
+msgstr "Венгерский форинт"
+
+
+msgid "Indonesian Rupiah"
+msgstr "Индонезийская рупия"
+
+
+msgid "Israeli Shekel"
+msgstr "Israeli Shekel"
+
+
+msgid "Indian Rupee"
+msgstr "Индийская рупия"
+
+
+msgid "Japanese Yen"
+msgstr "Японская иена"
+
+
+msgid "Korean (South) Won"
+msgstr "корейская вона (юг)"
+
+
+msgid "Mexican Peso"
+msgstr "мексиканский песо"
+
+
+msgid "Malaysian Ringgit"
+msgstr "малазийский ринггит"
+
+
+msgid "Norwegian Krone"
+msgstr "Норвежская крона"
+
+
+msgid "New Zealand Dollar"
+msgstr "Новозеландец"
+
+
+msgid "Philippine Peso"
+msgstr "Филиппинское песо"
+
+
+msgid "Polish Zloty"
+msgstr "польский злотый"
+
+
+msgid "Romanian (New) Leu"
+msgstr "Румынская (новый) Leu"
+
+
+msgid "Russian Ruble"
+msgstr "Русский рубль"
+
+
+msgid "Swedish Krona"
+msgstr "Шведская крона"
+
+
+msgid "Singapore Dollar"
+msgstr "Сингапурский доллар"
+
+
+msgid "Thai Baht"
+msgstr "тайский бат"
+
+
+msgid "Turkish Lira"
+msgstr "турецкая лира"
+
+
+msgid "United States Dollar"
+msgstr "Американский доллар"
+
+
+msgid "South African Rand"
+msgstr "Южноафриканский рэнд"
+
+
+msgid "Privacy Policy"
+msgstr "политика конфиденциальности"
+
+
+msgid "views"
+msgstr "Просмотры"
+
+
+msgid "Modified date:"
+msgstr "Дата изменения:"
+
+
+msgid "Please enter your name here"
+msgstr "пожалуйста, введите ваше имя здесь"
+
+
+msgid "Please enter your email address here"
+msgstr "пожалуйста, введите свой адрес электронной почты здесь"
+
+
+msgid "You have entered an incorrect email address!"
+msgstr "Вы ввели неверный адрес электронной почты!"
+
+
+msgid "Please enter your comment!"
+msgstr "Пожалуйста, введите ваш комментарий!"
+
+
+msgid "Logged in as"
+msgstr "вошли как"
+
+
+msgid "Log out?"
+msgstr "выйти?"
+
+
+msgid "Logged in as %s. Edit your profile."
+msgstr "вошел как% s. Редактировать профиль."
+
+
+msgid "Edit"
+msgstr "редактировать"
+
+
+msgid "Login"
+msgstr "авторизоваться"
+
+
+msgid "Send My Password"
+msgstr "отправить мой пароль"
+
+
+msgid "Create an account"
+msgstr "завести аккаунт"
+
+
+msgid "Welcome! Register for an account"
+msgstr "Добро пожаловать! зарегистрировать аккаунт"
+
+
+msgid "About me"
+msgstr "обо мне"
+
+
+msgid "Save my name, email, and website in this browser for the next time I comment."
+msgstr "сохраните мое имя, адрес электронной почты и веб-сайт в этом браузере для следующего комментария."
+
+
+msgid "Orders"
+msgstr "заказы"
+
+
+msgid "Addresses"
+msgstr "адреса"
+
+
+msgid "Account settings"
+msgstr "Настройки аккаунта"
+
+
+msgid "Hello"
+msgstr "Привет"
+
+
+msgid "No products in the cart."
+msgstr "Нет товаров в корзине."
+
+
+msgid "Product categories"
+msgstr "категории товаров"
+
+
+msgid "Product tags"
+msgstr "бирки продукта"
+
+
+msgid "Success"
+msgstr "успех"
+
+
+msgid "Acknowledgment is required!"
+msgstr "подтверждение обязательно!"
+
+
+msgid "Please fill in a valid email."
+msgstr "пожалуйста, заполните действующий адрес электронной почты."
+
+
+msgid "Please fill in an email address."
+msgstr "пожалуйста, заполните адрес электронной почты."
+
+
+msgid "Get into your account."
+msgstr "попасть в свой аккаунт."
+
+
+msgid "My subscription account"
+msgstr "моя учетная запись подписки"
+
+
+msgid "Account details"
+msgstr "Детали учетной записи"
+
+
+msgid "Subscriptions"
+msgstr "Подписки"
+
+
+msgid "My woo account"
+msgstr "мой аккаунт Woo"
+
+
+msgid "Log out"
+msgstr "выйти"
+
+
+msgid "Email address"
+msgstr "адрес электронной почты"
+
+
+msgid "Username"
+msgstr "имя пользователя"
+
+
+msgid "Password"
+msgstr "пароль"
+
+
+msgid "must contain at least one lower case (a..z)"
+msgstr "должен содержать хотя бы одну строчную букву (a..z)"
+
+
+msgid "must contain at least one upper case (A..Z)"
+msgstr "должен содержать хотя бы один верхний регистр (a..z)"
+
+
+msgid "must contain at least 6 characters in length"
+msgstr "должен содержать не менее 6 символов в длину"
+
+
+msgid "Repeat password"
+msgstr "Повторите пароль"
+
+
+msgid "Already have an account?"
+msgstr "уже есть аккаунт?"
+
+
+msgid "Recover password"
+msgstr "восстановить пароль"
+
+
+msgid "Username or Email address"
+msgstr "имя пользователя или адрес электронной почты"
+
+
+msgid "Forgot password?"
+msgstr "Забыли пароль?"
+
+
+msgid "Don't have an account?"
+msgstr "нет учетной записи?"
+
+
+msgid "Dashboard"
+msgstr "приборная доска"
+
+
+msgid "Welcome to your account!"
+msgstr "добро пожаловать в свой аккаунт!"
+
+
+msgid "Hello %1$s (not %2$s? %3$s)! From your account dashboard you can view your subscriptions and manage your account details."
+msgstr "привет% 1 $ s (не% 2 $ s?% 3 $ s)! на панели управления вашей учетной записи вы можете просматривать свои подписки и управлять данными своей учетной записи."
+
+
+msgid "Lost Password"
+msgstr "потерянный пароль"
+
+
+msgid "Manage your account details."
+msgstr "управлять данными вашей учетной записи."
+
+
+msgid "First name"
+msgstr "имя"
+
+
+msgid "Last name"
+msgstr "фамилия"
+
+
+msgid "Display name"
+msgstr "показать имя"
+
+
+msgid "Current password"
+msgstr "текущий пароль"
+
+
+msgid "(leave blank to leave unchanged)"
+msgstr "(оставьте поле пустым, чтобы оставить без изменений)"
+
+
+msgid "New password"
+msgstr "новый пароль"
+
+
+msgid "Confirm new password"
+msgstr "подтвердите новый пароль"
+
+
+msgid "Save changes"
+msgstr "Сохранить изменения"
+
+
+msgid "All your subscriptions."
+msgstr "все ваши подписки."
+
+
+msgid "Plan"
+msgstr "план"
+
+
+msgid "Payment type"
+msgstr "способ оплаты"
+
+
+msgid "Status"
+msgstr "статус"
+
+
+msgid "Months"
+msgstr "месяцы"
+
+
+msgid "Start date"
+msgstr "Дата начала"
+
+
+msgid "End date"
+msgstr "Дата окончания"
+
+
+msgid "missing plan"
+msgstr "отсутствующий план"
+
+
+msgid "Free"
+msgstr "бесплатно"
+
+
+msgid "Active"
+msgstr "активный"
+
+
+msgid "Trial"
+msgstr "пробный"
+
+
+msgid "Blocked"
+msgstr "заблокирован"
+
+
+msgid "Closed"
+msgstr "закрыто"
+
+
+msgid "Not paid"
+msgstr "не оплачено"
+
+
+msgid "Awaiting payment"
+msgstr "Ожидание оплаты"
+
+
+msgid "Subscription info"
+msgstr "информация о подписке"
+
+
+msgid "ID"
+msgstr "Я БЫ"
+
+
+msgid "Name"
+msgstr "название"
+
+
+msgid "Company name"
+msgstr "название компании"
+
+
+msgid "VAT"
+msgstr "НДС"
+
+
+msgid "Address"
+msgstr "адрес"
+
+
+msgid "City"
+msgstr "город"
+
+
+msgid "Country/State"
+msgstr "штат"
+
+
+msgid "Email"
+msgstr "электронное письмо"
+
+
+msgid "Postal code"
+msgstr "Почтовый Код"
+
+
+msgid "Direct bank transfer details"
+msgstr "реквизиты для прямого банковского перевода"
+
+
+msgid "Account name"
+msgstr "название аккаунта"
+
+
+msgid "Account number"
+msgstr "номер счета"
+
+
+msgid "Bank name"
+msgstr "название банка"
+
+
+msgid "Routing number"
+msgstr "номер маршрута"
+
+
+msgid "IBAN"
+msgstr "ИБАН"
+
+
+msgid "Bic/Swift"
+msgstr "Bic / swift"
+
+
+msgid "Instructions"
+msgstr "инструкции"
+
+
+msgid "No subscription created."
+msgstr "подписка не создана."
+
+
+msgid "Choose plan"
+msgstr "выбрать план"
+
+
+msgid "Payment methods"
+msgstr "Способы оплаты"
+
+
+msgid "Total"
+msgstr "Всего"
+
+
+msgid "Period"
+msgstr "период"
+
+
+msgid "Subscription summary"
+msgstr "сводка подписки"
+
+
+msgid "Phone"
+msgstr "Телефон"
+
+
+msgid "Postcode"
+msgstr "почтовый индекс"
+
+
+msgid "County"
+msgstr "округ"
+
+
+msgid "Town/City"
+msgstr "город / город"
+
+
+msgid "Street address"
+msgstr "адрес улицы"
+
+
+msgid "Country/Region"
+msgstr "страна / регион"
+
+
+msgid "VAT Number"
+msgstr "Номер НДС"
+
+
+msgid "(optional)"
+msgstr "(по желанию)"
+
+
+msgid "Billing details"
+msgstr "Платежные реквизиты"
+
+
+msgid "User information"
+msgstr "информация о пользователе"
+
+
+msgid "It seems that no available payment methods have been configured."
+msgstr "похоже, что не настроены доступные способы оплаты."
+
+
+msgid "Thank you! We are delighted to see you here. Your subscription will be activated soon!"
+msgstr "Спасибо! мы очень рады видеть вас здесь. ваша подписка скоро будет активирована!"
+
+
+msgid "Our bank details"
+msgstr "наши банковские реквизиты"
+
+
+msgid "Your subscription details"
+msgstr "данные вашей подписки"
+
+
+msgid "View subscription"
+msgstr "просмотреть подписку"
+
+
+msgid "You have not selected a valid subscription plan."
+msgstr "вы не выбрали действующий план подписки."
+
+
+msgid "Field empty"
+msgstr "поле пустое"
+
+
+msgid "Empty first name"
+msgstr "пустое имя"
+
+
+msgid "Empty last name"
+msgstr "пустая фамилия"
+
+
+msgid "Empty country"
+msgstr "пустая страна"
+
+
+msgid "Empty address"
+msgstr "пустой адрес"
+
+
+msgid "Empty city"
+msgstr "пустой город"
+
+
+msgid "Empty county"
+msgstr "пустой округ"
+
+
+msgid "Empty postcode"
+msgstr "пустой почтовый индекс"
+
+
+msgid "Empty phone"
+msgstr "пустой телефон"
+
+
+msgid "Empty email"
+msgstr "пустой адрес электронной почты"
+
+
+msgid "Email or username empty!"
+msgstr "электронная почта или имя пользователя пусто!"
+
+
+msgid "Pass empty!"
+msgstr "пройти пустой!"
+
+
+msgid "Username incorrect!"
+msgstr "неверное имя пользователя!"
+
+
+msgid "Invalid Pass Pattern!"
+msgstr "неверный шаблон прохода!"
+
+
+msgid "Please activate your account by following the link sent to your email address."
+msgstr "пожалуйста, активируйте свою учетную запись, перейдя по ссылке, отправленной на ваш адрес электронной почты."
+
+
+msgid "Resend activation link"
+msgstr "повторно отправить ссылку активации"
+
+
+msgid "In order to have access to this section, you have to activate your account."
+msgstr "чтобы получить доступ к этому разделу, вам необходимо активировать свою учетную запись."
+
+
+msgid "Email empty!"
+msgstr "электронная почта пуста!"
+
+
+msgid "Username empty!"
+msgstr "имя пользователя пустое!"
+
+
+msgid "Pass pattern incorrect!"
+msgstr "неверный шаблон передачи!"
+
+
+msgid "Retyped pass empty!"
+msgstr "перепечатал пропуск пустой!"
+
+
+msgid "Retyped pass exactly!"
+msgstr "точно перепечатал пасс!"
+
+
+msgid "User already exists!"
+msgstr "Пользователь уже существует!"
+
+
+msgid "Email already exists!"
+msgstr "Эл. адрес уже существует!"
+
+
+msgid "Your account could not be created."
+msgstr "ваша учетная запись не может быть создана."
+
+
+msgid "Please check your email (inbox or spam folder) to validate your account."
+msgstr "пожалуйста, проверьте свою электронную почту (входящие или папку со спамом), чтобы подтвердить свою учетную запись."
+
+
+msgid "User empty!"
+msgstr "пользователь пустой!"
+
+
+msgid "User does not exists!"
+msgstr "пользователь не существует!"
+
+
+msgid "New activation link was generated. Please check your email (inbox or spam folder) to validate your account."
+msgstr "создана новая ссылка для активации. пожалуйста, проверьте свою электронную почту (входящие или папку со спамом), чтобы подтвердить свою учетную запись."
+
+
+msgid "CAPTCHA verification failed!"
+msgstr "проверка капчи не удалась!"
+
+
+msgid "CAPTCHA user score failed. Please contact us!"
+msgstr "оценка пользователя капчи не удалась. пожалуйста свяжитесь с нами!"
+
+
+msgid "Loading"
+msgstr "загрузка"
+
+
+msgid "Here are the results for the search:"
+msgstr "вот результаты поиска:"
+
+
+msgid "Price"
+msgstr "цена"
+
+
+msgid "EXCLUSIVE"
+msgstr "ЭКСКЛЮЗИВНЫЙ"
+
+
+msgid "Tel:"
+msgstr "тел:"
+
+
+msgid "Share"
+msgstr "Поделиться"
+
+
+msgid "Print"
+msgstr "Распечатать"
+
+
+msgid "At"
+msgstr "в"
+
+
+msgid "Comments are closed."
+msgstr "комментарии закрыты."
+
+
+msgid "Payment method"
+msgstr "способ оплаты"
+
+
+msgid "You must be logged out to view this page."
+msgstr "вы должны выйти из системы, чтобы просмотреть эту страницу."
+
+
+msgid "Retyped Pass incorrect!"
+msgstr "перепечатал пропуск неверный!"
+
+
+msgid "%s is a required field."
+msgstr "%s — обязательное поле."
+
+
+msgid "Please provide a valid email address."
+msgstr "Пожалуйста, представьте действующий адрес электронной почты."
+
+
+msgid "This email address is already registered."
+msgstr "Этот адрес электронной почты уже зарегистрирован."
+
+
+msgid "Please fill out all password fields."
+msgstr "пожалуйста, заполните все поля пароля."
+
+
+msgid "Please enter your current password."
+msgstr "пожалуйста, введите ваш текущий пароль."
+
+
+msgid "Please re-enter your password."
+msgstr "Пожалуйста, введите еще раз ваш пароль."
+
+
+msgid "New passwords do not match."
+msgstr "новые пароли не совпадают."
+
+
+msgid "Your current password is incorrect."
+msgstr "ваш текущий пароль неверен."
+
+
+msgid "Account details changed successfully."
+msgstr "данные учетной записи успешно изменены."
+
+
+msgid "A new activation link has been sent to your email address!"
+msgstr "на ваш адрес электронной почты отправлена новая ссылка активации!"
+
+
+msgid "unlimited"
+msgstr "неограниченный"
+
+
+msgid "Pay with Stripe"
+msgstr "платить с помощью полосы"
+
+
+msgid "Cancel subscription"
+msgstr "Отписаться от рассылки"
+
+
+msgid "Please check your email and confirm subscription!"
+msgstr "пожалуйста, проверьте свою электронную почту и подтвердите подписку!"
+
+
+msgid "Successfully subscribed!"
+msgstr "успешно подписался!"
+
+
+msgid "Successfully unsubscribed!"
+msgstr "успешно отписался!"
+
+
+msgid "Enter promo code here"
+msgstr "введите промокод здесь"
+
+
+msgid "Apply"
+msgstr "применять"
+
+
+msgid "Coupon applied"
+msgstr "купон применен"
+
+
+msgid "Uncaught Error: Something went wrong, please reload page and try again!"
+msgstr "необнаруженная ошибка: что-то пошло не так, перезагрузите страницу и повторите попытку!"
+
+
+msgid "The coupon code you entered is invalid"
+msgstr "введенный вами код купона недействителен"
+
+
+msgid "The coupon code you entered has reached its usage limit"
+msgstr "введенный вами код купона достиг предела использования"
+
+
+msgid "The coupon code you entered has expired"
+msgstr "срок действия введенного вами кода купона истек"
+
+
+msgid "Coupon name is required !"
+msgstr "Требуется имя купона!"
+
+
+msgid "Please enter a coupon code first!"
+msgstr "пожалуйста, сначала введите код купона!"
+
+
+msgid "Invalid"
+msgstr "неверный"
+
+
+msgid "Applied"
+msgstr "применяемый"
+
+
+msgid "Remove"
+msgstr "удалять"
+
+
+msgid "Price not set"
+msgstr "цена не установлена"
+
+
+msgid "Grand Total"
+msgstr "общий итог"
+
+
+msgid "You already have a subscription, but it's still in waiting to be paid!"
+msgstr "у вас уже есть подписка, но она еще ждет оплаты!"
+
+
+msgid "This subscription has been canceled and it will end on %END_DATE%."
+msgstr "эта подписка отменена и завершится %end_date%."
+
+
+msgid "Go to checkout"
+msgstr "перейти к оформлению заказа"
+
+
+msgid "Stripe invoice details"
+msgstr "детали счета-фактуры в полоску"
+
+
+msgid "Stripe subscription details"
+msgstr "подробности подписки на полосу"
+
+
+msgid "Current status"
+msgstr "Текущее состояние"
+
+
+msgid "Initial Invoice Paid"
+msgstr "первоначальный счет оплачен"
+
+
+msgid "Subscription Create: Initial Invoice Paid"
+msgstr "создать подписку: первоначальный счет оплачен"
+
+
+msgid "Subscription Create: Initial Invoice has been created"
+msgstr "создание подписки: создан первоначальный счет-фактура"
+
+
+msgid "Subscription Create: Initial Invoice has been finalized, and it is ready to be paid"
+msgstr "создание подписки: первоначальный счет оформлен и готов к оплате"
+
+
+msgid "Subscription Update: Invoice Paid"
+msgstr "обновление подписки: счет оплачен"
+
+
+msgid "Subscription Renew: Invoice Paid"
+msgstr "продление подписки: счет оплачен"
+
+
+msgid "Subscription Renew: Invoice Finalized"
+msgstr "продление подписки: счет завершен"
+
+
+msgid "Subscription Renew: Invoice Created"
+msgstr "продление подписки: счет создан"
+
+
+msgid "Subscription Renew: Invoice Upcoming"
+msgstr "продление подписки: ожидается выставление счета"
+
+
+msgid "Subscription Expired: Invoice Voided(the first invoice was not paid)"
+msgstr "срок подписки истек: счет аннулирован (первый счет не оплачен)"
+
+
+msgid "Subscription Deleted"
+msgstr "подписка удалена"
+
+
+msgid "Subscription Create: Trialing"
+msgstr "создание подписки: пробная версия"
+
+
+msgid "Subscription Canceled"
+msgstr "подписка отменена"
+
+
+msgid "Subscription Create: Initial Invoice voided"
+msgstr "создание подписки: первоначальный счет аннулирован"
+
+
+msgid "Subscription Renew: Invoice voided"
+msgstr "продление подписки: счет аннулирован"
+
+
+msgid "Subscription Update: Invoice voided"
+msgstr "обновление подписки: счет аннулирован"
+
+
+msgid "Invoice updated"
+msgstr "счет обновлен"
+
+
+msgid "Subscription has been canceled and will end on: "
+msgstr "подписка отменена и завершится:"
+
+
+msgid "Setup successful - You have successfully set up your payment method for future payments."
+msgstr "установка успешна — вы успешно настроили способ оплаты для будущих платежей."
+
+
+msgid "Setup failed - We are sorry, there was an error setting up your payment method. Please try again with a different payment method."
+msgstr "установка не удалась. К сожалению, при настройке способа оплаты произошла ошибка. пожалуйста, попробуйте еще раз, используя другой способ оплаты."
+
+
+msgid "Payment successful - Your latest subscription payment was completed successfully."
+msgstr "платеж успешен — ваш последний платеж по подписке был успешно завершен."
+
+
+msgid "Payment processing - Your latest subscription payment is being processed."
+msgstr "обработка платежа — обрабатывается ваш последний платеж по подписке."
+
+
+msgid "Payment failed - We are sorry, there was an error processing your payment. Please try again with a different payment method."
+msgstr "оплата не удалась. Приносим извинения, при обработке вашего платежа произошла ошибка. пожалуйста, попробуйте еще раз, используя другой способ оплаты."
+
+
+msgid "Download"
+msgstr "скачать"
+
+
+msgid "Stripe invoice"
+msgstr "полосатый счет"
+
+
+msgid "N/A"
+msgstr "н/д"
+
+
+msgid "Latest invoice"
+msgstr "последний счет"
+
+
+msgid "Invoice"
+msgstr "счет"
+
+
+msgid "Unpaid subscription."
+msgstr "неоплаченная подписка."
+
+
+msgid "Locked subscription."
+msgstr "заблокированная подписка."
+
+
+msgid "Invalid subscription."
+msgstr "недействительная подписка."
+
+
+msgid "Pay now"
+msgstr "заплатить сейчас"
+
+
+msgid "Show more info"
+msgstr "показать больше информации"
+
+
+msgid "Show less info"
+msgstr "показывать меньше информации"
+
+
+msgid "Complete payment"
+msgstr "полная оплата"
+
+
+msgid "or"
+msgstr "или"
+
+
+msgid "Setup Payment"
+msgstr "настроить платеж"
+
+
+msgid "Go to Payment"
+msgstr "перейти к оплате"
+
+
+msgid "Alphabetical A -> Z"
+msgstr "алфавитный а -> я"
+
+
+msgid "Oldest posts"
+msgstr "самые старые сообщения"
+
+
+msgid "Select"
+msgstr "выбирать"
+
+
+msgid "on"
+msgstr "на"
+
+
+msgid "No bookmarked posts"
+msgstr "нет записей в закладках"
+
+
+msgid "Log in With Facebook"
+msgstr "Войти с Facebook"
+
+
+msgid "Forgot your password? Get help"
+msgstr "Забыли пароль? получить помощь"
+
+
+msgid "Someone has requested a password reset for the following account:"
+msgstr "кто-то запросил сброс пароля для следующей учетной записи:"
+
+
+msgid "Username: %s"
+msgstr "имя пользователя: %s"
+
+
+msgid "If this was a mistake, just ignore this email and nothing will happen."
+msgstr "если это была ошибка, просто проигнорируйте это письмо, и ничего не произойдет."
+
+
+msgid "To reset your password, visit the following address:"
+msgstr "чтобы сбросить пароль, посетите следующий адрес:"
+
+
+msgid "Members"
+msgstr "члены"
+
+
+msgid "Downloads"
+msgstr "загрузки"
+
+
+msgid "inc. TAX"
+msgstr "инк. налог"
+
+
+msgid "ex. TAX"
+msgstr "бывший. налог"
+
+
+msgid "An unexpected error has occured while trying to create your post. Please try again."
+msgstr "при попытке создать публикацию произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз."
+
+
+msgid "Your post has been successfully created."
+msgstr "ваш пост успешно создан."
+
+
+msgid "Your post has been successfully updated."
+msgstr "ваше сообщение было успешно обновлено."
+
+
+msgid "An unexpected error has occurred and the mail could not be sent."
+msgstr "произошла непредвиденная ошибка, и письмо не удалось отправить."
+
+
+msgid "Location:"
+msgstr "расположение:"
+
+
+msgid "The email has been successfully sent."
+msgstr "письмо было успешно отправлено."
+
+
+msgid "An unexpected error has occurred. Please try again."
+msgstr "Произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз."
+
+
+msgid "Drag and drop or browse"
+msgstr "перетащите или просмотрите"
+
+
+msgid "Search by keyword..."
+msgstr "Поиск по ключевым словам..."
+
+
+msgid "Select parent"
+msgstr "выбрать родителя"
+
+
+msgid "Add new"
+msgstr "Добавить новое"
+
+
+msgid "Parent"
+msgstr "родитель"
+
+
+msgid "Select child"
+msgstr "выбрать ребенка"
+
+
+msgid "Select sub-child"
+msgstr "выбрать дочернего ребенка"
+
+
+msgid "Posted by"
+msgstr "Сообщение от"
+
+
+msgid "Overall"
+msgstr "общий"
+
+
+msgid "Post review"
+msgstr "опубликовать обзор"
+
+
+msgid "This field is required!"
+msgstr "Это поле обязательно к заполнению!"
+
+
+msgid "Your review has been published. Please refresh the page in order to see it."
+msgstr "ваш отзыв опубликован. пожалуйста, обновите страницу, чтобы увидеть ее."
+
+
+msgid "Your review has been registered and is awaiting approval."
+msgstr "Ваш отзыв зарегистрирован и ожидает одобрения."
+
+
+msgid "Submit reply"
+msgstr "отправить ответ"
+
+
+msgid "Enter your reply"
+msgstr "введите свой ответ"
+
+
+msgid "Cancel"
+msgstr "отмена"
+
+
+msgid "Some required fields have been left blank."
+msgstr "некоторые обязательные поля остались пустыми."
+
+
+msgid "Please enter a valid email address."
+msgstr "Пожалуйста, введите действительный адрес электронной почты."
+
+
+msgid "The number cannot be lower than"
+msgstr "число не может быть меньше"
+
+
+msgid "The number cannot be higher than"
+msgstr "число не может быть больше"
+
+
+msgid "Leave a review"
+msgstr "оставить отзыв"
+
+
+msgid "Submit"
+msgstr "представлять на рассмотрение"
+
+
+msgid "Update"
+msgstr "обновлять"
+
+
+msgid "out of 5"
+msgstr "из 5"
+
+
+msgid "You have reached the limit of reviews that you can submit for this article"
+msgstr "вы достигли лимита отзывов, которые вы можете отправить для этой статьи"
+
+
+msgid "Log in to leave a review."
+msgstr "войдите, чтобы оставить отзыв."
+
+
+msgid "Enter a title for your review"
+msgstr "введите название вашего обзора"
+
+
+msgid "Enter your review"
+msgstr "введите свой отзыв"
+
+
+msgid "Review criteria"
+msgstr "критерии обзора"
+
+
+msgid "Enter Your Name or Company"
+msgstr "введите свое имя или компанию"
+
+
+msgid "Submit review"
+msgstr "добавить отзыв"
+
+
+msgid "Delete"
+msgstr "удалить"
+
+
+msgid "Your reply has been published. Please refresh the page in order to see it."
+msgstr "ваш ответ опубликован. пожалуйста, обновите страницу, чтобы увидеть ее."
+
+
+msgid "You have not created any posts."
+msgstr "вы не создали ни одной публикации."
+
+
+msgid "The selected post has been successfully deleted."
+msgstr "выбранное сообщение было успешно удалено."
+
+
+msgid "Rating"
+msgstr "рейтинг"
+
+
+msgid "Title"
+msgstr "заголовок"
+
+
+msgid "Post image"
+msgstr "опубликовать изображение"
+
+
+msgid "Categories"
+msgstr "категории"
+
+
+msgid "Date"
+msgstr "дата"
+
+
+msgid "Source title"
+msgstr "название источника"
+
+
+msgid "No rating"
+msgstr "без рейтинга"
+
+
+msgid "View"
+msgstr "вид"
+
+
+msgid "Publish"
+msgstr "публиковать"
+
+
+msgid "Add new post"
+msgstr "добавить новый пост"
+
+
+msgid "Edit post"
+msgstr "Редактировать сообщение"
+
+
+msgid "Publish a post"
+msgstr "опубликовать сообщение"
+
+
+msgid "The status for %POST_TITLE% has been changed."
+msgstr "статус %post_title% был изменен."
+
+
+msgid "Are you sure you want to publish %POST_TITLE%?"
+msgstr "вы уверены, что хотите опубликовать %post_title%?"
+
+
+msgid "Delete a post"
+msgstr "удалить сообщение"
+
+
+msgid "Are you sure you want to delete %POST_TITLE%?"
+msgstr "вы уверены, что хотите удалить %post_title%?"
+
+
+msgid "%POST_TITLE% has been moved to trash."
+msgstr "%post_title% перемещен в корзину."
+
+
+msgid "You do not hold the required priveleges to execute this request."
+msgstr "у вас нет необходимых привилегий для выполнения этого запроса."
+
+
+msgid "No search results."
+msgstr "Нет Результатов Поиска."
+
+
+msgid "Yes"
+msgstr "да"
+
+
+msgid "No"
+msgstr "нет"
+
+
+msgid "Save"
+msgstr "сохранять"
+
+
+msgid "Search for a location"
+msgstr "искать место"
+
+
+msgid "Address line"
+msgstr "адресная строка"
+
+
+msgid "(Optional)"
+msgstr "(необязательный)"
+
+
+msgid "State"
+msgstr "состояние"
+
+
+msgid "Country"
+msgstr "страна"
+
+
+msgid "Create new term"
+msgstr "создать новый термин"
+
+
+msgid "Description"
+msgstr "описание"
+
+
+msgid "Delete bookmarks"
+msgstr "удалить закладки"
+
+
+msgid "Reset your password"
+msgstr "сбросить пароль"
+
+
+msgid "The password reset key has expired."
+msgstr "Срок действия ключа сброса пароля истек."
+
+
+msgid "The password reset key is invalid."
+msgstr "ключ сброса пароля недействителен."
+
+
+msgid "New password *"
+msgstr "Новый пароль *"
+
+
+msgid "Repeat new password *"
+msgstr "повторите новый пароль *"
+
+
+msgid "Save password"
+msgstr "Сохраните пароль"
+
+
+msgid "Your account has been successfully activated!"
+msgstr "ваша учетная запись успешно активирована!"
+
+
+msgid "Your account has already been activated!"
+msgstr "Ваш аккаунт уже был активирован!"
+
+
+msgid "Check your email for the correct activation link. This link is invalid."
+msgstr "проверьте свою электронную почту на наличие правильной ссылки активации. эта ссылка недействительна."
+
+
+msgid "Account activation"
+msgstr "активация аккаунта"
+
+
+msgid "Please enter a new password before proceeding."
+msgstr "пожалуйста, введите новый пароль, прежде чем продолжить."
+
+
+msgid "Please confirm the new password before proceeding."
+msgstr "пожалуйста, подтвердите новый пароль, прежде чем продолжить."
+
+
+msgid "Please make sure that the passwords match."
+msgstr "пожалуйста, убедитесь, что пароли совпадают."
+
+
+msgid "The password has been reset successfully."
+msgstr "пароль успешно сброшен."
+
+
+msgid "Manage your billing details."
+msgstr "управлять своими платежными данными."
+
+
+msgid "Profile picture"
+msgstr "изображение профиля"
+
+
+msgid "Remaining publishing rights."
+msgstr "оставшиеся права на публикацию."
+
+
+msgid "The number of articles you have left to publish across different post types."
+msgstr "количество статей, которые вам осталось опубликовать в разных типах публикаций."
+
+
+msgid "Bank transfer"
+msgstr "банковский перевод"
+
+
+msgid "Direct Bank Transfer"
+msgstr "прямой банковский перевод"
+
+
+msgid "Canceled"
+msgstr "отменен"
+
+
+msgid "Cycle Interval"
+msgstr "интервал цикла"
+
+
+msgid "In order to update this filed, you have to activate your account."
+msgstr "Чтобы обновить это поле, вам необходимо активировать свою учетную запись."
+
+
+msgid "Cannot process %s field."
+msgstr "невозможно обработать поле %s."
+
+
+msgid "Modified date"
+msgstr "дата изменения"
+

@@ -1,0 +1,89 @@
+/* HS Smart Tooltip — admin card / Battlegrounds search meta boxes. */
+.hs-tt-search .hs-tt-input {
+  margin-bottom: 8px;
+}
+.hs-tt-results {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  border: 1px solid #dcdcde;
+  border-radius: 4px;
+}
+.hs-tt-results:empty {
+  display: none;
+}
+.hs-tt-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f1;
+  border-left: 3px solid transparent;
+}
+.hs-tt-item:last-child {
+  border-bottom: 0;
+}
+.hs-tt-item.is-active {
+  background: #f0f6fc;
+}
+.hs-tt-thumb {
+  flex: 0 0 auto;
+  width: auto;
+  height: 30px;
+  border-radius: 3px;
+  background: #1d2327;
+  object-fit: contain;
+}
+.hs-tt-thumb--none {
+  width: 22px;
+}
+.hs-tt-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.hs-tt-name mark {
+  background: #fff3a3;
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+.hs-tt-id {
+  flex: 0 0 auto;
+  color: #787c82;
+  font-size: 11px;
+  font-family: Consolas, Monaco, monospace;
+}
+.hs-tt-tier,
+.hs-tt-type {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #50575e;
+  background: #f0f0f1;
+  border-radius: 3px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+.hs-tt-empty {
+  padding: 8px;
+  color: #787c82;
+}
+.hs-tt-empty.hs-tt-error {
+  color: #d63638;
+}
+.hs-tt-hint {
+  margin: 6px 0 0;
+}
+.hs-tt-insert.is-ok {
+  background: #00a32a !important;
+  border-color: #00a32a !important;
+  color: #fff !important;
+}
+/* Rarity accent on the left edge. */
+.hs-tt-item.hs-rarity-common { border-left-color: #9d9d9d; }
+.hs-tt-item.hs-rarity-rare { border-left-color: #0070dd; }
+.hs-tt-item.hs-rarity-epic { border-left-color: #a335ee; }
+.hs-tt-item.hs-rarity-legendary { border-left-color: #ff8000; }

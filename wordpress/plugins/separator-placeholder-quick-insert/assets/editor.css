@@ -1,0 +1,58 @@
+.spqi-modal .components-modal__content { min-height: 360px; }
+
+.spqi-desc {
+	margin: 8px 0 12px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border-left: 3px solid #2271b1;
+	color: #1d2327;
+	font-size: 13px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+.spqi-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 12px;
+	padding: 12px 0;
+}
+
+.spqi-tile {
+	background: #f0f0f1;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 8px;
+	cursor: pointer;
+	transition: border-color .15s ease, box-shadow .15s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 80px;
+}
+
+.spqi-tile:hover,
+.spqi-tile:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	outline: none;
+}
+
+.spqi-tile img {
+	max-width: 100%;
+	max-height: 140px;
+	height: auto;
+	display: block;
+}
+
+.spqi-state {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 220px;
+	flex-direction: column;
+	color: #50575e;
+	text-align: center;
+}
+
+.spqi-empty p { margin: 4px 0; }

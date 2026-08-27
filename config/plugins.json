@@ -1,0 +1,40 @@
+{
+  "captured_at": "2026-08-27",
+  "custom_plugins_in_repository": [
+    { "slug": "hs-manacost-inline-deck", "version": "1.0.1", "production_status": "active" },
+    { "slug": "hs-tooltip", "version": "1.1.8", "production_status": "active" },
+    { "slug": "kolodahs-manacost-sync", "version": "1.2.4", "production_status": "inactive" },
+    { "slug": "manacost-arena-feed", "version": "1.1.5", "production_status": "active" },
+    { "slug": "separator-placeholder-quick-insert", "version": "0.2.0", "production_status": "active" },
+    { "slug": "wp-kolodahearthstone-banner", "version": "1.0", "production_status": "active" },
+    { "slug": "wp-kolodahearthstone-spoilers", "version": "1.0", "production_status": "active" },
+    { "slug": "wp-manacost-decks_old", "version": "2.0.4", "production_status": "active" }
+  ],
+  "active_external_plugins": [
+    { "slug": "ad-inserter", "version": "2.8.15", "source": "wordpress.org" },
+    { "slug": "ads-txt", "version": "1.4.6", "source": "wordpress.org" },
+    { "slug": "advanced-editor-tools", "version": "5.9.2", "source": "wordpress.org", "installed_slug": "tinymce-advanced" },
+    { "slug": "all-in-one-seo-pack", "version": "4.9.8", "source": "wordpress.org" },
+    { "slug": "cackle", "version": "4.33", "source": "vendor" },
+    { "slug": "classic-editor", "version": "1.6.7", "source": "wordpress.org" },
+    { "slug": "cloudflare", "version": "4.14.3", "source": "wordpress.org" },
+    { "slug": "cyr2lat", "version": "7.0.2", "source": "wordpress.org" },
+    { "slug": "members", "version": "3.2.21", "source": "wordpress.org" },
+    { "slug": "perfmatters", "version": "2.6.2", "source": "commercial" },
+    { "slug": "redirection", "version": "5.7.5", "source": "wordpress.org" },
+    { "slug": "redis-cache", "version": "2.8.0", "source": "wordpress.org" },
+    { "slug": "shortcodes-ultimate", "version": "7.5.3", "source": "wordpress.org" },
+    { "slug": "shortcodes-ultimate-extra-shortcodes", "version": null, "source": "commercial" },
+    { "slug": "shortcodes-ultimate-skins", "version": null, "source": "commercial" },
+    { "slug": "td-composer", "version": "5.4.2", "source": "theme-vendor" },
+    { "slug": "td-standard-pack", "version": "2.7.1", "source": "theme-vendor" },
+    { "slug": "wordfence", "version": "9.0.0", "source": "wordpress.org" },
+    { "slug": "wp-rocket", "version": "3.21.3", "source": "commercial" }
+  ],
+  "notes": [
+    "MU-плагины находятся в wordpress/mu-plugins и загружаются WordPress автоматически.",
+    "Сторонние плагины не копируются в Git; их архивы и лицензии хранятся вне репозитория.",
+    "Перед обновлением версии сначала проверяются на test.hs-manacost.ru."
+  ]
+}
+

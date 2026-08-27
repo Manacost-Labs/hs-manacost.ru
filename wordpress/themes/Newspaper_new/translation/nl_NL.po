@@ -1,0 +1,2011 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: nl_NL\n"
+
+
+msgid "View all results"
+msgstr "Bekijk alle resultaten"
+
+
+msgid "No results"
+msgstr "Geen resultaten"
+
+
+msgid "Home"
+msgstr "Home"
+
+
+msgid "CLOSE"
+msgstr "SLUITEN"
+
+
+msgid "Page"
+msgstr "Pagina"
+
+
+msgid "All"
+msgstr "Alle"
+
+
+msgid "By"
+msgstr "Door"
+
+
+msgid "Load more"
+msgstr "Laad meer"
+
+
+msgid "View all posts in"
+msgstr "Bekijk alle posts in"
+
+
+msgid "Tags"
+msgstr "Tags"
+
+
+msgid "Previous article"
+msgstr "Vorig artikel"
+
+
+msgid "Next article"
+msgstr "Volgend artikel"
+
+
+msgid "Authors"
+msgstr "Auteurs"
+
+
+msgid "Author"
+msgstr "Auteur"
+
+
+msgid "RELATED ARTICLES"
+msgstr "GERELATEERDE ARTIKELEN"
+
+
+msgid "MORE FROM AUTHOR"
+msgstr "MEER VAN DEZE AUTEUR"
+
+
+msgid "VIA"
+msgstr "VIA"
+
+
+msgid "SOURCE"
+msgstr "BRON"
+
+
+msgid "TAGS"
+msgstr "TAGS"
+
+
+msgid "SHARE"
+msgstr "DELEN"
+
+
+msgid "Continue"
+msgstr "Verder"
+
+
+msgid "Read more"
+msgstr "Lees meer"
+
+
+msgid "Name:"
+msgstr "Naam:"
+
+
+msgid "Email:"
+msgstr "Email:"
+
+
+msgid "Website:"
+msgstr "Website:"
+
+
+msgid "Comment:"
+msgstr "Opmerking:"
+
+
+msgid "LEAVE A REPLY"
+msgstr "LAAT EEN REACTIE ACHTER"
+
+
+msgid "Post Comment"
+msgstr "Plaats Opmerking"
+
+
+msgid "Cancel reply"
+msgstr "Annuleer reactie"
+
+
+msgid "Reply"
+msgstr "Reageer"
+
+
+msgid "Log in to leave a comment"
+msgstr "Log in om een opmerking achter te laten"
+
+
+msgid "NO COMMENTS"
+msgstr "GEEN REACTIES"
+
+
+msgid "1 COMMENT"
+msgstr "1 REACTIE"
+
+
+msgid "COMMENTS"
+msgstr "REACTIES"
+
+
+msgid "REVIEW OVERVIEW"
+msgstr "RECENSIES OVERZICHT"
+
+
+msgid "SUMMARY"
+msgstr "SAMENVATTING"
+
+
+msgid "OVERALL SCORE"
+msgstr "TOTALE SCORE"
+
+
+msgid "Ooops... Error 404"
+msgstr "Oeps… Error 404"
+
+
+msgid "Sorry, but the page you are looking for doesn't exist."
+msgstr "Sorry, maar de pagina die je zoekt bestaat niet meer.."
+
+
+msgid "You can go to the"
+msgstr "Je kunt naar de (homepage) gaan"
+
+
+msgid "HOMEPAGE"
+msgstr "HOMEPAGE"
+
+
+msgid "OUR LATEST POSTS"
+msgstr "ONZE LAATSTE POSTS"
+
+
+msgid "Posts by"
+msgstr "Posts van"
+
+
+msgid "POSTS"
+msgstr "POSTS"
+
+
+msgid "Posts tagged with"
+msgstr "Posts getagd met"
+
+
+msgid "Tag"
+msgstr "Tag"
+
+
+msgid "Daily Archives:"
+msgstr "Dagelijkse Archieven:"
+
+
+msgid "Monthly Archives:"
+msgstr "Maandelijkse Archieven:"
+
+
+msgid "Yearly Archives:"
+msgstr "Jaarlijkse Archieven:"
+
+
+msgid "Archives"
+msgstr "Archieven"
+
+
+msgid "LATEST ARTICLES"
+msgstr "LAATSTE ARTIKELEN"
+
+
+msgid "search results"
+msgstr "zoekresultaten"
+
+
+msgid "Search"
+msgstr "Zoek"
+
+
+msgid "If you're not happy with the results, please do another search"
+msgstr "Wanneer u niet blij bent met de resultaten, kunt u een nieuwe zoekopdracht geven"
+
+
+msgid "Contact us"
+msgstr "Neem contact met ons op"
+
+
+msgid "Page %CURRENT_PAGE% of %TOTAL_PAGES%"
+msgstr "Pagina %CURRENT_PAGE% van %TOTAL_PAGES%"
+
+
+msgid "Next"
+msgstr "Volgende"
+
+
+msgid "Prev"
+msgstr "Vorige"
+
+
+msgid "No results for your search"
+msgstr "Geen resultaten voor uw zoekopdracht"
+
+
+msgid "No posts to display"
+msgstr "Geen posts om weer te geven"
+
+
+msgid "LOG IN"
+msgstr "LOG IN"
+
+
+msgid "Sign in / Join"
+msgstr "Aanmelden"
+
+
+msgid "Log In"
+msgstr "Log In"
+
+
+msgid "REGISTER"
+msgstr "REGISTREER"
+
+
+msgid "Send My Pass"
+msgstr "Stuur Mijn Pas"
+
+
+msgid "Forgot your password?"
+msgstr "Wachtwoord vergeten?"
+
+
+msgid "Please wait..."
+msgstr "Even geduld…"
+
+
+msgid "User or password incorrect!"
+msgstr "Gebruikersnaam of wachtwoord is incorrect!"
+
+
+msgid "Email or username incorrect!"
+msgstr "E-mail of gebruikersnaam is onjuist"
+
+
+msgid "Email incorrect!"
+msgstr "E-mail is onjuist"
+
+
+msgid "User or email already exists!"
+msgstr "Gebruikersnaam of email bestaat al!"
+
+
+msgid "Please check you email (index or spam folder), the password was sent there."
+msgstr "Check alsublieft uw mail (inbox of spam), het wachtwoord is daarheen gestuurd"
+
+
+msgid "Email address not found!"
+msgstr "Emailadres niet gevonden!"
+
+
+msgid "Your password is reset, check your email."
+msgstr "Wachtwoord is gereset, check email."
+
+
+msgid "Welcome! Log into your account"
+msgstr "Welkom! Log in op je account"
+
+
+msgid "Register for an account"
+msgstr "Registreer voor een account"
+
+
+msgid "Recover your password"
+msgstr "Vind je wachtwoord terug"
+
+
+msgid "your username"
+msgstr "jouw gebruikersnaam"
+
+
+msgid "your password"
+msgstr "jouw wachtwoord"
+
+
+msgid "your email"
+msgstr "jouw mailadres"
+
+
+msgid "A password will be e-mailed to you."
+msgstr "Er zal een wachtwoord naar je gemaild worden"
+
+
+msgid "Logout"
+msgstr "Log uit"
+
+
+msgid "Like"
+msgstr "Like"
+
+
+msgid "Fans"
+msgstr "Fans"
+
+
+msgid "Follow"
+msgstr "Volg"
+
+
+msgid "Followers"
+msgstr "Volgers"
+
+
+msgid "Subscribe"
+msgstr "Abonneer"
+
+
+msgid "Subscribers"
+msgstr "Abonnees"
+
+
+msgid "MORE STORIES"
+msgstr "MEER VERHALEN"
+
+
+msgid "Latest"
+msgstr "Laatste"
+
+
+msgid "Featured posts"
+msgstr "Aanbevolen posts"
+
+
+msgid "Most popular"
+msgstr "Meest populair"
+
+
+msgid "7 days popular"
+msgstr "7 dagen populair"
+
+
+msgid "By review score"
+msgstr "Op recensie scores"
+
+
+msgid "Random"
+msgstr "Willekeurig"
+
+
+msgid "Trending Now"
+msgstr "Nu Trending"
+
+
+msgid "POPULAR CATEGORY"
+msgstr "POPULAIRE CATEGORIE"
+
+
+msgid "EVEN MORE NEWS"
+msgstr "NOG MEER NIEUWS"
+
+
+msgid "Previous (Left arrow key)"
+msgstr "Vorige (Pijl naar links)"
+
+
+msgid "Next (Right arrow key)"
+msgstr "Volgende (Pijl naar rechts)"
+
+
+msgid "%curr% of %total%"
+msgstr "%curr% van %total%"
+
+
+msgid "The content from %url% could not be loaded."
+msgstr "De inhoud van %url% kan niet worden geladen."
+
+
+msgid "The image #%curr% could not be loaded."
+msgstr "De afbeelding #%curr% kan niet worden geladen."
+
+
+msgid "Blog"
+msgstr "Blog"
+
+
+msgid "Share on Facebook"
+msgstr "Deel op Facebook"
+
+
+msgid "Tweet on Twitter"
+msgstr "Tweet op Twitter"
+
+
+msgid "EDITOR PICKS"
+msgstr "SELECTIE VAN DE REDACTIE"
+
+
+msgid "POPULAR POSTS"
+msgstr "POPULAIRE BERICHTEN"
+
+
+msgid "FOLLOW US"
+msgstr "VOLG ONS"
+
+
+msgid "ABOUT US"
+msgstr "OVER ONS"
+
+
+msgid "More"
+msgstr "Meer"
+
+
+msgid "Featured"
+msgstr "Uitgelicht"
+
+
+msgid "All time popular"
+msgstr "Steeds Populair"
+
+
+msgid "Likes"
+msgstr "Likes"
+
+
+msgid "Register"
+msgstr "Registreren"
+
+
+msgid "of"
+msgstr "van"
+
+
+msgid "Euro Member Countries"
+msgstr "Euro-landen"
+
+
+msgid "Your comment is awaiting moderation"
+msgstr "Je opmerking moet nog beoordeeld worden"
+
+
+msgid "Follow us on Instagram"
+msgstr "Volg ons op Instagram"
+
+
+msgid "Back"
+msgstr "Terug"
+
+
+msgid "Sign in"
+msgstr "Aanmelden"
+
+
+msgid "Sign up"
+msgstr "Aanmelden"
+
+
+msgid "Join"
+msgstr "Toetreden"
+
+
+msgid "Welcome!"
+msgstr "Welkom!"
+
+
+msgid "Log into your account"
+msgstr "Log in op jouw account"
+
+
+msgid "Password recovery"
+msgstr "Wachtwoord herstel"
+
+
+msgid "Please check your email (index or spam folder), the password was sent there."
+msgstr "Controleer dan uw e-mail (index of spam map), werd het wachtwoord daar gestuurd."
+
+
+msgid "Australian Dollar"
+msgstr "Australische dollar"
+
+
+msgid "Bulgarian Lev"
+msgstr "Bulgaarse lev"
+
+
+msgid "Brazilian Real"
+msgstr "Braziliaanse real"
+
+
+msgid "Canadian Dollar"
+msgstr "Canadese dollar"
+
+
+msgid "Swiss Franc"
+msgstr "Zwitserse frank"
+
+
+msgid "Chinese Yuan Renminbi"
+msgstr "Chinese Yuan Renminbi"
+
+
+msgid "Czech Republic Koruna"
+msgstr "Tsjechië koruna"
+
+
+msgid "Danish Krone"
+msgstr "Deense kroon"
+
+
+msgid "British Pound"
+msgstr "Britse pond"
+
+
+msgid "Hong Kong Dollar"
+msgstr "Hong kong dollar"
+
+
+msgid "Croatian Kuna"
+msgstr "Kroatische kuna"
+
+
+msgid "Hungarian Forint"
+msgstr "Hongaarse forint"
+
+
+msgid "Indonesian Rupiah"
+msgstr "Indonesische roepia"
+
+
+msgid "Israeli Shekel"
+msgstr "Israëlische shekel"
+
+
+msgid "Indian Rupee"
+msgstr "Indiase rupee"
+
+
+msgid "Japanese Yen"
+msgstr "Japanse Yen"
+
+
+msgid "Korean (South) Won"
+msgstr "Koreaans (zuid) won"
+
+
+msgid "Mexican Peso"
+msgstr "Mexicaanse Peso"
+
+
+msgid "Malaysian Ringgit"
+msgstr "Maleisische ringgit"
+
+
+msgid "Norwegian Krone"
+msgstr "Noorse kroon"
+
+
+msgid "New Zealand Dollar"
+msgstr "Nieuw-Zeelandse Dollar"
+
+
+msgid "Philippine Peso"
+msgstr "Filippijnse peso"
+
+
+msgid "Polish Zloty"
+msgstr "Poolse zloty"
+
+
+msgid "Romanian (New) Leu"
+msgstr "Roemeens (nieuw) leu"
+
+
+msgid "Russian Ruble"
+msgstr "Russische roebel"
+
+
+msgid "Swedish Krona"
+msgstr "Zweedse kroon"
+
+
+msgid "Singapore Dollar"
+msgstr "Singapore dollar"
+
+
+msgid "Thai Baht"
+msgstr "Thaise baht"
+
+
+msgid "Turkish Lira"
+msgstr "Turkse lira"
+
+
+msgid "United States Dollar"
+msgstr "Verenigde Staten Dollar"
+
+
+msgid "South African Rand"
+msgstr "Zuid-Afrikaanse Rand"
+
+
+msgid "Privacy Policy"
+msgstr "Privacybeleid"
+
+
+msgid "views"
+msgstr "keer bekeken"
+
+
+msgid "Modified date:"
+msgstr "Aangepaste datum:"
+
+
+msgid "Please enter your name here"
+msgstr "Vul hier uw naam in"
+
+
+msgid "Please enter your email address here"
+msgstr "Vul hier uw e-mailadres in"
+
+
+msgid "You have entered an incorrect email address!"
+msgstr "Je hebt een verkeerd e-mailadres ingevoerd!"
+
+
+msgid "Please enter your comment!"
+msgstr "Vul alstublieft uw commentaar in!"
+
+
+msgid "Logged in as"
+msgstr "Ingelogd als"
+
+
+msgid "Log out?"
+msgstr "Uitloggen?"
+
+
+msgid "Logged in as %s. Edit your profile."
+msgstr "Ingelogd als% s. pas je profiel aan."
+
+
+msgid "Edit"
+msgstr "Bewerk"
+
+
+msgid "Login"
+msgstr "Log in"
+
+
+msgid "Send My Password"
+msgstr "Stuur mijn wachtwoord"
+
+
+msgid "Create an account"
+msgstr "Account aanmaken"
+
+
+msgid "Welcome! Register for an account"
+msgstr "Welkom! registreer voor een account"
+
+
+msgid "About me"
+msgstr "Over mij"
+
+
+msgid "Save my name, email, and website in this browser for the next time I comment."
+msgstr "Bewaar mijn naam, e-mailadres en website in deze browser voor de volgende keer dat ik een opmerking maak."
+
+
+msgid "Orders"
+msgstr "Bestellingen"
+
+
+msgid "Addresses"
+msgstr "Adressen"
+
+
+msgid "Account settings"
+msgstr "Account instellingen"
+
+
+msgid "Hello"
+msgstr "Hallo"
+
+
+msgid "No products in the cart."
+msgstr "Geen producten in de winkelwagen."
+
+
+msgid "Product categories"
+msgstr "Productcategorieën"
+
+
+msgid "Product tags"
+msgstr "Producttags"
+
+
+msgid "Success"
+msgstr "Succes"
+
+
+msgid "Acknowledgment is required!"
+msgstr "Bevestiging is vereist!"
+
+
+msgid "Please fill in a valid email."
+msgstr "Vul a.u.b. een geldig e-mailadres in."
+
+
+msgid "Please fill in an email address."
+msgstr "Vul dan een e-mailadres in."
+
+
+msgid "Get into your account."
+msgstr "In uw account komen."
+
+
+msgid "My subscription account"
+msgstr "Mijn abonnementsaccount"
+
+
+msgid "Account details"
+msgstr "Accountgegevens"
+
+
+msgid "Subscriptions"
+msgstr "Abonnementen"
+
+
+msgid "My woo account"
+msgstr "Mijn woo account"
+
+
+msgid "Log out"
+msgstr "Uitloggen"
+
+
+msgid "Email address"
+msgstr "E-mailadres"
+
+
+msgid "Username"
+msgstr "Gebruikersnaam"
+
+
+msgid "Password"
+msgstr "Wachtwoord"
+
+
+msgid "must contain at least one lower case (a..z)"
+msgstr "moet ten minste één kleine letter (a..z) bevatten"
+
+
+msgid "must contain at least one upper case (A..Z)"
+msgstr "moet minimaal één hoofdletter (a..z) bevatten"
+
+
+msgid "must contain at least 6 characters in length"
+msgstr "moet minimaal 6 tekens lang zijn"
+
+
+msgid "Repeat password"
+msgstr "Herhaal wachtwoord"
+
+
+msgid "Already have an account?"
+msgstr "Heb je al een account?"
+
+
+msgid "Recover password"
+msgstr "Wachtwoord herstellen"
+
+
+msgid "Username or Email address"
+msgstr "Gebruikersnaam of e-mailadres"
+
+
+msgid "Forgot password?"
+msgstr "Wachtwoord vergeten?"
+
+
+msgid "Don't have an account?"
+msgstr "Heb je geen account?"
+
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+
+msgid "Welcome to your account!"
+msgstr "Welkom op je account!"
+
+
+msgid "Hello %1$s (not %2$s? %3$s)! From your account dashboard you can view your subscriptions and manage your account details."
+msgstr "Hallo %1$s (niet %2$s? %3$s)! vanuit uw accountdashboard kunt u uw abonnementen bekijken en uw accountgegevens beheren."
+
+
+msgid "Lost Password"
+msgstr "Vergeten wachtwoord"
+
+
+msgid "Manage your account details."
+msgstr "Uw accountgegevens beheren."
+
+
+msgid "First name"
+msgstr "Voornaam"
+
+
+msgid "Last name"
+msgstr "Achternaam"
+
+
+msgid "Display name"
+msgstr "Weergavenaam"
+
+
+msgid "Current password"
+msgstr "Huidig wachtwoord"
+
+
+msgid "(leave blank to leave unchanged)"
+msgstr "(leeg laten om ongewijzigd te laten)"
+
+
+msgid "New password"
+msgstr "Nieuw paswoord"
+
+
+msgid "Confirm new password"
+msgstr "Bevestig nieuw wachtwoord"
+
+
+msgid "Save changes"
+msgstr "Wijzigingen opslaan"
+
+
+msgid "All your subscriptions."
+msgstr "Al uw abonnementen."
+
+
+msgid "Plan"
+msgstr "Plan"
+
+
+msgid "Payment type"
+msgstr "Betalingswijze"
+
+
+msgid "Status"
+msgstr "Toestand"
+
+
+msgid "Months"
+msgstr "Maanden"
+
+
+msgid "Start date"
+msgstr "Begin datum"
+
+
+msgid "End date"
+msgstr "Einddatum"
+
+
+msgid "missing plan"
+msgstr "ontbrekend plan"
+
+
+msgid "Free"
+msgstr "Vrij"
+
+
+msgid "Active"
+msgstr "Actief"
+
+
+msgid "Trial"
+msgstr "Proces"
+
+
+msgid "Blocked"
+msgstr "Geblokkeerd"
+
+
+msgid "Closed"
+msgstr "Gesloten"
+
+
+msgid "Not paid"
+msgstr "Niet betaald"
+
+
+msgid "Awaiting payment"
+msgstr "In afwachting van betaling"
+
+
+msgid "Subscription info"
+msgstr "Abonnement info"
+
+
+msgid "ID"
+msgstr "ID KAART"
+
+
+msgid "Name"
+msgstr "Naam"
+
+
+msgid "Company name"
+msgstr "Bedrijfsnaam"
+
+
+msgid "VAT"
+msgstr "VAT"
+
+
+msgid "Address"
+msgstr "Adres"
+
+
+msgid "City"
+msgstr "Stad"
+
+
+msgid "Country/State"
+msgstr "Land/staat"
+
+
+msgid "Email"
+msgstr "E-mail"
+
+
+msgid "Postal code"
+msgstr "Postcode"
+
+
+msgid "Direct bank transfer details"
+msgstr "Directe bankoverschrijvingsgegevens"
+
+
+msgid "Account name"
+msgstr "Gebruikersnaam"
+
+
+msgid "Account number"
+msgstr "Rekeningnummer"
+
+
+msgid "Bank name"
+msgstr "Banknaam"
+
+
+msgid "Routing number"
+msgstr "Routeringsnummer:"
+
+
+msgid "IBAN"
+msgstr "IBAN"
+
+
+msgid "Bic/Swift"
+msgstr "Bic/swift"
+
+
+msgid "Instructions"
+msgstr "Instructies"
+
+
+msgid "No subscription created."
+msgstr "Geen abonnement aangemaakt."
+
+
+msgid "Choose plan"
+msgstr "Kies plan"
+
+
+msgid "Payment methods"
+msgstr "Betaalmethoden"
+
+
+msgid "Total"
+msgstr "Totaal"
+
+
+msgid "Period"
+msgstr "Periode"
+
+
+msgid "Subscription summary"
+msgstr "Abonnement overzicht"
+
+
+msgid "Phone"
+msgstr "Telefoon"
+
+
+msgid "Postcode"
+msgstr "Postcode"
+
+
+msgid "County"
+msgstr "District"
+
+
+msgid "Town/City"
+msgstr "Stad/stad"
+
+
+msgid "Street address"
+msgstr "Adres"
+
+
+msgid "Country/Region"
+msgstr "Land/regio"
+
+
+msgid "VAT Number"
+msgstr "Btw-nummer"
+
+
+msgid "(optional)"
+msgstr "(optioneel)"
+
+
+msgid "Billing details"
+msgstr "Factuurgegevens"
+
+
+msgid "User information"
+msgstr "Gebruikers informatie"
+
+
+msgid "It seems that no available payment methods have been configured."
+msgstr "Het lijkt erop dat er geen beschikbare betaalmethoden zijn geconfigureerd."
+
+
+msgid "Thank you! We are delighted to see you here. Your subscription will be activated soon!"
+msgstr "Bedankt! we zijn verheugd u hier te zien. je abonnement wordt binnenkort geactiveerd!"
+
+
+msgid "Our bank details"
+msgstr "Onze bankgegevens"
+
+
+msgid "Your subscription details"
+msgstr "Uw abonnementsgegevens"
+
+
+msgid "View subscription"
+msgstr "Bekijk abonnement"
+
+
+msgid "You have not selected a valid subscription plan."
+msgstr "Je hebt geen geldig abonnement gekozen."
+
+
+msgid "Field empty"
+msgstr "Veld leeg"
+
+
+msgid "Empty first name"
+msgstr "Lege voornaam"
+
+
+msgid "Empty last name"
+msgstr "Lege achternaam"
+
+
+msgid "Empty country"
+msgstr "Leeg land"
+
+
+msgid "Empty address"
+msgstr "Leeg adres"
+
+
+msgid "Empty city"
+msgstr "Lege stad"
+
+
+msgid "Empty county"
+msgstr "Lege provincie"
+
+
+msgid "Empty postcode"
+msgstr "Lege postcode"
+
+
+msgid "Empty phone"
+msgstr "Lege telefoon"
+
+
+msgid "Empty email"
+msgstr "Lege e-mail"
+
+
+msgid "Email or username empty!"
+msgstr "E-mail of gebruikersnaam leeg!"
+
+
+msgid "Pass empty!"
+msgstr "Ga leeg!"
+
+
+msgid "Username incorrect!"
+msgstr "Gebruikersnaam onjuist!"
+
+
+msgid "Invalid Pass Pattern!"
+msgstr "Ongeldig paspatroon!"
+
+
+msgid "Please activate your account by following the link sent to your email address."
+msgstr "Activeer uw account door de link te volgen die naar uw e-mailadres is verzonden."
+
+
+msgid "Resend activation link"
+msgstr "Activatielink opnieuw verzenden"
+
+
+msgid "In order to have access to this section, you have to activate your account."
+msgstr "Om toegang te krijgen tot deze sectie, moet u uw account activeren."
+
+
+msgid "Email empty!"
+msgstr "E-mail leeg!"
+
+
+msgid "Username empty!"
+msgstr "Gebruikersnaam leeg!"
+
+
+msgid "Pass pattern incorrect!"
+msgstr "Paspatroon onjuist!"
+
+
+msgid "Retyped pass empty!"
+msgstr "Overgetypte pas leeg!"
+
+
+msgid "Retyped pass exactly!"
+msgstr "Overgetypt pas precies!"
+
+
+msgid "User already exists!"
+msgstr "Gebruiker bestaat al!"
+
+
+msgid "Email already exists!"
+msgstr "E-mail bestaat al!"
+
+
+msgid "Your account could not be created."
+msgstr "Uw account kon niet worden aangemaakt."
+
+
+msgid "Please check your email (inbox or spam folder) to validate your account."
+msgstr "Controleer uw e-mail (inbox of spammap) om uw account te valideren."
+
+
+msgid "User empty!"
+msgstr "Gebruiker leeg!"
+
+
+msgid "User does not exists!"
+msgstr "Gebruiker bestaat niet!"
+
+
+msgid "New activation link was generated. Please check your email (inbox or spam folder) to validate your account."
+msgstr "Er is een nieuwe activeringslink gegenereerd. controleer uw e-mail (inbox of spammap) om uw account te valideren."
+
+
+msgid "CAPTCHA verification failed!"
+msgstr "Captcha-verificatie mislukt!"
+
+
+msgid "CAPTCHA user score failed. Please contact us!"
+msgstr "Captcha gebruikersscore mislukt. Gelieve ons te contacteren!"
+
+
+msgid "Loading"
+msgstr "Bezig met laden"
+
+
+msgid "Here are the results for the search:"
+msgstr "Hier zijn de resultaten voor de zoekopdracht:"
+
+
+msgid "Price"
+msgstr "Prijs"
+
+
+msgid "EXCLUSIVE"
+msgstr "EXCLUSIEF"
+
+
+msgid "Tel:"
+msgstr "Tel:"
+
+
+msgid "Share"
+msgstr "Deel"
+
+
+msgid "Print"
+msgstr "Afdrukken"
+
+
+msgid "At"
+msgstr "Bij"
+
+
+msgid "Comments are closed."
+msgstr "Reacties zijn gesloten."
+
+
+msgid "Payment method"
+msgstr "Betalingsmiddel"
+
+
+msgid "You must be logged out to view this page."
+msgstr "Om deze pagina te bekijken moet u uitgelogd zijn."
+
+
+msgid "Retyped Pass incorrect!"
+msgstr "Opnieuw getypte pas onjuist!"
+
+
+msgid "%s is a required field."
+msgstr "%s is een verplicht veld."
+
+
+msgid "Please provide a valid email address."
+msgstr "Geef alstublieft een geldig email adres."
+
+
+msgid "This email address is already registered."
+msgstr "Dit emailadres is al geregistreerd."
+
+
+msgid "Please fill out all password fields."
+msgstr "Vul alle wachtwoordvelden in."
+
+
+msgid "Please enter your current password."
+msgstr "Voer uw huidige wachtwoord in."
+
+
+msgid "Please re-enter your password."
+msgstr "Vul alstublieft uw wachtwoord opnieuw in."
+
+
+msgid "New passwords do not match."
+msgstr "Nieuwe wachtwoorden komen niet overeen."
+
+
+msgid "Your current password is incorrect."
+msgstr "Uw huidige wachtwoord is onjuist."
+
+
+msgid "Account details changed successfully."
+msgstr "Accountgegevens zijn succesvol gewijzigd."
+
+
+msgid "A new activation link has been sent to your email address!"
+msgstr "Er is een nieuwe activatielink naar uw e-mailadres verzonden!"
+
+
+msgid "unlimited"
+msgstr "onbeperkt"
+
+
+msgid "Pay with Stripe"
+msgstr "Betalen met streep"
+
+
+msgid "Cancel subscription"
+msgstr "Annuleer abonnement"
+
+
+msgid "Please check your email and confirm subscription!"
+msgstr "Controleer uw e-mail en bevestig uw inschrijving!"
+
+
+msgid "Successfully subscribed!"
+msgstr "Succesvol geabonneerd!"
+
+
+msgid "Successfully unsubscribed!"
+msgstr "Succesvol uitgeschreven!"
+
+
+msgid "Enter promo code here"
+msgstr "Voer hier de promotiecode in"
+
+
+msgid "Apply"
+msgstr "Toepassen"
+
+
+msgid "Coupon applied"
+msgstr "Coupon toegepast"
+
+
+msgid "Uncaught Error: Something went wrong, please reload page and try again!"
+msgstr "Onopgemerkte fout: er is iets misgegaan, herlaad de pagina en probeer het opnieuw!"
+
+
+msgid "The coupon code you entered is invalid"
+msgstr "De couponcode die u heeft ingevoerd is ongeldig"
+
+
+msgid "The coupon code you entered has reached its usage limit"
+msgstr "De couponcode die u heeft ingevoerd heeft de gebruikslimiet bereikt"
+
+
+msgid "The coupon code you entered has expired"
+msgstr "De couponcode die u heeft ingevoerd is verlopen"
+
+
+msgid "Coupon name is required !"
+msgstr "Couponnaam is vereist!"
+
+
+msgid "Please enter a coupon code first!"
+msgstr "Voer eerst een couponcode in!"
+
+
+msgid "Invalid"
+msgstr "Ongeldig"
+
+
+msgid "Applied"
+msgstr "Toegepast"
+
+
+msgid "Remove"
+msgstr "Verwijderen"
+
+
+msgid "Price not set"
+msgstr "Prijs niet ingesteld"
+
+
+msgid "Grand Total"
+msgstr "Eindtotaal"
+
+
+msgid "You already have a subscription, but it's still in waiting to be paid!"
+msgstr "Je hebt al een abonnement, maar het wacht nog op betaling!"
+
+
+msgid "This subscription has been canceled and it will end on %END_DATE%."
+msgstr "Dit abonnement is opgezegd en eindigt op %end_date%."
+
+
+msgid "Go to checkout"
+msgstr "Ga naar de kassa"
+
+
+msgid "Stripe invoice details"
+msgstr "Gestreepte factuurgegevens"
+
+
+msgid "Stripe subscription details"
+msgstr "Stripe-abonnementsgegevens"
+
+
+msgid "Current status"
+msgstr "Huidige status"
+
+
+msgid "Initial Invoice Paid"
+msgstr "Eerste factuur betaald"
+
+
+msgid "Subscription Create: Initial Invoice Paid"
+msgstr "Abonnement aanmaken: eerste factuur betaald"
+
+
+msgid "Subscription Create: Initial Invoice has been created"
+msgstr "Abonnement aanmaken: initiële factuur is aangemaakt"
+
+
+msgid "Subscription Create: Initial Invoice has been finalized, and it is ready to be paid"
+msgstr "Abonnement aanmaken: de eerste factuur is afgerond en is klaar om te worden betaald"
+
+
+msgid "Subscription Update: Invoice Paid"
+msgstr "Abonnementsupdate: factuur betaald"
+
+
+msgid "Subscription Renew: Invoice Paid"
+msgstr "Abonnement verlengen: factuur betaald"
+
+
+msgid "Subscription Renew: Invoice Finalized"
+msgstr "Abonnement verlengen: factuur afgerond"
+
+
+msgid "Subscription Renew: Invoice Created"
+msgstr "Abonnement verlengen: factuur aangemaakt"
+
+
+msgid "Subscription Renew: Invoice Upcoming"
+msgstr "Abonnement verlengen: factuur binnenkort"
+
+
+msgid "Subscription Expired: Invoice Voided(the first invoice was not paid)"
+msgstr "Abonnement verlopen: factuur ongeldig (de eerste factuur is niet betaald)"
+
+
+msgid "Subscription Deleted"
+msgstr "Abonnement verwijderd"
+
+
+msgid "Subscription Create: Trialing"
+msgstr "Abonnement aanmaken: uitproberen"
+
+
+msgid "Subscription Canceled"
+msgstr "Abonnement opgezegd"
+
+
+msgid "Subscription Create: Initial Invoice voided"
+msgstr "Abonnement aanmaken: initiële factuur ongeldig"
+
+
+msgid "Subscription Renew: Invoice voided"
+msgstr "Abonnement verlengen: factuur ongeldig"
+
+
+msgid "Subscription Update: Invoice voided"
+msgstr "Abonnementsupdate: factuur ongeldig verklaard"
+
+
+msgid "Invoice updated"
+msgstr "Factuur bijgewerkt"
+
+
+msgid "Subscription has been canceled and will end on: "
+msgstr "Abonnement is opgezegd en eindigt op:"
+
+
+msgid "Setup successful - You have successfully set up your payment method for future payments."
+msgstr "Installatie succesvol - u heeft uw betaalmethode voor toekomstige betalingen succesvol ingesteld."
+
+
+msgid "Setup failed - We are sorry, there was an error setting up your payment method. Please try again with a different payment method."
+msgstr "Installatie mislukt - het spijt ons, er is een fout opgetreden bij het instellen van uw betaalmethode. Probeer het opnieuw met een andere betaalmethode."
+
+
+msgid "Payment successful - Your latest subscription payment was completed successfully."
+msgstr "Betaling succesvol - uw laatste abonnementsbetaling is succesvol voltooid."
+
+
+msgid "Payment processing - Your latest subscription payment is being processed."
+msgstr "Betalingsverwerking - uw laatste abonnementsbetaling wordt verwerkt."
+
+
+msgid "Payment failed - We are sorry, there was an error processing your payment. Please try again with a different payment method."
+msgstr "Betaling mislukt - het spijt ons, er is een fout opgetreden bij het verwerken van uw betaling. Probeer het opnieuw met een andere betaalmethode."
+
+
+msgid "Download"
+msgstr "Downloaden"
+
+
+msgid "Stripe invoice"
+msgstr "Streep factuur"
+
+
+msgid "N/A"
+msgstr "N.v.t"
+
+
+msgid "Latest invoice"
+msgstr "Laatste factuur"
+
+
+msgid "Invoice"
+msgstr "Factuur"
+
+
+msgid "Unpaid subscription."
+msgstr "Onbetaald abonnement."
+
+
+msgid "Locked subscription."
+msgstr "Vergrendeld abonnement."
+
+
+msgid "Invalid subscription."
+msgstr "Ongeldig abonnement."
+
+
+msgid "Pay now"
+msgstr "Nu betalen"
+
+
+msgid "Show more info"
+msgstr "Meer informatie weergeven"
+
+
+msgid "Show less info"
+msgstr "Minder informatie weergeven"
+
+
+msgid "Complete payment"
+msgstr "Volledige betaling"
+
+
+msgid "or"
+msgstr "of"
+
+
+msgid "Setup Payment"
+msgstr "Betaling instellen"
+
+
+msgid "Go to Payment"
+msgstr "Ga naar betaling"
+
+
+msgid "Alphabetical A -> Z"
+msgstr "Alfabetisch a -> z"
+
+
+msgid "Oldest posts"
+msgstr "Oudste berichten"
+
+
+msgid "Select"
+msgstr "Selecteren"
+
+
+msgid "on"
+msgstr "op"
+
+
+msgid "No bookmarked posts"
+msgstr "Geen berichten met bladwijzers"
+
+
+msgid "Log in With Facebook"
+msgstr "Inloggen met Facebook"
+
+
+msgid "Forgot your password? Get help"
+msgstr "Je wachtwoord vergeten? hulp krijgen"
+
+
+msgid "Someone has requested a password reset for the following account:"
+msgstr "Iemand heeft een wachtwoordreset aangevraagd voor het volgende account:"
+
+
+msgid "Username: %s"
+msgstr "Gebruikersnaam: %s"
+
+
+msgid "If this was a mistake, just ignore this email and nothing will happen."
+msgstr "Als dit een vergissing was, negeer dan deze e-mail en er zal niets gebeuren."
+
+
+msgid "To reset your password, visit the following address:"
+msgstr "Om uw wachtwoord opnieuw in te stellen, gaat u naar het volgende adres:"
+
+
+msgid "Members"
+msgstr "Leden"
+
+
+msgid "Downloads"
+msgstr "Downloads"
+
+
+msgid "inc. TAX"
+msgstr "incl. belasting"
+
+
+msgid "ex. TAX"
+msgstr "ex. belasting"
+
+
+msgid "An unexpected error has occured while trying to create your post. Please try again."
+msgstr "Er is een onverwachte fout opgetreden tijdens het maken van uw bericht. Probeer het opnieuw."
+
+
+msgid "Your post has been successfully created."
+msgstr "Je bericht is succesvol aangemaakt."
+
+
+msgid "Your post has been successfully updated."
+msgstr "Uw bericht is succesvol bijgewerkt."
+
+
+msgid "An unexpected error has occurred and the mail could not be sent."
+msgstr "Er is een onverwachte fout opgetreden en de e-mail kon niet worden verzonden."
+
+
+msgid "Location:"
+msgstr "Plaats:"
+
+
+msgid "The email has been successfully sent."
+msgstr "De e-mail is succesvol verzonden."
+
+
+msgid "An unexpected error has occurred. Please try again."
+msgstr "Er is een onverwachte fout opgetreden. Probeer het opnieuw."
+
+
+msgid "Drag and drop or browse"
+msgstr "Slepen en neerzetten of bladeren"
+
+
+msgid "Search by keyword..."
+msgstr "Zoek op trefwoord..."
+
+
+msgid "Select parent"
+msgstr "Selecteer ouder"
+
+
+msgid "Add new"
+msgstr "Nieuw toevoegen"
+
+
+msgid "Parent"
+msgstr "Ouder"
+
+
+msgid "Select child"
+msgstr "Kind selecteren"
+
+
+msgid "Select sub-child"
+msgstr "Selecteer subkind"
+
+
+msgid "Posted by"
+msgstr "Gepost door"
+
+
+msgid "Overall"
+msgstr "Algemeen"
+
+
+msgid "Post review"
+msgstr "Beoordeling plaatsen"
+
+
+msgid "This field is required!"
+msgstr "Dit veld is verplicht!"
+
+
+msgid "Your review has been published. Please refresh the page in order to see it."
+msgstr "Uw recensie is gepubliceerd. Vernieuw de pagina om deze te zien."
+
+
+msgid "Your review has been registered and is awaiting approval."
+msgstr "Uw recensie is geregistreerd en wacht op goedkeuring."
+
+
+msgid "Submit reply"
+msgstr "Verzend antwoord"
+
+
+msgid "Enter your reply"
+msgstr "Voer uw antwoord in"
+
+
+msgid "Cancel"
+msgstr "Annuleren"
+
+
+msgid "Some required fields have been left blank."
+msgstr "Sommige verplichte velden zijn leeg gelaten."
+
+
+msgid "Please enter a valid email address."
+msgstr "Gelieve een geldig e-mailadres in te geven."
+
+
+msgid "The number cannot be lower than"
+msgstr "Het getal kan niet lager zijn dan"
+
+
+msgid "The number cannot be higher than"
+msgstr "Het getal kan niet hoger zijn dan"
+
+
+msgid "Leave a review"
+msgstr "Laat een beoordeling achter"
+
+
+msgid "Submit"
+msgstr "Indienen"
+
+
+msgid "Update"
+msgstr "Update"
+
+
+msgid "out of 5"
+msgstr "uit 5"
+
+
+msgid "You have reached the limit of reviews that you can submit for this article"
+msgstr "U heeft de limiet bereikt van het aantal beoordelingen dat u voor dit artikel kunt indienen"
+
+
+msgid "Log in to leave a review."
+msgstr "Log in om een recensie achter te laten."
+
+
+msgid "Enter a title for your review"
+msgstr "Voer een titel in voor uw recensie"
+
+
+msgid "Enter your review"
+msgstr "Voer uw recensie in"
+
+
+msgid "Review criteria"
+msgstr "Beoordelingscriteria"
+
+
+msgid "Enter Your Name or Company"
+msgstr "Vul uw naam of bedrijf in"
+
+
+msgid "Submit review"
+msgstr "Review versturen"
+
+
+msgid "Delete"
+msgstr "Verwijderen"
+
+
+msgid "Your reply has been published. Please refresh the page in order to see it."
+msgstr "Uw antwoord is gepubliceerd. Vernieuw de pagina om deze te zien."
+
+
+msgid "You have not created any posts."
+msgstr "Je hebt geen berichten aangemaakt."
+
+
+msgid "The selected post has been successfully deleted."
+msgstr "Het geselecteerde bericht is succesvol verwijderd."
+
+
+msgid "Rating"
+msgstr "Beoordeling"
+
+
+msgid "Title"
+msgstr "Titel"
+
+
+msgid "Post image"
+msgstr "Afbeelding plaatsen"
+
+
+msgid "Categories"
+msgstr "Categorieën"
+
+
+msgid "Date"
+msgstr "Datum"
+
+
+msgid "Source title"
+msgstr "Bron titel"
+
+
+msgid "No rating"
+msgstr "Geen beoordeling"
+
+
+msgid "View"
+msgstr "Weergave"
+
+
+msgid "Publish"
+msgstr "Publiceren"
+
+
+msgid "Add new post"
+msgstr "Nieuw bericht toevoegen"
+
+
+msgid "Edit post"
+msgstr "Bericht bewerken"
+
+
+msgid "Publish a post"
+msgstr "Een bericht publiceren"
+
+
+msgid "The status for %POST_TITLE% has been changed."
+msgstr "De status voor %post_title% is gewijzigd."
+
+
+msgid "Are you sure you want to publish %POST_TITLE%?"
+msgstr "Weet je zeker dat je %post_title% wilt publiceren?"
+
+
+msgid "Delete a post"
+msgstr "Verwijder een bericht"
+
+
+msgid "Are you sure you want to delete %POST_TITLE%?"
+msgstr "Weet je zeker dat je %post_title% wilt verwijderen?"
+
+
+msgid "%POST_TITLE% has been moved to trash."
+msgstr "%post_title% is verplaatst naar de prullenbak."
+
+
+msgid "You do not hold the required priveleges to execute this request."
+msgstr "U beschikt niet over de vereiste rechten om dit verzoek uit te voeren."
+
+
+msgid "No search results."
+msgstr "Geen resultaten gevonden."
+
+
+msgid "Yes"
+msgstr "Ja"
+
+
+msgid "No"
+msgstr "Nee"
+
+
+msgid "Save"
+msgstr "Redden"
+
+
+msgid "Search for a location"
+msgstr "Zoek naar een locatie"
+
+
+msgid "Address line"
+msgstr "Adresregel"
+
+
+msgid "(Optional)"
+msgstr "(optioneel)"
+
+
+msgid "State"
+msgstr "Staat"
+
+
+msgid "Country"
+msgstr "Land"
+
+
+msgid "Create new term"
+msgstr "Nieuwe termijn creëren"
+
+
+msgid "Description"
+msgstr "Beschrijving"
+
+
+msgid "Delete bookmarks"
+msgstr "Bladwijzers verwijderen"
+
+
+msgid "Reset your password"
+msgstr "Stel je wachtwoord opnieuw in"
+
+
+msgid "The password reset key has expired."
+msgstr "De wachtwoordherstelsleutel is verlopen."
+
+
+msgid "The password reset key is invalid."
+msgstr "De wachtwoordresetsleutel is ongeldig."
+
+
+msgid "New password *"
+msgstr "Nieuw paswoord *"
+
+
+msgid "Repeat new password *"
+msgstr "Herhaal nieuw wachtwoord *"
+
+
+msgid "Save password"
+msgstr "Wachtwoord opslaan"
+
+
+msgid "Your account has been successfully activated!"
+msgstr "Uw account is succesvol geactiveerd!"
+
+
+msgid "Your account has already been activated!"
+msgstr "Uw account is al geactiveerd!"
+
+
+msgid "Check your email for the correct activation link. This link is invalid."
+msgstr "Controleer uw e-mail voor de juiste activatielink. deze link is ongeldig."
+
+
+msgid "Account activation"
+msgstr "Account activatie"
+
+
+msgid "Please enter a new password before proceeding."
+msgstr "Voer een nieuw wachtwoord in voordat u doorgaat."
+
+
+msgid "Please confirm the new password before proceeding."
+msgstr "Bevestig het nieuwe wachtwoord voordat u doorgaat."
+
+
+msgid "Please make sure that the passwords match."
+msgstr "Zorg ervoor dat de wachtwoorden overeenkomen."
+
+
+msgid "The password has been reset successfully."
+msgstr "Het wachtwoord is succesvol gereset."
+
+
+msgid "Manage your billing details."
+msgstr "Beheer uw factuurgegevens."
+
+
+msgid "Profile picture"
+msgstr "Profielfoto"
+
+
+msgid "Remaining publishing rights."
+msgstr "Resterende publicatierechten."
+
+
+msgid "The number of articles you have left to publish across different post types."
+msgstr "Het aantal artikelen dat u nog moet publiceren over verschillende berichttypen."
+
+
+msgid "Bank transfer"
+msgstr "Overschrijving"
+
+
+msgid "Direct Bank Transfer"
+msgstr "Directe bankoverschrijving"
+
+
+msgid "Canceled"
+msgstr "Geannuleerd"
+
+
+msgid "Cycle Interval"
+msgstr "Cyclus interval"
+
+
+msgid "In order to update this filed, you have to activate your account."
+msgstr "Om dit bestand bij te werken, moet u uw account activeren."
+
+
+msgid "Cannot process %s field."
+msgstr "Kan %s veld niet verwerken."
+
+
+msgid "Modified date"
+msgstr "Aangepaste datum"
+

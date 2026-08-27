@@ -1,0 +1,2011 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ur\n"
+
+
+msgid "View all results"
+msgstr "تمام نتائج دیکھيے"
+
+
+msgid "No results"
+msgstr "کوئی نتائج نہیں"
+
+
+msgid "Home"
+msgstr "ہوم"
+
+
+msgid "CLOSE"
+msgstr "بند"
+
+
+msgid "Page"
+msgstr "صفحہ"
+
+
+msgid "All"
+msgstr "تمام"
+
+
+msgid "By"
+msgstr "کی طرف"
+
+
+msgid "Load more"
+msgstr "مزید لوڈ کریں"
+
+
+msgid "View all posts in"
+msgstr "تمام مراسلات ان میں دیکھیں"
+
+
+msgid "Tags"
+msgstr "ٹیگز"
+
+
+msgid "Previous article"
+msgstr "گزشتہ مضمون"
+
+
+msgid "Next article"
+msgstr "اگلا مضمون"
+
+
+msgid "Authors"
+msgstr "مصنفین"
+
+
+msgid "Author"
+msgstr "مصنف"
+
+
+msgid "RELATED ARTICLES"
+msgstr "متعلقہ مضامین"
+
+
+msgid "MORE FROM AUTHOR"
+msgstr "زیادہ مصنف کی طرف سے"
+
+
+msgid "VIA"
+msgstr "کے ذریعے"
+
+
+msgid "SOURCE"
+msgstr "ذریعہ"
+
+
+msgid "TAGS"
+msgstr "ٹیگز"
+
+
+msgid "SHARE"
+msgstr "حصہ"
+
+
+msgid "Continue"
+msgstr "جاری"
+
+
+msgid "Read more"
+msgstr "مزید پڑھیں"
+
+
+msgid "Name:"
+msgstr "نام"
+
+
+msgid "Email:"
+msgstr "ای میل"
+
+
+msgid "Website:"
+msgstr "ویب سائٹ"
+
+
+msgid "Comment:"
+msgstr "تبصرہ"
+
+
+msgid "LEAVE A REPLY"
+msgstr "جواب چھوڑ دیں"
+
+
+msgid "Post Comment"
+msgstr "رائے دیجئے"
+
+
+msgid "Cancel reply"
+msgstr "جواب منسوخ کریں"
+
+
+msgid "Reply"
+msgstr "جواب"
+
+
+msgid "Log in to leave a comment"
+msgstr "تبصرہ چھوڑنے کے لئے  لاگ ان کریں"
+
+
+msgid "NO COMMENTS"
+msgstr "کوئی تبصرہ نہیں"
+
+
+msgid "1 COMMENT"
+msgstr "1 تبصرہ"
+
+
+msgid "COMMENTS"
+msgstr "تبصرے"
+
+
+msgid "REVIEW OVERVIEW"
+msgstr "جائزہ مجموعی جائزہ"
+
+
+msgid "SUMMARY"
+msgstr "خلاصہ"
+
+
+msgid "OVERALL SCORE"
+msgstr "مجموعی اسکور"
+
+
+msgid "Ooops... Error 404"
+msgstr "افوہ ... 404 ايرر"
+
+
+msgid "Sorry, but the page you are looking for doesn't exist."
+msgstr "معذرت، لیکن آپ جو صفحہ تلاش کر رہے ہیں  موجود نہیں ہے"
+
+
+msgid "You can go to the"
+msgstr "آپ جا سکتے ہیں"
+
+
+msgid "HOMEPAGE"
+msgstr "مرکزی صفحہ"
+
+
+msgid "OUR LATEST POSTS"
+msgstr "ہمارے تازہ ترین مراسلات"
+
+
+msgid "Posts by"
+msgstr "کے ذریعے پیغامات"
+
+
+msgid "POSTS"
+msgstr "مراسلات"
+
+
+msgid "Posts tagged with"
+msgstr "پیغامات کوساتھ ٹیگ کیا"
+
+
+msgid "Tag"
+msgstr "ٹیگ"
+
+
+msgid "Daily Archives:"
+msgstr "ڈیلی آرکائیو"
+
+
+msgid "Monthly Archives:"
+msgstr "ماہانہ آرکائیو"
+
+
+msgid "Yearly Archives:"
+msgstr "سالانہ آرکائیو"
+
+
+msgid "Archives"
+msgstr "آرکائیو"
+
+
+msgid "LATEST ARTICLES"
+msgstr "تازہ ترین مضامین"
+
+
+msgid "search results"
+msgstr "تلاش کے نتائج"
+
+
+msgid "Search"
+msgstr "تلاش کریں"
+
+
+msgid "If you're not happy with the results, please do another search"
+msgstr "اگر آپ نتائج کے ساتھ خوش نہیں ہيں، تو  براہ مہربانی دوبارہ تلاش کریں"
+
+
+msgid "Contact us"
+msgstr "ہم سے رابطہ کريں"
+
+
+msgid "Page %CURRENT_PAGE% of %TOTAL_PAGES%"
+msgstr "صفحہ%موجودہ صفحہ%کا%کل صفحات"
+
+
+msgid "Next"
+msgstr "اگلا"
+
+
+msgid "Prev"
+msgstr "پچھلا"
+
+
+msgid "No results for your search"
+msgstr "آپ کی تلاش کا کوئی نتيجہ نہیں"
+
+
+msgid "No posts to display"
+msgstr "کوئی تحریر نہیں ظاہر کرنے کے لئے"
+
+
+msgid "LOG IN"
+msgstr "لاگ ان"
+
+
+msgid "Sign in / Join"
+msgstr "سائن ان / شمولیت"
+
+
+msgid "Log In"
+msgstr "لاگ ان کریں"
+
+
+msgid "REGISTER"
+msgstr "رجسٹر"
+
+
+msgid "Send My Pass"
+msgstr "میرا پاس ارسال کریں"
+
+
+msgid "Forgot your password?"
+msgstr "کيا آپ پاس ورڈ بھول گئے ہیں؟"
+
+
+msgid "Please wait..."
+msgstr "براہ مہربانی انتظار کریں …"
+
+
+msgid "User or password incorrect!"
+msgstr "صارف یا غلط پاس ورڈ"
+
+
+msgid "Email or username incorrect!"
+msgstr "ای میل یا غلط کا صارف کا نام"
+
+
+msgid "Email incorrect!"
+msgstr "غلط ای ميل"
+
+
+msgid "User or email already exists!"
+msgstr "صارف یا ای میل پہلے سے موجود ہے"
+
+
+msgid "Please check you email (index or spam folder), the password was sent there."
+msgstr "آپ براہ مہربانی اپنا  ای میل  چیک کریں ( انڈیکس یا اسپيم فولڈر ) پاس ورڈ وہاں بھیجا گیا تھا"
+
+
+msgid "Email address not found!"
+msgstr "ای میل ایڈریس  نہیں ملا"
+
+
+msgid "Your password is reset, check your email."
+msgstr "آپ کا پاس ورڈ دوبارہ ترتیب کر ديا گيا ہے اپنی ای میل چيک کريں"
+
+
+msgid "Welcome! Log into your account"
+msgstr "خوش آمدید! اپنے اکاؤنٹ میں لاگ ان کریں"
+
+
+msgid "Register for an account"
+msgstr "ایک اکاؤنٹ کے لئے رجسٹر کريں"
+
+
+msgid "Recover your password"
+msgstr "اپنا پاسورڈ ريکور کريں"
+
+
+msgid "your username"
+msgstr "آپ  کا يوزر نيم"
+
+
+msgid "your password"
+msgstr "آپ کا پاس ورڈ"
+
+
+msgid "your email"
+msgstr "آپ کا ای میل"
+
+
+msgid "A password will be e-mailed to you."
+msgstr "ایک پاس ورڈ آپ کو ای ميل ميں بھیج دیا جائے گا"
+
+
+msgid "Logout"
+msgstr "لاگ آؤٹ کریں"
+
+
+msgid "Like"
+msgstr "پسند"
+
+
+msgid "Fans"
+msgstr "مداح"
+
+
+msgid "Follow"
+msgstr "فالور"
+
+
+msgid "Followers"
+msgstr "فالورز"
+
+
+msgid "Subscribe"
+msgstr "سبسکرائب کریں"
+
+
+msgid "Subscribers"
+msgstr "سبسکرائبرز"
+
+
+msgid "MORE STORIES"
+msgstr "مزید کہانیاں"
+
+
+msgid "Latest"
+msgstr "تازہ ترین"
+
+
+msgid "Featured posts"
+msgstr "فيچرڈ پوسٹ"
+
+
+msgid "Most popular"
+msgstr "سب سے زیادہ مقبول"
+
+
+msgid "7 days popular"
+msgstr "دنوں ميں مقبول 7"
+
+
+msgid "By review score"
+msgstr "اسکورکا جائزہ لینا"
+
+
+msgid "Random"
+msgstr "رینڈم"
+
+
+msgid "Trending Now"
+msgstr "رجحان سازی اس وقت"
+
+
+msgid "POPULAR CATEGORY"
+msgstr "مقبول قسم"
+
+
+msgid "EVEN MORE NEWS"
+msgstr "زيادہ خبريں"
+
+
+msgid "Previous (Left arrow key)"
+msgstr "پچھلا (بائیں ايرو کي"
+
+
+msgid "Next (Right arrow key)"
+msgstr "اگلا  (دائیں ا یرو کي"
+
+
+msgid "%curr% of %total%"
+msgstr "%موجودہ% کا%کل%"
+
+
+msgid "The content from %url% could not be loaded."
+msgstr "سے يہ مواد لوڈ نہیں کیا جا سکتا%url%"
+
+
+msgid "The image #%curr% could not be loaded."
+msgstr "سے یہ تصویر   لوڈ نہیں کی جا سکتی #%curr%"
+
+
+msgid "Blog"
+msgstr "بلاگ"
+
+
+msgid "Share on Facebook"
+msgstr "فيس بک پر شیئر کیجئیے"
+
+
+msgid "Tweet on Twitter"
+msgstr "ٹویٹر پر ٹویٹ کريں"
+
+
+msgid "EDITOR PICKS"
+msgstr "ایڈیٹر چنتا"
+
+
+msgid "POPULAR POSTS"
+msgstr "مقبول پوسٹس"
+
+
+msgid "FOLLOW US"
+msgstr "ہمیں فالو کریں"
+
+
+msgid "ABOUT US"
+msgstr "ہمارے بارے میں"
+
+
+msgid "More"
+msgstr "مزید"
+
+
+msgid "Featured"
+msgstr "نمایاں"
+
+
+msgid "All time popular"
+msgstr "مقبول ہر وقت"
+
+
+msgid "Likes"
+msgstr "پسند کرتا ہے"
+
+
+msgid "Register"
+msgstr "رجسٹر"
+
+
+msgid "of"
+msgstr "کے"
+
+
+msgid "Euro Member Countries"
+msgstr "یورو رکن ممالک"
+
+
+msgid "Your comment is awaiting moderation"
+msgstr "آپ کا تبصرہ اعتدال پسندی کا منتظر ہے"
+
+
+msgid "Follow us on Instagram"
+msgstr "Instagram پر ہمارے ساتھ چلیے"
+
+
+msgid "Back"
+msgstr "واپس"
+
+
+msgid "Sign in"
+msgstr "داخلہ"
+
+
+msgid "Sign up"
+msgstr "سائن اپ"
+
+
+msgid "Join"
+msgstr "شامل ہو جائیے"
+
+
+msgid "Welcome!"
+msgstr "خوش آمدید!"
+
+
+msgid "Log into your account"
+msgstr "اپنے اکاؤنٹ میں لاگ"
+
+
+msgid "Password recovery"
+msgstr "پاس ورڈ کی وصولی"
+
+
+msgid "Please check your email (index or spam folder), the password was sent there."
+msgstr "آپ کا ای میل (انڈیکس یا سپیم فولڈر) براہ مہربانی چیک کریں، پاس ورڈ وہاں بھیجا گیا تھا."
+
+
+msgid "Australian Dollar"
+msgstr "آسٹریلوی ڈالر"
+
+
+msgid "Bulgarian Lev"
+msgstr "بلغارین لیو"
+
+
+msgid "Brazilian Real"
+msgstr "برازیل حقیقی"
+
+
+msgid "Canadian Dollar"
+msgstr "کینیڈین ڈالر"
+
+
+msgid "Swiss Franc"
+msgstr "سوئس فرانک"
+
+
+msgid "Chinese Yuan Renminbi"
+msgstr "چینی یوآن رینمنبی"
+
+
+msgid "Czech Republic Koruna"
+msgstr "جمہوریہ چیک کرونا"
+
+
+msgid "Danish Krone"
+msgstr "ڈینش کرون"
+
+
+msgid "British Pound"
+msgstr "برطانوی پاؤنڈ"
+
+
+msgid "Hong Kong Dollar"
+msgstr "ہانگ کانگ ڈالر"
+
+
+msgid "Croatian Kuna"
+msgstr "کروشین کونا"
+
+
+msgid "Hungarian Forint"
+msgstr "ہنگرین فورنٹ"
+
+
+msgid "Indonesian Rupiah"
+msgstr "انڈونیشین روپیہ"
+
+
+msgid "Israeli Shekel"
+msgstr "اسرائیلی شیکل"
+
+
+msgid "Indian Rupee"
+msgstr "بھارتی روپیہ"
+
+
+msgid "Japanese Yen"
+msgstr "جاپانی ین"
+
+
+msgid "Korean (South) Won"
+msgstr "کوریا (جنوبی) جیت لیا"
+
+
+msgid "Mexican Peso"
+msgstr "میکسیکن پیسہ"
+
+
+msgid "Malaysian Ringgit"
+msgstr "ملائشین رنگٹ"
+
+
+msgid "Norwegian Krone"
+msgstr "نارویجن کرون"
+
+
+msgid "New Zealand Dollar"
+msgstr "نیوزی لینڈ ڈالر"
+
+
+msgid "Philippine Peso"
+msgstr "فلپائینی پیسہ"
+
+
+msgid "Polish Zloty"
+msgstr "پولش زلوٹی"
+
+
+msgid "Romanian (New) Leu"
+msgstr "رومنی (نئے) لیو"
+
+
+msgid "Russian Ruble"
+msgstr "روسی روبل"
+
+
+msgid "Swedish Krona"
+msgstr "سویڈش کرونا"
+
+
+msgid "Singapore Dollar"
+msgstr "سنگاپور ڈالر"
+
+
+msgid "Thai Baht"
+msgstr "تھائی باہت"
+
+
+msgid "Turkish Lira"
+msgstr "ترکی کا لیرا"
+
+
+msgid "United States Dollar"
+msgstr "امریکی ڈالر"
+
+
+msgid "South African Rand"
+msgstr "جنوبی افریقی رانڈ"
+
+
+msgid "Privacy Policy"
+msgstr "رازداری کی پالیسی"
+
+
+msgid "views"
+msgstr "خیالات"
+
+
+msgid "Modified date:"
+msgstr "نظر ثانی شدہ تاریخ:"
+
+
+msgid "Please enter your name here"
+msgstr "اپنا نام یہاں درج کریں"
+
+
+msgid "Please enter your email address here"
+msgstr "برائے مہربانی اپنا ای میل پتہ یہاں درج کریں"
+
+
+msgid "You have entered an incorrect email address!"
+msgstr "آپ نے غلط ای میل پتہ درج کیا ہے!"
+
+
+msgid "Please enter your comment!"
+msgstr "براہ مہربانی اپنی رائے درج کریں!"
+
+
+msgid "Logged in as"
+msgstr "کے طور پر لاگ ان"
+
+
+msgid "Log out?"
+msgstr "لاگ آوٹ؟"
+
+
+msgid "Logged in as %s. Edit your profile."
+msgstr "٪ s کے طور پر لاگ ان اپنی پروفائل میں ترمیم کریں."
+
+
+msgid "Edit"
+msgstr "ترمیم"
+
+
+msgid "Login"
+msgstr "میں لاگ ان کریں"
+
+
+msgid "Send My Password"
+msgstr "اپنا پاس ورڈ بھیجیں"
+
+
+msgid "Create an account"
+msgstr "کھاتا کھولیں"
+
+
+msgid "Welcome! Register for an account"
+msgstr "خوش آمدید! ایک اکاؤنٹ کے لئے رجسٹر کریں"
+
+
+msgid "About me"
+msgstr "میرے بارے میں"
+
+
+msgid "Save my name, email, and website in this browser for the next time I comment."
+msgstr "میرے براؤزر میں میرا نام، ای میل، اور ویب سائٹ محفوظ کریں اگلا وقت میں تبصرہ کریں."
+
+
+msgid "Orders"
+msgstr "احکامات"
+
+
+msgid "Addresses"
+msgstr "پتے"
+
+
+msgid "Account settings"
+msgstr "اکاؤنٹ کی ترتیبات"
+
+
+msgid "Hello"
+msgstr "ہیلو"
+
+
+msgid "No products in the cart."
+msgstr "ٹوکری میں کوئی مصنوعات نہیں."
+
+
+msgid "Product categories"
+msgstr "مصنوعات کی اقسام"
+
+
+msgid "Product tags"
+msgstr "مصنوعات کے ٹیگز"
+
+
+msgid "Success"
+msgstr "کامیابی"
+
+
+msgid "Acknowledgment is required!"
+msgstr "اعتراف ضروری ہے!"
+
+
+msgid "Please fill in a valid email."
+msgstr "براہ کرم ایک درست ای میل پُر کریں۔"
+
+
+msgid "Please fill in an email address."
+msgstr "براہ کرم ایک ای میل ایڈریس پُر کریں۔"
+
+
+msgid "Get into your account."
+msgstr "اپنے اکاؤنٹ میں داخل ہوں."
+
+
+msgid "My subscription account"
+msgstr "میرا سبسکرپشن اکاؤنٹ"
+
+
+msgid "Account details"
+msgstr "اکاؤنٹ کی تفصیلات"
+
+
+msgid "Subscriptions"
+msgstr "سبسکرپشنز"
+
+
+msgid "My woo account"
+msgstr "میرا وو اکاؤنٹ"
+
+
+msgid "Log out"
+msgstr "لاگ آوٹ"
+
+
+msgid "Email address"
+msgstr "ای میل اڈریس"
+
+
+msgid "Username"
+msgstr "صارف نام"
+
+
+msgid "Password"
+msgstr "پاس ورڈ"
+
+
+msgid "must contain at least one lower case (a..z)"
+msgstr "کم از کم ایک لوئر کیس (a..z) پر مشتمل ہونا چاہیے"
+
+
+msgid "must contain at least one upper case (A..Z)"
+msgstr "کم از کم ایک اپر کیس (a..z) پر مشتمل ہونا چاہیے"
+
+
+msgid "must contain at least 6 characters in length"
+msgstr "لمبائی میں کم از کم 6 حروف پر مشتمل ہونا چاہیے۔"
+
+
+msgid "Repeat password"
+msgstr "پاس ورڈ دہراؤ"
+
+
+msgid "Already have an account?"
+msgstr "پہلے سے اکاؤنٹ ہے؟"
+
+
+msgid "Recover password"
+msgstr "پاس ورڈ بازیافت کریں۔"
+
+
+msgid "Username or Email address"
+msgstr "استعمال کنندہ کا نام یا ای میل پتہ"
+
+
+msgid "Forgot password?"
+msgstr "پاسورڈ بھول گے؟"
+
+
+msgid "Don't have an account?"
+msgstr "اکاؤنٹ نہیں ہے؟"
+
+
+msgid "Dashboard"
+msgstr "ڈیش بورڈ"
+
+
+msgid "Welcome to your account!"
+msgstr "آپ کے اکاؤنٹ میں خوش آمدید!"
+
+
+msgid "Hello %1$s (not %2$s? %3$s)! From your account dashboard you can view your subscriptions and manage your account details."
+msgstr "ہیلو %1$s (%2$s نہیں؟ %3$s)! اپنے اکاؤنٹ کے ڈیش بورڈ سے آپ اپنی سبسکرپشنز دیکھ سکتے ہیں اور اپنے اکاؤنٹ کی تفصیلات کا نظم کر سکتے ہیں۔"
+
+
+msgid "Lost Password"
+msgstr "کھوئے ہوئے پاس ورڈ"
+
+
+msgid "Manage your account details."
+msgstr "اپنے اکاؤنٹ کی تفصیلات کا نظم کریں۔"
+
+
+msgid "First name"
+msgstr "پہلا نام"
+
+
+msgid "Last name"
+msgstr "آخری نام"
+
+
+msgid "Display name"
+msgstr "ڈسپلے نام"
+
+
+msgid "Current password"
+msgstr "موجودہ خفیہ لفظ"
+
+
+msgid "(leave blank to leave unchanged)"
+msgstr "(بغیر تبدیل ہونے کے لیے خالی چھوڑ دیں)"
+
+
+msgid "New password"
+msgstr "نیا پاس ورڈ"
+
+
+msgid "Confirm new password"
+msgstr "نئے پاس ورڈ کی توثیق کریں"
+
+
+msgid "Save changes"
+msgstr "تبدیلیاں محفوظ کرو"
+
+
+msgid "All your subscriptions."
+msgstr "آپ کی تمام سبسکرپشنز۔"
+
+
+msgid "Plan"
+msgstr "منصوبہ"
+
+
+msgid "Payment type"
+msgstr "ادائیگی کی قسم"
+
+
+msgid "Status"
+msgstr "حالت"
+
+
+msgid "Months"
+msgstr "مہینے"
+
+
+msgid "Start date"
+msgstr "شروع کرنے کی تاریخ"
+
+
+msgid "End date"
+msgstr "آخری تاریخ"
+
+
+msgid "missing plan"
+msgstr "لاپتہ منصوبہ"
+
+
+msgid "Free"
+msgstr "مفت"
+
+
+msgid "Active"
+msgstr "فعال"
+
+
+msgid "Trial"
+msgstr "مقدمے کی سماعت"
+
+
+msgid "Blocked"
+msgstr "مسدود"
+
+
+msgid "Closed"
+msgstr "بند"
+
+
+msgid "Not paid"
+msgstr "ادائیگی نہیں کی"
+
+
+msgid "Awaiting payment"
+msgstr "ادائیگی کے منتظر"
+
+
+msgid "Subscription info"
+msgstr "رکنیت کی معلومات"
+
+
+msgid "ID"
+msgstr "آئی ڈی"
+
+
+msgid "Name"
+msgstr "نام"
+
+
+msgid "Company name"
+msgstr "کمپنی کا نام"
+
+
+msgid "VAT"
+msgstr "VAT"
+
+
+msgid "Address"
+msgstr "پتہ"
+
+
+msgid "City"
+msgstr "شہر"
+
+
+msgid "Country/State"
+msgstr "ملک/ریاست"
+
+
+msgid "Email"
+msgstr "ای میل"
+
+
+msgid "Postal code"
+msgstr "ڈاک کامخصوص نمبر"
+
+
+msgid "Direct bank transfer details"
+msgstr "براہ راست بینک ٹرانسفر کی تفصیلات"
+
+
+msgid "Account name"
+msgstr "کھاتے کا نام"
+
+
+msgid "Account number"
+msgstr "اکاؤنٹ نمبر"
+
+
+msgid "Bank name"
+msgstr "بینک کا نام"
+
+
+msgid "Routing number"
+msgstr "رہنما عدد"
+
+
+msgid "IBAN"
+msgstr "IBAN"
+
+
+msgid "Bic/Swift"
+msgstr "Bic/swift"
+
+
+msgid "Instructions"
+msgstr "ہدایات"
+
+
+msgid "No subscription created."
+msgstr "کوئی رکنیت نہیں بنائی گئی۔"
+
+
+msgid "Choose plan"
+msgstr "منصوبہ منتخب کریں"
+
+
+msgid "Payment methods"
+msgstr "ادائیگی کے طریقے"
+
+
+msgid "Total"
+msgstr "کل"
+
+
+msgid "Period"
+msgstr "مدت"
+
+
+msgid "Subscription summary"
+msgstr "رکنیت کا خلاصہ"
+
+
+msgid "Phone"
+msgstr "فون"
+
+
+msgid "Postcode"
+msgstr "پوسٹ کوڈ"
+
+
+msgid "County"
+msgstr "کاؤنٹی"
+
+
+msgid "Town/City"
+msgstr "قصبہ/شہر"
+
+
+msgid "Street address"
+msgstr "گلی کا پتہ"
+
+
+msgid "Country/Region"
+msgstr "ملک/علاقہ"
+
+
+msgid "VAT Number"
+msgstr "واٹ نمبر"
+
+
+msgid "(optional)"
+msgstr "(اختیاری)"
+
+
+msgid "Billing details"
+msgstr "بل کی تفصیلات"
+
+
+msgid "User information"
+msgstr "صارف کی معلومات"
+
+
+msgid "It seems that no available payment methods have been configured."
+msgstr "ایسا لگتا ہے کہ ادائیگی کا کوئی دستیاب طریقہ ترتیب نہیں دیا گیا ہے۔"
+
+
+msgid "Thank you! We are delighted to see you here. Your subscription will be activated soon!"
+msgstr "شکریہ! ہمیں آپ کو یہاں دیکھ کر خوشی ہوئی ہے۔ آپ کی رکنیت جلد ہی چالو ہو جائے گی!"
+
+
+msgid "Our bank details"
+msgstr "ہمارے بینک کی تفصیلات"
+
+
+msgid "Your subscription details"
+msgstr "آپ کی رکنیت کی تفصیلات"
+
+
+msgid "View subscription"
+msgstr "سبسکرپشن دیکھیں"
+
+
+msgid "You have not selected a valid subscription plan."
+msgstr "آپ نے ایک درست رکنیت کا منصوبہ منتخب نہیں کیا ہے۔"
+
+
+msgid "Field empty"
+msgstr "میدان خالی"
+
+
+msgid "Empty first name"
+msgstr "خالی پہلا نام"
+
+
+msgid "Empty last name"
+msgstr "خالی آخری نام"
+
+
+msgid "Empty country"
+msgstr "خالی ملک"
+
+
+msgid "Empty address"
+msgstr "خالی پتہ"
+
+
+msgid "Empty city"
+msgstr "خالی شہر"
+
+
+msgid "Empty county"
+msgstr "خالی کاؤنٹی"
+
+
+msgid "Empty postcode"
+msgstr "خالی پوسٹ کوڈ"
+
+
+msgid "Empty phone"
+msgstr "خالی فون"
+
+
+msgid "Empty email"
+msgstr "خالی ای میل"
+
+
+msgid "Email or username empty!"
+msgstr "ای میل یا صارف نام خالی!"
+
+
+msgid "Pass empty!"
+msgstr "خالی پاس!"
+
+
+msgid "Username incorrect!"
+msgstr "صارف نام غلط ہے!"
+
+
+msgid "Invalid Pass Pattern!"
+msgstr "غلط پاس پیٹرن!"
+
+
+msgid "Please activate your account by following the link sent to your email address."
+msgstr "براہ کرم اپنے ای میل ایڈریس پر بھیجے گئے لنک پر عمل کرکے اپنا اکاؤنٹ فعال کریں۔"
+
+
+msgid "Resend activation link"
+msgstr "ایکٹیویشن لنک دوبارہ بھیجیں۔"
+
+
+msgid "In order to have access to this section, you have to activate your account."
+msgstr "اس سیکشن تک رسائی حاصل کرنے کے لیے، آپ کو اپنا اکاؤنٹ چالو کرنا ہوگا۔"
+
+
+msgid "Email empty!"
+msgstr "ای میل خالی!"
+
+
+msgid "Username empty!"
+msgstr "صارف نام خالی ہے!"
+
+
+msgid "Pass pattern incorrect!"
+msgstr "پاس پیٹرن غلط!"
+
+
+msgid "Retyped pass empty!"
+msgstr "دوبارہ ٹائپ شدہ پاس خالی!"
+
+
+msgid "Retyped pass exactly!"
+msgstr "بالکل دوبارہ ٹائپ کیا گیا پاس!"
+
+
+msgid "User already exists!"
+msgstr "صارف پہلے سے موجود ہے!"
+
+
+msgid "Email already exists!"
+msgstr "ای میل پہلے سے موجود ہے!"
+
+
+msgid "Your account could not be created."
+msgstr "آپ کا اکاؤنٹ نہیں بنایا جا سکا۔"
+
+
+msgid "Please check your email (inbox or spam folder) to validate your account."
+msgstr "اپنے اکاؤنٹ کی توثیق کرنے کے لیے براہ کرم اپنا ای میل (ان باکس یا اسپام فولڈر) چیک کریں۔"
+
+
+msgid "User empty!"
+msgstr "صارف خالی!"
+
+
+msgid "User does not exists!"
+msgstr "صارف موجود نہیں ہے!"
+
+
+msgid "New activation link was generated. Please check your email (inbox or spam folder) to validate your account."
+msgstr "ایکٹیویشن کا نیا لنک تیار کیا گیا تھا۔ اپنے اکاؤنٹ کی توثیق کرنے کے لیے براہ کرم اپنا ای میل (ان باکس یا اسپام فولڈر) چیک کریں۔"
+
+
+msgid "CAPTCHA verification failed!"
+msgstr "کیپچا کی توثیق ناکام!"
+
+
+msgid "CAPTCHA user score failed. Please contact us!"
+msgstr "کیپچا صارف سکور ناکام ہو گیا۔ براے مہربانی ہم سے رابطہ کریں!"
+
+
+msgid "Loading"
+msgstr "لوڈ ہو رہا ہے"
+
+
+msgid "Here are the results for the search:"
+msgstr "تلاش کے نتائج یہ ہیں:"
+
+
+msgid "Price"
+msgstr "قیمت"
+
+
+msgid "EXCLUSIVE"
+msgstr "خصوصی"
+
+
+msgid "Tel:"
+msgstr "ٹیلی فون:"
+
+
+msgid "Share"
+msgstr "بانٹیں"
+
+
+msgid "Print"
+msgstr "پرنٹ کریں"
+
+
+msgid "At"
+msgstr "پر"
+
+
+msgid "Comments are closed."
+msgstr "تبصرے بند ہیں."
+
+
+msgid "Payment method"
+msgstr "ادائیگی کا طریقہ"
+
+
+msgid "You must be logged out to view this page."
+msgstr "اس صفحہ کو دیکھنے کے لیے آپ کو لاگ آؤٹ کرنا ہوگا۔"
+
+
+msgid "Retyped Pass incorrect!"
+msgstr "دوبارہ ٹائپ شدہ پاس غلط!"
+
+
+msgid "%s is a required field."
+msgstr "%s ایک مطلوبہ فیلڈ ہے۔"
+
+
+msgid "Please provide a valid email address."
+msgstr "براہ کرم ایک درست ای میل ایڈریس فراہم کریں۔"
+
+
+msgid "This email address is already registered."
+msgstr "یہ ای میل پتہ پہلے سے رجسٹرڈ ہے."
+
+
+msgid "Please fill out all password fields."
+msgstr "براہ کرم تمام پاس ورڈ فیلڈز کو پُر کریں۔"
+
+
+msgid "Please enter your current password."
+msgstr "براہ کرم اپنا موجودہ پاس ورڈ درج کریں۔"
+
+
+msgid "Please re-enter your password."
+msgstr "براہ مہربانی اپنے پاس ورڈ کا دوبارہ اندراج کیجیے."
+
+
+msgid "New passwords do not match."
+msgstr "نئے پاس ورڈز مماثل نہیں ہیں۔"
+
+
+msgid "Your current password is incorrect."
+msgstr "آپ کا موجودہ پاس ورڈ غلط ہے۔"
+
+
+msgid "Account details changed successfully."
+msgstr "اکاؤنٹ کی تفصیلات کامیابی کے ساتھ تبدیل ہوگئیں۔"
+
+
+msgid "A new activation link has been sent to your email address!"
+msgstr "ایک نیا ایکٹیویشن لنک آپ کے ای میل ایڈریس پر بھیج دیا گیا ہے!"
+
+
+msgid "unlimited"
+msgstr "لامحدود"
+
+
+msgid "Pay with Stripe"
+msgstr "پٹی کے ساتھ ادائیگی کریں"
+
+
+msgid "Cancel subscription"
+msgstr "رکنیت منسوخ کریں"
+
+
+msgid "Please check your email and confirm subscription!"
+msgstr "براہ کرم اپنا ای میل چیک کریں اور سبسکرپشن کی تصدیق کریں!"
+
+
+msgid "Successfully subscribed!"
+msgstr "کامیابی سے سبسکرائب کر لیا!"
+
+
+msgid "Successfully unsubscribed!"
+msgstr "کامیابی سے رکنیت ختم کر دی گئی!"
+
+
+msgid "Enter promo code here"
+msgstr "یہاں پرومو کوڈ درج کریں۔"
+
+
+msgid "Apply"
+msgstr "درخواست دیں"
+
+
+msgid "Coupon applied"
+msgstr "کوپن لاگو"
+
+
+msgid "Uncaught Error: Something went wrong, please reload page and try again!"
+msgstr "Uncaught error: کچھ غلط ہو گیا، براہ کرم صفحہ دوبارہ لوڈ کریں اور دوبارہ کوشش کریں!"
+
+
+msgid "The coupon code you entered is invalid"
+msgstr "آپ کا درج کردہ کوپن کوڈ غلط ہے۔"
+
+
+msgid "The coupon code you entered has reached its usage limit"
+msgstr "آپ نے جو کوپن کوڈ درج کیا ہے وہ اس کے استعمال کی حد کو پہنچ گیا ہے۔"
+
+
+msgid "The coupon code you entered has expired"
+msgstr "آپ کے درج کردہ کوپن کوڈ کی میعاد ختم ہو گئی ہے۔"
+
+
+msgid "Coupon name is required !"
+msgstr "کوپن کا نام درکار ہے!"
+
+
+msgid "Please enter a coupon code first!"
+msgstr "براہ کرم پہلے ایک کوپن کوڈ درج کریں!"
+
+
+msgid "Invalid"
+msgstr "غلط"
+
+
+msgid "Applied"
+msgstr "لاگو"
+
+
+msgid "Remove"
+msgstr "دور"
+
+
+msgid "Price not set"
+msgstr "قیمت مقرر نہیں"
+
+
+msgid "Grand Total"
+msgstr "مجموعی عدد"
+
+
+msgid "You already have a subscription, but it's still in waiting to be paid!"
+msgstr "آپ کے پاس پہلے سے ہی سبسکرپشن ہے، لیکن یہ ابھی بھی ادائیگی کے انتظار میں ہے!"
+
+
+msgid "This subscription has been canceled and it will end on %END_DATE%."
+msgstr "یہ رکنیت منسوخ کر دی گئی ہے اور یہ %end_date% کو ختم ہو جائے گی۔"
+
+
+msgid "Go to checkout"
+msgstr "چیک آؤٹ پر جائیں۔"
+
+
+msgid "Stripe invoice details"
+msgstr "پٹی رسید کی تفصیلات"
+
+
+msgid "Stripe subscription details"
+msgstr "پٹی سبسکرپشن کی تفصیلات"
+
+
+msgid "Current status"
+msgstr "موجودہ صورت حال"
+
+
+msgid "Initial Invoice Paid"
+msgstr "ابتدائی رسید کی ادائیگی"
+
+
+msgid "Subscription Create: Initial Invoice Paid"
+msgstr "سبسکرپشن بنائیں: ابتدائی انوائس ادا کی گئی۔"
+
+
+msgid "Subscription Create: Initial Invoice has been created"
+msgstr "سبسکرپشن تخلیق: ابتدائی رسید بنائی گئی ہے۔"
+
+
+msgid "Subscription Create: Initial Invoice has been finalized, and it is ready to be paid"
+msgstr "سبسکرپشن تخلیق: ابتدائی انوائس کو حتمی شکل دے دی گئی ہے، اور یہ ادا کرنے کے لیے تیار ہے۔"
+
+
+msgid "Subscription Update: Invoice Paid"
+msgstr "سبسکرپشن اپ ڈیٹ: رسید کی ادائیگی"
+
+
+msgid "Subscription Renew: Invoice Paid"
+msgstr "رکنیت کی تجدید: رسید کی ادائیگی"
+
+
+msgid "Subscription Renew: Invoice Finalized"
+msgstr "رکنیت کی تجدید: انوائس کو حتمی شکل دی گئی۔"
+
+
+msgid "Subscription Renew: Invoice Created"
+msgstr "سبسکرپشن کی تجدید: انوائس بنائی گئی۔"
+
+
+msgid "Subscription Renew: Invoice Upcoming"
+msgstr "سبسکرپشن کی تجدید: انوائس آنے والی"
+
+
+msgid "Subscription Expired: Invoice Voided(the first invoice was not paid)"
+msgstr "سبسکرپشن کی میعاد ختم ہو گئی: انوائس کالعدم ہو گئی (پہلی رسید ادا نہیں کی گئی تھی)"
+
+
+msgid "Subscription Deleted"
+msgstr "رکنیت حذف کر دی گئی"
+
+
+msgid "Subscription Create: Trialing"
+msgstr "سبسکرپشن تخلیق: ٹرائل کرنا"
+
+
+msgid "Subscription Canceled"
+msgstr "رکنیت منسوخ کر دی گئی۔"
+
+
+msgid "Subscription Create: Initial Invoice voided"
+msgstr "سبسکرپشن بنائیں: ابتدائی رسید کالعدم"
+
+
+msgid "Subscription Renew: Invoice voided"
+msgstr "رکنیت کی تجدید: رسید کالعدم"
+
+
+msgid "Subscription Update: Invoice voided"
+msgstr "سبسکرپشن اپ ڈیٹ: رسید کالعدم"
+
+
+msgid "Invoice updated"
+msgstr "انوائس اپ ڈیٹ"
+
+
+msgid "Subscription has been canceled and will end on: "
+msgstr "سبسکرپشن منسوخ کر دی گئی ہے اور اس پر ختم ہو جائے گی:"
+
+
+msgid "Setup successful - You have successfully set up your payment method for future payments."
+msgstr "سیٹ اپ کامیاب - آپ نے مستقبل کی ادائیگیوں کے لیے اپنی ادائیگی کا طریقہ کامیابی سے ترتیب دیا ہے۔"
+
+
+msgid "Setup failed - We are sorry, there was an error setting up your payment method. Please try again with a different payment method."
+msgstr "سیٹ اپ ناکام ہو گیا - ہمیں افسوس ہے، آپ کی ادائیگی کا طریقہ ترتیب دینے میں ایک خرابی تھی۔ براہ کرم ایک مختلف ادائیگی کے طریقے کے ساتھ دوبارہ کوشش کریں۔"
+
+
+msgid "Payment successful - Your latest subscription payment was completed successfully."
+msgstr "ادائیگی کامیاب - آپ کی تازہ ترین رکنیت کی ادائیگی کامیابی کے ساتھ مکمل ہو گئی۔"
+
+
+msgid "Payment processing - Your latest subscription payment is being processed."
+msgstr "ادائیگی کی کارروائی - آپ کی سبسکرپشن کی تازہ ترین ادائیگی پر کارروائی کی جا رہی ہے۔"
+
+
+msgid "Payment failed - We are sorry, there was an error processing your payment. Please try again with a different payment method."
+msgstr "ادائیگی ناکام ہو گئی - ہم معذرت خواہ ہیں، آپ کی ادائیگی پر کارروائی کرنے میں ایک خرابی تھی۔ براہ کرم ایک مختلف ادائیگی کے طریقے کے ساتھ دوبارہ کوشش کریں۔"
+
+
+msgid "Download"
+msgstr "ڈاؤن لوڈ کریں"
+
+
+msgid "Stripe invoice"
+msgstr "پٹی رسید"
+
+
+msgid "N/A"
+msgstr "N / A"
+
+
+msgid "Latest invoice"
+msgstr "تازہ ترین رسید"
+
+
+msgid "Invoice"
+msgstr "رسید"
+
+
+msgid "Unpaid subscription."
+msgstr "بلا معاوضہ رکنیت."
+
+
+msgid "Locked subscription."
+msgstr "مقفل سبسکرپشن۔"
+
+
+msgid "Invalid subscription."
+msgstr "غلط رکنیت."
+
+
+msgid "Pay now"
+msgstr "اب ادا"
+
+
+msgid "Show more info"
+msgstr "مزید معلومات دکھائیں"
+
+
+msgid "Show less info"
+msgstr "کم معلومات دکھائیں"
+
+
+msgid "Complete payment"
+msgstr "مکمل ادائیگی"
+
+
+msgid "or"
+msgstr "یا"
+
+
+msgid "Setup Payment"
+msgstr "سیٹ اپ ادائیگی"
+
+
+msgid "Go to Payment"
+msgstr "ادائیگی پر جائیں"
+
+
+msgid "Alphabetical A -> Z"
+msgstr "حروف تہجی a -> z"
+
+
+msgid "Oldest posts"
+msgstr "سب سے پرانی پوسٹس"
+
+
+msgid "Select"
+msgstr "منتخب کریں"
+
+
+msgid "on"
+msgstr "پر"
+
+
+msgid "No bookmarked posts"
+msgstr "کوئی بک مارک پوسٹ نہیں"
+
+
+msgid "Log in With Facebook"
+msgstr "فیس بک لاگ ان کریں"
+
+
+msgid "Forgot your password? Get help"
+msgstr "اپنا پاس ورڈ بھول گئے؟ مدد حاصل کرو"
+
+
+msgid "Someone has requested a password reset for the following account:"
+msgstr "کسی نے درج ذیل اکاؤنٹ کے لیے پاس ورڈ دوبارہ ترتیب دینے کی درخواست کی ہے۔"
+
+
+msgid "Username: %s"
+msgstr "صارف نام: %s"
+
+
+msgid "If this was a mistake, just ignore this email and nothing will happen."
+msgstr "اگر یہ غلطی تھی تو اس ای میل کو نظر انداز کر دیں اور کچھ نہیں ہوگا۔"
+
+
+msgid "To reset your password, visit the following address:"
+msgstr "اپنا پاس ورڈ دوبارہ ترتیب دینے کے لیے درج ذیل پتے پر جائیں:"
+
+
+msgid "Members"
+msgstr "اراکین"
+
+
+msgid "Downloads"
+msgstr "ڈاؤن لوڈ"
+
+
+msgid "inc. TAX"
+msgstr "inc. ٹیکس"
+
+
+msgid "ex. TAX"
+msgstr "سابق. ٹیکس"
+
+
+msgid "An unexpected error has occured while trying to create your post. Please try again."
+msgstr "آپ کی پوسٹ بنانے کی کوشش کے دوران ایک غیر متوقع خرابی واقع ہو گئی ہے۔ دوبارہ کوشش کریں."
+
+
+msgid "Your post has been successfully created."
+msgstr "آپ کی پوسٹ کامیابی کے ساتھ بنائی گئی ہے۔"
+
+
+msgid "Your post has been successfully updated."
+msgstr "آپ کی پوسٹ کو کامیابی سے اپ ڈیٹ کر دیا گیا ہے۔"
+
+
+msgid "An unexpected error has occurred and the mail could not be sent."
+msgstr "ایک غیر متوقع خرابی پیش آ گئی ہے اور میل نہیں بھیجی جا سکی۔"
+
+
+msgid "Location:"
+msgstr "مقام:"
+
+
+msgid "The email has been successfully sent."
+msgstr "ای میل کامیابی سے بھیج دیا گیا ہے۔"
+
+
+msgid "An unexpected error has occurred. Please try again."
+msgstr "ایک غیر متوقع خرابی واقع ہوئی ہے. دوبارہ کوشش کریں."
+
+
+msgid "Drag and drop or browse"
+msgstr "گھسیٹیں اور چھوڑیں یا براؤز کریں۔"
+
+
+msgid "Search by keyword..."
+msgstr "مطلوبہ الفاظ سے تلاش کریں..."
+
+
+msgid "Select parent"
+msgstr "والدین کو منتخب کریں"
+
+
+msgid "Add new"
+msgstr "نیا شامل کریں"
+
+
+msgid "Parent"
+msgstr "والدین"
+
+
+msgid "Select child"
+msgstr "بچے کو منتخب کریں"
+
+
+msgid "Select sub-child"
+msgstr "ذیلی بچے کو منتخب کریں۔"
+
+
+msgid "Posted by"
+msgstr "کی طرف سے پوسٹ کیا گیا"
+
+
+msgid "Overall"
+msgstr "مجموعی طور پر"
+
+
+msgid "Post review"
+msgstr "جائزہ پوسٹ کریں"
+
+
+msgid "This field is required!"
+msgstr "اس کو پر کرنا ضروری ہے!"
+
+
+msgid "Your review has been published. Please refresh the page in order to see it."
+msgstr "آپ کا جائزہ شائع ہو چکا ہے۔ براہ کرم اسے دیکھنے کے لیے صفحہ کو ریفریش کریں۔"
+
+
+msgid "Your review has been registered and is awaiting approval."
+msgstr "آپ کا جائزہ رجسٹر ہو چکا ہے اور منظوری کا انتظار ہے۔"
+
+
+msgid "Submit reply"
+msgstr "جواب جمع کروائیں"
+
+
+msgid "Enter your reply"
+msgstr "اپنا جواب درج کریں۔"
+
+
+msgid "Cancel"
+msgstr "منسوخ"
+
+
+msgid "Some required fields have been left blank."
+msgstr "کچھ مطلوبہ فیلڈز کو خالی چھوڑ دیا گیا ہے۔"
+
+
+msgid "Please enter a valid email address."
+msgstr "برائے مہربانی قابل قبول ای میل ایڈریس لکھیں."
+
+
+msgid "The number cannot be lower than"
+msgstr "تعداد سے کم نہیں ہو سکتی"
+
+
+msgid "The number cannot be higher than"
+msgstr "تعداد سے زیادہ نہیں ہو سکتی"
+
+
+msgid "Leave a review"
+msgstr "ایک جائزہ چھوڑ دو"
+
+
+msgid "Submit"
+msgstr "جمع کرائیں"
+
+
+msgid "Update"
+msgstr "اپ ڈیٹ"
+
+
+msgid "out of 5"
+msgstr "5 میں سے"
+
+
+msgid "You have reached the limit of reviews that you can submit for this article"
+msgstr "آپ جائزوں کی حد تک پہنچ گئے ہیں جو آپ اس مضمون کے لیے جمع کرا سکتے ہیں۔"
+
+
+msgid "Log in to leave a review."
+msgstr "ایک جائزہ چھوڑنے کے لیے لاگ ان کریں۔"
+
+
+msgid "Enter a title for your review"
+msgstr "اپنے جائزے کے لیے ایک عنوان درج کریں۔"
+
+
+msgid "Enter your review"
+msgstr "اپنا جائزہ درج کریں۔"
+
+
+msgid "Review criteria"
+msgstr "معیار کا جائزہ لیں"
+
+
+msgid "Enter Your Name or Company"
+msgstr "اپنا نام یا کمپنی درج کریں۔"
+
+
+msgid "Submit review"
+msgstr "جائزہ جمع کروائیں"
+
+
+msgid "Delete"
+msgstr "حذف کریں"
+
+
+msgid "Your reply has been published. Please refresh the page in order to see it."
+msgstr "آپ کا جواب شائع ہو چکا ہے۔ براہ کرم اسے دیکھنے کے لیے صفحہ کو ریفریش کریں۔"
+
+
+msgid "You have not created any posts."
+msgstr "آپ نے کوئی پوسٹس نہیں بنائی ہیں۔"
+
+
+msgid "The selected post has been successfully deleted."
+msgstr "منتخب پوسٹ کو کامیابی سے حذف کر دیا گیا ہے۔"
+
+
+msgid "Rating"
+msgstr "درجہ بندی"
+
+
+msgid "Title"
+msgstr "عنوان"
+
+
+msgid "Post image"
+msgstr "تصویر پوسٹ کریں"
+
+
+msgid "Categories"
+msgstr "اقسام"
+
+
+msgid "Date"
+msgstr "تاریخ"
+
+
+msgid "Source title"
+msgstr "ماخذ کا عنوان"
+
+
+msgid "No rating"
+msgstr "کوئی درجہ بندی نہیں"
+
+
+msgid "View"
+msgstr "دیکھیں"
+
+
+msgid "Publish"
+msgstr "شائع کریں"
+
+
+msgid "Add new post"
+msgstr "نئی پوسٹ شامل کریں"
+
+
+msgid "Edit post"
+msgstr "پوسٹ میں ترمیم کریں"
+
+
+msgid "Publish a post"
+msgstr "ایک پوسٹ شائع کریں"
+
+
+msgid "The status for %POST_TITLE% has been changed."
+msgstr "%post_title% کی حیثیت تبدیل کر دی گئی ہے۔"
+
+
+msgid "Are you sure you want to publish %POST_TITLE%?"
+msgstr "کیا آپ واقعی %post_title% شائع کرنا چاہتے ہیں؟"
+
+
+msgid "Delete a post"
+msgstr "ایک پوسٹ کو حذف کریں"
+
+
+msgid "Are you sure you want to delete %POST_TITLE%?"
+msgstr "کیا آپ واقعی %post_title% کو حذف کرنا چاہتے ہیں؟"
+
+
+msgid "%POST_TITLE% has been moved to trash."
+msgstr "%post_title% کو کوڑے دان میں ڈال دیا گیا ہے۔"
+
+
+msgid "You do not hold the required priveleges to execute this request."
+msgstr "آپ کے پاس اس درخواست پر عمل کرنے کے لیے مطلوبہ مراعات نہیں ہیں۔"
+
+
+msgid "No search results."
+msgstr "تلاش کا کوئی نتیجہ نہیں"
+
+
+msgid "Yes"
+msgstr "جی ہاں"
+
+
+msgid "No"
+msgstr "نہیں"
+
+
+msgid "Save"
+msgstr "محفوظ کریں"
+
+
+msgid "Search for a location"
+msgstr "ایک مقام تلاش کریں"
+
+
+msgid "Address line"
+msgstr "پتہ کی ستر"
+
+
+msgid "(Optional)"
+msgstr "(اختیاری)"
+
+
+msgid "State"
+msgstr "حالت"
+
+
+msgid "Country"
+msgstr "ملک"
+
+
+msgid "Create new term"
+msgstr "نئی اصطلاح بنائیں"
+
+
+msgid "Description"
+msgstr "تفصیل"
+
+
+msgid "Delete bookmarks"
+msgstr "بک مارکس کو حذف کریں"
+
+
+msgid "Reset your password"
+msgstr "آپ کا پاس ورڈ دوبارہ ترتیب دیں"
+
+
+msgid "The password reset key has expired."
+msgstr "پاس ورڈ دوبارہ ترتیب دینے کی کلید ختم ہو گئی ہے۔"
+
+
+msgid "The password reset key is invalid."
+msgstr "پاس ورڈ دوبارہ ترتیب دینے کی کلید غلط ہے۔"
+
+
+msgid "New password *"
+msgstr "نیا پاس ورڈ *"
+
+
+msgid "Repeat new password *"
+msgstr "نیا پاس ورڈ دہرائیں *"
+
+
+msgid "Save password"
+msgstr "پاس ورڈ محفوظ کریں"
+
+
+msgid "Your account has been successfully activated!"
+msgstr "آپ کا اکاؤنٹ کامیابی سے ایکٹیویٹ ہو گیا ہے!"
+
+
+msgid "Your account has already been activated!"
+msgstr "آپ کا اکاؤنٹ پہلے ہی ایکٹیویٹ ہو چکا ہے!"
+
+
+msgid "Check your email for the correct activation link. This link is invalid."
+msgstr "درست ایکٹیویشن لنک کے لیے اپنا ای میل چیک کریں۔ یہ لنک غلط ہے۔"
+
+
+msgid "Account activation"
+msgstr "اکاونٹ ایکٹو کرنا"
+
+
+msgid "Please enter a new password before proceeding."
+msgstr "براہ کرم آگے بڑھنے سے پہلے نیا پاس ورڈ درج کریں۔"
+
+
+msgid "Please confirm the new password before proceeding."
+msgstr "براہ کرم آگے بڑھنے سے پہلے نئے پاس ورڈ کی تصدیق کریں۔"
+
+
+msgid "Please make sure that the passwords match."
+msgstr "براہ کرم یقینی بنائیں کہ پاس ورڈ مماثل ہیں۔"
+
+
+msgid "The password has been reset successfully."
+msgstr "پاس ورڈ کامیابی سے دوبارہ ترتیب دیا گیا ہے۔"
+
+
+msgid "Manage your billing details."
+msgstr "اپنی بلنگ کی تفصیلات کا نظم کریں۔"
+
+
+msgid "Profile picture"
+msgstr "پروفائل تصویر"
+
+
+msgid "Remaining publishing rights."
+msgstr "باقی اشاعتی حقوق۔"
+
+
+msgid "The number of articles you have left to publish across different post types."
+msgstr "مضامین کی تعداد جو آپ نے پوسٹ کی مختلف اقسام میں شائع کرنے کے لیے چھوڑی ہے۔"
+
+
+msgid "Bank transfer"
+msgstr "بینک ٹرانسفر"
+
+
+msgid "Direct Bank Transfer"
+msgstr "براہ راست بینک ٹرانسفر"
+
+
+msgid "Canceled"
+msgstr "منسوخ"
+
+
+msgid "Cycle Interval"
+msgstr "سائیکل وقفہ"
+
+
+msgid "In order to update this filed, you have to activate your account."
+msgstr "اس فائل کو اپ ڈیٹ کرنے کے لیے، آپ کو اپنا اکاؤنٹ چالو کرنا ہوگا۔"
+
+
+msgid "Cannot process %s field."
+msgstr "%s فیلڈ پر کارروائی نہیں کر سکتے۔"
+
+
+msgid "Modified date"
+msgstr "ترمیم شدہ تاریخ"
+

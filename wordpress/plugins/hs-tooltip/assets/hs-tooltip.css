@@ -1,0 +1,272 @@
+/* HS Smart Tooltip — стили рассчитаны на темы Blocksy и Newspaper.
+   Обе темы агрессивно стилизуют .entry-content img / .td-post-content img
+   (max-width, height: auto, vertical-align, padding, margin, border-radius,
+   box-shadow), поэтому критичные свойства иконки и тултипа защищены !important.
+   Это локальные перекрытия для inline-картинок плагина — не влияют на остальные
+   изображения в посте. */
+
+/* --- Подпись карты (inline-span внутри текста) --- */
+.hs-card-tooltip {
+  display: inline !important;
+  white-space: nowrap;
+  cursor: help;
+  color: inherit;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  /* Подчёркивание ТОЛЬКО для BG-карт (см. правило ниже).
+     Обычные карты различаются цветом редкости. */
+  text-decoration: none !important;
+  text-decoration-skip-ink: auto;
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+}
+
+/* BG-карты — без подчёркивания, как и обычные. Визуальный маркер — иконка
+   уровня таверны слева. */
+.hs-card-tooltip.hs-card-tooltip-bg {
+  text-decoration: none !important;
+}
+
+/* --- Иконка уровня таверны (BG) — поведение и защиты идентичны .hs-set-icon. --- */
+.hs-bg-tier,
+/* --- Иконка сета (inline-block <img>) --- */
+.hs-set-icon {
+  display: inline-block !important;
+  height: 0.95em !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 3px 0 0 !important;
+  padding: 0 !important;
+  vertical-align: -0.12em !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  /* Newspaper применяет filter / opacity к img — сбрасываем. */
+  filter: none !important;
+  opacity: 1 !important;
+  /* Blocksy/Newspaper иногда делают img display:block по дефолту в lazy-load,
+     что ломает inline-flow — фиксируем. */
+  float: none !important;
+  clear: none !important;
+  /* Чтобы тема не пыталась нарисовать caption/figcaption и пр. */
+  pointer-events: none;
+}
+
+/* --- Подсветка по редкости карты (Hearthstone palette). --- */
+/* Кастомные свойства, чтобы темы при желании могли переопределить через :root. */
+.hs-card-tooltip {
+  --hs-rarity-color: inherit;
+}
+/* Цвета применяются ТОЛЬКО к [hs_card] (.hs-card-tooltip без модификатора),
+   и НЕ применяются к [hs_bg] (.hs-card-tooltip-bg). У BG-карт визуальный
+   маркер — иконка уровня таверны слева; цвет редкости избыточен. */
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common    { --hs-rarity-color: #6b7280; } /* серый  */
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare      { --hs-rarity-color: #2563eb; } /* синий  */
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic      { --hs-rarity-color: #9333ea; } /* фиолетовый */
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary { --hs-rarity-color: #b45309; } /* тёмное золото */
+
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common,
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare,
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic,
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary {
+  color: var(--hs-rarity-color) !important;
+  /* font-weight чуть выше нейтрального — без подчёркивания цвет один не всегда заметен. */
+  font-weight: 600;
+}
+
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common:hover,
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare:hover,
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic:hover,
+.hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary:hover {
+  filter: brightness(1.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common    { --hs-rarity-color: #9ca3af; }
+  .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare      { --hs-rarity-color: #60a5fa; }
+  .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic      { --hs-rarity-color: #c084fc; }
+  .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary { --hs-rarity-color: #d97706; }
+}
+
+/* Тема-специфичные перекрытия для редкостей: повышенная специфичность,
+   чтобы перебить любые !important со стороны Newspaper/Blocksy. */
+.td-post-content .hs-card-tooltip:not(.hs-card-tooltip-bg),
+.entry-content   .hs-card-tooltip:not(.hs-card-tooltip-bg),
+.ct-content      .hs-card-tooltip:not(.hs-card-tooltip-bg) {
+  text-decoration: none !important;
+}
+.td-post-content .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common,
+.entry-content   .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common,
+.ct-content      .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-common {
+  color: var(--hs-rarity-color, #6b7280) !important;
+}
+.td-post-content .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare,
+.entry-content   .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare,
+.ct-content      .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-rare {
+  color: var(--hs-rarity-color, #2563eb) !important;
+}
+.td-post-content .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic,
+.entry-content   .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic,
+.ct-content      .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-epic {
+  color: var(--hs-rarity-color, #9333ea) !important;
+}
+.td-post-content .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary,
+.entry-content   .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary,
+.ct-content      .hs-card-tooltip:not(.hs-card-tooltip-bg).hs-rarity-legendary {
+  color: var(--hs-rarity-color, #b45309) !important;
+}
+
+/* --- Диагностика для шорткодов с ненайденным ID --- */
+.hs-card-missing {
+  text-decoration: underline dotted !important;
+  text-decoration-color: rgba(200, 60, 60, 0.7) !important;
+  text-underline-offset: 0.15em;
+  cursor: help;
+}
+
+/* --- Плавающее окно с картинкой --- */
+.hs-tooltip-box {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  /* Быстрое появление: 80ms — заметно бодрее 200ms, всё ещё не «дёргается». */
+  transition: opacity 0.08s ease-out;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  contain: layout style paint;
+  will-change: opacity;
+  /* Тултип крепится к <body>, но если тема навешивает универсальные
+     img-стили — защищаем содержимое. */
+  margin: 0;
+  border: 0;
+  line-height: 1;
+}
+
+.hs-tooltip-box.is-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-tooltip-box {
+    transition: none;
+    will-change: auto;
+  }
+}
+
+.hs-tooltip-box img {
+  display: block !important;
+  width: 240px !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  filter: none !important;
+  opacity: 1 !important;
+  vertical-align: top !important;
+  float: none !important;
+}
+
+.hs-tooltip-box.is-loading img {
+  opacity: 0.2 !important;
+}
+
+.hs-tooltip-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  animation: hsTooltipSpin 0.8s linear infinite;
+}
+
+@keyframes hsTooltipSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-tooltip-loader {
+    animation: none;
+    border-top-color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* --- Тема-специфичные перекрытия --- */
+
+/* Blocksy/Newspaper иногда применяют typography ко всем span/a внутри
+   .entry-content — фиксируем italic и наследование цвета.
+   Подчёркивание для обычных карт здесь НЕ навешиваем (его нет по дизайну);
+   для BG оно навешено отдельным правилом по .hs-card-tooltip-bg. */
+.entry-content   .hs-card-tooltip,
+.ct-content      .hs-card-tooltip,
+.post-content    .hs-card-tooltip {
+  font-style: italic !important;
+}
+.entry-content   .hs-card-tooltip.hs-card-tooltip-bg,
+.ct-content      .hs-card-tooltip.hs-card-tooltip-bg,
+.post-content    .hs-card-tooltip.hs-card-tooltip-bg {
+  text-decoration: none !important;
+}
+
+/* Newspaper: .td-post-content img / figure { box-shadow, border-radius,
+   max-width, padding } применяется ко всем изображениям. Дублируем сброс
+   с более высокой специфичностью, чтобы поймать !important со стороны темы. */
+.td-post-content .hs-set-icon,
+.entry-content .hs-set-icon,
+.ct-content .hs-set-icon,
+.td-post-content .hs-bg-tier,
+.entry-content .hs-bg-tier,
+.ct-content .hs-bg-tier {
+  height: 0.95em !important;
+  max-width: none !important;
+  margin: 0 3px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  vertical-align: -0.12em !important;
+}
+
+/* Иконки уровня таверны (PNG-кружки) — слегка крупнее иконок сета,
+   так как они сами без рамки/фона. */
+.hs-bg-tier {
+  height: 1.05em !important;
+  vertical-align: -0.18em !important;
+}
+.td-post-content .hs-bg-tier,
+.entry-content .hs-bg-tier,
+.ct-content .hs-bg-tier {
+  height: 1.05em !important;
+  vertical-align: -0.18em !important;
+}
+
+/* Newspaper для common-rarity текста по умолчанию красит общим цветом
+   ссылок, что делает подсказку нечитаемой на тёмном фоне темы.
+   Сохраняем поведение прошлого правила. */
+.td-post-content .hs-card-tooltip.hs-rarity-common,
+.entry-content .hs-card-tooltip.hs-rarity-common,
+.ct-content .hs-card-tooltip.hs-rarity-common,
+.td-container .hs-card-tooltip.hs-rarity-common {
+  color: inherit !important;
+}

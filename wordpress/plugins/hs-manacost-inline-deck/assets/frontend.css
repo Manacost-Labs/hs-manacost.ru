@@ -1,0 +1,203 @@
+.hs-mi-deck-link,
+.td-post-content .hs-mi-deck-link,
+.tdb-block-inner .hs-mi-deck-link {
+    color: inherit !important;
+    text-decoration: none !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    cursor: zoom-in;
+}
+
+.hs-mi-deck-link:hover,
+.hs-mi-deck-link:focus,
+.td-post-content .hs-mi-deck-link:hover,
+.td-post-content .hs-mi-deck-link:focus {
+    color: #1689bd !important;
+    text-decoration: none !important;
+}
+
+.hs-mi-deck-link:focus-visible {
+    outline: 2px solid #179bd7;
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+.hs-mi-deck-icon,
+.td-post-content .hs-mi-deck-icon,
+.tdb-block-inner .hs-mi-deck-icon {
+    display: inline-block !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: auto !important;
+    max-width: none !important;
+    margin: 0 0.28em 0 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    vertical-align: -0.16em !important;
+}
+
+.hs-mi-deck-label {
+    font-weight: 700;
+    font-style: italic;
+}
+
+body.hs-mi-lightbox-open {
+    overflow: hidden;
+}
+
+.hs-mi-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+    visibility: hidden;
+    opacity: 0;
+    background: rgba(7, 12, 17, 0.92);
+    backdrop-filter: blur(3px);
+    transition: opacity 150ms ease, visibility 150ms ease;
+}
+
+.hs-mi-lightbox.is-open {
+    visibility: visible;
+    opacity: 1;
+}
+
+.hs-mi-lightbox__panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(1120px, 96vw);
+    max-height: 94vh;
+    padding: 42px 20px 18px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    background: #111920;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.hs-mi-lightbox__close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    font: 300 30px/34px Arial, sans-serif;
+    cursor: pointer;
+}
+
+.hs-mi-lightbox__close:hover,
+.hs-mi-lightbox__close:focus-visible {
+    background: #179bd7;
+    outline: 0;
+}
+
+.hs-mi-lightbox__image-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 140px;
+    overflow: auto;
+}
+
+.hs-mi-lightbox__image {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: calc(94vh - 150px);
+    margin: 0;
+    opacity: 1;
+}
+
+.hs-mi-lightbox__loader {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #45b8eb;
+    border-radius: 50%;
+    animation: hs-mi-spin 700ms linear infinite;
+}
+
+.hs-mi-lightbox__image.is-ready + .hs-mi-lightbox__loader {
+    display: none;
+}
+
+.hs-mi-lightbox__caption {
+    margin: 10px 0 0;
+    color: rgba(255, 255, 255, 0.82);
+    font: 600 14px/1.4 Arial, sans-serif;
+    text-align: center;
+}
+
+.hs-mi-lightbox__copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    margin: 12px 0 0;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 5px;
+    color: #fff;
+    background: #179bd7;
+    box-shadow: 0 7px 18px rgba(23, 155, 215, 0.25);
+    font: 700 14px/1.2 Arial, sans-serif;
+    cursor: pointer;
+}
+
+.hs-mi-lightbox__copy:hover,
+.hs-mi-lightbox__copy:focus-visible {
+    background: #0f78a8;
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.hs-mi-lightbox__copy.is-copied {
+    background: #2f9d58;
+}
+
+@keyframes hs-mi-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+    .hs-mi-lightbox {
+        padding: 8px;
+    }
+
+    .hs-mi-lightbox__panel {
+        width: 100%;
+        max-height: 97vh;
+        padding: 42px 8px 12px;
+        border-radius: 7px;
+    }
+
+    .hs-mi-lightbox__image {
+        max-height: calc(97vh - 145px);
+    }
+
+    .hs-mi-lightbox__copy {
+        width: min(360px, 100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hs-mi-lightbox {
+        transition: none;
+    }
+}

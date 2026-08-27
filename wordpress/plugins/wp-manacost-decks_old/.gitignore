@@ -1,0 +1,27 @@
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local agent/workspace notes
+.claude/
+CLAUDE.md
+docs/wordpress-skills/
+
+# Dependencies and build/cache folders
+node_modules/
+vendor/
+dist/
+build/
+.cache/
+
+# Logs and local env
+*.log
+.env
+.env.*
+
+# WordPress/runtime artifacts
+wp-content/uploads/
+*.zip
+*.tar.gz

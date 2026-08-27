@@ -1,0 +1,9 @@
+i.mce-i-mtp_banner:before {
+    content: "\f135";
+    font-family: dashicons;
+    font-size: 18px;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+}
+

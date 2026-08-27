@@ -1,0 +1,45 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+wp-config.php
+**/wp-config.php
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+.htpasswd
+
+# Runtime data and exports
+uploads/
+**/uploads/
+cache/
+**/cache/
+upgrade/
+**/upgrade/
+*.sql
+*.sql.gz
+*.dump
+*.tar
+*.tar.gz
+*.zip
+
+# Generated and local files
+.DS_Store
+.idea/
+.vscode/
+.phpunit.result.cache
+coverage/
+__pycache__/
+*.py[cod]
+*.log
+*.bak
+*.bak-*
+*.orig
+*.swp
+
+# WordPress core and third-party packages are provisioned separately
+wordpress/core/
+wordpress/vendor-plugins/
+

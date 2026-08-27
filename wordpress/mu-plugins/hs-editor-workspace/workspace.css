@@ -1,0 +1,111 @@
+/*
+ * HS Editor Workspace — панель HS Tooltip на экране записи.
+ *
+ * Область текста в приоритете: панель поиска карт держится в поле зрения
+ * при прокрутке, чтобы вставка не требовала возврата наверх.
+ */
+
+/*
+ * Липкая панель — только при включённой галочке «Закрепить».
+ * Если тема или плагин повесят overflow на родителя, sticky просто перестанет
+ * липнуть и панель поведёт себя как обычная — без поломки.
+ */
+#hs_tooltip_workspace.hs-ew-is-pinned {
+	position: sticky;
+	top: 46px;
+	z-index: 9;
+}
+
+.hs-ew-tabbar {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin: 0 0 10px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+/* Галочка закрепления прижата к правому краю полоски вкладок. */
+.hs-ew-pin {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-left: auto;
+	padding-bottom: 4px;
+	color: #646970;
+	font-size: 11px;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	user-select: none;
+}
+
+.hs-ew-pin:hover {
+	color: #135e96;
+}
+
+.hs-ew-pin-input {
+	margin: 0;
+	/* Уменьшаем стандартный чекбокс wp-admin, чтобы не спорил с вкладками. */
+	width: 14px;
+	min-width: 14px;
+	height: 14px;
+}
+
+.hs-ew-pin-input:checked::before {
+	width: 14px;
+	height: 14px;
+	margin: -1px 0 0 -1px;
+}
+
+.hs-ew-tab {
+	appearance: none;
+	background: none;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	margin: 0;
+	padding: 4px 0 6px;
+	color: #50575e;
+	font-size: 13px;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.hs-ew-tab:hover {
+	color: #135e96;
+}
+
+.hs-ew-tab:focus {
+	outline: 1px solid #3582c4;
+	outline-offset: 2px;
+}
+
+.hs-ew-tab.is-active {
+	color: #135e96;
+	border-bottom-color: #135e96;
+	font-weight: 600;
+}
+
+.hs-ew-panel {
+	display: none;
+}
+
+.hs-ew-panel.is-active {
+	display: block;
+}
+
+/* Чекбокс включения подсказок — служебный, уводим в подвал панели. */
+.hs-ew-extra {
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px solid #f0f0f1;
+}
+
+.hs-ew-extra label {
+	font-size: 12px;
+}
+
+.hs-ew-extra p {
+	margin-bottom: 0;
+	font-size: 11px;
+	line-height: 1.4;
+}

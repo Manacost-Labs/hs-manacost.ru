@@ -1,0 +1,122 @@
+/* Admin polish for the hs_deck post type. Loaded only on deck admin screens. */
+.post-type-hs_deck #deck_details .inside {
+    margin: 0;
+    padding: 0;
+}
+
+.post-type-hs_deck #deck_details .form-table {
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.post-type-hs_deck #deck_details .form-table tr {
+    display: grid;
+    grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+    gap: 18px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.post-type-hs_deck #deck_details .form-table tr:last-child {
+    border-bottom: 0;
+}
+
+.post-type-hs_deck #deck_details .form-table th,
+.post-type-hs_deck #deck_details .form-table td {
+    display: block;
+    width: auto;
+    padding: 0;
+}
+
+.post-type-hs_deck #deck_details .form-table th label,
+.post-type-hs_deck #deck_details .form-table th {
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.post-type-hs_deck #deck_details input[type="text"],
+.post-type-hs_deck #deck_details input[type="url"],
+.post-type-hs_deck #deck_details input[type="number"],
+.post-type-hs_deck #deck_details textarea,
+.post-type-hs_deck #deck_details select {
+    max-width: 780px;
+    border-color: #cbd5e1;
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.post-type-hs_deck #deck_details textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.post-type-hs_deck #deck_details input[type="checkbox"] {
+    margin-top: 0;
+}
+
+.post-type-hs_deck #deck_details td > label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.post-type-hs_deck #deck_details .description {
+    max-width: 780px;
+    color: #64748b;
+}
+
+.post-type-hs_deck .column-feed_status,
+.post-type-hs_deck .column-stats,
+.post-type-hs_deck .column-engagement {
+    vertical-align: top;
+}
+
+.hs-admin-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.hs-admin-badge--small {
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.hs-admin-badge--live,
+.hs-admin-badge--random {
+    color: #166534;
+    background: #dcfce7;
+    border-color: #bbf7d0;
+}
+
+.hs-admin-badge--hidden,
+.hs-admin-badge--archive,
+.hs-admin-badge--muted {
+    color: #475569;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.hs-admin-badge--source {
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-color: #bfdbfe;
+}
+
+@media (max-width: 782px) {
+    .post-type-hs_deck #deck_details .form-table tr {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 16px;
+    }
+}

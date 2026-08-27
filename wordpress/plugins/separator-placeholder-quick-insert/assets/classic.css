@@ -1,0 +1,129 @@
+.spqi-c-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0,0,0,.55);
+	z-index: 160000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+}
+
+.spqi-c-modal {
+	background: #fff;
+	border-radius: 6px;
+	box-shadow: 0 10px 40px rgba(0,0,0,.3);
+	width: 100%;
+	max-width: 880px;
+	max-height: 85vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.spqi-c-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 18px;
+	border-bottom: 1px solid #dcdcde;
+}
+.spqi-c-title { margin: 0; font-size: 16px; font-weight: 600; }
+.spqi-c-close {
+	background: transparent;
+	border: 0;
+	font-size: 26px;
+	line-height: 1;
+	cursor: pointer;
+	color: #50575e;
+	padding: 4px 8px;
+}
+.spqi-c-close:hover { color: #d63638; }
+
+.spqi-c-tabs {
+	display: flex;
+	gap: 4px;
+	padding: 0 18px;
+	border-bottom: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+.spqi-c-tab {
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	padding: 12px 16px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #1d2327;
+}
+.spqi-c-tab:hover { color: #2271b1; }
+.spqi-c-tab.is-active {
+	color: #2271b1;
+	border-bottom-color: #2271b1;
+	font-weight: 600;
+}
+
+.spqi-c-body {
+	padding: 16px 18px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.spqi-c-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+}
+
+.spqi-c-tile {
+	background: #f0f0f1;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 8px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 90px;
+	transition: border-color .15s ease, box-shadow .15s ease;
+}
+.spqi-c-tile:hover,
+.spqi-c-tile:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	outline: none;
+}
+.spqi-c-tile img { max-width: 100%; max-height: 140px; height: auto; display: block; }
+
+.spqi-c-desc {
+	margin: 0 0 14px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border-left: 3px solid #2271b1;
+	color: #1d2327;
+	font-size: 13px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+.spqi-c-empty,
+.spqi-c-loading {
+	padding: 40px 20px;
+	text-align: center;
+	color: #50575e;
+}
+
+/* TinyMCE toolbar button icon (uses Dashicons font) */
+i.mce-i-spqi-icon {
+	font: 400 20px/1 'dashicons';
+	padding: 0;
+	vertical-align: top;
+	speak: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	margin-left: -2px;
+	padding-right: 2px;
+}
+i.mce-i-spqi-icon:before {
+	content: "\f233"; /* dashicons-images-alt2 */
+}
