@@ -3,8 +3,6 @@
 # source movement or new finding requires a fresh review.
 wordpress/plugins/all-in-one-seo-pack/app/Common/Integrations/Semrush.php:generic-api-key:40
 wordpress/plugins/perfmatters/js/analytics.js:gcp-api-key:31
-wordpress/plugins/td-cloud-library/includes/tdb_config.php:generic-api-key:32914
-wordpress/plugins/td-cloud-library/includes/tdb_config.php:generic-api-key:5610
 wordpress/plugins/td-composer/legacy/Newspaper/includes/demos/coaching_pro/td_panel_settings.txt:gcp-api-key:1
 wordpress/plugins/td-composer/legacy/Newspaper/includes/demos/interior_designer/td_panel_settings.txt:gcp-api-key:1
 wordpress/plugins/td-composer/legacy/common/wp_booster/td_remote_video.php:gcp-api-key:23

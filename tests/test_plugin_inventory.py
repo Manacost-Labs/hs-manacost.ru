@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PluginInventoryTests(unittest.TestCase):
-    def test_inventory_matches_every_regular_plugin_directory(self) -> None:
+    def test_inventory_matches_active_regular_plugin_directories_only(self) -> None:
         inventory = json.loads(
             (ROOT / "config/wordpress-plugins.json").read_text(encoding="utf-8")
         )
@@ -20,12 +20,24 @@ class PluginInventoryTests(unittest.TestCase):
         self.assertEqual(actual, recorded)
 
         for plugin in inventory["plugins"]:
-            self.assertIn(plugin["status"], {"active", "inactive"})
+            self.assertEqual("active", plugin["status"])
             self.assertTrue(plugin["version"])
             self.assertIn(
                 plugin["origin"],
                 {"custom", "legacy", "wordpress.org", "commercial", "tagdiv"},
             )
+
+        inactive_production_plugins = {
+            "hs-deck",
+            "hs-deck-manager",
+            "imagify",
+            "kolodahs-manacost-sync",
+            "maintenance",
+            "query-monitor",
+            "td-cloud-library",
+            "td-mobile-plugin",
+        }
+        self.assertTrue(inactive_production_plugins.isdisjoint(actual))
 
     def test_runtime_and_nested_repository_artifacts_are_excluded(self) -> None:
         forbidden_parts = {".git", ".svn", ".hg", ".claude", ".codegraph"}
