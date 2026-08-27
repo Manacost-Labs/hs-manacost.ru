@@ -19,6 +19,37 @@
 9. После production deployment обязательно проверить основной домен, зеркало, origin, московский и новосибирский прокси.
 10. Если потребовался аварийный hotfix в runtime, немедленно перенести тот же минимальный diff сюда, проверить, закоммитить и сделать push.
 
+## Обязательные AI-скиллы
+
+Перед началом изменения агент обязан определить тип задачи, назвать применяемые скиллы в рабочем сообщении и полностью прочитать соответствующие `SKILL.md`. Скиллы являются обязательным процессом, а не рекомендацией. Не нужно загружать весь набор сразу: используются базовые скиллы и только относящиеся к задаче специализации.
+
+Точный реестр и маршрутизация находятся в `config/ai-skills.json`. Специальный WordPress/PHP skill хранится внутри проекта: `.agents/skills/wordpress-plugin-dev/SKILL.md`. Остальные имена установлены глобально и доступны Codex, Claude Code и другим агентам на сервере.
+
+### Для каждого изменения кода
+
+Использовать последовательно:
+
+1. `agent-test-driven-development` — зафиксировать требуемое поведение тестом или воспроизводимой проверкой.
+2. `agent-code-review-and-quality` — проверить корректность, безопасность, поддержку, тесты и влияние на пользователей.
+3. `agent-code-simplification` — убрать лишнюю сложность без несвязанных рефакторингов и изменения поведения.
+4. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
+5. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
+
+Для PHP, WordPress, темы, плагинов, REST/AJAX, WP-CLI, cron, БД или wp-admin дополнительно всегда использовать `wordpress-plugin-dev`. Его правила WordPress Coding Standards, capabilities/nonces, sanitization/validation/escaping, bounded queries, кэширования и совместимости обязательны.
+
+### По типу задачи
+
+| Задача | Обязательные скиллы | Обязательная проверка |
+|---|---|---|
+| Интерфейс, тема, CSS/JS, адаптивность | `agent-frontend-ui-engineering`, `frontend-design`, `web-quality-accessibility`, `agent-browser-testing-with-devtools` | Desktop и mobile, клавиатура, состояния loading/empty/error, отсутствие горизонтального скролла |
+| SEO, шаблоны страниц, мета и индексация | `seo`, `seo-technical` и профильный `seo-page`/`seo-schema`/`seo-images`/`seo-sitemap` | Каноникал только на `.ru`; `.com` остаётся noindex-зеркалом; `test` остаётся полностью noindex |
+| Производительность и кэширование | `agent-performance-optimization`, `web-quality-performance`, `web-quality-core-web-vitals` | Измерение до/после, отсутствие регрессии LCP/INP/CLS, проверка origin и обоих RU-прокси |
+| Полный аудит пользовательского качества | `web-quality-web-quality-audit`, `web-quality-best-practices`, `web-quality-accessibility` | Реальный браузер и приоритизированный список измеримых проблем |
+| Ошибка или production-инцидент | `agent-debugging-and-error-recovery`, `agent-test-driven-development` | Воспроизведение → локализация → минимальный fix → regression test → smoke-check |
+| Pipeline, nginx, deployment и прокси | `agent-ci-cd-and-automation`, `agent-shipping-and-launch`, `agent-security-and-hardening` | Staging первым, backup/rollback, `nginx -t`, проверка `.ru`, `.com`, origin, Москвы и Новосибирска |
+
+SEO-скиллы не имеют права превращать зеркало `.com` в конкурирующий индексируемый сайт. Performance-скиллы не имеют права отключать безопасность, корректность счётчиков, персонализацию или очистку кэша ради синтетического результата. Design-скиллы не имеют права ухудшать доступность или скорость.
+
 ## Границы данных и безопасности
 
 - Не коммитить `.env`, `wp-config.php`, пароли, токены, cookies, сертификаты, приватные ключи, дампы БД, медиатеку, логи, кэши и резервные копии.

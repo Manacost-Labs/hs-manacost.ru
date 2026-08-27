@@ -1,0 +1,35 @@
+{
+  "name": "{{PLUGIN_SLUG}}",
+  "version": "{{PLUGIN_VERSION}}",
+  "description": "{{PLUGIN_NAME}} asset build for the {{TEXT_DOMAIN}} WordPress plugin.",
+  "private": true,
+  "scripts": {
+    "start": "wp-scripts start",
+    "build": "wp-scripts build",
+    "lint:js": "wp-scripts lint-js",
+    "lint:css": "wp-scripts lint-style",
+    "lint:style": "wp-scripts lint-style",
+    "format": "wp-scripts format",
+    "packages-update": "wp-scripts packages-update",
+    "plugin-zip": "wp-scripts plugin-zip"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^10.0.0",
+    "@wordpress/scripts": "^30.0.0"
+  },
+  "files": [
+    "{{PLUGIN_SLUG}}.php",
+    "build",
+    "includes",
+    "languages",
+    "readme.txt",
+    "src",
+    "templates",
+    "vendor"
+  ],
+  "wordpressPlugin": {
+    "slug": "{{PLUGIN_SLUG}}",
+    "textDomain": "{{TEXT_DOMAIN}}",
+    "phpNamespace": "{{VENDOR_NAMESPACE}}\\\\{{PLUGIN_NAMESPACE}}"
+  }
+}

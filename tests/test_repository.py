@@ -12,6 +12,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             "config/site.json",
             "config/plugins.json",
             "config/network.json",
+            "config/ai-skills.json",
         ):
             with (ROOT / relative_path).open(encoding="utf-8") as config_file:
                 self.assertIsInstance(json.load(config_file), dict)
@@ -26,6 +27,8 @@ class RepositoryPolicyTests(unittest.TestCase):
             "ops/nginx/staging.conf",
             "ops/smoke-check.sh",
             "AGENTS.md",
+            ".agents/skills/wordpress-plugin-dev/SKILL.md",
+            ".claude/skills/wordpress-plugin-dev/SKILL.md",
         )
         for relative_path in required:
             self.assertTrue((ROOT / relative_path).exists(), relative_path)
@@ -70,6 +73,27 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", production)
         self.assertIn("successful staging deployment", production)
         self.assertIn("smoke-check.sh production", production)
+
+    def test_required_ai_skills_are_pinned(self) -> None:
+        registry = json.loads((ROOT / "config/ai-skills.json").read_text(encoding="utf-8"))
+        baseline = set(registry["baseline_for_code_changes"])
+        self.assertTrue(
+            {
+                "agent-test-driven-development",
+                "agent-code-review-and-quality",
+                "agent-code-simplification",
+                "agent-security-and-hardening",
+                "agent-git-workflow-and-versioning",
+            }.issubset(baseline)
+        )
+        routes = registry["task_routes"]
+        self.assertIn("seo-technical", routes["seo"])
+        self.assertIn("web-quality-core-web-vitals", routes["performance"])
+        self.assertIn("frontend-design", routes["frontend_design"])
+
+        skill_path = ROOT / registry["project_local"][0]["path"]
+        self.assertTrue(skill_path.is_file())
+        self.assertIn("name: wordpress-plugin-dev", skill_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

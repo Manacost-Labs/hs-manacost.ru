@@ -1,0 +1,152 @@
+<?php
+/**
+ * REST controller for {{PLUGIN_NAME}}.
+ *
+ * @package {{VENDOR_NAMESPACE}}\{{PLUGIN_NAMESPACE}}
+ */
+
+namespace {{VENDOR_NAMESPACE}}\{{PLUGIN_NAMESPACE}}\Rest;
+
+use WP_Error;
+use WP_REST_Controller;
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_REST_Server;
+
+final class {{CONTROLLER_CLASS}} extends WP_REST_Controller {
+	protected $namespace = '{{PLUGIN_SLUG}}/v1';
+	protected $rest_base = '{{REST_BASE}}';
+
+	public function register_routes(): void {
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base,
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_items' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => array(
+						'per_page' => array(
+							'description'       => __( 'Maximum number of items to return.', '{{TEXT_DOMAIN}}' ),
+							'type'              => 'integer',
+							'default'           => 10,
+							'minimum'           => 1,
+							'maximum'           => 100,
+							'sanitize_callback' => 'absint',
+							'validate_callback' => 'rest_validate_request_arg',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_item' ),
+					'permission_callback' => array( $this, 'create_item_permissions_check' ),
+					'args'                => $this->get_endpoint_args_for_item_schema( WP_REST_Server::CREATABLE ),
+				),
+				'schema' => array( $this, 'get_public_item_schema' ),
+			)
+		);
+	}
+
+	/**
+	 * @return true|WP_Error
+	 */
+	public function get_items_permissions_check( WP_REST_Request $request ) {
+		if ( ! current_user_can( 'read' ) ) {
+			return new WP_Error(
+				'{{PLUGIN_SLUG}}_rest_forbidden',
+				__( 'You are not allowed to read these items.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * @return true|WP_Error
+	 */
+	public function create_item_permissions_check( WP_REST_Request $request ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'{{PLUGIN_SLUG}}_rest_forbidden',
+				__( 'You are not allowed to create this item.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_items( WP_REST_Request $request ) {
+		$per_page = absint( $request->get_param( 'per_page' ) );
+
+		if ( 1 > $per_page ) {
+			return new WP_Error(
+				'{{PLUGIN_SLUG}}_invalid_per_page',
+				__( 'The per_page value must be greater than zero.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'items'    => array(),
+				'per_page' => $per_page,
+			)
+		);
+	}
+
+	/**
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_item( WP_REST_Request $request ) {
+		$name = sanitize_text_field( (string) $request->get_param( 'name' ) );
+
+		if ( '' === $name ) {
+			return new WP_Error(
+				'{{PLUGIN_SLUG}}_missing_name',
+				__( 'Name is required.', '{{TEXT_DOMAIN}}' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'id'   => 0,
+				'name' => $name,
+			)
+		);
+	}
+
+	public function get_item_schema(): array {
+		if ( $this->schema ) {
+			return $this->schema;
+		}
+
+		$this->schema = array(
+			'$schema'    => 'http://json-schema.org/draft-04/schema#',
+			'title'      => '{{REST_BASE}}',
+			'type'       => 'object',
+			'required'   => array( 'name' ),
+			'properties' => array(
+				'id'   => array(
+					'description' => __( 'Unique item identifier.', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'integer',
+					'readonly'    => true,
+				),
+				'name' => array(
+					'description' => __( 'Item name.', '{{TEXT_DOMAIN}}' ),
+					'type'        => 'string',
+					'minLength'   => 1,
+				),
+			),
+		);
+
+		return $this->schema;
+	}
+}

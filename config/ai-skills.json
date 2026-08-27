@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "project_local": [
+    {
+      "name": "wordpress-plugin-dev",
+      "path": ".agents/skills/wordpress-plugin-dev/SKILL.md",
+      "version": "0.1.0",
+      "source_commit": "2819b971eb18259d272e1b80676968e9ab731025",
+      "license": "MIT",
+      "required_for": [
+        "php",
+        "wordpress",
+        "theme",
+        "plugin",
+        "rest",
+        "ajax",
+        "wp-admin",
+        "wp-cli",
+        "cron",
+        "database"
+      ]
+    }
+  ],
+  "baseline_for_code_changes": [
+    "agent-test-driven-development",
+    "agent-code-review-and-quality",
+    "agent-code-simplification",
+    "agent-security-and-hardening",
+    "agent-git-workflow-and-versioning"
+  ],
+  "task_routes": {
+    "frontend_design": [
+      "agent-frontend-ui-engineering",
+      "frontend-design",
+      "web-quality-accessibility",
+      "agent-browser-testing-with-devtools"
+    ],
+    "seo": [
+      "seo",
+      "seo-technical",
+      "seo-page",
+      "seo-schema",
+      "seo-images",
+      "seo-sitemap"
+    ],
+    "performance": [
+      "agent-performance-optimization",
+      "web-quality-performance",
+      "web-quality-core-web-vitals"
+    ],
+    "web_quality_audit": [
+      "web-quality-web-quality-audit",
+      "web-quality-best-practices",
+      "web-quality-accessibility"
+    ],
+    "incident": [
+      "agent-debugging-and-error-recovery",
+      "agent-test-driven-development"
+    ],
+    "infrastructure": [
+      "agent-ci-cd-and-automation",
+      "agent-shipping-and-launch",
+      "agent-security-and-hardening"
+    ]
+  },
+  "domain_invariants": {
+    "canonical_and_indexable": "hs-manacost.ru",
+    "mirror_noindex": "hs-manacost.com",
+    "staging_noindex": "test.hs-manacost.ru"
+  }
+}
