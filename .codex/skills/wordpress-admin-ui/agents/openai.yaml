@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Admin UI"
+  short_description: "Профессиональные интерфейсы админ-панели WordPress"
+  default_prompt: "Используй $wordpress-admin-ui, чтобы создать удобный, быстрый и доступный интерфейс админ-панели WordPress."

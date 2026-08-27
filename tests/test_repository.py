@@ -111,6 +111,7 @@ class RepositoryPolicyTests(unittest.TestCase):
         local_skills = {item["name"]: item for item in registry["project_local"]}
         for name in (
             "newspaper-tagdiv",
+            "wordpress-admin-ui",
             "wordpress-router",
             "wp-performance",
             "wp-phpstan",
@@ -124,6 +125,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertTrue(skill_path.is_file(), str(skill_path))
 
         self.assertIn("newspaper-tagdiv", routes["newspaper_tagdiv"])
+        self.assertIn("wordpress-admin-ui", routes["wordpress_admin_ui"])
 
 
 if __name__ == "__main__":
