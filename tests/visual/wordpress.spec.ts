@@ -68,3 +68,26 @@ test('article editor', async ({ page }) => {
   await stabilize(page);
   await expect(page).toHaveScreenshot('editor.png');
 });
+
+test('admin UI pattern library', async ({ page }) => {
+  await login(page);
+  await page.goto('/wp-admin/tools.php?page=hs-admin-ui-patterns', {
+    waitUntil: 'domcontentloaded',
+  });
+  await expect(page.getByRole('heading', { name: 'UI-паттерны Manacost' })).toBeVisible();
+  await stabilize(page);
+  await expect(page).toHaveScreenshot('admin-ui-patterns.png');
+
+  await page.locator('.hs-ui-open-dialog').click();
+  const dialog = page.getByRole('dialog', { name: /Удалить черновик/ });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator('.hs-ui-open-dialog')).toBeFocused();
+
+  const contentOverflows = await page.locator('.hs-ui-patterns').evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    return bounds.left < -1 || bounds.right > window.innerWidth + 1;
+  });
+  expect(contentOverflows).toBe(false);
+});

@@ -26,6 +26,7 @@ Build task-focused administration screens that feel native to WordPress and rema
    - forms, tables, filters, notices, and mobile patterns: [patterns.md](references/patterns.md)
    - capability, nonce, validation, escaping, uploads, AJAX, and REST: [security.md](references/security.md)
    - browser, accessibility, performance, and release checks: [testing.md](references/testing.md)
+   - project pattern contract and live showcase: [../../../docs/admin-ui-pattern-library.md](../../../docs/admin-ui-pattern-library.md), implemented by `hs-admin-ui-patterns`
 4. Choose the smallest architecture that supports the workflow. Prefer native WordPress markup and APIs; use an isolated JavaScript application only for interaction-heavy screens and only with an existing supported build pipeline.
 5. Add a failing behavioral test or reproducible browser scenario before implementation. For visual changes, capture representative desktop and mobile baselines.
 6. Implement the narrowest change. Keep data access separate from rendering, paginate server-side, enqueue assets only on the owned screen, and retain usable HTML for failures where practical.

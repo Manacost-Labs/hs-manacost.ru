@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "integration": {
+      "screens": {
+        "dashboard": {
+          "ttfb_ms": {"baseline": 200, "budget": 250, "unit": "ms"},
+          "interactive_ms": {"baseline": 400, "budget": 500, "unit": "ms"},
+          "sql_queries": {"baseline": 50, "budget": 60, "unit": "count"},
+          "peak_memory_mb": {"baseline": 24, "budget": 32, "unit": "MB"},
+          "long_tasks": {"baseline": 2, "budget": 2, "unit": "count"}
+        },
+        "posts-list": {
+          "ttfb_ms": {"baseline": 200, "budget": 250, "unit": "ms"},
+          "interactive_ms": {"baseline": 400, "budget": 500, "unit": "ms"},
+          "sql_queries": {"baseline": 55, "budget": 65, "unit": "count"},
+          "peak_memory_mb": {"baseline": 24, "budget": 32, "unit": "MB"},
+          "long_tasks": {"baseline": 2, "budget": 2, "unit": "count"}
+        },
+        "media-library": {
+          "ttfb_ms": {"baseline": 200, "budget": 250, "unit": "ms"},
+          "interactive_ms": {"baseline": 400, "budget": 500, "unit": "ms"},
+          "sql_queries": {"baseline": 35, "budget": 45, "unit": "count"},
+          "peak_memory_mb": {"baseline": 24, "budget": 32, "unit": "MB"},
+          "long_tasks": {"baseline": 2, "budget": 2, "unit": "count"}
+        },
+        "post-editor": {
+          "ttfb_ms": {"baseline": 200, "budget": 250, "unit": "ms"},
+          "interactive_ms": {"baseline": 400, "budget": 500, "unit": "ms"},
+          "sql_queries": {"baseline": 65, "budget": 75, "unit": "count"},
+          "peak_memory_mb": {"baseline": 24, "budget": 32, "unit": "MB"},
+          "long_tasks": {"baseline": 2, "budget": 2, "unit": "count"}
+        }
+      }
+    }
+  },
+  "screens": {
+    "dashboard": {
+      "ttfb_ms": {"baseline": 1500, "budget": 1500, "unit": "ms"},
+      "interactive_ms": {"baseline": 2500, "budget": 2500, "unit": "ms"},
+      "sql_queries": {"baseline": 120, "budget": 120, "unit": "count"},
+      "peak_memory_mb": {"baseline": 160, "budget": 160, "unit": "MB"},
+      "long_tasks": {"baseline": 4, "budget": 4, "unit": "count"}
+    },
+    "posts-list": {
+      "ttfb_ms": {"baseline": 1500, "budget": 1500, "unit": "ms"},
+      "interactive_ms": {"baseline": 2500, "budget": 2500, "unit": "ms"},
+      "sql_queries": {"baseline": 120, "budget": 120, "unit": "count"},
+      "peak_memory_mb": {"baseline": 160, "budget": 160, "unit": "MB"},
+      "long_tasks": {"baseline": 4, "budget": 4, "unit": "count"}
+    },
+    "media-library": {
+      "ttfb_ms": {"baseline": 1500, "budget": 1500, "unit": "ms"},
+      "interactive_ms": {"baseline": 2500, "budget": 2500, "unit": "ms"},
+      "sql_queries": {"baseline": 120, "budget": 120, "unit": "count"},
+      "peak_memory_mb": {"baseline": 160, "budget": 160, "unit": "MB"},
+      "long_tasks": {"baseline": 4, "budget": 4, "unit": "count"}
+    },
+    "post-editor": {
+      "ttfb_ms": {"baseline": 1500, "budget": 1500, "unit": "ms"},
+      "interactive_ms": {"baseline": 2500, "budget": 2500, "unit": "ms"},
+      "sql_queries": {"baseline": 120, "budget": 120, "unit": "count"},
+      "peak_memory_mb": {"baseline": 160, "budget": 160, "unit": "MB"},
+      "long_tasks": {"baseline": 4, "budget": 4, "unit": "count"}
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "risk": "low",
+    "domains": ["test.hs-manacost.ru"],
+    "skills": [
+      "hs-manacost-project",
+      "wordpress-change-impact",
+      "wordpress-clean-code",
+      "agent-test-driven-development",
+      "agent-code-review-and-quality",
+      "agent-code-simplification",
+      "agent-security-and-hardening",
+      "agent-git-workflow-and-versioning"
+    ],
+    "checks": [
+      "make check",
+      "/home/debian/server/tools/ai-quality/bin/ai-security-check staged"
+    ]
+  },
+  "rules": [
+    {
+      "patterns": ["wordpress/mu-plugins/hs-admin-*.php", "wordpress/mu-plugins/hs-editor-workspace/**", "wordpress/mu-plugins/hs-editor-workspace.php"],
+      "owner": "wp-admin-editor",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["wp-admin", "editor"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["wordpress-admin-ui", "wordpress-admin-performance", "wordpress-article-editor", "wordpress-observability"],
+      "checks": ["make admin-performance", "make integration", "make visual"]
+    },
+    {
+      "patterns": ["wordpress/mu-plugins/hs-local-image-optimizer.php", "wordpress/mu-plugins/hs-local-image-optimizer/**", "wordpress/mu-plugins/hs-manacost-s3-offload.php", "wordpress/mu-plugins/hs-manacost-s3-offload/**", "wordpress/mu-plugins/manacost-media-unique-filenames.php", "wordpress/mu-plugins/hs-media-upload-accelerator.php"],
+      "owner": "media-s3",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["media", "s3", "editor"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-media-integrity", "wordpress-article-editor", "wordpress-runtime-stack"],
+      "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["wordpress/mu-plugins/manacost-cache-purge.php", "wordpress/mu-plugins/manacost-performance-optimizer.php", "wordpress/mu-plugins/hs-admin-load-trim.php", "wordpress/mu-plugins/hs-admin-aioseo-throttle.php", "wordpress/mu-plugins/hs-manacost-newspaper-trim.php", "wordpress/mu-plugins/hs-decks-cache-policy.php"],
+      "owner": "runtime-performance",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["cache", "performance", "wp-admin"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-runtime-stack", "wordpress-admin-performance", "wordpress-observability"],
+      "checks": ["make admin-performance", "make integration", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["wordpress/mu-plugins/manacost-domain-*.php", "wordpress/mu-plugins/manacost-aioseo-addon.php"],
+      "owner": "domains-seo",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["seo", "canonical", "domain-routing"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-seo-editorial", "wordpress-content-integrity", "wordpress-runtime-stack"],
+      "checks": ["make integration", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["wordpress/mu-plugins/plausible-analytics.php", "wordpress/mu-plugins/manacost-ad-polish.php"],
+      "owner": "ads-analytics",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["ads", "analytics", "view-counting"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-ads-analytics", "wordpress-runtime-stack", "wordpress-observability"],
+      "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["wordpress/mu-plugins/**"],
+      "owner": "first-party-generic",
+      "classified": false,
+      "risk": "medium",
+      "surfaces": ["wordpress-runtime"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["wp-project-triage", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts"]
+    },
+    {
+      "patterns": ["wordpress/themes/Newspaper_new/**"],
+      "owner": "newspaper-theme",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "responsive-ui"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-accessibility", "wordpress-redesign-system"],
+      "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["wordpress/plugins/**"],
+      "owner": "regular-plugin",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["plugin", "wordpress-runtime"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["wordpress-plugin-dev", "wp-plugin-development", "wordpress-release-manager"],
+      "checks": ["make contracts", "make integration", "make visual"]
+    },
+    {
+      "patterns": ["ops/nginx/**"],
+      "owner": "infrastructure-release",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["infrastructure", "deployment", "proxy"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch"],
+      "checks": ["nginx -t", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["ops/ci/**", ".github/workflows/**", "ops/deploy.sh", "ops/smoke-check.sh"],
+      "owner": "delivery-pipeline",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["infrastructure", "deployment", "proxy"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch"],
+      "checks": ["actionlint .github/workflows/*.yml", "./ops/smoke-check.sh staging"]
+    },
+    {
+      "patterns": ["tests/visual/**", "wordpress/mu-plugins/hs-admin-ui-patterns/**"],
+      "owner": "ui-quality",
+      "classified": true,
+      "risk": "medium",
+      "surfaces": ["ui-patterns", "visual-regression", "accessibility"],
+      "skills": ["wordpress-admin-ui", "wordpress-accessibility", "playwright"],
+      "checks": ["make visual"]
+    },
+    {
+      "patterns": ["ops/performance/**", "config/admin-performance-budgets.json"],
+      "owner": "admin-performance-tooling",
+      "classified": true,
+      "risk": "medium",
+      "surfaces": ["wp-admin", "performance", "quality-gates"],
+      "skills": ["wordpress-admin-performance", "wordpress-observability"],
+      "checks": ["make admin-performance"]
+    },
+    {
+      "patterns": ["ops/code-quality/**", "phpcs*.xml.dist", "phpstan*.neon*"],
+      "owner": "php-quality",
+      "classified": true,
+      "risk": "medium",
+      "surfaces": ["php", "quality-gates"],
+      "skills": ["wordpress-clean-code", "wp-phpstan"],
+      "checks": ["make code-quality"]
+    },
+    {
+      "patterns": [".agents/skills/**", ".codex/skills/**", ".claude/skills/**", "config/ai-skills.json", "AGENTS.md"],
+      "owner": "ai-workflow",
+      "classified": true,
+      "risk": "medium",
+      "surfaces": ["ai-workflow", "quality-gates"],
+      "skills": ["hs-manacost-project"],
+      "checks": ["make skill-audit"]
+    },
+    {
+      "patterns": ["tests/**", "docs/**"],
+      "owner": "tests-documentation",
+      "classified": true,
+      "risk": "low",
+      "surfaces": ["tests"],
+      "skills": [],
+      "checks": ["make test"]
+    }
+  ]
+}

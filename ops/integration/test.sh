@@ -15,6 +15,7 @@ compose=("${docker_command[@]}" compose --project-name hs-manacost-integration -
 
 "${compose[@]}" run --rm -e HS_MANACOST_S3_RESTORE=1 cli eval-file /var/www/html/.integration/wordpress-tests.php
 post_id=$("${compose[@]}" run --rm cli option get hs_integration_post_id)
+printf 'WP_TEST_POST_ID=%s\nWP_TEST_DATASET_SIZE=1\n' "$post_id" >>"$ENV_FILE"
 views_json=$(curl --fail --silent \
     --data-urlencode action=td_ajax_get_views \
     --data-urlencode "post_id=$post_id" \

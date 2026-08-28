@@ -25,6 +25,13 @@ jobs:
         env:
           CODE_QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: make code-quality
+      - name: Build WordPress change impact report
+        env:
+          CHANGE_IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          mkdir -p .artifacts/change-impact
+          make change-impact | tee .artifacts/change-impact/report.md
+          cat .artifacts/change-impact/report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Check repository
         run: make check
 
@@ -46,7 +53,16 @@ jobs:
       - name: Run isolated WordPress behaviour and visual regression tests
         env:
           RUN_VISUAL: '1'
+          RUN_PERFORMANCE: '1'
         run: ops/integration/run.sh
+      - name: Upload admin performance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-performance-reports
+          path: .artifacts/admin-performance/reports/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload browser diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

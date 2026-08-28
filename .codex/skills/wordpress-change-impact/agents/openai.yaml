@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Change Impact"
+  short_description: "Map code changes to WordPress risks and checks"
+  default_prompt: "Use $wordpress-change-impact to analyze the current Git diff, map affected WordPress contracts and surfaces, and produce the required non-secret verification plan."
