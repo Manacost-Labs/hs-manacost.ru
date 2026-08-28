@@ -1,0 +1,78 @@
+name: Admin performance staging
+
+on:
+  workflow_run:
+    workflows: [Deploy staging]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hs-manacost-admin-performance-staging
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, linux, x64, hs-manacost-production]
+    timeout-minutes: 20
+    environment: staging
+    env:
+      WP_TEST_BASE_URL: https://test.hs-manacost.ru
+      WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
+      WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+      STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+      STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+      WP_TEST_DATASET_SIZE: ${{ vars.STAGING_PERFORMANCE_DATASET_SIZE || '1000' }}
+      HS_ADMIN_PERF_ENVIRONMENT: staging
+      HS_ADMIN_PERF_CACHE_STATE: warm
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked browser package
+        run: npm ci
+      - name: Check protected staging measurement credentials
+        id: credentials
+        shell: bash
+        run: |
+          if [[ -n "$WP_TEST_ADMIN_USER" && -n "$WP_TEST_ADMIN_PASSWORD" && -n "$STAGING_HTTP_USER" && -n "$STAGING_HTTP_PASSWORD" ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            echo 'Staging admin performance skipped: configure the four protected staging secrets.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Collect five comparable warm staging samples
+        if: steps.credentials.outputs.enabled == 'true'
+        run: |
+          mkdir -p .artifacts/admin-performance/raw .artifacts/admin-performance/reports
+          docker run --rm --network host --ipc=host \
+            --env WP_TEST_BASE_URL --env WP_TEST_ADMIN_USER --env WP_TEST_ADMIN_PASSWORD \
+            --env STAGING_HTTP_USER --env STAGING_HTTP_PASSWORD \
+            --env WP_TEST_DATASET_SIZE --env HS_ADMIN_PERF_ENVIRONMENT \
+            --env HS_ADMIN_PERF_CACHE_STATE \
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e \
+            node ops/performance/collect-admin-performance.mjs /work/.artifacts/admin-performance/raw
+          for raw_report in .artifacts/admin-performance/raw/*.json; do
+            report_path=".artifacts/admin-performance/reports/$(basename "$raw_report")"
+            ops/performance/build-admin-performance-report.py \
+              "$raw_report" config/admin-performance-budgets.json > "$report_path"
+            .agents/skills/wordpress-admin-performance/scripts/evaluate_admin_performance.py \
+              "$report_path"
+          done
+      - name: Upload staging performance evidence
+        if: always() && steps.credentials.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-performance-staging
+          path: .artifacts/admin-performance/reports/
+          retention-days: 30

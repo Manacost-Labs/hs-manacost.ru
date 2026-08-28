@@ -35,6 +35,8 @@ Improve the editor's real workflow, not an isolated synthetic number. Keep permi
 .agents/skills/wordpress-admin-performance/scripts/evaluate_admin_performance.py report.json
 ```
 
+   For the automated isolated WordPress suite, run `make admin-performance`. The collector in `ops/performance` records five browser samples for Dashboard, posts, media and the editor, builds evaluator-compatible reports with `config/admin-performance-budgets.json`, and stores only non-secret artifacts under `.artifacts/admin-performance`.
+
 9. Run `make check`, the staged security scan, deploy through Git, and verify staging. A `PASS` report complements behavioral tests; it never replaces them.
 
 ## Measurement contract
