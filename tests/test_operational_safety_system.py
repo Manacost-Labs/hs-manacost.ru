@@ -65,6 +65,7 @@ class OperationalSafetySystemTests(unittest.TestCase):
 
     def test_visual_regression_has_required_pages_and_viewports(self) -> None:
         config = (ROOT / "playwright.config.ts").read_text(encoding="utf-8")
+        runner = (ROOT / "ops/integration/run.sh").read_text(encoding="utf-8")
         suite = (ROOT / "tests/visual/wordpress.spec.ts").read_text(encoding="utf-8")
 
         self.assertIn("390", config)
@@ -72,6 +73,8 @@ class OperationalSafetySystemTests(unittest.TestCase):
         for page in ("home", "article", "category", "editor", "admin"):
             self.assertIn(page, suite)
         self.assertIn("toHaveScreenshot", suite)
+        self.assertIn("retries: process.env.CI ? 1 : 0", config)
+        self.assertIn("--env CI", runner)
         self.assertTrue((ROOT / "tests/visual/screenshot.css").is_file())
 
     def test_backup_policy_requires_independent_s3_destination_and_restore_drill(self) -> None:
