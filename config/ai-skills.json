@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "compatibility": {
     "wordpress_core": "6.9.7",
     "newspaper": "12.7.3",
@@ -149,6 +149,14 @@
       "source": "project",
       "license": "project-internal",
       "required_for": ["external-api", "telegram-bot", "webhook", "oauth-callback", "embed", "s3-integration", "timeout", "retry", "idempotency"]
+    },
+    {
+      "name": "wordpress-redesign-system",
+      "path": ".agents/skills/wordpress-redesign-system/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["redesign", "visual-direction", "design-system", "design-tokens", "page-template", "responsive-redesign", "component-system", "design-critique"]
     },
     {
       "name": "cloudflare",
@@ -302,7 +310,8 @@
     "plugin_development": ["wp-plugin-development", "wordpress-plugin-dev", "wp-phpstan"],
     "rest_api": ["wp-rest-api", "wordpress-plugin-dev"],
     "wordpress_operations": ["wp-wpcli-and-ops", "wordpress-plugin-dev"],
-    "frontend_design": ["agent-frontend-ui-engineering", "frontend-design", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
+    "frontend_design": ["wordpress-redesign-system", "agent-frontend-ui-engineering", "frontend-design", "wordpress-accessibility", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
+    "wordpress_redesign": ["wordpress-redesign-system", "newspaper-tagdiv", "wordpress-accessibility", "playwright", "frontend-design", "agent-frontend-ui-engineering", "web-perf", "wordpress-seo-editorial", "wordpress-ads-analytics"],
     "seo": ["wordpress-seo-editorial", "wordpress-content-integrity", "seo", "seo-technical", "seo-page", "seo-schema", "seo-images", "seo-sitemap"],
     "ads_analytics": ["wordpress-ads-analytics", "wordpress-runtime-stack", "wordpress-observability", "playwright", "web-perf"],
     "editorial_publish_gate": ["wordpress-editorial-publish-gate", "wordpress-article-editor", "wordpress-content-integrity", "wordpress-media-integrity", "wordpress-seo-editorial", "wordpress-accessibility", "wordpress-ads-analytics"],

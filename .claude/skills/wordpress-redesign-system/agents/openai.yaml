@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Redesign System"
+  short_description: "Системный и качественный редизайн сайта"
+  default_prompt: "Use $wordpress-redesign-system to plan and implement a distinctive, update-safe redesign for this WordPress site."
