@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress REST API"
+  short_description: "Безопасные WordPress REST API endpoints"
+  default_prompt: "Use $wp-rest-api to design, implement, or debug this WordPress REST API endpoint."

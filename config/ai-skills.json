@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "compatibility": {
     "wordpress_core": "6.9.7",
     "newspaper": "12.7.3",
@@ -163,6 +163,7 @@
       "path": ".agents/skills/cloudflare/SKILL.md",
       "source": "cloudflare/skills",
       "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "adaptation": "Frontmatter normalized for Agent Skills compatibility; unavailable bundled links now use official Cloudflare documentation.",
       "license": "Apache-2.0",
       "required_for": ["cloudflare-platform", "cloudflare-waf", "cloudflare-cache", "cloudflare-dns"]
     },
@@ -187,6 +188,7 @@
       "path": ".agents/skills/wrangler/SKILL.md",
       "source": "cloudflare/skills",
       "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "adaptation": "Condensed into a context-safe, retrieval-first workflow with explicit authorization and rollback guardrails.",
       "license": "Apache-2.0",
       "required_for": ["wrangler", "worker-deployment", "cloudflare-cli"]
     },
@@ -195,6 +197,7 @@
       "path": ".agents/skills/turnstile-spin/SKILL.md",
       "source": "cloudflare/skills",
       "source_commit": "f96bff754e428838818017f75817f0f9428acd48",
+      "adaptation": "Frontmatter normalized for Agent Skills compatibility without changing the Turnstile workflow.",
       "license": "Apache-2.0",
       "required_for": ["turnstile", "captcha", "form-spam", "bot-protection"]
     },
@@ -230,6 +233,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["wordpress-routing"]
     },
     {
@@ -238,6 +242,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["wordpress", "php", "theme", "plugin"]
     },
     {
@@ -246,6 +251,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["plugin", "mu-plugin", "hook", "ajax", "cron"]
     },
     {
@@ -254,6 +260,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["rest", "api"]
     },
     {
@@ -262,6 +269,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["wp-cli", "database", "operations"]
     },
     {
@@ -270,6 +278,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["performance", "cache", "query"]
     },
     {
@@ -278,6 +287,7 @@
       "source_commit": "d87ee6916e740c7960b6959220c0481a41b320c7",
       "source": "WordPress/agent-skills",
       "license": "GPL-2.0-or-later",
+      "adaptation": "Compatibility metadata moved under the standard metadata key; WordPress 6.9.7 remains enforced by project routing.",
       "required_for": ["phpstan", "static-analysis"]
     },
     {
@@ -285,6 +295,7 @@
       "path": ".agents/skills/wordpress-plugin-dev/SKILL.md",
       "version": "0.1.0",
       "source_commit": "2819b971eb18259d272e1b80676968e9ab731025",
+      "adaptation": "Frontmatter normalized and the bundled shell validator converted to Linux-compatible LF line endings.",
       "license": "MIT",
       "required_for": ["project-wordpress-invariants", "php", "theme", "plugin", "rest", "ajax", "wp-admin", "wp-cli", "cron", "database"]
     }

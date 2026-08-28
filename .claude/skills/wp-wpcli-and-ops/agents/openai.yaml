@@ -1,0 +1,4 @@
+interface:
+  display_name: "WP-CLI and Operations"
+  short_description: "Безопасные операции WordPress через WP-CLI"
+  default_prompt: "Use $wp-wpcli-and-ops to plan and run this scoped WordPress operation safely."

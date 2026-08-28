@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workers Best Practices"
+  short_description: "Качественный и безопасный Workers-код"
+  default_prompt: "Use $workers-best-practices to review or implement this Cloudflare Worker safely."

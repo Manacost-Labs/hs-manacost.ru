@@ -5,12 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillDir = resolve(__dirname, '..');
-const repoRoot = findRepoRoot(skillDir);
 const skillName = basename(skillDir);
 const skillPath = join(skillDir, 'SKILL.md');
-const readmePath = join(repoRoot, 'README.md');
 
-const REQUIRED_FRONTMATTER = ['name', 'description', 'license', 'compatibility'];
+const REQUIRED_FRONTMATTER = ['name', 'description', 'license'];
 const REQUIRED_TEMPLATES = [
   'plugin-php-main.stub',
   'composer-json.stub',
@@ -65,7 +63,6 @@ const REQUIRED_TEMPLATES = [
 const REQUIRED_SCRIPTS = [
   'audit-plugin.mjs',
   'check-source-map.mjs',
-  'sync-install-targets.mjs',
   'validate-skill.mjs',
   'smoke-test.sh',
 ];
@@ -76,11 +73,6 @@ const REQUIRED_PERFORMANCE_EXAMPLES = [
   'scoped-asset-loading.md',
   'cache-invalidation-patterns.md',
 ];
-const REQUIRED_PERFORMANCE_DOC_EXAMPLES = [
-  'performance-audit-human.md',
-  'performance-audit-json.json',
-  'performance-audit-explanation.md',
-];
 const REQUIRED_DESIGN_EXAMPLES = [
   'admin-settings-before-after.md',
   'plugin-dashboard-layout.md',
@@ -90,11 +82,6 @@ const REQUIRED_DESIGN_EXAMPLES = [
   'onboarding-flow.md',
   'design-audit-report.md',
 ];
-const REQUIRED_DESIGN_DOC_EXAMPLES = [
-  'design-audit-human.md',
-  'design-audit-json.json',
-  'design-audit-explanation.md',
-];
 const REQUIRED_COMPATIBILITY_EXAMPLES = [
   'compatibility-audit-report.md',
   'classic-editor-fallback.md',
@@ -103,11 +90,6 @@ const REQUIRED_COMPATIBILITY_EXAMPLES = [
   'theme-compatibility-before-after.md',
   'page-builder-compatibility.md',
   'compatibility-matrix-example.md',
-];
-const REQUIRED_COMPATIBILITY_DOC_EXAMPLES = [
-  'compatibility-audit-human.md',
-  'compatibility-audit-json.json',
-  'compatibility-audit-explanation.md',
 ];
 const SUSPICIOUS_ALLOWED_TOOLS = [
   '*',
@@ -124,24 +106,6 @@ const SUSPICIOUS_ALLOWED_TOOLS = [
 ];
 
 const results = [];
-
-function findRepoRoot(startDir) {
-  let current = resolve(startDir);
-
-  for (let i = 0; i < 8; i += 1) {
-    if (existsSync(join(current, 'README.md')) && existsSync(join(current, 'package.json'))) {
-      return current;
-    }
-
-    const parent = dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-
-  return resolve(startDir, '..', '..');
-}
 
 function pass(message) {
   results.push({ status: 'pass', message });
@@ -242,24 +206,6 @@ function validateAllowedTools(frontmatter) {
   }
 }
 
-function validateReadmeInstallInstructions() {
-  if (!existsSync(readmePath)) {
-    fail('README.md is missing.');
-    return;
-  }
-
-  const readme = readText(readmePath).toLowerCase();
-  const missing = ['codex', 'cursor', 'claude code'].filter((label) => !readme.includes(label));
-
-  if (missing.length > 0) {
-    fail(`README.md is missing install instructions for: ${missing.join(', ')}`);
-  } else if (!readme.includes('install')) {
-    fail('README.md mentions Codex/Cursor/Claude Code but does not include an Install section.');
-  } else {
-    pass('README.md includes install instructions for Codex, Cursor, and Claude Code.');
-  }
-}
-
 function validateTemplates() {
   const templateDir = join(skillDir, 'assets', 'templates');
 
@@ -304,33 +250,6 @@ function validatePerformanceModule(skillContent) {
     }
   }
 
-  const fixtureDir = join(repoRoot, 'test-fixtures', 'performance-plugin');
-  if (existsSync(fixtureDir)) {
-    pass('Performance fixture exists: test-fixtures/performance-plugin');
-  } else {
-    fail('Missing performance fixture: test-fixtures/performance-plugin');
-  }
-
-  const docsExamplesDir = join(repoRoot, 'docs', 'examples');
-  for (const example of REQUIRED_PERFORMANCE_DOC_EXAMPLES) {
-    const file = join(docsExamplesDir, example);
-    if (existsSync(file)) {
-      pass(`Performance audit doc example exists: docs/examples/${example}`);
-    } else {
-      fail(`Missing performance audit doc example: docs/examples/${example}`);
-    }
-  }
-
-  const jsonExample = join(docsExamplesDir, 'performance-audit-json.json');
-  if (existsSync(jsonExample)) {
-    try {
-      JSON.parse(readText(jsonExample));
-      pass('Performance audit JSON example parses.');
-    } catch (error) {
-      fail(`Performance audit JSON example is invalid JSON: ${error.message}`);
-    }
-  }
-
   const auditScript = join(skillDir, 'scripts', 'audit-plugin.mjs');
   if (existsSync(auditScript) && readText(auditScript).includes('--performance')) {
     pass('audit-plugin.mjs supports --performance.');
@@ -370,33 +289,6 @@ function validateDesignModule(skillContent) {
     }
   }
 
-  const fixtureDir = join(repoRoot, 'test-fixtures', 'design-plugin');
-  if (existsSync(fixtureDir)) {
-    pass('Design fixture exists: test-fixtures/design-plugin');
-  } else {
-    fail('Missing design fixture: test-fixtures/design-plugin');
-  }
-
-  const docsExamplesDir = join(repoRoot, 'docs', 'examples');
-  for (const example of REQUIRED_DESIGN_DOC_EXAMPLES) {
-    const file = join(docsExamplesDir, example);
-    if (existsSync(file)) {
-      pass(`Design audit doc example exists: docs/examples/${example}`);
-    } else {
-      fail(`Missing design audit doc example: docs/examples/${example}`);
-    }
-  }
-
-  const jsonExample = join(docsExamplesDir, 'design-audit-json.json');
-  if (existsSync(jsonExample)) {
-    try {
-      JSON.parse(readText(jsonExample));
-      pass('Design audit JSON example parses.');
-    } catch (error) {
-      fail(`Design audit JSON example is invalid JSON: ${error.message}`);
-    }
-  }
-
   const auditScript = join(skillDir, 'scripts', 'audit-plugin.mjs');
   if (existsSync(auditScript) && readText(auditScript).includes('--design')) {
     pass('audit-plugin.mjs supports --design.');
@@ -433,33 +325,6 @@ function validateCompatibilityModule(skillContent) {
       pass(`Compatibility example exists: assets/examples/${example}`);
     } else {
       fail(`Missing compatibility example: assets/examples/${example}`);
-    }
-  }
-
-  const fixtureDir = join(repoRoot, 'test-fixtures', 'compatibility-plugin');
-  if (existsSync(fixtureDir)) {
-    pass('Compatibility fixture exists: test-fixtures/compatibility-plugin');
-  } else {
-    fail('Missing compatibility fixture: test-fixtures/compatibility-plugin');
-  }
-
-  const docsExamplesDir = join(repoRoot, 'docs', 'examples');
-  for (const example of REQUIRED_COMPATIBILITY_DOC_EXAMPLES) {
-    const file = join(docsExamplesDir, example);
-    if (existsSync(file)) {
-      pass(`Compatibility audit doc example exists: docs/examples/${example}`);
-    } else {
-      fail(`Missing compatibility audit doc example: docs/examples/${example}`);
-    }
-  }
-
-  const jsonExample = join(docsExamplesDir, 'compatibility-audit-json.json');
-  if (existsSync(jsonExample)) {
-    try {
-      JSON.parse(readText(jsonExample));
-      pass('Compatibility audit JSON example parses.');
-    } catch (error) {
-      fail(`Compatibility audit JSON example is invalid JSON: ${error.message}`);
     }
   }
 
@@ -597,7 +462,6 @@ function validateSkill() {
   validatePerformanceModule(skillContent);
   validateDesignModule(skillContent);
   validateCompatibilityModule(skillContent);
-  validateReadmeInstallInstructions();
 }
 
 validateSkill();

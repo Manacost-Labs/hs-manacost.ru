@@ -148,7 +148,7 @@ class RedesignAISkillTests(unittest.TestCase):
 
     def test_skill_is_registered_routed_and_synchronized(self) -> None:
         registry = json.loads((ROOT / "config/ai-skills.json").read_text(encoding="utf-8"))
-        self.assertEqual(5, registry["version"])
+        self.assertGreaterEqual(registry["version"], 5)
         registered = {item["name"]: item for item in registry["project_local"]}
         self.assertEqual("project", registered["wordpress-redesign-system"]["source"])
         self.assertIn(

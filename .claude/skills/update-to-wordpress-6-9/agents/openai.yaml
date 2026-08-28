@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update to WordPress 6.9"
+  short_description: "Проверка совместимости с WordPress 6.9"
+  default_prompt: "Use $update-to-wordpress-6-9 to audit this code for WordPress 6.9 compatibility."

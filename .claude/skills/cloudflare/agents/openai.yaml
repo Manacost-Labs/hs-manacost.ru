@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cloudflare Platform"
+  short_description: "Cloudflare Workers, DNS, WAF и хранилища"
+  default_prompt: "Use $cloudflare to solve this Cloudflare platform task using current official documentation."

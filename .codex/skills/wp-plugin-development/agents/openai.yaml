@@ -1,0 +1,4 @@
+interface:
+  display_name: "WP Plugin Development"
+  short_description: "Разработка плагинов по стандартам WordPress"
+  default_prompt: "Use $wp-plugin-development to implement this WordPress plugin behavior safely."

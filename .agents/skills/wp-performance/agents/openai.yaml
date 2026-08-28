@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Performance"
+  short_description: "Диагностика производительности WordPress"
+  default_prompt: "Use $wp-performance to measure and diagnose this WordPress performance problem."

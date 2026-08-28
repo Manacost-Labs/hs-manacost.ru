@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Plugin Engineering"
+  short_description: "Полный цикл разработки WordPress-плагинов"
+  default_prompt: "Use $wordpress-plugin-dev to engineer or review this WordPress plugin change."
