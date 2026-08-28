@@ -2748,6 +2748,20 @@
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
+        "line": 23
+      },
+      {
+        "name": "manage_options",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-admin-ui-patterns/class-hs-admin-ui-patterns.php",
+        "line": 83
+      },
+      {
+        "name": "manage_options",
+        "resolved": true,
+        "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
         "line": 587
       },
