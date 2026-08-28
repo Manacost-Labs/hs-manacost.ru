@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "project": "hs-manacost",
+  "parity": {
+    "allow_content_removal": false,
+    "required_dimensions": ["content", "actions", "brand", "seo", "ads", "analytics", "views"]
+  },
+  "responsive": {
+    "required_widths": [320, 390, 768, 1024, 1440],
+    "intermediate_sweep": true,
+    "orientations": ["portrait", "landscape"],
+    "zoom_percent": 200,
+    "overflow_tolerance_px": 1,
+    "minimum_touch_target_px": 44
+  },
+  "content_cases": ["long-cyrillic", "missing-image", "slow-image", "ads", "embeds", "authenticated", "loading", "empty", "error"],
+  "implementation": {
+    "ownership_layers": ["composer", "cloud-template", "mu-plugin", "child-theme"],
+    "newspaper_breakpoints": [767, 1018, 1140]
+  },
+  "hosts": {
+    "canonical": "hs-manacost.ru",
+    "mirror": "hs-manacost.com",
+    "mirror_noindex": true,
+    "staging": "test.hs-manacost.ru",
+    "staging_noindex": true
+  }
+}

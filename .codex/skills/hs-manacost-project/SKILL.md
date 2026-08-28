@@ -44,7 +44,9 @@ Always use this skill plus the task route:
 - Cookies, consent, forms, comments, Telegram payloads, retention, exports or personal-data deletion: `wordpress-privacy-consent`.
 - Keyboard, screen-reader names, focus, headings, contrast, zoom, mobile accessibility or WCAG regressions: `wordpress-accessibility`.
 - Telegram bots, APIs, webhooks, OAuth callbacks, embeds, S3 or third-party failure handling: `wordpress-external-integrations`.
-- Redesign, visual direction, design system, tokens, page templates, component states or broad responsive UI work: `wordpress-redesign-system` plus `newspaper-tagdiv` and `wordpress-accessibility`.
+- Mobile adaptation, breakpoints, viewport overflow, orientation, touch behavior or desktop/mobile parity: `wordpress-responsive-experience` plus `wordpress-accessibility`, `newspaper-tagdiv` and `playwright`.
+- Typography, fonts, Cyrillic coverage, containers, grids, article measure, spacing or vertical rhythm: `wordpress-typography-layout-system` plus `wordpress-responsive-experience` and `newspaper-tagdiv`.
+- Redesign, visual direction, design system, tokens, page templates or component states: `wordpress-redesign-system` plus `wordpress-responsive-experience`, `wordpress-typography-layout-system`, `newspaper-tagdiv` and `wordpress-accessibility`.
 - Newspaper parent theme, Composer, Cloud Templates, blocks/modules or theme CSS: `newspaper-tagdiv`.
 - Any first-party PHP, JavaScript, CSS, MU-plugin, refactor, review, WPCS, PHPCompatibilityWP or PHPStan task: `wordpress-clean-code`; pair it with `newspaper-tagdiv` for theme/tagDiv work.
 - Any proposed or current code/configuration diff: run `wordpress-change-impact` before editing and again on the final diff; unclassified first-party paths require an ownership rule and manual review.

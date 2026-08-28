@@ -15,7 +15,9 @@ Use `config/ai-skills.json` as the machine-readable source. This guide explains 
 | Plugin/MU-plugin or hooks | `plugin_development` |
 | REST/AJAX API | `rest_api`, plus admin/security route when applicable |
 | WP-CLI/database/operational inspection | `wordpress_operations` |
-| Frontend UI/CSS/responsive work | `frontend_design` |
+| Mobile adaptation, breakpoint, overflow, touch or desktop/mobile parity | `responsive_frontend` |
+| Typography, fonts, Cyrillic, grid, containers, spacing or article measure | `typography_layout` |
+| Frontend UI/CSS work | `frontend_design` |
 | SEO/canonical/schema/sitemap | `seo` |
 | Cache/performance/Core Web Vitals | `performance` and usually `wordpress_runtime_stack` |
 | Production failure | `incident`, then the owning functional route |
@@ -41,7 +43,7 @@ Examples:
 - “Add an editor button”: project + article editor + admin UI; add Newspaper only if rendering/template code changes.
 - “Editor takes four seconds to open”: project + admin performance + admin UI + backend performance and observability; compare the same role, data size and cache state.
 - “Images stale in Moscow”: project + media integrity + runtime stack + incident; do not load editor UI unless uploads themselves fail.
-- “Change article layout”: project + Newspaper + frontend; add SEO if headings/schema/canonical output changes.
+- “Change article layout”: project + Newspaper + responsive + typography/layout; add SEO if headings/schema/canonical output changes.
 - “Migrate post metadata”: project + database migration + WP operations + plugin development; read data/migration rules before any write.
 
 When two rules conflict, follow system/developer/user scope first, then the nearest `AGENTS.md`, then project skills. Surface unresolved product or data ambiguity instead of silently choosing.

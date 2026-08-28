@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Typography & Layout"
+  short_description: "Enforce cohesive typography, grids, and spacing"
+  default_prompt: "Use $wordpress-typography-layout-system to audit and improve this WordPress visual system."
