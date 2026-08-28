@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Admin Performance"
+  short_description: "Диагностика скорости WordPress-админки"
+  default_prompt: "Используй $wordpress-admin-performance для измерения и ускорения wp-admin без потери корректности."

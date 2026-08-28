@@ -22,7 +22,12 @@ class AISkillsQualityTests(unittest.TestCase):
     def test_every_project_skill_passes_the_complete_audit(self) -> None:
         auditor = load_auditor()
         result = auditor.audit(ROOT)
-        self.assertEqual(35, result.skills)
+        expected_skills = sum(
+            1
+            for path in (ROOT / ".agents/skills").iterdir()
+            if path.is_dir() and (path / "SKILL.md").is_file()
+        )
+        self.assertEqual(expected_skills, result.skills)
         self.assertGreaterEqual(result.scripts, 25)
         self.assertEqual([], result.errors)
 

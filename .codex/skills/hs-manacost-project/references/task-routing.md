@@ -9,6 +9,7 @@ Use `config/ai-skills.json` as the machine-readable source. This guide explains 
 | First-party code, refactor, lint or static analysis | `code_quality`, then the owning WordPress specialization |
 | Classic/TinyMCE/Gutenberg article editing | `wordpress_article_editor` |
 | wp-admin screen/form/list/settings | `wordpress_admin_ui` |
+| Slow wp-admin/editor/list/media/AJAX or admin performance budget | `wordpress_admin_performance` |
 | Newspaper/tagDiv/theme template | `newspaper_tagdiv` |
 | WP Rocket/Redis/Cloudflare/Perfmatters/AIOSEO/Wordfence/Redirection | `wordpress_runtime_stack` |
 | Plugin/MU-plugin or hooks | `plugin_development` |
@@ -38,6 +39,7 @@ All code changes also load the baseline skills in `baseline_for_code_changes`. D
 Examples:
 
 - “Add an editor button”: project + article editor + admin UI; add Newspaper only if rendering/template code changes.
+- “Editor takes four seconds to open”: project + admin performance + admin UI + backend performance and observability; compare the same role, data size and cache state.
 - “Images stale in Moscow”: project + media integrity + runtime stack + incident; do not load editor UI unless uploads themselves fail.
 - “Change article layout”: project + Newspaper + frontend; add SEO if headings/schema/canonical output changes.
 - “Migrate post metadata”: project + database migration + WP operations + plugin development; read data/migration rules before any write.

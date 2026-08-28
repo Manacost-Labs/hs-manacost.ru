@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "compatibility": {
     "wordpress_core": "6.9.7",
     "newspaper": "12.7.3",
@@ -37,6 +37,14 @@
       "source": "project",
       "license": "project-internal",
       "required_for": ["wp-admin", "admin-page", "settings", "dashboard", "list-table", "form", "filter", "bulk-action", "modal", "responsive-admin", "admin-ux"]
+    },
+    {
+      "name": "wordpress-admin-performance",
+      "path": ".agents/skills/wordpress-admin-performance/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["slow-wp-admin", "admin-performance", "editor-performance", "admin-ajax-performance", "admin-rest-performance", "large-admin-dataset", "admin-performance-budget"]
     },
     {
       "name": "wordpress-article-editor",
@@ -316,6 +324,7 @@
     "code_quality": ["wordpress-clean-code", "wp-project-triage", "wp-phpstan", "wordpress-plugin-dev"],
     "newspaper_tagdiv": ["newspaper-tagdiv", "wp-project-triage", "wp-plugin-development"],
     "wordpress_admin_ui": ["wordpress-admin-ui", "wp-project-triage", "wp-plugin-development", "agent-frontend-ui-engineering", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
+    "wordpress_admin_performance": ["wordpress-admin-performance", "wordpress-admin-ui", "wp-performance", "wordpress-observability", "playwright", "agent-performance-optimization", "agent-browser-testing-with-devtools"],
     "wordpress_article_editor": ["wordpress-article-editor", "wordpress-admin-ui", "newspaper-tagdiv", "wp-project-triage", "wp-plugin-development", "agent-browser-testing-with-devtools"],
     "wordpress_runtime_stack": ["wordpress-runtime-stack", "wp-wpcli-and-ops", "wp-performance", "wordpress-plugin-dev", "agent-performance-optimization", "agent-security-and-hardening"],
     "plugin_development": ["wp-plugin-development", "wordpress-plugin-dev", "wp-phpstan"],
