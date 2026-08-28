@@ -20,3 +20,9 @@ wordpress/plugins/td-composer/legacy/common/wp_booster/wp-admin/js/td_wp_admin_p
 wordpress/plugins/td-composer/legacy/common/wp_booster/wp-admin/js/td_wp_admin_panel_fb_ig_business.js:facebook-page-access-token:66
 wordpress/plugins/td-composer/legacy/common/wp_booster/wp-admin/js/td_wp_admin_panel_fb_ig_business.js:facebook-page-access-token:70
 wordpress/plugins/wp-rocket/dynamic-lists.json:twitter-api-key:1
+
+# Reviewed tagDiv author-font display metadata from historical commit
+# 6c6cdb5 (2026-08-28; owner: Manacost-Labs; review by 2027-08-28).
+# Commit-scoped fingerprints ensure that any new or moved match is reviewed.
+6c6cdb5c12dc306bd57341fc282ab478f1c41667:wordpress/plugins/td-cloud-library/includes/tdb_config.php:generic-api-key:5610
+6c6cdb5c12dc306bd57341fc282ab478f1c41667:wordpress/plugins/td-cloud-library/includes/tdb_config.php:generic-api-key:32914
