@@ -132,7 +132,7 @@ class CrosscuttingAISkillTests(unittest.TestCase):
 
     def test_skills_are_registered_routed_and_synchronized(self) -> None:
         registry = json.loads((ROOT / "config/ai-skills.json").read_text(encoding="utf-8"))
-        self.assertEqual(4, registry["version"])
+        self.assertEqual(5, registry["version"])
         registered = {item["name"]: item for item in registry["project_local"]}
         routes = {
             "wordpress-editorial-publish-gate": "editorial_publish_gate",
