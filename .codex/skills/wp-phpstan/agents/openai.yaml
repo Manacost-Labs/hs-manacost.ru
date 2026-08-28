@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress PHPStan"
+  short_description: "Статический анализ WordPress PHP-кода"
+  default_prompt: "Use $wp-phpstan to configure, run, or fix PHPStan for this WordPress code."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Task Router"
+  short_description: "Выбор правильного WordPress-процесса"
+  default_prompt: "Use $wordpress-router to classify this WordPress task and select the correct workflow."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cloudflare Turnstile"
+  short_description: "Безопасная защита форм через Turnstile"
+  default_prompt: "Use $turnstile-spin to add or repair this Turnstile integration end to end."

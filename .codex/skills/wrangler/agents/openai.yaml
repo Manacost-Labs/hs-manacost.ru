@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wrangler CLI"
+  short_description: "Разработка и доставка Cloudflare Workers"
+  default_prompt: "Use $wrangler to prepare and verify the correct Wrangler command or configuration."

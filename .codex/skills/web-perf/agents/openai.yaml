@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Performance"
+  short_description: "Измерение и улучшение скорости сайта"
+  default_prompt: "Use $web-perf to measure and improve this page without sacrificing correctness."

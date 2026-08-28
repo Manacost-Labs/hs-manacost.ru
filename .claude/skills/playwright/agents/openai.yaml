@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playwright Browser Automation"
+  short_description: "Надёжные браузерные и visual-тесты"
+  default_prompt: "Use $playwright to implement or debug this browser automation task safely."

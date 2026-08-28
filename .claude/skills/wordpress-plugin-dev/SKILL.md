@@ -2,7 +2,8 @@
 name: wordpress-plugin-dev
 description: "Helps agents develop, review, test, secure, optimize, design, integrate, package, and release modern WordPress plugins. Use for WordPress plugin architecture, Gutenberg block work, block.json, REST API, WP admin screens, shortcode implementation, Settings API, WP-CLI workflows, PHPUnit tests, wp-env environments, Plugin Check, WordPress.org release preparation, security audit, performance optimization, plugin UI/UX design, Classic Editor compatibility, SEO/cache/theme/page-builder integrations, and compatibility audits."
 license: MIT
-compatibility: "Designed for Codex, Cursor, Claude Code, and other Agent Skills-compatible tools."
+metadata:
+  compatibility: "Codex, Cursor, Claude Code, and other Agent Skills-compatible tools."
 ---
 
 # WordPress Plugin Dev

@@ -4,7 +4,7 @@ description: >-
   Operate Playwright for browser automation end to end: author and debug E2E
   test suites (robust locators, network interception and mocking, parallel
   workers, accessibility snapshot checks), wire them into CI, and drive
-  headless browsing and scraping with an extract -> validate -> save loop. Use
+  headless browsing and scraping with an extract, validate, and save loop. Use
   when writing, running, fixing, or scraping with Playwright, when a Playwright
   CI failure or JSON report needs triage, or when the bundled pwrun script
   should analyze a run. Do not use for QA strategy or test framework selection
@@ -12,11 +12,8 @@ description: >-
   architecture design (use agent-frontend-ui-engineering), or to bypass any
   access control, anti-bot challenge, WAF, or rate limit.
 license: MIT
-compatibility: >-
-  Playwright 1.40+ for the documented patterns (aria snapshots need 1.49+).
-  The bundled pwrun script runs on Python 3.8+ and needs no node or Playwright
-  for --help, doctor, inventory, or report analysis; smoke delegates to npx.
 metadata:
+  compatibility: "Playwright 1.40+; aria snapshots require 1.49+; pwrun requires Python 3.8+."
   source: https://playwright.dev/docs
   spec: https://playwright.dev/docs/api/class-playwright
 ---

@@ -1,6 +1,6 @@
-.PHONY: check composer-validate code-quality php-lint test shell-check contracts contract-check integration visual plugin-audit
+.PHONY: check composer-validate code-quality php-lint test shell-check skill-audit contracts contract-check integration visual plugin-audit
 
-check: composer-validate php-lint contract-check test shell-check
+check: composer-validate php-lint contract-check skill-audit test shell-check
 
 composer-validate:
 	@composer validate --strict --no-check-publish
@@ -21,6 +21,9 @@ shell-check:
 	@if command -v shellcheck >/dev/null 2>&1; then find ops -type f -name '*.sh' -print0 | xargs -0 shellcheck && shellcheck ops/deploy.sh ops/smoke-check.sh ops/sync-ai-skills.sh ops/ci/hs-manacost-ci-deploy; fi
 	@if command -v actionlint >/dev/null 2>&1; then actionlint .github/workflows/*.yml; fi
 	@echo "Shell syntax: OK"
+
+skill-audit:
+	@python3 ops/ai-skills/audit.py
 
 contracts:
 	@python3 ops/contracts/scan-wordpress-contracts.py --write

@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Project Triage"
+  short_description: "Детерминированный аудит WordPress-проекта"
+  default_prompt: "Use $wp-project-triage to inspect this repository before changing WordPress code."
