@@ -5,7 +5,7 @@ description: Plan, design, implement, review, and release distinctive production
 
 # WordPress Redesign System
 
-Create a recognizable Manacost product, not a generic AI template. Pair this skill with `hs-manacost-project`, `frontend-design`, `agent-frontend-ui-engineering`, `newspaper-tagdiv`, `wordpress-accessibility`, `playwright`, and the performance/SEO skills for affected pages.
+Create a recognizable Manacost product, not a generic AI template. Pair this skill with `hs-manacost-project`, `frontend-design`, `agent-frontend-ui-engineering`, `newspaper-tagdiv`, `wordpress-responsive-experience`, `wordpress-typography-layout-system`, `wordpress-accessibility`, `playwright`, and the performance/SEO skills for affected pages.
 
 ## Required workflow
 
@@ -19,7 +19,7 @@ Create a recognizable Manacost product, not a generic AI template. Pair this ski
 python3 .agents/skills/wordpress-redesign-system/scripts/validate_redesign_contract.py redesign-contract.json
 ```
 
-6. Build an inventory of reusable patterns and states using [references/component-system.md](references/component-system.md). Define tokens once; do not scatter raw color, spacing, radius, shadow, type or motion values across selectors.
+6. Build an inventory of reusable patterns and states using [references/component-system.md](references/component-system.md). Define tokens once; do not scatter raw color, spacing, radius, shadow, type or motion values across selectors. Validate the project responsive and typography/layout contracts before implementing shared geometry or type.
 7. Select an update-safe Newspaper ownership layer with [references/newspaper-implementation.md](references/newspaper-implementation.md). Implement one vertical slice at a time on staging: navigation, homepage, article, taxonomy/search, then secondary surfaces.
 8. Validate every slice with real content and the [references/acceptance-matrix.md](references/acceptance-matrix.md). Compare screenshots at 320, 390, 768, 1024 and 1440 px; test 200% zoom, keyboard, reduced motion, slow images, missing images, loading, empty, error and authenticated states.
 9. Review the result twice: first for task clarity and hierarchy, then for craft. Remove visual noise, inconsistent tokens, accidental novelty, generic card grids and decoration that does not encode content.

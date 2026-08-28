@@ -2,6 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
 
 const screenshotStyle = path.join(__dirname, 'screenshot.css');
+const RESPONSIVE_WIDTHS = [320, 390, 768, 1024, 1440] as const;
+const RESPONSIVE_PATHS = [
+  '/',
+  '/integration-article/',
+  '/category/integration-category/',
+] as const;
 
 async function stabilize(page: Page): Promise<void> {
   await page.addStyleTag({ path: screenshotStyle });
@@ -37,6 +43,47 @@ for (const target of [
     await expect(page).toHaveScreenshot(`${target.name}.png`);
   });
 }
+
+test('responsive overflow sweep', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'Run the shared matrix once');
+
+  for (const width of RESPONSIVE_WIDTHS) {
+    await page.setViewportSize({ width, height: width <= 390 ? 844 : 1000 });
+    for (const targetPath of RESPONSIVE_PATHS) {
+      await page.goto(targetPath, { waitUntil: 'domcontentloaded' });
+      await stabilize(page);
+
+      const viewport = await page.evaluate(() => {
+        const root = document.documentElement;
+        const body = document.body;
+        const offender = [...document.querySelectorAll<HTMLElement>('body *')].find(element => {
+          const bounds = element.getBoundingClientRect();
+          return bounds.left < -1 || bounds.right > root.clientWidth + 1;
+        });
+        const viewportMeta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')?.content ?? '';
+        const maximumScalePart = viewportMeta
+          .split(',')
+          .map(part => part.trim().split('='))
+          .find(([name]) => name?.toLowerCase() === 'maximum-scale');
+        const parsedMaximumScale = maximumScalePart?.[1]
+          ? Number(maximumScalePart[1])
+          : null;
+        return {
+          overflow: Math.max(root.scrollWidth, body.scrollWidth) - root.clientWidth,
+          offender: offender ? `${offender.tagName.toLowerCase()}#${offender.id}.${offender.className}` : null,
+          viewportMeta,
+          maximumScale: parsedMaximumScale !== null && Number.isFinite(parsedMaximumScale)
+            ? parsedMaximumScale
+            : null,
+        };
+      });
+
+      expect(viewport.overflow, `${targetPath} at ${width}px overflows via ${viewport.offender}`).toBeLessThanOrEqual(1);
+      expect(viewport.viewportMeta.toLowerCase()).not.toContain('user-scalable=no');
+      if (viewport.maximumScale !== null) expect(viewport.maximumScale).toBeGreaterThanOrEqual(2);
+    }
+  }
+});
 
 async function login(page: Page): Promise<void> {
   const username = process.env.WP_TEST_ADMIN_USER;

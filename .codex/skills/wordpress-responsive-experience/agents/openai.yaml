@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Responsive Experience"
+  short_description: "Keep desktop and mobile experiences in parity"
+  default_prompt: "Use $wordpress-responsive-experience to audit and improve this responsive WordPress surface."

@@ -46,7 +46,7 @@
       "risk": "high",
       "surfaces": ["cache", "performance", "wp-admin"],
       "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
-      "skills": ["wordpress-runtime-stack", "wordpress-admin-performance", "wordpress-observability"],
+      "skills": ["wordpress-runtime-stack", "wordpress-admin-performance", "wordpress-observability", "wordpress-typography-layout-system"],
       "checks": ["make admin-performance", "make integration", "./ops/smoke-check.sh staging"]
     },
     {
@@ -86,7 +86,7 @@
       "risk": "high",
       "surfaces": ["frontend", "newspaper", "responsive-ui"],
       "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
-      "skills": ["newspaper-tagdiv", "wordpress-accessibility", "wordpress-redesign-system"],
+      "skills": ["newspaper-tagdiv", "wordpress-responsive-experience", "wordpress-typography-layout-system", "wordpress-accessibility", "wordpress-redesign-system"],
       "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
@@ -125,8 +125,18 @@
       "classified": true,
       "risk": "medium",
       "surfaces": ["ui-patterns", "visual-regression", "accessibility"],
-      "skills": ["wordpress-admin-ui", "wordpress-accessibility", "playwright"],
+      "skills": ["wordpress-admin-ui", "wordpress-responsive-experience", "wordpress-typography-layout-system", "wordpress-accessibility", "playwright"],
       "checks": ["make visual"]
+    },
+    {
+      "patterns": ["config/responsive-experience-contract.json", "config/typography-layout-contract.json"],
+      "owner": "frontend-visual-contracts",
+      "classified": true,
+      "risk": "medium",
+      "surfaces": ["responsive-ui", "typography", "layout", "quality-gates"],
+      "domains": ["test.hs-manacost.ru"],
+      "skills": ["wordpress-responsive-experience", "wordpress-typography-layout-system", "wordpress-accessibility", "playwright"],
+      "checks": ["make skill-audit", "make visual"]
     },
     {
       "patterns": ["ops/performance/**", "config/admin-performance-budgets.json"],

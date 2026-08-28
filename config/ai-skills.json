@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "compatibility": {
     "wordpress_core": "6.9.7",
     "newspaper": "12.7.3",
@@ -175,6 +175,22 @@
       "required_for": ["redesign", "visual-direction", "design-system", "design-tokens", "page-template", "responsive-redesign", "component-system", "design-critique"]
     },
     {
+      "name": "wordpress-responsive-experience",
+      "path": ".agents/skills/wordpress-responsive-experience/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["responsive", "mobile", "breakpoint", "viewport", "overflow", "touch", "orientation", "responsive-parity"]
+    },
+    {
+      "name": "wordpress-typography-layout-system",
+      "path": ".agents/skills/wordpress-typography-layout-system/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["typography", "font", "cyrillic", "layout", "grid", "container", "spacing", "vertical-rhythm", "article-measure"]
+    },
+    {
       "name": "cloudflare",
       "path": ".agents/skills/cloudflare/SKILL.md",
       "source": "cloudflare/skills",
@@ -340,8 +356,10 @@
     "plugin_development": ["wp-plugin-development", "wordpress-plugin-dev", "wp-phpstan"],
     "rest_api": ["wp-rest-api", "wordpress-plugin-dev"],
     "wordpress_operations": ["wp-wpcli-and-ops", "wordpress-plugin-dev"],
-    "frontend_design": ["wordpress-redesign-system", "agent-frontend-ui-engineering", "frontend-design", "wordpress-accessibility", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
-    "wordpress_redesign": ["wordpress-redesign-system", "newspaper-tagdiv", "wordpress-accessibility", "playwright", "frontend-design", "agent-frontend-ui-engineering", "web-perf", "wordpress-seo-editorial", "wordpress-ads-analytics"],
+    "frontend_design": ["wordpress-redesign-system", "wordpress-responsive-experience", "wordpress-typography-layout-system", "agent-frontend-ui-engineering", "frontend-design", "wordpress-accessibility", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
+    "responsive_frontend": ["wordpress-responsive-experience", "wordpress-typography-layout-system", "newspaper-tagdiv", "wordpress-accessibility", "playwright", "web-perf"],
+    "typography_layout": ["wordpress-typography-layout-system", "wordpress-responsive-experience", "newspaper-tagdiv", "wordpress-accessibility", "playwright", "web-perf"],
+    "wordpress_redesign": ["wordpress-redesign-system", "wordpress-responsive-experience", "wordpress-typography-layout-system", "newspaper-tagdiv", "wordpress-accessibility", "playwright", "frontend-design", "agent-frontend-ui-engineering", "web-perf", "wordpress-seo-editorial", "wordpress-ads-analytics"],
     "seo": ["wordpress-seo-editorial", "wordpress-content-integrity", "seo", "seo-technical", "seo-page", "seo-schema", "seo-images", "seo-sitemap"],
     "ads_analytics": ["wordpress-ads-analytics", "wordpress-runtime-stack", "wordpress-observability", "playwright", "web-perf"],
     "editorial_publish_gate": ["wordpress-editorial-publish-gate", "wordpress-article-editor", "wordpress-content-integrity", "wordpress-media-integrity", "wordpress-seo-editorial", "wordpress-accessibility", "wordpress-ads-analytics"],

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "project": "hs-manacost",
+  "typography": {
+    "cyrillic_required": true,
+    "fallback_required": true,
+    "roles": ["utility", "navigation", "body", "lead", "caption", "card-title", "section-title", "article-title", "display", "label", "button", "form-control", "code"],
+    "type_scale": [12, 14, 16, 18, 22, 28, 36, 48]
+  },
+  "fonts": {
+    "policy": "system-or-licensed-local",
+    "allowed_display": ["swap", "optional"],
+    "maximum_weights": 4,
+    "remote_external": false
+  },
+  "spacing": {
+    "base_unit": 4,
+    "scale": [4, 8, 12, 16, 24, 32, 48, 64]
+  },
+  "containers": {
+    "desktop_px": 1068,
+    "landscape_px": 980,
+    "tablet_px": 740,
+    "mobile_gutter_px": 20,
+    "article_measure_ch": {"minimum": 55, "maximum": 75}
+  },
+  "grid": {
+    "columns": 12,
+    "newspaper_breakpoints": [767, 1018, 1140]
+  },
+  "runtime": {
+    "manacost_font_trim_reviewed": true,
+    "anonymous_computed_style_required": true
+  },
+  "implementation": {
+    "ownership_layers": ["website-manager", "composer", "cloud-template", "mu-plugin", "child-theme"]
+  },
+  "quality": {
+    "maximum_cls": 0.1,
+    "required_widths": [320, 390, 768, 1024, 1440],
+    "zoom_percent": 200
+  },
+  "hosts": {
+    "canonical": "hs-manacost.ru",
+    "mirror": "hs-manacost.com",
+    "mirror_noindex": true,
+    "staging": "test.hs-manacost.ru",
+    "staging_noindex": true
+  }
+}
