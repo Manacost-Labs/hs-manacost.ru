@@ -34,6 +34,7 @@ Read [php-wordpress.md](references/php-wordpress.md) for implementation rules. R
 - Treat `composer.lock` as part of the security boundary and install with `composer install`.
 - Do not add blanket exclusions, broad `ignoreErrors`, disabled rules, or inline suppressions to make a gate green.
 - Keep the legacy PHPStan baseline frozen. Fix a touched finding when practical; never baseline a new finding.
+- Changed first-party PHP must also pass PHPStan level 7, complexity/nesting limits and the file-growth ratchet. New PHP files over 500 lines and growth of an existing file already over 1,000 lines require decomposition rather than a suppression.
 - Run compatibility for PHP 8.2 through 8.4. Verify version-sensitive WordPress APIs against the installed WordPress 6.9.7 source.
 
 ## Hard stops

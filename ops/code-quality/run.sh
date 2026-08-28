@@ -24,6 +24,8 @@ if ! git rev-parse --verify "$base_ref^{commit}" >/dev/null 2>&1; then
     exit 2
 fi
 
+ops/code-quality/check-baseline-ratchet.py --base "$base_ref"
+
 mapfile -t changed_php < <(
     {
         git diff --diff-filter=ACMR --name-only "$base_ref" -- wordpress/mu-plugins
@@ -35,6 +37,9 @@ if (( ${#changed_php[@]} > 0 )); then
     echo "WPCS and PHP compatibility: ${#changed_php[@]} changed first-party PHP file(s)"
     vendor/bin/phpcs --standard=phpcs.xml.dist "${changed_php[@]}"
     vendor/bin/phpcs --standard=phpcompat.xml.dist "${changed_php[@]}"
+    vendor/bin/phpcs --standard=phpcs-strict.xml.dist "${changed_php[@]}"
+    vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=7 --no-progress "${changed_php[@]}"
+    ops/code-quality/check-php-structure.py --base "$base_ref" "${changed_php[@]}"
 else
     echo "WPCS and PHP compatibility: no changed first-party PHP files"
 fi

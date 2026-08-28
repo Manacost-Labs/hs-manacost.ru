@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -36,6 +37,44 @@ class WordPressCodeQualitySystemTests(unittest.TestCase):
         self.assertIn("composer validate --strict", makefile)
         self.assertIn("composer install --no-interaction --prefer-dist", workflow)
         self.assertIn("make code-quality", workflow)
+
+        quality_runner = (ROOT / "ops/code-quality/run.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("phpcs-strict.xml.dist", quality_runner)
+        self.assertIn("--level=7", quality_runner)
+        self.assertIn("check-baseline-ratchet.py", quality_runner)
+        self.assertIn("check-php-structure.py", quality_runner)
+
+    def test_phpstan_baseline_can_shrink_but_cannot_grow(self) -> None:
+        ratchet = ROOT / "ops/code-quality/check-baseline-ratchet.py"
+        baseline = """parameters:\n\tignoreErrors:\n\t\t-\n\t\t\tmessage: '#^one$#'\n\t\t\tidentifier: one\n\t\t\tcount: 1\n\t\t\tpath: first.php\n"""
+        extra = """\n\t\t-\n\t\t\tmessage: '#^two$#'\n\t\t\tidentifier: two\n\t\t\tcount: 1\n\t\t\tpath: second.php\n"""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary = Path(temporary_directory)
+            reference = temporary / "reference.neon"
+            current = temporary / "current.neon"
+            _ = reference.write_text(baseline, encoding="utf-8")
+            _ = current.write_text(baseline, encoding="utf-8")
+            unchanged = subprocess.run(
+                [str(ratchet), "--reference", str(reference), "--current", str(current)],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, unchanged.returncode, unchanged.stderr)
+
+            _ = current.write_text(baseline + extra, encoding="utf-8")
+            grown = subprocess.run(
+                [str(ratchet), "--reference", str(reference), "--current", str(current)],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(1, grown.returncode, grown.stdout)
+            self.assertIn("new baseline", grown.stderr)
 
     def test_wp_cli_diagnostics_are_version_pinned_and_non_production(self) -> None:
         manifest = json.loads(

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ruleset name="HS Manacost changed-code structure">
+    <description>Complexity and nesting limits for changed first-party WordPress PHP.</description>
+
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+
+    <rule ref="Generic.Metrics.CyclomaticComplexity">
+        <properties>
+            <property name="complexity" value="15"/>
+            <property name="absoluteComplexity" value="25"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.Metrics.NestingLevel">
+        <properties>
+            <property name="nestingLevel" value="5"/>
+            <property name="absoluteNestingLevel" value="8"/>
+        </properties>
+    </rule>
+</ruleset>
