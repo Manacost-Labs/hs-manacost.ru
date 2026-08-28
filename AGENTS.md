@@ -33,12 +33,13 @@
 
 Использовать последовательно:
 
-1. `wordpress-clean-code` — применить проектные правила чистого WordPress-кода и запустить WPCS, PHPCompatibilityWP и PHPStan только для first-party surface.
-2. `agent-test-driven-development` — зафиксировать требуемое поведение тестом или воспроизводимой проверкой.
-3. `agent-code-review-and-quality` — проверить корректность, безопасность, поддержку, тесты и влияние на пользователей.
-4. `agent-code-simplification` — убрать лишнюю сложность без несвязанных рефакторингов и изменения поведения.
-5. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
-6. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
+1. `wordpress-change-impact` — до редактирования определить затронутые поверхности, контракты, домены, обязательные скиллы и проверки; неизвестный first-party путь требует ручной классификации.
+2. `wordpress-clean-code` — применить проектные правила чистого WordPress-кода и запустить WPCS, PHPCompatibilityWP и PHPStan только для first-party surface.
+3. `agent-test-driven-development` — зафиксировать требуемое поведение тестом или воспроизводимой проверкой.
+4. `agent-code-review-and-quality` — проверить корректность, безопасность, поддержку, тесты и влияние на пользователей.
+5. `agent-code-simplification` — убрать лишнюю сложность без несвязанных рефакторингов и изменения поведения.
+6. `agent-security-and-hardening` — проверить ввод, права, nonce, escaping, секреты и границы данных.
+7. `agent-git-workflow-and-versioning` — минимальный diff, атомарный commit и обязательный push.
 
 Постоянный baseline любого проектного задания хранится в `baseline_for_project_tasks`, а baseline изменений кода — в `baseline_for_code_changes`. Внешние AI entrypoints (`CLAUDE.md`, `.github/copilot-instructions.md`) обязаны вести к этому файлу и реестру, а не дублировать собственные расходящиеся правила.
 

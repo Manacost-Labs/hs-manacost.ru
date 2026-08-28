@@ -47,6 +47,7 @@ Always use this skill plus the task route:
 - Redesign, visual direction, design system, tokens, page templates, component states or broad responsive UI work: `wordpress-redesign-system` plus `newspaper-tagdiv` and `wordpress-accessibility`.
 - Newspaper parent theme, Composer, Cloud Templates, blocks/modules or theme CSS: `newspaper-tagdiv`.
 - Any first-party PHP, JavaScript, CSS, MU-plugin, refactor, review, WPCS, PHPCompatibilityWP or PHPStan task: `wordpress-clean-code`; pair it with `newspaper-tagdiv` for theme/tagDiv work.
+- Any proposed or current code/configuration diff: run `wordpress-change-impact` before editing and again on the final diff; unclassified first-party paths require an ownership rule and manual review.
 - Any wp-admin screen or internal workflow: `wordpress-admin-ui`.
 - Slow wp-admin screens, editor startup, list tables, media library, AJAX/REST actions, autosave, saving or large admin datasets: `wordpress-admin-performance` together with `wordpress-admin-ui`, `wp-performance` and `wordpress-observability`.
 - Cloudflare platform, Worker, WAF, cache, DNS or Turnstile work: use the pinned official `cloudflare`, `workers-best-practices`, `wrangler`, `web-perf`, or `turnstile-spin` skill selected by `config/ai-skills.json`. Never use an automation skill to bypass a challenge or weaken protection.

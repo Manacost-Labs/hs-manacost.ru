@@ -1,4 +1,4 @@
-.PHONY: check composer-validate code-quality php-lint test shell-check skill-audit contracts contract-check integration visual plugin-audit
+.PHONY: check composer-validate code-quality php-lint test shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
 
 check: composer-validate php-lint contract-check skill-audit test shell-check
 
@@ -31,11 +31,17 @@ contracts:
 contract-check:
 	@python3 ops/contracts/scan-wordpress-contracts.py --check
 
+change-impact:
+	@.agents/skills/wordpress-change-impact/scripts/analyze_change_impact.py --base "$${CHANGE_IMPACT_BASE:-origin/main}" --format markdown
+
 integration:
 	@ops/integration/run.sh
 
 visual:
 	@RUN_VISUAL=1 ops/integration/run.sh
+
+admin-performance:
+	@RUN_PERFORMANCE=1 ops/integration/run.sh
 
 plugin-audit:
 	@python3 ops/plugins/audit-updates.py --output-dir .artifacts/plugin-audit
