@@ -28,7 +28,7 @@ class MediaUploadAcceleratorTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
-    def test_newspaper_upload_keeps_render_critical_sizes_and_defers_the_rest(self) -> None:
+    def test_newspaper_upload_keeps_editor_preview_sizes_and_defers_the_rest(self) -> None:
         script = f"""
         define('ABSPATH', '/');
         {REQUEST_HELPERS}
@@ -52,7 +52,7 @@ class MediaUploadAcceleratorTest(unittest.TestCase):
         result = self.run_php(script)
         self.assertEqual(
             result,
-            ["thumbnail", "medium", "large", "td_485x360", "td_696x0", "td_1068x0"],
+            ["thumbnail", "medium"],
         )
 
     def test_non_upload_metadata_generation_keeps_every_registered_size(self) -> None:

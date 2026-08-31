@@ -959,7 +959,7 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 186
+        "line": 180
       },
       {
         "name": "_hs_tooltips_enabled",
@@ -1598,7 +1598,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 209
+        "line": 203
       },
       {
         "name": "manacost_arena_feed_api_url",
@@ -2306,7 +2306,7 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 247
+        "line": 241
       },
       {
         "name": "manacost_arena_feed_sync",
