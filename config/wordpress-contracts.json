@@ -903,28 +903,28 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 239
+        "line": 351
       },
       {
         "name": "_hs_local_image_optimizer_pipeline",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 240
+        "line": 352
       },
       {
         "name": "_hs_local_image_optimizer_queued_at",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 91
+        "line": 143
       },
       {
         "name": "_hs_local_image_optimizer_result",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 241
+        "line": 353
       },
       {
         "name": "_hs_manacost_inline_deck_code",
@@ -953,6 +953,13 @@
         "api": "update_post_meta",
         "file": "wordpress/plugins/hs-manacost-inline-deck/includes/class-hs-manacost-inline-deck.php",
         "line": 487
+      },
+      {
+        "name": "_hs_media_upload_accelerator_error",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
+        "line": 180
       },
       {
         "name": "_hs_tooltips_enabled",
@@ -1521,49 +1528,49 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 182
+        "line": 256
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "add_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 202
+        "line": 291
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 206
+        "line": 295
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 211
+        "line": 300
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "add_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 212
+        "line": 301
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 216
+        "line": 310
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 218
+        "line": 312
       },
       {
         "name": "hs_tooltip_logs",
@@ -1591,7 +1598,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 57
+        "line": 203
       },
       {
         "name": "manacost_arena_feed_api_url",
@@ -2285,14 +2292,21 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 100
+        "line": 155
       },
       {
         "name": "hs_local_image_optimizer_process_attachment",
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 234
+        "line": 341
+      },
+      {
+        "name": "hs_media_upload_accelerator_generate_subsizes",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
+        "line": 241
       },
       {
         "name": "manacost_arena_feed_sync",
