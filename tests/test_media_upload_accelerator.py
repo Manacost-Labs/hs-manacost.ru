@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -8,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/hs-media-upload-accelerator.php"
+PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 REQUEST_HELPERS = """
 function wp_unslash($value) { return $value; }
 function sanitize_text_field($value) { return (string) $value; }
@@ -18,7 +20,7 @@ function sanitize_key($value) { return preg_replace('/[^a-z0-9_\\-]/', '', strto
 class MediaUploadAcceleratorTest(unittest.TestCase):
     def run_php(self, script: str) -> dict | list[str] | bool:
         completed = subprocess.run(
-            ["/opt/php84/bin/php", "-r", script],
+            [PHP_BINARY, "-r", script],
             check=False,
             capture_output=True,
             text=True,
