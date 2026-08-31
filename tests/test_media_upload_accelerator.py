@@ -132,6 +132,47 @@ class MediaUploadAcceleratorTest(unittest.TestCase):
             {"optimizer_decision_during_subsizes": False, "optimized": [42]},
         )
 
+    def test_deferred_worker_retries_when_image_editor_throws(self) -> None:
+        script = f"""
+        define('ABSPATH', '/');
+        {REQUEST_HELPERS}
+        $scheduled = [];
+        function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+        function add_action($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+        function wp_doing_ajax() {{ return false; }}
+        function wp_attachment_is_image($id) {{ return true; }}
+        function wp_update_image_subsizes($id) {{ throw new RuntimeException('image editor unavailable'); }}
+        function as_schedule_single_action($timestamp, $hook, $args, $group, $unique) {{
+            $GLOBALS['scheduled'][] = [$hook, $args, $group, $unique];
+            return 1;
+        }}
+        require {json.dumps(str(PLUGIN))};
+        HS_Media_Upload_Accelerator::generate_deferred_subsizes(42);
+        echo json_encode([
+            'scheduled' => $GLOBALS['scheduled'],
+            'optimizer_is_reenabled' => HS_Media_Upload_Accelerator::filter_local_optimizer_queue(
+                true,
+                [],
+                42,
+                'update'
+            ),
+        ]);
+        """
+        self.assertEqual(
+            self.run_php(script),
+            {
+                "scheduled": [
+                    [
+                        "hs_media_upload_accelerator_generate_subsizes",
+                        [42, 1],
+                        "hs-media-upload-accelerator",
+                        False,
+                    ]
+                ],
+                "optimizer_is_reenabled": True,
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
