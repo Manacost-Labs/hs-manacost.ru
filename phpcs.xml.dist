@@ -15,5 +15,10 @@
 
     <rule ref="WordPress"/>
 
+    <!-- MU-plugins are loaded by their stable deployment filenames, not as class files. -->
+    <rule ref="WordPress.Files.FileName.InvalidClassFileName">
+        <exclude-pattern>wordpress/mu-plugins/*.php</exclude-pattern>
+    </rule>
+
     <config name="minimum_supported_wp_version" value="6.9"/>
 </ruleset>

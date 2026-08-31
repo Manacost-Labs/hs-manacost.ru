@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA_ROUTES = ROOT / "ops/nginx/resources/20-origin-guard.conf"
+PROXY_UPLOAD = ROOT / "ops/nginx/proxy-upload-streaming.conf"
 
 
 class NginxMediaRouteTests(unittest.TestCase):
@@ -24,6 +25,14 @@ class NginxMediaRouteTests(unittest.TestCase):
                 endpoint,
             )
             self.assertNotIn("/var/www/php-fpm/6.sock", route, endpoint)
+
+    def test_regional_proxies_stream_upload_bodies_to_the_origin(self) -> None:
+        proxy_upload = PROXY_UPLOAD.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            1,
+            proxy_upload.count("proxy_request_buffering off;"),
+        )
 
 if __name__ == "__main__":
     unittest.main()
