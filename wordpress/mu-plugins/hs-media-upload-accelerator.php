@@ -169,19 +169,17 @@ final class HS_Media_Upload_Accelerator {
 
 		self::$deferred_attachments[ $attachment_id ] = true;
 
-		$result = wp_update_image_subsizes( $attachment_id );
-		unset( self::$deferred_attachments[ $attachment_id ] );
-		if ( is_wp_error( $result ) && $attempt + 1 < self::MAX_ATTEMPTS ) {
-			self::enqueue( $attachment_id, $attempt + 1, 60 );
+		try {
+			$result = wp_update_image_subsizes( $attachment_id );
+		} catch ( Throwable $error ) {
+			self::retry_or_record_error( $attachment_id, $attempt, $error->getMessage() );
 			return;
+		} finally {
+			unset( self::$deferred_attachments[ $attachment_id ] );
 		}
 
 		if ( is_wp_error( $result ) ) {
-			update_post_meta(
-				$attachment_id,
-				'_hs_media_upload_accelerator_error',
-				substr( $result->get_error_message(), 0, 500 )
-			);
+			self::retry_or_record_error( $attachment_id, $attempt, $result->get_error_message() );
 			return;
 		}
 
@@ -250,6 +248,26 @@ final class HS_Media_Upload_Accelerator {
 		if ( class_exists( 'HS_Local_Image_Optimizer_WordPress' ) ) {
 			HS_Local_Image_Optimizer_WordPress::queue_attachment( $attachment_id );
 		}
+	}
+
+	/**
+	 * Retry a transient image-editor failure or preserve its final error.
+	 *
+	 * @param int    $attachment_id Attachment post ID.
+	 * @param int    $attempt Retry number.
+	 * @param string $message Failure message.
+	 */
+	private static function retry_or_record_error( int $attachment_id, int $attempt, string $message ): void {
+		if ( $attempt + 1 < self::MAX_ATTEMPTS ) {
+			self::enqueue( $attachment_id, $attempt + 1, 60 );
+			return;
+		}
+
+		update_post_meta(
+			$attachment_id,
+			'_hs_media_upload_accelerator_error',
+			substr( $message, 0, 500 )
+		);
 	}
 
 	/**
