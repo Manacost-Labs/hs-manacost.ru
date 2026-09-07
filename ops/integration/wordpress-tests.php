@@ -45,6 +45,45 @@ hs_integration_assert(!is_wp_error($postId), 'article publication failed');
 $postId = (int) $postId;
 update_option('hs_integration_post_id', $postId, false);
 
+// Historical comments stay stored even when public submissions and rendering close.
+wp_update_post(['ID' => $postId, 'comment_status' => 'open', 'ping_status' => 'open']);
+$historicalCommentId = wp_insert_comment([
+    'comment_post_ID' => $postId,
+    'comment_author' => 'Integration historical commenter',
+    'comment_author_email' => 'historical@example.invalid',
+    'comment_content' => 'Preserved historical integration comment',
+    'comment_approved' => 1,
+]);
+hs_integration_assert((bool) $historicalCommentId, 'historical comment fixture was not stored');
+$historicalCommentBefore = get_comment($historicalCommentId)->to_array();
+$commentCountBefore = (int) get_comments(['post_id' => $postId, 'count' => true, 'status' => 'all']);
+hs_integration_assert(!comments_open($postId), 'public comments were not closed');
+hs_integration_assert(!pings_open($postId), 'public pings were not closed');
+
+$previousUserId = get_current_user_id();
+wp_set_current_user(0);
+$commentSubmission = wp_handle_comment_submission([
+    'comment_post_ID' => $postId,
+    'author' => 'Integration rejected commenter',
+    'email' => 'rejected@example.invalid',
+    'comment' => 'This public submission must not create a row',
+]);
+wp_set_current_user($previousUserId);
+hs_integration_assert(
+    is_wp_error($commentSubmission) && $commentSubmission->get_error_code() === 'comment_closed',
+    'core public comment submission was not rejected as closed'
+);
+hs_integration_assert(
+    (int) get_comments(['post_id' => $postId, 'count' => true, 'status' => 'all']) === $commentCountBefore,
+    'closed comment submission changed the stored comment count'
+);
+hs_integration_assert(
+    get_comment($historicalCommentId)->to_array() === $historicalCommentBefore,
+    'comment policy modified the historical stored comment'
+);
+hs_integration_assert((int) get_comments_number($postId) === $commentCountBefore, 'raw comment count was hidden');
+wp_delete_comment($historicalCommentId, true); // Remove only this disposable test fixture before visual checks.
+
 wp_update_post([
     'ID' => $postId,
     'post_content' => '[spoiler]Revised integration text[/spoiler]',
