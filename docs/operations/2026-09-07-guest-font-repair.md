@@ -28,6 +28,13 @@ runtime path and URL; never the `.com` mirror as a separate database.
   `wp option patch update td_011 td_ads content_bottom ad_code ''`.
   Preflight confirmed a Boosty link and `2026/05/banner-scaled.png` in this slot.
   Do not change header, sidebar, inline ads, Ad Inserter, post bodies or media.
+- The user's final direction is **no public comments**, not a native-comments
+  replacement. Set supported Newspaper options in the same `td_011` row:
+  `tds_disable_comments_sidewide = 'disable'`, `tds_disable_comments_pages = ''`,
+  `tds_p_show_comments = 'hide'`, and `tds_m_show_comments = 'hide'`.
+  The MU comments policy closes comment/ping submission and suppresses public
+  comment arrays and number labels while preserving administrative access.
+  Do not change stored comments, post comment counts, or existing post bodies.
 
 Before each operation, back up the two affected option rows (`td_011` and
 `active_plugins`) outside Git in protected storage and restore-test that
@@ -44,8 +51,10 @@ the site is multisite, any other settings change, or comment rows are lost.
 ## Rollback and verification
 
 Roll back code through the release workflow using the prior verified SHA.
-For settings, restore only the saved bottom-slot `ad_code` using the WordPress
-option API. If Cackle was previously active, first verify its retained
+For settings, restore only the saved bottom-slot `ad_code` and four comment
+display keys using the WordPress option API; remove a newly added key only if
+it was absent in the backup. Leave unrelated theme options alone. If Cackle
+was previously active, first verify its retained
 `CACKLE_VERSION` and stored `cackle_plugin_version` both equal `4.28` (the
 package header is separately `4.33`). Then use native
 `activate_plugin( 'cackle/cackle.php', '', false, true )` and check for WP_Error.
@@ -60,5 +69,7 @@ Invalidate affected HTML caches through the existing cache owner. Verify a
 fresh and warm homepage and representative article on `.ru`, `.com`, origin,
 Moscow and Novosibirsk. Confirm real Cyrillic font rendering, no font-trim
 override, no article-bottom Boosty creative, no Cackle widget/counter scripts,
-existing native comments and unchanged other ad slots. Preserve canonical and
+no public comments, forms or counters and unchanged other ad slots. Confirm
+stored comment counts remain unchanged and administrative comment access is
+retained. Preserve canonical and
 noindex policy. Passive browser verification must block analytics/view writes.

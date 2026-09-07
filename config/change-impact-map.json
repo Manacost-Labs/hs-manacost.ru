@@ -20,6 +20,16 @@
   },
   "rules": [
     {
+      "patterns": ["wordpress/mu-plugins/hs-comments-policy.php"],
+      "owner": "public-comments-policy",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["comments", "frontend", "wordpress-runtime"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "test.hs-manacost.ru", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-privacy-consent", "newspaper-tagdiv", "wordpress-runtime-stack", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-admin-*.php", "wordpress/mu-plugins/hs-editor-workspace/**", "wordpress/mu-plugins/hs-editor-workspace.php"],
       "owner": "wp-admin-editor",
       "classified": true,
