@@ -7,7 +7,6 @@
     {"slug": "ad-inserter", "status": "active", "version": "2.8.15", "origin": "wordpress.org"},
     {"slug": "ads-txt", "status": "active", "version": "1.4.6", "origin": "wordpress.org"},
     {"slug": "all-in-one-seo-pack", "status": "active", "version": "4.9.8", "origin": "wordpress.org"},
-    {"slug": "cackle", "status": "active", "version": "4.33", "origin": "wordpress.org"},
     {"slug": "classic-editor", "status": "active", "version": "1.6.7", "origin": "wordpress.org"},
     {"slug": "cloudflare", "status": "active", "version": "4.14.3", "origin": "wordpress.org"},
     {"slug": "cyr2lat", "status": "active", "version": "7.0.2", "origin": "wordpress.org"},
