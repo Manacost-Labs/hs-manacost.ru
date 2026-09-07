@@ -28,6 +28,7 @@ class PluginInventoryTests(unittest.TestCase):
             )
 
         inactive_production_plugins = {
+            "cackle",
             "hs-deck",
             "hs-deck-manager",
             "imagify",

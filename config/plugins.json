@@ -15,7 +15,6 @@
     { "slug": "ads-txt", "version": "1.4.6", "source": "wordpress.org" },
     { "slug": "advanced-editor-tools", "version": "5.9.2", "source": "wordpress.org", "installed_slug": "tinymce-advanced" },
     { "slug": "all-in-one-seo-pack", "version": "4.9.8", "source": "wordpress.org" },
-    { "slug": "cackle", "version": "4.33", "source": "vendor" },
     { "slug": "classic-editor", "version": "1.6.7", "source": "wordpress.org" },
     { "slug": "cloudflare", "version": "4.14.3", "source": "wordpress.org" },
     { "slug": "cyr2lat", "version": "7.0.2", "source": "wordpress.org" },
@@ -37,4 +36,3 @@
     "Перед обновлением версии сначала проверяются на test.hs-manacost.ru."
   ]
 }
-
