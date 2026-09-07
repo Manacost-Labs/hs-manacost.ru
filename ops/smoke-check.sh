@@ -46,6 +46,9 @@ request() {
   fi
 
   echo "OK: $domain via $ip$path -> $status"
+  if [[ "$path" != '/_proxy_health' ]]; then
+    assert_host_policy "$domain" "$path"
+  fi
 }
 
 header_value() {
@@ -57,6 +60,29 @@ header_value() {
     }
     END { print value }
   ' "$temporary_directory/headers"
+}
+
+assert_host_policy() {
+  local domain="$1" path="$2" robots marker
+  robots="$(header_value 'X-Robots-Tag')"
+  marker="$(header_value 'X-Manacost-Mirror')"
+  if [[ "$domain" == 'hs-manacost.com' ]]; then
+    if [[ "$marker" != 'active' || ! ${robots,,} =~ (^|[[:space:],])noindex($|[[:space:],]) ]]; then
+      echo "FAIL: $domain$path is missing the mirror marker or noindex header" >&2
+      return 1
+    fi
+  elif [[ "$domain" == 'hs-manacost.ru' ]]; then
+    if [[ -n "$marker" ]]; then
+      echo "FAIL: primary $domain$path received the mirror marker" >&2
+      return 1
+    fi
+    # A page-level 404 noindex is valid; public HTML/assets/redirects must not
+    # inherit a site-wide mirror robots policy.
+    if [[ "$path" != '/__manacost_header_check_missing__/' && ${robots,,} =~ (^|[[:space:],])noindex($|[[:space:],]) ]]; then
+      echo "FAIL: primary $domain$path received noindex" >&2
+      return 1
+    fi
+  fi
 }
 
 check_edge() {
@@ -100,13 +126,16 @@ check_production_domain() {
     fi
   done
 
-  if [[ "$domain" == 'hs-manacost.com' ]]; then
-    request "$domain" "${edge_ips[0]}" '/' '200'
-    if [[ "$(header_value 'X-Manacost-Mirror')" != 'active' ]]; then
-      echo 'FAIL: hs-manacost.com is not marked as the active mirror' >&2
-      return 1
-    fi
-  fi
+  local ip insecure _attempt
+  for ip in "$origin_ip" "${edge_ips[@]}"; do
+    insecure=false
+    [[ "$ip" == "$origin_ip" ]] && insecure=true
+    for _attempt in 1 2; do
+      request "$domain" "$ip" '/' '200' "$insecure"
+      request "$domain" "$ip" '/__manacost_header_check_missing__/' '404' "$insecure"
+      request "$domain" "$ip" '/wp-content' '301' "$insecure"
+    done
+  done
 }
 
 if [[ "$mode" == staging || "$mode" == all ]]; then
