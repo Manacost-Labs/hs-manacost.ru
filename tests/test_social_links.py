@@ -100,11 +100,13 @@ class SocialLinksTest(unittest.TestCase):
         self.assertEqual("https://boosty.to/kolodahearthstone", first["boosty"])
         self.assertEqual("https://www.patreon.com/cw/manacostru", first["patreon"])
 
-    def test_outputs_the_scoped_boosty_icon_style(self) -> None:
+    def test_outputs_the_official_boosty_icon_style(self) -> None:
         styles = self.run_plugin({})["styles"]
 
         self.assertIn('a[href*="boosty.to"] .td-icon-boosty', styles)
-        self.assertIn('background-color: #f15f2c', styles)
+        self.assertIn('data:image/svg+xml', styles)
+        self.assertIn('M87.5,163.9L120.2,51h50.1', styles)
+        self.assertNotIn('content: "B"', styles)
 
     def test_keeps_non_array_theme_options_unchanged(self) -> None:
         script = f"""
