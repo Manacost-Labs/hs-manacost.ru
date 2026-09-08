@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 get_header();
 ?>
-<main class="td-main-content-wrap mc-reader-page">
+<main class="td-main-content-wrap td-container-wrap mc-reader-page">
 	<div class="td-container">
 		<div class="td-page-content">
 			<?php

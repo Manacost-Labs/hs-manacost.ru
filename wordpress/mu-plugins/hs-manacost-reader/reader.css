@@ -58,8 +58,7 @@
 
 .mc-reader .mc-reader__panel {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-	gap: 24px;
+	gap: 16px;
 }
 
 .mc-reader .mc-reader__profile,
@@ -71,11 +70,27 @@
 	padding: 32px;
 }
 
+.mc-reader .mc-reader__saved {
+	align-items: center;
+	column-gap: 24px;
+	display: grid;
+	grid-template-columns: minmax(15rem, 0.85fr) minmax(0, 1fr);
+	padding-block: 24px;
+}
+
 .mc-reader .mc-reader__section-heading {
 	display: flex;
 	align-items: center;
 	gap: 12px;
 	margin-bottom: 24px;
+}
+
+.mc-reader .mc-reader__saved .mc-reader__section-heading {
+	margin-bottom: 0;
+}
+
+.mc-reader .mc-reader__saved-copy {
+	min-width: 0;
 }
 
 .mc-reader .mc-reader__mark {
@@ -225,8 +240,9 @@
 	.mc-reader {
 		padding: 32px 0 16px;
 	}
-	.mc-reader .mc-reader__panel {
+	.mc-reader .mc-reader__saved {
 		grid-template-columns: minmax(0, 1fr);
+		row-gap: 16px;
 	}
 	.mc-reader .mc-reader__header {
 		margin-bottom: 24px;

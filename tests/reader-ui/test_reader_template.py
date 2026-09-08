@@ -107,3 +107,4 @@ require $argv[1];
         self.assertIn('<footer>Site links</footer>', result.stdout)
         self.assertEqual(result.stdout.count('Filtered page content'), 1)
         self.assertEqual(result.stdout.count('<main'), 1)
+        self.assertIn('class="td-main-content-wrap td-container-wrap mc-reader-page"', result.stdout)

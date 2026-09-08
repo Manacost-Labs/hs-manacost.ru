@@ -15,6 +15,7 @@ const assets = new Map([
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
   ['/reader.js', ['text/javascript', readFileSync(`${plugin}reader.js`)]],
   ['/theme.css', ['text/css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)]],
+  ['/theme-boxed.css', ['text/css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]],
 ]);
 const server = createServer((request, response) => {
   const asset = assets.get(request.url);
@@ -22,7 +23,7 @@ const server = createServer((request, response) => {
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   // The account shell owns the only page title, just as the dedicated template does.
-  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><main class="td-main-content-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><script src="/reader.js"></script></html>`);
+  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/reader.js"></script></body></html>`);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -60,7 +61,7 @@ try {
     viewport: innerWidth,
     sections: [...document.querySelectorAll('[aria-labelledby]')].map(element => {
       const rect = element.getBoundingClientRect();
-      return { bottom: rect.bottom, left: rect.left, right: rect.right, top: rect.top, width: rect.width };
+      return { bottom: rect.bottom, height: rect.height, left: rect.left, right: rect.right, top: rect.top, width: rect.width };
     }),
   }));
   const assertFits = async () => {
@@ -70,11 +71,33 @@ try {
     assert.ok(result.sections.every(section => section.left >= 0 && section.right <= result.viewport && section.width > 0), 'each account section must fit the viewport');
     return result;
   };
+  const assertThemeOuterAlignment = async width => {
+    const outerAlignment = await page.evaluate(() => {
+      const rect = selector => {
+        const { left, right, width } = document.querySelector(selector).getBoundingClientRect();
+        return { left, right, width };
+      };
+      return {
+        footer: rect('[data-theme-footer-outer]'),
+        header: rect('[data-theme-header-outer]'),
+        main: rect('.mc-reader-page'),
+        inner: rect('.mc-reader-page > .td-container'),
+        mainBackground: getComputedStyle(document.querySelector('.mc-reader-page')).backgroundColor,
+      };
+    });
+    assert.deepEqual(outerAlignment.main, outerAlignment.header, `reader main must share the boxed outer header alignment at ${width}px`);
+    assert.deepEqual(outerAlignment.main, outerAlignment.footer, `reader main must share the boxed outer footer alignment at ${width}px`);
+    if (width >= 1180) {
+      assert.ok(outerAlignment.main.width > outerAlignment.inner.width, 'theme outer wrapper must remain distinct from the inner content container');
+    }
+    assert.notEqual(outerAlignment.mainBackground, 'rgba(0, 0, 0, 0)', 'dark account background must stay on the aligned main wrapper');
+  };
 
   for (const width of [320, 390, 560, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await assertFits();
+    await assertThemeOuterAlignment(width);
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
   }
   await capture('guest');
@@ -134,7 +157,8 @@ try {
   await page.setViewportSize({ width: 1024, height: 900 });
   await ready();
   let sections = await assertFits();
-  assert.ok(Math.abs(sections.sections[0].top - sections.sections[1].top) < 2, 'desktop account sections should form one coherent row');
+  assert.ok(sections.sections[1].top >= sections.sections[0].bottom, 'saved articles must remain a secondary strip below the primary profile panel');
+  assert.ok(sections.sections[1].height < sections.sections[0].height, 'the saved-articles strip must stay more compact than the profile panel');
   await page.setViewportSize({ width: 560, height: 900 });
   await ready();
   sections = await assertFits();
@@ -184,7 +208,7 @@ try {
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   assert.equal(await page.locator('[data-reader-identity]').textContent(), '');
   assert.equal(await page.locator('[data-reader-actions]').textContent(), '');
-  console.log('Reader browser regression: responsive account states, semantic headings, keyboard targets, safe DTO, logout retry, deadlines, private-state clearing: PASS');
+  console.log('Reader browser regression: boxed theme alignment, responsive account states, semantic headings, keyboard targets, safe DTO, logout retry, deadlines, private-state clearing: PASS');
 } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));

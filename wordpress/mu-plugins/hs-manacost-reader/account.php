@@ -46,8 +46,8 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<div class="mc-reader__section-heading"><span class="mc-reader__mark mc-reader__mark--gold" aria-hidden="true">'
 		. '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3h12v18l-6-4-6 4V3Z"/></svg></span>'
 		. '<h2 id="mc-reader-saved-title">Сохранённые статьи</h2></div>'
-		. '<p class="mc-reader__availability">' . esc_html__( 'В разработке', 'hs-manacost-reader' ) . '</p>'
-		. '<p class="mc-reader__empty">Сохранение статей появится здесь в следующем обновлении.</p>'
+		. '<div class="mc-reader__saved-copy"><p class="mc-reader__availability">' . esc_html__( 'В разработке', 'hs-manacost-reader' ) . '</p>'
+		. '<p class="mc-reader__empty">Сохранение статей появится здесь в следующем обновлении.</p></div>'
 		. '</section></div><footer class="mc-reader__footer"><a class="mc-reader__back" href="/">'
 		. '<span aria-hidden="true">←</span> ' . esc_html__( 'Вернуться к материалам', 'hs-manacost-reader' ) . '</a></footer></section>';
 }

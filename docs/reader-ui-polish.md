@@ -18,10 +18,16 @@ database assignment, vendor theme edits, or CSS hiding of editorial blocks.
 The unique `reader-account-page.php` basename is intentional: active Composer
 remaps generic filenames such as `page.php` to its legacy theme at priority 99.
 
-One H1, two H2 sections, a desktop two-column workspace and stacked mobile
-layout. Keep native links/buttons, visible focus, 44px targets, live status,
-safe long-name wrapping and reduced-motion support. Saved articles are clearly
-labelled as in development; no pretend data or enabled save actions.
+One H1 and two H2 sections keep the profile as a full-width primary panel;
+saved articles follows as a compact secondary strip, then stacks internally on
+narrow screens. The dark main wrapper intentionally carries both
+`td-main-content-wrap` and `td-container-wrap`: the runtime boxed theme aligns
+that outer band with header/footer, while its normal `td-container` keeps the
+inner 1068px content measure. Do not hardcode the outer width or move the dark
+background to the inner container. Keep native links/buttons, visible focus,
+44px targets, live status, safe long-name wrapping and reduced-motion support.
+Saved articles are clearly labelled as in development; no pretend data or
+enabled save actions.
 
 ## Boundaries
 
@@ -39,7 +45,9 @@ Behavioral PHP tests cover opt-in/provisioned template selection, other-page
 passthrough and preservation of the content/header/footer pipeline. Browser
 tests are complemented by executing the installed Composer template callback
 after our filter to prevent a silent return to the editorial template. Browser
-tests use the real shell, theme stylesheet and auth JS with synthetic API
+tests load the installed boxed theme CSS and assert header/main/footer outer
+alignment at 1440px, while retaining the separate inner content container.
+They use the real shell, theme stylesheet and auth JS with synthetic API
 responses: guest/authenticated/error states, 320/390/560/768/1024/1440 widths,
 long Cyrillic/Latin names, enlarged text, focus, logout retry, request deadlines
 and clearing private state. Authenticated fixtures are not real-account E2E.
