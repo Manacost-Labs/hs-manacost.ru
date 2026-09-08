@@ -20,6 +20,16 @@
   },
   "rules": [
     {
+      "patterns": ["services/reader/**", "tests/test_reader*.py", "tests/reader-ui/**", "wordpress/mu-plugins/hs-manacost-reader.php", "wordpress/mu-plugins/hs-manacost-reader/**"],
+      "owner": "reader-identity",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["reader-auth", "reader-account"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["agent-security-and-hardening", "agent-api-and-interface-design"],
+      "checks": ["make reader-test", "make check"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-comments-policy.php"],
       "owner": "public-comments-policy",
       "classified": true,

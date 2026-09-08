@@ -2016,6 +2016,13 @@
         "line": 90
       },
       {
+        "name": "hs_manacost_reader_account",
+        "resolved": true,
+        "api": "add_shortcode",
+        "file": "wordpress/mu-plugins/hs-manacost-reader.php",
+        "line": 18
+      },
+      {
         "name": "manacost_arena_decks",
         "resolved": true,
         "api": "add_shortcode",

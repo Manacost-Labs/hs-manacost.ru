@@ -82,6 +82,11 @@ jobs:
           ref: ${{ needs.verify-staging.outputs.commit_sha }}
           clean: true
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Install reader test dependencies
+        run: npm ci --prefix services/reader --ignore-scripts
       - name: Run quality gate again
         run: make check
 

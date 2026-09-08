@@ -32,6 +32,11 @@ jobs:
           mkdir -p .artifacts/change-impact
           make change-impact | tee .artifacts/change-impact/report.md
           cat .artifacts/change-impact/report.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Install reader test dependencies
+        run: npm ci --prefix services/reader --ignore-scripts
       - name: Check repository
         run: make check
 
@@ -50,6 +55,10 @@ jobs:
           cache: npm
       - name: Install browser test package
         run: npm ci
+      - name: Install reader regression browser
+        run: npx playwright install --with-deps chromium
+      - name: Check reader shell with Newspaper and synthetic identity
+        run: make reader-browser-test
       - name: Run isolated WordPress behaviour and visual regression tests
         env:
           RUN_VISUAL: '1'

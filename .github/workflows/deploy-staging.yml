@@ -33,6 +33,11 @@ jobs:
           EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Install reader test dependencies
+        run: npm ci --prefix services/reader --ignore-scripts
       - name: Run quality gate
         run: make check
 
