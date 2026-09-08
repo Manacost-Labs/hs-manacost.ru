@@ -33,6 +33,9 @@ class ReaderProxyTlsTests(unittest.TestCase):
         self.assertIn("proxy_set_header Connection close;", proxy)
         self.assertIn("proxy_ssl_session_reuse off;", proxy)
         self.assertIn("proxy_ssl_verify on;", proxy)
+        # The staging chain has two untrusted intermediates. Nginx's default
+        # depth of one rejects it even though an ordinary browser verifies it.
+        self.assertIn("proxy_ssl_verify_depth 4;", proxy)
         self.assertNotIn("proxy_ssl_verify off;", proxy)
         self.assertIn("proxy_ssl_name test.hs-manacost.ru;", proxy)
         self.assertIn("proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;", proxy)

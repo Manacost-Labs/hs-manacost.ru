@@ -122,7 +122,18 @@ routes require it. A reused connection is not a fresh verified TLS handshake.
 Use the separate `hs_manacost_reader_origin` upstream without keepalive, with
 `Connection close` and `proxy_ssl_session_reuse off`. Keep the staging SNI,
 certificate verification/system CA bundle, BasicAuth forwarding and no-cache
-boundary. This is defense in depth, not a proven explanation of a transient 502.
+boundary. Isolation alone does not fix the separately reproduced chain error.
+
+Explicitly set `proxy_ssl_verify_depth 4`. The current staging certificate
+chain has two untrusted intermediates (YE2 and Root YE) before the trusted ISRG
+anchor; Nginx's default depth of one rejects this otherwise valid chain. A
+separate loopback-only Nginx probe with no credentials reproduced five 502s
+and `unable to get local issuer certificate`; adding depth four, with all
+other settings unchanged, produced five expected 401s. Independent explicit
+CA-only OpenSSL checks on both edges also reject depth one and accept four.
+Four is a bounded allowance for chain length, not disabled verification or
+trust of a leaf certificate. Keep SNI/hostname and root-CA checks enabled.
+This proves the reproduced reader-edge failure, not every historical 502.
 
 On each RU edge, install `ops/reader/proxy-staging-upstream.conf` as
 `/etc/nginx/conf.d/manacost-reader-staging-upstream.conf` (HTTP context), and
