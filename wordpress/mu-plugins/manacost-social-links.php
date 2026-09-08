@@ -115,24 +115,14 @@ final class Manacost_Social_Links {
 		?>
 		<style id="manacost-boosty-social-icon">
 			.td-social-icon-wrap a[href*="boosty.to"] .td-icon-boosty::before {
-				align-items: center;
-				background-color: #f15f2c;
-				border-radius: 50%;
-				color: #fff;
-				content: "B";
-				display: inline-flex;
-				font-family: Arial, sans-serif;
-				font-size: 12px;
-				font-style: normal;
-				font-weight: 700;
+				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='80 45 165 205'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='188.3014' y1='75.5591' x2='123.8106' y2='295.4895' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23EF7829'/%3E%3Cstop offset='1' stop-color='%23F15A2C'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M87.5,163.9L120.2,51h50.1l-10.1,35c-.1.2-.2.4-.3.6L133.3,179h24.8c-10.4,25.9-18.5,46.2-24.3,60.9-45.8-.5-58.6-33.3-47.4-72.1M133.9,240l60.4-86.9h-25.6l22.3-55.7c38.2,4,56.2,34.1,45.6,70.5-11.3,39.1-57.2,72.1-101.8,72.1h-.9z'/%3E%3C/svg%3E");
+				background-position: center;
+				background-repeat: no-repeat;
+				background-size: contain;
+				content: "";
+				display: inline-block;
 				height: 24px;
-				justify-content: center;
-				line-height: 1;
 				width: 24px;
-			}
-
-			.td-social-icon-wrap:hover a[href*="boosty.to"] .td-icon-boosty::before {
-				background-color: #d94e22;
 			}
 		</style>
 		<?php
