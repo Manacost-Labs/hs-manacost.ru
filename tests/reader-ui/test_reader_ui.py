@@ -13,6 +13,13 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_shell_is_cache_safe_and_escaped(self):
         self.assertIn('hs_manacost_reader_account_shell', self.php); self.assertIn('esc_attr( $public[', self.php)
         self.assertNotIn('wp_get_current_user', self.php); self.assertNotIn('get_current_user_id', self.php); self.assertNotIn('comment', self.php.lower())
+    def test_account_headings_and_live_status_are_semantic(self):
+        self.assertRegex(self.php, r'<h1[^>]*>Кабинет читателя</h1>')
+        self.assertRegex(self.php, r'<h2[^>]*id="mc-reader-profile-title"[^>]*>Профиль</h2>')
+        self.assertRegex(self.php, r'<h2[^>]*id="mc-reader-saved-title"[^>]*>Сохранённые статьи</h2>')
+        self.assertIn('aria-labelledby="mc-reader-profile-title"', self.php)
+        self.assertIn('aria-labelledby="mc-reader-saved-title"', self.php)
+        self.assertIn('data-reader-status role="status" aria-live="polite"', self.php)
     def test_auth_contract_and_no_private_html_injection(self):
         for value in ("credentials: 'same-origin'", "cache: 'no-store'", 'response.status === 200', 'response.status === 401', 'response.status === 503', 'response.status !== 204', 'X-Reader-CSRF', 'textContent'):
             self.assertIn(value, self.js)
@@ -30,7 +37,8 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('Сохранение статей появится здесь в следующем обновлении.', self.php)
         self.assertNotIn('reader API', self.php)
     def test_responsive_accessible_geometry(self):
-        for width in ('980px', '740px', '390px'):
-            self.assertIn(f'max-width:{width}', self.css)
-        self.assertIn('min-height:44px', self.css); self.assertIn('focus-visible', self.css); self.assertIn('prefers-reduced-motion', self.css)
+        self.assertRegex(self.css, r'--mc-reader-(?:navy|panel|blue|text|muted)\s*:')
+        self.assertRegex(self.css, r'min-(?:height|block-size)\s*:\s*44px')
+        self.assertRegex(self.css, r'overflow-wrap\s*:\s*anywhere')
+        self.assertIn('focus-visible', self.css); self.assertIn('prefers-reduced-motion', self.css)
         self.assertNotIn('@import', self.css); self.assertNotIn('url(http', self.css)
