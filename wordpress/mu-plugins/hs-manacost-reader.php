@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Manacost Reader
  * Description: Opt-in anonymous account shell for the independent HearthPulse reader service.
- * Version: 0.1.0
+ * Version: 0.2.0
  *
  * @package Manacost
  */
@@ -17,6 +17,7 @@ function hs_manacost_reader_bootstrap(): void {
 	require_once __DIR__ . '/hs-manacost-reader/account.php';
 	add_shortcode( 'hs_manacost_reader_account', 'hs_manacost_reader_account_shell' );
 	add_filter( 'wp_nav_menu_items', 'hs_manacost_reader_menu', 20, 2 );
+	add_filter( 'template_include', 'hs_manacost_reader_template' );
 	add_action( 'wp_enqueue_scripts', 'hs_manacost_reader_assets' );
 	add_action( 'template_redirect', 'hs_manacost_reader_cache_policy' );
 }
@@ -25,6 +26,16 @@ function hs_manacost_reader_bootstrap(): void {
 function hs_manacost_reader_page(): ?WP_Post {
 	$page = get_page_by_path( 'account' );
 	return $page && 'publish' === $page->post_status && has_shortcode( $page->post_content, 'hs_manacost_reader_account' ) ? $page : null;
+}
+
+/**
+ * Give the provisioned account its own workspace without changing editorial pages.
+ *
+ * @param string $template Theme template selected by WordPress.
+ */
+function hs_manacost_reader_template( string $template ): string {
+	$page = hs_manacost_reader_page();
+	return $page && is_page( $page->ID ) ? __DIR__ . '/hs-manacost-reader/page.php' : $template;
 }
 
 /**
@@ -53,12 +64,12 @@ function hs_manacost_reader_assets(): void {
 		return;
 	}
 	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
-	wp_enqueue_style( 'hs-manacost-reader', $base . 'reader.css', array(), '0.1.0' );
+	wp_enqueue_style( 'hs-manacost-reader', $base . 'reader.css', array(), '0.2.0' );
 	wp_enqueue_script(
 		'hs-manacost-reader',
 		$base . 'reader.js',
 		array(),
-		'0.1.0',
+		'0.2.0',
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
