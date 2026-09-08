@@ -2,24 +2,47 @@ import { createServer } from 'node:http';
 import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ReaderStore } from './core.js';
+import { ReaderProfiles } from './profiles.js';
 import { createIdentityClient } from './identity-client.js';
 import { createReaderHandler, drainRevocations } from './http.js';
 
 export function createReaderServer({ origin, handle }) {
   const authority = new URL(origin).host;
+  let uploads = 0;
   return createServer({ maxHeaderSize: 8192, requestTimeout: 6000, headersTimeout: 6000 }, async (req, res) => {
     if (req.headers.host !== authority || !req.url?.startsWith('/') || req.url.startsWith('//')) {
       res.writeHead(400, { 'Cache-Control': 'private, no-store' }); res.end(); return;
     }
+    const url = new URL(req.url, origin);
+    const upload = req.method === 'PUT' && url.pathname === '/reader-api/v1/profile/avatar';
+    const limit = upload ? 4 * 1024 * 1024 : 4096;
+    const reject = status => {
+      res.writeHead(status, { 'Cache-Control': 'private, no-store', Connection: 'close' });
+      res.end(); res.once('finish', () => req.destroy());
+    };
+    if (Number(req.headers['content-length'] ?? 0) > limit) { reject(413); return; }
+    // Bound memory even for concurrent unauthenticated uploads; decoding has its own tighter limit.
+    if (upload && uploads >= 2) { reject(503); return; }
+    if (upload) uploads++;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => { controller.abort(); if (!res.headersSent) reject(408); }, 6000);
     try {
-      let size = 0;
-      for await (const chunk of req) { size += chunk.length; if (size > 4096) { res.writeHead(413, { 'Cache-Control': 'private, no-store' }); res.end(); return; } }
-      const response = await handle(new Request(new URL(req.url, origin), { method: req.method, headers: req.headers }));
+      let size = 0; const chunks = [];
+      for await (const chunk of req) {
+        size += chunk.length;
+        if (size > limit) { reject(413); return; }
+        chunks.push(chunk);
+      }
+      const init = { method: req.method, headers: req.headers, signal: controller.signal };
+      if (req.method !== 'GET' && req.method !== 'HEAD') init.body = Buffer.concat(chunks);
+      const response = await handle(new Request(url, init));
+      if (controller.signal.aborted || res.headersSent) return;
       const headers = Object.fromEntries(response.headers);
       const cookies = response.headers.getSetCookie();
       if (cookies.length) headers['set-cookie'] = cookies;
       res.writeHead(response.status, headers); res.end(Buffer.from(await response.arrayBuffer()));
-    } catch { res.writeHead(503, { 'Cache-Control': 'private, no-store' }); res.end(); }
+    } catch { if (!res.headersSent) reject(503); }
+    finally { clearTimeout(deadline); if (upload) uploads--; }
   });
 }
 
@@ -32,7 +55,8 @@ function start() {
   const filename = process.env.READER_DATABASE;
   if (!filename || !isAbsolute(filename)) throw new Error('An absolute private READER_DATABASE path is required');
   const store = new ReaderStore({ filename, encryptionKey: Buffer.from(process.env.READER_ENCRYPTION_KEY ?? '', 'base64url') });
-  const handle = createReaderHandler({ origin: options.origin, identity, store,
+  const profiles = new ReaderProfiles({ db: store.db, issuer: options.issuer });
+  const handle = createReaderHandler({ origin: options.origin, identity, store, profiles,
     csrfKey: Buffer.from(process.env.READER_CSRF_KEY ?? '', 'base64url') });
   const server = createReaderServer({ origin: options.origin, handle });
   const port = Number(process.env.READER_PORT || 18081);

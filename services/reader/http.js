@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { ReaderAuthorizationDenied, ReaderValidationError } from './core.js';
+import { createProfileRoutes, verifiedReader } from './profile-http.js';
 
 const SESSION_COOKIE = '__Host-manacost_reader';
 const ATTEMPT_COOKIE = '__Host-manacost_reader_login';
@@ -20,9 +21,13 @@ const matches = (left, right) => typeof left === 'string' && Buffer.byteLength(l
   && timingSafeEqual(Buffer.from(left), Buffer.from(right));
 
 /** Same-origin HTTP boundary. The first slice deliberately uses five-minute sessions without offline access. */
-export function createReaderHandler({ origin, store, identity, csrfKey }) {
+export function createReaderHandler({ origin, store, identity, csrfKey, profiles }) {
   if (new URL(origin).origin !== origin || !origin.startsWith('https://') || csrfKey?.length !== 32) throw new Error('Invalid reader HTTP configuration');
   const csrf = id => createHmac('sha256', csrfKey).update(id).digest('base64url');
+  const validWrite = (request, id) => request.headers.get('origin') === origin
+    && request.headers.get('sec-fetch-site') !== 'cross-site' && Boolean(id)
+    && matches(request.headers.get('x-reader-csrf'), csrf(id));
+  const profileRoutes = createProfileRoutes({ store, identity, profiles, validWrite, json, securityHeaders });
   let windowStart = Date.now();
   const buckets = new Map();
   async function dispatch(request) {
@@ -77,21 +82,20 @@ export function createReaderHandler({ origin, store, identity, csrfKey }) {
       return response;
     }
     if (url.pathname === '/reader-api/v1/me' && request.method === 'GET') {
-      const session = store.getSession(id);
-      if (!session) return json(401, { error: 'not_authenticated' });
-      const profile = await identity.profile(session.upstreamToken, session.userId, signal);
-      if (!profile) { store.revokeAndQueue(id); return json(401, { error: 'not_authenticated' }); }
-      return json(200, { user: { displayName: profile.displayName }, csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null });
+      const verified = await verifiedReader(store, identity, id, signal);
+      if (!verified) return json(401, { error: 'not_authenticated' });
+      const profile = profiles?.getOrCreate(verified.session.userId, verified.profile.displayName);
+      return json(200, { user: { displayName: profile?.displayName ?? verified.profile.displayName },
+        csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) });
     }
     if (url.pathname === '/reader-auth/logout' && request.method === 'POST') {
-      if (request.headers.get('origin') !== origin || request.headers.get('sec-fetch-site') === 'cross-site'
-        || !id || !matches(request.headers.get('x-reader-csrf'), csrf(id))) return json(403, { error: 'invalid_request' });
+      if (!validWrite(request, id)) return json(403, { error: 'invalid_request' });
       store.revokeAndQueue(id);
       const response = new Response(null, { status: 204, headers: securityHeaders });
       response.headers.append('Set-Cookie', store.serializeCookie('', 0));
       return response;
     }
-    return json(404, { error: 'not_found' });
+    return await profileRoutes(request, url, id, signal) ?? json(404, { error: 'not_found' });
   }
   return async request => {
     try { return await dispatch(request); }

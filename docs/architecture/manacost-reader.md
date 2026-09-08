@@ -1,8 +1,10 @@
 # Manacost reader: login and account first slice
 
-Status: implemented as an opt-in candidate; not activated or deployed. This is
-not the complete reader v1: sessions last at most five minutes, without refresh
-or saved articles. Existing WordPress and Cackle comments remain disabled.
+Status: core login is activated on test.hs-manacost.ru only, using the production
+HearthPulse issuer. See [editable reader profiles](../reader-profile.md) for the
+next staging extension and [comments design](reader-comments.md) for the proposed
+discussion layer. Sessions still last at most five minutes, without refresh or
+saved articles. Existing WordPress and Cackle comments remain disabled.
 
 ## Boundaries
 
