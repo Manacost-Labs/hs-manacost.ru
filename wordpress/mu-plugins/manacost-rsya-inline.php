@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Manacost RСЯ Inline Banner
- * Description: Renders a scoped Yandex RTB banner in the latest article.
+ * Description: Renders Yandex RTB banners in recent and future articles.
  *
  * @package Manacost
  */
@@ -12,8 +12,15 @@ defined( 'ABSPATH' ) || exit;
  * Renders the Yandex RTB loader and inline article unit.
  */
 final class Manacost_Rsya_Inline_Banner {
-	private const TARGET_POST_SLUG        = 'kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti';
-	private const BLOCK_ID                = 'R-A-16113237-5';
+	/**
+	 * Publication time of the tenth latest post when the placements were enabled.
+	 *
+	 * The inclusive cutoff keeps those ten articles covered and automatically
+	 * includes every normally published article that follows them.
+	 */
+	private const ENABLED_FROM_GMT        = '2026-08-31 09:00:39';
+	private const INTRO_BLOCK_ID          = 'R-A-16113237-6';
+	private const FOOTER_BLOCK_ID         = 'R-A-16113237-5';
 	private const SCRIPT_HANDLE           = 'manacost-rsya-loader';
 	private const TEXT_PARAGRAPH_POSITION = 3;
 
@@ -41,7 +48,7 @@ final class Manacost_Rsya_Inline_Banner {
 			self::SCRIPT_HANDLE,
 			'https://yandex.ru/ads/system/context.js',
 			array(),
-			self::BLOCK_ID,
+			self::INTRO_BLOCK_ID,
 			array(
 				'strategy' => 'async',
 			)
@@ -100,14 +107,14 @@ final class Manacost_Rsya_Inline_Banner {
 			! self::should_render()
 			|| ! in_the_loop()
 			|| ! is_main_query()
-			|| str_contains( $content, 'yandex_rtb_' . self::BLOCK_ID )
+			|| self::contains_banner_markup( $content )
 		) {
 			return $content;
 		}
 
 		$text_paragraphs = 0;
-		$intro_banner    = self::render_banner( 'intro' );
-		$footer_banner   = self::render_banner( 'after-telegram', '-after-telegram' );
+		$intro_banner    = self::render_banner( 'intro', self::INTRO_BLOCK_ID );
+		$footer_banner   = self::render_banner( 'after-telegram', self::FOOTER_BLOCK_ID, '-after-telegram' );
 
 		$result = preg_replace_callback(
 			'#<p\\b[^>]*>.*?</p>#is',
@@ -132,20 +139,32 @@ final class Manacost_Rsya_Inline_Banner {
 	 * Renders one scoped Banner call with a page-unique container ID.
 	 *
 	 * @param string $slot Human-readable placement name.
+	 * @param string $block_id         Yandex RTB unit identifier for this placement.
 	 * @param string $container_suffix Unique suffix for an additional placement.
 	 * @return string
 	 */
-	private static function render_banner( string $slot, string $container_suffix = '' ): string {
+	private static function render_banner( string $slot, string $block_id, string $container_suffix = '' ): string {
 		return sprintf(
 			'<div class="manacost-rsya-inline" data-manacost-rsya-unit data-manacost-rsya-slot="%3$s"><div id="%1$s"></div></div><script>(function () { var container = document.getElementById("%1$s"); var unit = container ? container.closest("[data-manacost-rsya-unit]") : null; var collapse = function () { if (unit) { unit.hidden = true; } }; if (window.manacostRsyaLoaderFailed) { collapse(); } else { window.yaContextCb.push(function () { Ya.Context.AdvManager.render({"blockId": "%2$s", "renderTo": "%1$s", "onError": function (data) { if (data && "error" === data.type) { collapse(); } }, "onRender": function () { if (unit) { unit.setAttribute("data-manacost-rsya-rendered", "true"); } }}, collapse); }); } }());</script>',
-			esc_attr( 'yandex_rtb_' . self::BLOCK_ID . $container_suffix ),
-			esc_attr( self::BLOCK_ID ),
+			esc_attr( 'yandex_rtb_' . $block_id . $container_suffix ),
+			esc_attr( $block_id ),
 			esc_attr( $slot )
 		);
 	}
 
 	/**
-	 * Checks whether the requested page is the explicitly enabled target post.
+	 * Detects either placement before a second content-filter pass can duplicate it.
+	 *
+	 * @param string $content Current rendered content.
+	 * @return bool
+	 */
+	private static function contains_banner_markup( string $content ): bool {
+		return str_contains( $content, 'yandex_rtb_' . self::INTRO_BLOCK_ID )
+			|| str_contains( $content, 'yandex_rtb_' . self::FOOTER_BLOCK_ID );
+	}
+
+	/**
+	 * Checks whether the requested page is an enabled published article.
 	 *
 	 * @return bool
 	 */
@@ -164,7 +183,9 @@ final class Manacost_Rsya_Inline_Banner {
 
 		$post = get_queried_object();
 
-		return $post instanceof WP_Post && self::TARGET_POST_SLUG === $post->post_name;
+		return $post instanceof WP_Post
+			&& 'publish' === $post->post_status
+			&& self::ENABLED_FROM_GMT <= $post->post_date_gmt;
 	}
 }
 
