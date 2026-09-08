@@ -16,6 +16,7 @@ RECENT_SLUG = "kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti"
 FIRST_ENABLED_POST_GMT = "2026-08-31 09:00:39"
 INTRO_BLOCK_ID = "R-A-16113237-6"
 FOOTER_BLOCK_ID = "R-A-16113237-5"
+FLOOR_BLOCK_ID = "R-A-16113237-7"
 
 
 class RsyaInlineBannerTest(unittest.TestCase):
@@ -80,6 +81,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         function wp_strip_all_tags($value) {{ return trim(strip_tags($value)); }}
         function wp_json_encode($value) {{ return json_encode($value); }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
+		function esc_js($value) {{ return $value; }}
         function esc_url($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function get_privacy_policy_url() {{ return 'https://hs-manacost.ru/privacy-policy/'; }}
         function wp_register_script($handle, $source = '', $dependencies = [], $version = false, $args = false) {{
@@ -108,10 +110,14 @@ class RsyaInlineBannerTest(unittest.TestCase):
         ob_start();
         foreach ($actions['wp_head'] ?? [] as $registered) {{ call_user_func($registered[0]); }}
         $head = ob_get_clean();
+        ob_start();
+        foreach ($actions['wp_footer'] ?? [] as $registered) {{ call_user_func($registered[0]); }}
+        $footer = ob_get_clean();
         $phase = 'content';
         echo json_encode([
             'content' => apply_test_filter('the_content', {json.dumps(content, ensure_ascii=False)}),
             'head' => $head,
+            'footer' => $footer,
             'scripts' => $scripts,
             'inline_scripts' => $inline_scripts,
         ], JSON_UNESCAPED_UNICODE);
@@ -143,6 +149,9 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertNotIn("manacost-rsya-consent", content)
         self.assertNotIn("Показать рекламу", content)
         self.assertIn("Ya.Context.AdvManager.render", content)
+        self.assertIn(FLOOR_BLOCK_ID, result["footer"])
+        self.assertIn('"type": "floorAd"', result["footer"])
+        self.assertIn('"platform": "desktop"', result["footer"])
         self.assertLess(
             content.index("Третий текстовый абзац."),
             content.index(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'),

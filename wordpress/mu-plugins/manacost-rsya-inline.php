@@ -21,6 +21,7 @@ final class Manacost_Rsya_Inline_Banner {
 	private const ENABLED_FROM_GMT        = '2026-08-31 09:00:39';
 	private const INTRO_BLOCK_ID          = 'R-A-16113237-6';
 	private const FOOTER_BLOCK_ID         = 'R-A-16113237-5';
+	private const FLOOR_BLOCK_ID          = 'R-A-16113237-7';
 	private const SCRIPT_HANDLE           = 'manacost-rsya-loader';
 	private const TEXT_PARAGRAPH_POSITION = 3;
 
@@ -32,7 +33,30 @@ final class Manacost_Rsya_Inline_Banner {
 	public static function boot(): void {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_loader' ) );
 		add_action( 'wp_head', array( __CLASS__, 'render_styles' ), 39 );
+		add_action( 'wp_footer', array( __CLASS__, 'render_floor_ad' ), 90 );
 		add_filter( 'the_content', array( __CLASS__, 'insert_banner' ), 30 );
+	}
+
+	/**
+	 * Renders the desktop-only fixed Floor Ad after article content.
+	 *
+	 * @return void
+	 */
+	public static function render_floor_ad(): void {
+		if ( ! self::should_render() ) {
+			return;
+		}
+		?>
+		<script id="manacost-rsya-floor-ad">
+			window.yaContextCb.push(() => {
+				Ya.Context.AdvManager.render({
+					"blockId": "<?php echo esc_js( self::FLOOR_BLOCK_ID ); ?>",
+					"type": "floorAd",
+					"platform": "desktop"
+				})
+			})
+		</script>
+		<?php
 	}
 
 	/**
