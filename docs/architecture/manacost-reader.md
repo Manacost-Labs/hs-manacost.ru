@@ -112,6 +112,31 @@ test hostname and can remain available while login is disabled.
 
 ## Deployment prerequisites
 
+### Explicit production identity bridge
+
+The user selected real `hearthpulse.net` accounts for the test cabinet. The BFF
+accepts this only with `READER_ALLOW_PRODUCTION_IDENTITY_FOR_STAGING=1` and the
+exact tuple: staging, `https://test.hs-manacost.ru`,
+`https://hearthpulse.net/identity`, `manacost-reader-staging`. Other combinations
+still fail closed. The provider separately requires its exact-client bridge flag.
+
+`ops/reader/provision-production-bridge.mjs` creates fresh root-only configuration
+without reading existing production keys, environment or users. It refuses
+existing targets, keeps the provider disabled, and selects a new reader database
+`production-identity.sqlite` plus independent encryption/CSRF/client keys.
+Do not merge old subjects, sessions or revocation queues across issuers.
+
+After reviewed production provider deployment and proxy verification, install
+the corresponding provider/reader systemd drop-ins and private hosts file.
+The BFF reaches the pinned public Moscow edge with normal HTTPS verification;
+its egress remains explicitly limited. Stop the BFF before switching config,
+restart, then prove the public redirect targets HearthPulse and complete browser
+acceptance with a user-approved account. Existing WordPress accounts and comments
+are untouched. Rollback stops the BFF and removes only the bridge drop-in to
+restore the old config/database; preserve both sets of state and keys.
+
+### General requirements
+
 The existing release workflows run checks but **do not deploy the BFF**. A
 separately reviewed staging setup must provide all of the following:
 
