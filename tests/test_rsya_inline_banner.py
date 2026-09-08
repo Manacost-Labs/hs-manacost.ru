@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import unittest
@@ -10,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/manacost-rsya-inline.php"
 PHP_BINARY = shutil.which("php") or "/usr/bin/php"
+NODE_BINARY = shutil.which("node") or "/usr/bin/node"
 TARGET_SLUG = "kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti"
 
 
@@ -146,6 +148,137 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 result = self.render_result(**kwargs)
                 self.assertNotIn("yandex_rtb", result["content"])
                 self.assertIn("manacost-rsya-loader", result["scripts"])
+
+    def test_banner_uses_bounded_responsive_sizes_and_collapses_on_error(self) -> None:
+        result = self.render_result()
+
+        self.assertIn("max-width: 970px", result["head"])
+        self.assertIn("height: 90px", result["head"])
+        self.assertIn("max-width: 320px", result["head"])
+        self.assertIn("height: 100px", result["head"])
+        self.assertNotIn("min-height", result["head"])
+        self.assertIn("onError", result["content"])
+        self.assertIn("onRender", result["content"])
+        self.assertIn("data-manacost-rsya-rendered", result["content"])
+
+    def run_banner_script(self, content: str, scenario: str) -> dict:
+        script_match = re.search(r"<script>(.*?)</script>", content)
+        self.assertIsNotNone(script_match)
+        assert script_match is not None
+
+        actions = {
+            "no_fill": "fallback();",
+            "error": 'renderOptions.onError({ type: "error" });',
+            "warning": 'renderOptions.onError({ type: "warning" });',
+            "rendered": "renderOptions.onRender({ product: \"direct\" });",
+            "loader_failure": "",
+        }
+        self.assertIn(scenario, actions)
+        loader_failed = "true" if scenario == "loader_failure" else "false"
+        node_script = f"""
+        const callbacks = [];
+        const attributes = {{}};
+        const bannerUnit = {{
+            hidden: false,
+            setAttribute: (name, value) => {{ attributes[name] = value; }},
+        }};
+        const targetContainer = {{ closest: () => bannerUnit }};
+        let renderCalls = 0;
+        let renderOptions;
+        let fallback;
+        global.window = {{
+            yaContextCb: callbacks,
+            manacostRsyaLoaderFailed: {loader_failed},
+        }};
+        global.document = {{ getElementById: () => targetContainer }};
+        global.Ya = {{
+            Context: {{
+                AdvManager: {{
+                    render: (options, noFillCallback) => {{
+                        renderCalls += 1;
+                        renderOptions = options;
+                        fallback = noFillCallback;
+                    }},
+                }},
+            }},
+        }};
+        {script_match.group(1)}
+        if (!window.manacostRsyaLoaderFailed) {{
+            callbacks[0]();
+        }}
+        {actions[scenario]}
+        process.stdout.write(JSON.stringify({{
+            hidden: bannerUnit.hidden,
+            rendered: attributes["data-manacost-rsya-rendered"] || null,
+            renderCalls,
+        }}));
+        """
+        completed = subprocess.run(
+            [NODE_BINARY, "-e", node_script],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout)
+
+    def run_loader_error_handler(self, loader_script: str) -> dict:
+        node_script = f"""
+        const units = [{{ hidden: false }}];
+        let errorHandler;
+        global.window = {{
+            yaContextCb: [],
+            addEventListener: (eventName, handler, useCapture) => {{
+                if ("error" === eventName && true === useCapture) {{
+                    errorHandler = handler;
+                }}
+            }},
+        }};
+        global.document = {{ querySelectorAll: () => units }};
+        {loader_script}
+        errorHandler({{ target: {{ id: "manacost-rsya-loader-js" }} }});
+        process.stdout.write(JSON.stringify({{
+            failed: window.manacostRsyaLoaderFailed,
+            hidden: units[0].hidden,
+        }}));
+        """
+        completed = subprocess.run(
+            [NODE_BINARY, "-e", node_script],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout)
+
+    def test_banner_script_handles_no_fill_error_warning_render_and_loader_failure(self) -> None:
+        result = self.render_result()
+        content = result["content"]
+
+        self.assertEqual(
+            {"hidden": True, "rendered": None, "renderCalls": 1},
+            self.run_banner_script(content, "no_fill"),
+        )
+        self.assertEqual(
+            {"hidden": True, "rendered": None, "renderCalls": 1},
+            self.run_banner_script(content, "error"),
+        )
+        self.assertEqual(
+            {"hidden": False, "rendered": None, "renderCalls": 1},
+            self.run_banner_script(content, "warning"),
+        )
+        self.assertEqual(
+            {"hidden": False, "rendered": "true", "renderCalls": 1},
+            self.run_banner_script(content, "rendered"),
+        )
+        self.assertEqual(
+            {"hidden": True, "rendered": None, "renderCalls": 0},
+            self.run_banner_script(content, "loader_failure"),
+        )
+        self.assertEqual(
+            {"failed": True, "hidden": True},
+            self.run_loader_error_handler(result["inline_scripts"][0][1]),
+        )
 
 
 if __name__ == "__main__":

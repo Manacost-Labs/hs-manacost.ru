@@ -46,7 +46,11 @@ final class Manacost_Rsya_Inline_Banner {
 				'strategy' => 'async',
 			)
 		);
-		wp_add_inline_script( self::SCRIPT_HANDLE, 'window.yaContextCb = window.yaContextCb || [];', 'before' );
+		wp_add_inline_script(
+			self::SCRIPT_HANDLE,
+			'window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); } }, true);',
+			'before'
+		);
 	}
 
 	/**
@@ -61,21 +65,23 @@ final class Manacost_Rsya_Inline_Banner {
 		?>
 		<style id="manacost-rsya-inline-style">
 			.manacost-rsya-inline {
-				display: flex;
-				min-height: 120px;
+				box-sizing: border-box;
+				width: min(100%, 970px);
+				max-width: 970px;
+				height: 90px;
 				margin: 28px auto;
-				align-items: center;
-				justify-content: center;
-				overflow: hidden;
 			}
 
 			.manacost-rsya-inline > div {
 				width: 100%;
+				height: 100%;
 			}
 
 			@media (max-width: 767px) {
 				.manacost-rsya-inline {
-					min-height: 100px;
+					width: min(100%, 320px);
+					max-width: 320px;
+					height: 100px;
 					margin: 22px auto;
 				}
 			}
@@ -101,7 +107,7 @@ final class Manacost_Rsya_Inline_Banner {
 
 		$text_paragraphs = 0;
 		$banner          = sprintf(
-			'<div class="manacost-rsya-inline" data-manacost-rsya-unit><div id="%1$s"></div></div><script>window.yaContextCb.push(function () { Ya.Context.AdvManager.render({"blockId": "%2$s", "renderTo": "%1$s"}); });</script>',
+			'<div class="manacost-rsya-inline" data-manacost-rsya-unit><div id="%1$s"></div></div><script>(function () { var container = document.getElementById("%1$s"); var unit = container ? container.closest("[data-manacost-rsya-unit]") : null; var collapse = function () { if (unit) { unit.hidden = true; } }; if (window.manacostRsyaLoaderFailed) { collapse(); } else { window.yaContextCb.push(function () { Ya.Context.AdvManager.render({"blockId": "%2$s", "renderTo": "%1$s", "onError": function (data) { if (data && "error" === data.type) { collapse(); } }, "onRender": function () { if (unit) { unit.setAttribute("data-manacost-rsya-rendered", "true"); } }}, collapse); }); } }());</script>',
 			esc_attr( 'yandex_rtb_' . self::BLOCK_ID ),
 			esc_attr( self::BLOCK_ID )
 		);
