@@ -25,14 +25,24 @@
 		const loginEndpoint = endpoint( root, 'loginEndpoint', '/reader-auth/start?returnTo=%2Faccount%2F' );
 		const logoutEndpoint = endpoint( root, 'logoutEndpoint', '/reader-auth/logout' );
 		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/me' );
+		const profileEndpoint = endpoint( root, 'profileEndpoint', '/reader-api/v1/profile' );
+		const avatarEndpoint = endpoint( root, 'avatarEndpoint', '/reader-api/v1/profile/avatar' );
 		let controller = null;
 		let generation = 0;
 		let logoutInFlight = false;
+		let logoutController = null;
+		let logoutGeneration = 0;
+		let sessionActive = false;
+		let currentCsrfToken = '';
+		let profileEditor = null;
 
 		function clearPrivate() {
 			identity.replaceChildren();
 			identity.hidden = true;
 			actions.replaceChildren();
+			profileEditor?.clear();
+			currentCsrfToken = '';
+			sessionActive = false;
 		}
 
 		function link( label, className ) {
@@ -66,15 +76,27 @@
 			actions.append( retry );
 		}
 
-		function authenticated( data ) {
-			clearPrivate();
-			if ( ! data || ! data.user || typeof data.user.displayName !== 'string' || typeof data.csrfToken !== 'string' || ! data.csrfToken ) throw new Error( 'invalid_profile' );
-			const user = data.user;
-			status.textContent = 'Вы вошли в кабинет.';
-			const nameNode = document.createElement( 'strong' );
-			nameNode.textContent = text( user.displayName ) || 'Читатель';
-			identity.append( nameNode );
+		function showPreservedRetry( message ) {
+			status.textContent = message;
+			if ( actions.querySelector( '[data-reader-refresh-session]' ) ) return;
+			const retry = actionButton( 'Обновить вход', 'mc-reader__button mc-reader__button--secondary' );
+			retry.dataset.readerRefreshSession = '';
+			retry.addEventListener( 'click', () => refresh( { preserveDraft: true } ) );
+			actions.append( retry );
+		}
+
+		function authenticated( data, refreshOptions = {} ) {
+			if ( ! data || ! data.user || typeof data.user.displayName !== 'string' || typeof data.csrfToken !== 'string' || ! data.csrfToken || ! data.profile ) throw new Error( 'invalid_profile' );
+			const wasActive = sessionActive;
+			if ( ! wasActive ) clearPrivate();
+			profileEditor.applySession( data.profile, data.csrfToken, {
+				preserveDraft: wasActive && refreshOptions.preserveDraft,
+				acceptVersion: refreshOptions.acceptVersion,
+			} );
+			currentCsrfToken = data.csrfToken;
 			identity.hidden = false;
+			actions.replaceChildren();
+			status.textContent = 'Вы вошли в кабинет.';
 			const profileHref = allowedProfileUrl( data.profileUrl );
 			if ( profileHref ) {
 				const profile = link( 'Профиль HearthPulse', 'mc-reader__button mc-reader__button--secondary' );
@@ -84,8 +106,9 @@
 				actions.append( profile );
 			}
 			const logout = actionButton( 'Выйти', 'mc-reader__button mc-reader__button--quiet' );
-			logout.addEventListener( 'click', () => logoutRequest( data.csrfToken ) );
+			logout.addEventListener( 'click', () => logoutRequest( currentCsrfToken ) );
 			actions.append( logout );
+			sessionActive = true;
 		}
 
 		function current( requestController, requestGeneration ) {
@@ -94,60 +117,96 @@
 
 		async function logoutRequest( csrfToken ) {
 			logoutInFlight = true;
+			const requestLogoutGeneration = ++logoutGeneration;
 			generation += 1;
 			if ( controller ) controller.abort();
 			controller = null;
 			clearPrivate();
 			status.textContent = 'Выходим…';
-			const logoutController = new AbortController();
+			logoutController = new AbortController();
 			const deadline = window.setTimeout( () => logoutController.abort(), requestTimeoutMs );
 			try {
 				const response = await fetch( logoutEndpoint, { method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: logoutController.signal, headers: { 'Content-Type': 'application/json', 'X-Reader-CSRF': text( csrfToken ) }, body: '{}' } );
 				if ( response.status !== 204 ) throw new Error( 'logout_failed' );
+				if ( logoutGeneration !== requestLogoutGeneration ) return;
 				guest( 'Вы вышли из кабинета.' );
 			} catch ( error ) {
-			showRetry( 'Не удалось выйти. Повторите попытку.', () => logoutRequest( csrfToken ) );
+				if ( logoutGeneration === requestLogoutGeneration ) showRetry( 'Не удалось выйти. Повторите попытку.', () => logoutRequest( csrfToken ) );
 			} finally {
 				window.clearTimeout( deadline );
-				logoutInFlight = false;
+				if ( logoutGeneration === requestLogoutGeneration ) {
+					logoutController = null;
+					logoutInFlight = false;
+				}
 			}
 		}
 
-		async function refresh() {
+		async function refresh( refreshOptions = {} ) {
 			if ( logoutInFlight ) return;
 			if ( controller ) controller.abort();
 			const requestController = new AbortController();
 			const requestGeneration = ++generation;
 			controller = requestController;
-			status.textContent = 'Проверяем вход…';
-			clearPrivate();
+			const preservePrivate = sessionActive || profileEditor.isDirty();
+			if ( ! preservePrivate ) {
+				status.textContent = 'Проверяем вход…';
+				clearPrivate();
+			}
 			const deadline = window.setTimeout( () => {
 				if ( current( requestController, requestGeneration ) ) {
 					requestController.abort();
-					showRetry( 'Проверка входа заняла слишком много времени. Повторите попытку.' );
+					if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход вовремя. Изменения в форме сохранены.' );
+					else showRetry( 'Проверка входа заняла слишком много времени. Повторите попытку.' );
 				}
 			}, requestTimeoutMs );
 			try {
 				const response = await fetch( meEndpoint, { credentials: 'same-origin', cache: 'no-store', signal: requestController.signal, headers: { Accept: 'application/json' } } );
 				const data = await response.json().catch( () => ( {} ) );
 				if ( ! current( requestController, requestGeneration ) ) return;
-				if ( response.status === 200 ) authenticated( data );
+				if ( response.status === 200 ) authenticated( data, { ...refreshOptions, preserveDraft: preservePrivate } );
 				else if ( response.status === 401 ) guest( 'Войдите через HearthPulse, чтобы открыть свой профиль.' );
-				else if ( response.status === 503 ) showRetry( 'Сервис входа временно недоступен.' );
+				else if ( response.status === 503 || response.status === 429 ) {
+					if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход. Изменения в форме сохранены.' );
+					else showRetry( 'Сервис входа временно недоступен.' );
+				}
 				else throw new Error( 'identity_failed' );
 			} catch ( error ) {
-				if ( error.name !== 'AbortError' && current( requestController, requestGeneration ) ) showRetry( 'Не удалось проверить вход. Повторите попытку.' );
+				if ( error.name !== 'AbortError' && current( requestController, requestGeneration ) ) {
+					if ( error.message === 'invalid_profile' ) showRetry( 'Сервис вернул некорректные данные профиля. Повторите попытку.' );
+					else if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход. Изменения в форме сохранены.' );
+					else showRetry( 'Не удалось проверить вход. Повторите попытку.' );
+				}
 			} finally {
 				window.clearTimeout( deadline );
 			}
 		}
 
-		const refreshIfActive = () => { if ( ! logoutInFlight ) refresh(); };
+		profileEditor = window.hsManacostReaderProfileEditor.create( root, {
+			profileEndpoint,
+			avatarEndpoint,
+			onRefresh: ( options ) => refresh( { ...options, silent: true } ),
+			onMutationStart: () => {
+				generation += 1;
+				if ( controller ) controller.abort();
+				controller = null;
+			},
+			onUnauthorized: () => {
+				generation += 1;
+				if ( controller ) controller.abort();
+				controller = null;
+				guest( 'Сессия завершена. Войдите через HearthPulse снова.' );
+			},
+		} );
+		const refreshIfActive = () => { if ( ! logoutInFlight && ! profileEditor.isBusy() ) refresh( { preserveDraft: true, silent: true } ); };
 		window.addEventListener( 'pageshow', refreshIfActive );
 		window.addEventListener( 'focus', refreshIfActive );
 		window.addEventListener( 'pagehide', () => {
 			generation += 1;
 			if ( controller ) controller.abort();
+			logoutGeneration += 1;
+			if ( logoutController ) logoutController.abort();
+			logoutController = null;
+			logoutInFlight = false;
 			clearPrivate();
 			status.textContent = 'Проверяем вход…';
 		} );

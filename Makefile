@@ -18,7 +18,7 @@ test:
 reader-test:
 	@for source in services/reader/*.js; do node --check "$$source" || exit; done
 	@node --test services/reader/test/*.test.js
-	@node --check wordpress/mu-plugins/hs-manacost-reader/reader.js
+	@for source in wordpress/mu-plugins/hs-manacost-reader/*.js; do node --check "$$source" || exit; done
 	@python3 -m unittest discover -s tests/reader-ui -v
 
 reader-browser-test:

@@ -4,12 +4,14 @@ import unittest
 ROOT = pathlib.Path(__file__).parents[2]
 PHP = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/account.php'
 JS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.js'
+PROFILE_JS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/profile-editor.js'
 CSS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.css'
 
 class ReaderUiContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.php, cls.js, cls.css = PHP.read_text(), JS.read_text(), CSS.read_text()
+        cls.profile_js = PROFILE_JS.read_text() if PROFILE_JS.exists() else ''
     def test_shell_is_cache_safe_and_escaped(self):
         self.assertIn('hs_manacost_reader_account_shell', self.php); self.assertIn('esc_attr( $public[', self.php)
         self.assertNotIn('wp_get_current_user', self.php); self.assertNotIn('get_current_user_id', self.php); self.assertNotIn('comment', self.php.lower())
@@ -23,7 +25,39 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_auth_contract_and_no_private_html_injection(self):
         for value in ("credentials: 'same-origin'", "cache: 'no-store'", 'response.status === 200', 'response.status === 401', 'response.status === 503', 'response.status !== 204', 'X-Reader-CSRF', 'textContent'):
             self.assertIn(value, self.js)
-        self.assertNotIn('innerHTML', self.js); self.assertNotIn('localStorage', self.js)
+        scripts = self.js + self.profile_js
+        self.assertNotIn('innerHTML', scripts); self.assertNotIn('localStorage', scripts)
+    def test_profile_editor_contract_is_explicit_and_same_origin(self):
+        for value in ('data-profile-endpoint', 'data-avatar-endpoint', 'data-reader-profile-editor',
+                      'data-reader-display-name', 'data-reader-bio', 'data-reader-favorite-class',
+                      'data-reader-avatar-input', 'data-reader-remove-avatar'):
+            self.assertIn(value, self.php)
+        for value in ("method: 'PATCH'", "method: 'PUT'", "method: 'DELETE'",
+                      "'X-Reader-CSRF'", "'X-Reader-Profile-Version'", "credentials: 'same-origin'",
+                      "cache: 'no-store'", "'/reader-api/v1/profile'", "'/reader-api/v1/profile/avatar'"):
+            self.assertIn(value, self.js + self.profile_js)
+    def test_profile_editor_has_client_limits_and_safe_avatar_lifecycle(self):
+        self.assertNotIn('maxlength=', self.php)
+        self.assertIn('codepointLength( value.displayName ) > 40', self.profile_js)
+        self.assertIn('codepointLength( value.bio ) > 280', self.profile_js)
+        self.assertIn('aria-describedby="mc-reader-avatar-help"', self.php)
+        for value in ('image/jpeg', 'image/png', 'image/webp', '4 * 1024 * 1024',
+                      'URL.createObjectURL', 'URL.revokeObjectURL', 'overflow-wrap'):
+            self.assertIn(value, self.profile_js + self.css)
+        self.assertNotIn('data:', self.profile_js)
+        self.assertNotIn('http://', self.profile_js)
+    def test_session_refresh_and_mutation_races_preserve_safe_state(self):
+        for value in ('currentCsrfToken', 'profile.version < knownVersion', 'options.onMutationStart()',
+                      "avatarImage.getAttribute( 'src' )", 'profileEditor.isBusy()', 'setBusy( false )',
+                      'logoutGeneration', 'actions.replaceChildren()'):
+            self.assertIn(value, self.js + self.profile_js)
+        self.assertIn("error.message === 'invalid_profile'", self.js)
+        self.assertIn("options.onRefresh( { preserveDraft: true, acceptVersion: true } )", self.profile_js)
+        self.assertIn('editorStatus.textContent === message', self.profile_js)
+    def test_profile_editor_explains_scope_and_unavailable_comments(self):
+        self.assertIn('Профиль Манакоста не изменяет профиль HearthPulse.', self.php)
+        self.assertIn('Комментарии пока недоступны.', self.php)
+        self.assertIn('Предпросмотр', self.php)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
             self.assertIn(value, self.js)

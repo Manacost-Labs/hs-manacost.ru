@@ -13,17 +13,33 @@ const shell = execFileSync('php', ['-r',
   `${plugin}account.php`], { encoding: 'utf8' });
 const assets = new Map([
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
+  ['/profile-editor.js', ['text/javascript', readFileSync(`${plugin}profile-editor.js`)]],
   ['/reader.js', ['text/javascript', readFileSync(`${plugin}reader.js`)]],
   ['/theme.css', ['text/css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)]],
   ['/theme-boxed.css', ['text/css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]],
 ]);
+let heldRequest = null;
+const heldResponses = new Set();
+const nativeDeadlineCalls = [];
 const server = createServer((request, response) => {
+  if (heldRequest?.path === request.url && heldRequest.method === request.method) {
+    nativeDeadlineCalls.push({ path: request.url, started: Date.now() });
+    request.resume();
+    heldResponses.add(response);
+    const safetyDeadline = setTimeout(() => response.destroy(), 20000);
+    response.once('close', () => { clearTimeout(safetyDeadline); heldResponses.delete(response); });
+    if (heldRequest.partialJson) {
+      response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      response.write('{"profile":'); // Headers succeed; JSON body never completes before the UI deadline.
+    }
+    return;
+  }
   const asset = assets.get(request.url);
   if (asset) { response.writeHead(200, { 'Content-Type': asset[0] }); response.end(asset[1]); return; }
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   // The account shell owns the only page title, just as the dedicated template does.
-  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/reader.js"></script></body></html>`);
+  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/profile-editor.js"></script><script src="/reader.js"></script></body></html>`);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -34,20 +50,48 @@ try {
   browser = await chromium.launch({ headless: true,
     ...(process.env.READER_TEST_CHROMIUM ? { executablePath: process.env.READER_TEST_CHROMIUM } : {}) });
   const page = await browser.newPage();
+  page.on('pageerror', error => console.error(`Browser page error: ${error.message}`));
+  const profileId = '123e4567-e89b-42d3-a456-426614174000';
+  const profileDto = overrides => ({ id: profileId, displayName: 'Читатель Манакоста', bio: 'Люблю вдумчивые колоды и длинные партии.', favoriteClass: 'mage', version: 1, avatarUrl: null, ...overrides });
+  const sessionDto = overrides => ({ user: { displayName: 'Читатель Манакоста' }, csrfToken: 'synthetic-only', profileUrl: 'https://hearthpulse.net/profile/synthetic', profile: profileDto(), ...overrides });
   let profileStatus = 401;
   let profile = {};
   let logoutStatus = 204;
   let logoutCalls = 0;
-  let hangProfile = false;
-  let hangLogout = false;
-  await page.route('**/reader-api/v1/me', route => hangProfile ? undefined
-    : route.fulfill({ status: profileStatus, json: profile }));
-  await page.route('**/reader-auth/logout', route => {
+  let meCalls = 0;
+  let profileWriteStatus = 200;
+  let profileWriteResponse = profileDto({ version: 2 });
+  let avatarWriteStatus = 200;
+  let avatarWriteResponse = profileDto({ version: 2, avatarUrl: '/reader-api/v1/profile/avatar?v=avatar2' });
+  let avatarDelay = 0;
+  const profileWrites = [];
+  const avatarWrites = [];
+  const fulfillMe = async route => {
+    meCalls += 1;
+    return route.fulfill({ status: profileStatus, json: profile }).catch(() => {});
+  };
+  await page.route('**/reader-api/v1/me', fulfillMe);
+  await page.route('**/reader-api/v1/profile', route => {
+    const request = route.request();
+    profileWrites.push({ headers: request.headers(), body: request.postDataJSON() });
+    if (profileWriteStatus === 0) return route.abort('failed');
+    return route.fulfill({ status: profileWriteStatus, json: profileWriteStatus === 200 ? { profile: profileWriteResponse } : { code: 'profile_conflict' } });
+  });
+  await page.route('**/reader-api/v1/profile/avatar*', async route => {
+    const request = route.request();
+    if (request.method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nL8AAAAASUVORK5CYII=', 'base64') });
+    }
+    avatarWrites.push({ method: request.method(), headers: request.headers(), size: request.postDataBuffer()?.length || 0 });
+    if (avatarDelay) await new Promise(resolve => setTimeout(resolve, avatarDelay));
+    return route.fulfill({ status: avatarWriteStatus, json: avatarWriteStatus === 200 ? { profile: avatarWriteResponse } : { code: 'invalid_avatar' } });
+  });
+  await page.route('**/reader-auth/logout', async route => {
     logoutCalls += 1;
-    return hangLogout ? undefined : route.fulfill({ status: logoutStatus });
+    return route.fulfill({ status: logoutStatus }).catch(() => {});
   });
   const status = page.locator('[data-reader-status]');
-  const retry = page.getByRole('button', { name: 'Повторить', exact: true });
+  const retry = page.locator('[data-reader-actions]').getByRole('button', { name: 'Повторить', exact: true });
   const ready = async () => {
     await page.goto(origin, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('[data-reader-status]').textContent !== 'Проверяем вход…');
@@ -59,7 +103,7 @@ try {
     overflow: document.documentElement.scrollWidth - innerWidth,
     title: parseFloat(getComputedStyle(document.querySelector('.mc-reader__title')).fontSize),
     viewport: innerWidth,
-    sections: [...document.querySelectorAll('[aria-labelledby]')].map(element => {
+    sections: [...document.querySelectorAll('.mc-reader__panel > [aria-labelledby]')].filter(element => element.getClientRects().length).map(element => {
       const rect = element.getBoundingClientRect();
       return { bottom: rect.bottom, height: rect.height, left: rect.left, right: rect.right, top: rect.top, width: rect.width };
     }),
@@ -68,7 +112,7 @@ try {
     const result = await layout();
     assert.equal(result.overflow, 0, 'the account page must not horizontally scroll');
     assert.ok(result.title >= 28, 'the page title must retain readable hierarchy');
-    assert.ok(result.sections.every(section => section.left >= 0 && section.right <= result.viewport && section.width > 0), 'each account section must fit the viewport');
+    assert.ok(result.sections.every(section => section.left >= 0 && section.right <= result.viewport && section.width > 0), `each account section must fit the viewport: ${JSON.stringify(result)}`);
     return result;
   };
   const assertThemeOuterAlignment = async width => {
@@ -119,7 +163,9 @@ try {
     .map(value => value / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
     .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
   for (const selector of ['.mc-reader__intro', '.mc-reader__status', '.mc-reader__note', '.mc-reader__availability', '.mc-reader__empty', '.mc-reader__button--primary']) {
-    const colors = await page.locator(selector).evaluate(element => {
+    const visible = page.locator(`${selector}:visible`);
+    if (!await visible.count()) continue;
+    const colors = await visible.first().evaluate(element => {
       let surface = element;
       while (getComputedStyle(surface).backgroundColor === 'rgba(0, 0, 0, 0)' && surface.parentElement) surface = surface.parentElement;
       return { text: getComputedStyle(element).color, background: getComputedStyle(surface).backgroundColor };
@@ -129,22 +175,127 @@ try {
   }
 
   profileStatus = 200;
-  profile = { user: { displayName: 'Читатель Манакоста' }, csrfToken: 'synthetic-only', profileUrl: 'https://hearthpulse.net/profile/synthetic' };
+  profile = sessionDto();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await assertFits();
     await capture(`authenticated-${width}`);
   }
-  profile = {
-    user: { displayName: `${'ОченьДлинноеИмяЧитателя'.repeat(12)}${'UnbrokenLatinIdentity'.repeat(14)}` },
-    csrfToken: 'synthetic-only', profileUrl: 'https://hearthpulse.net/profile/synthetic',
-  };
+
+  const nameField = page.locator('[data-reader-display-name]');
+  const bioField = page.locator('[data-reader-bio]');
+  const classField = page.locator('[data-reader-favorite-class]');
+  const editorStatus = page.locator('[data-reader-editor-status]');
+  const fortyUnicodeCharacters = '😀'.repeat(40);
+  await nameField.fill(fortyUnicodeCharacters);
+  assert.equal(await page.locator('[data-reader-name-count]').textContent(), '40 / 40');
+  assert.equal(await nameField.evaluate(element => element.checkValidity()), true, '40 Unicode code points must remain valid');
+  await nameField.fill('   ');
+  await page.locator('[data-reader-save-profile]').click();
+  assert.match(await nameField.evaluate(element => element.validationMessage), /2|символ/);
+  assert.equal(profileWrites.length, 0, 'invalid whitespace-only names must not reach the API');
+  await nameField.fill('Исправленное имя');
+  assert.equal(await nameField.evaluate(element => element.validationMessage), '', 'correcting a name must clear stale custom validity');
+  await bioField.fill('Черновик с кириллицей и эмодзи 🃏');
+  await classField.selectOption('priest');
+  assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
+  assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Исправленное имя');
+
+  profile = sessionDto({ csrfToken: 'rotated-synthetic-token' });
+  const callsBeforeFocus = meCalls;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForFunction(expected => window.__unused === undefined && document.querySelector('[data-reader-display-name]').value === expected, 'Исправленное имя');
+  assert.ok(meCalls > callsBeforeFocus, 'focus must recheck the authenticated session');
+  assert.equal(await bioField.inputValue(), 'Черновик с кириллицей и эмодзи 🃏', 'focus refresh must preserve dirty text');
+
+  profileWriteStatus = 403;
+  await page.locator('[data-reader-save-profile]').click();
+  await page.locator('[data-reader-retry-profile]').waitFor();
+  profile = sessionDto({ csrfToken: 'csrf-after-403' });
+  const callsBeforeCsrfRefresh = meCalls;
+  await page.locator('[data-reader-retry-profile]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Вход обновлён'));
+  assert.ok(meCalls > callsBeforeCsrfRefresh);
+  assert.equal(await page.locator('[data-reader-retry-profile]').isVisible(), false, 'successful CSRF refresh must clear its stale retry');
+  assert.equal(await nameField.inputValue(), 'Исправленное имя');
+
+  profileWriteStatus = 409;
+  await page.locator('[data-reader-save-profile]').click();
+  await page.locator('[data-reader-reload-version]').waitFor();
+  assert.equal(profileWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
+  assert.deepEqual(profileWrites.at(-1).body, { version: 1, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest' });
+  profile = sessionDto({ csrfToken: 'csrf-after-403', profile: profileDto({ version: 2, displayName: 'Серверное имя' }) });
+  await page.locator('[data-reader-reload-version]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Версия обновлена'));
+  assert.equal(await nameField.inputValue(), 'Исправленное имя', 'conflict reload must preserve the text draft');
+
+  profileWriteStatus = 200;
+  profileWriteResponse = profileDto({ version: 3, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest' });
+  await page.locator('[data-reader-save-profile]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
+  assert.equal(profileWrites.at(-1).body.version, 2, 'retry after conflict must use the reloaded version');
+
+  await bioField.fill('Этот текст нельзя потерять при загрузке фото.');
+  avatarWriteResponse = profileDto({ version: 4, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', avatarUrl: '/reader-api/v1/profile/avatar?v=avatar4' });
+  avatarDelay = 250;
+  const callsBeforeUpload = meCalls;
+  await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('synthetic-png') });
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Фотография профиля обновлена'));
+  assert.equal(meCalls, callsBeforeUpload, 'focus refresh must be skipped during avatar mutation');
+  assert.equal(await bioField.inputValue(), 'Этот текст нельзя потерять при загрузке фото.');
+  assert.equal(avatarWrites.at(-1).method, 'PUT');
+  assert.equal(avatarWrites.at(-1).headers['x-reader-profile-version'], '3');
+  assert.equal(avatarWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
+  assert.ok(avatarWrites.at(-1).size > 0);
+  await page.waitForFunction(() => {
+    const image = document.querySelector('[data-reader-avatar-image]');
+    return !image.hidden && image.complete && image.naturalWidth > 0;
+  });
+  assert.equal(await page.locator('[data-reader-remove-avatar]').isVisible(), true);
+
+  avatarDelay = 0;
+  avatarWriteResponse = profileDto({ version: 5, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', avatarUrl: null });
+  await page.locator('[data-reader-remove-avatar]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Фотография профиля обновлена'));
+  assert.equal(avatarWrites.at(-1).method, 'DELETE');
+  assert.equal(avatarWrites.at(-1).headers['x-reader-profile-version'], '4');
+  assert.equal(await page.locator('[data-reader-avatar-image]').isVisible(), false);
+  assert.equal(await page.locator('[data-reader-avatar-placeholder]').isVisible(), true);
+  profile = sessionDto({ csrfToken: 'csrf-after-403', profile: profileDto({ version: 4, avatarUrl: '/reader-api/v1/profile/avatar?v=stale4' }) });
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('[data-reader-avatar-image]').isVisible(), false, 'stale GET must not roll back a newer avatar response');
+  assert.equal(await bioField.inputValue(), 'Этот текст нельзя потерять при загрузке фото.');
+
+  profileWriteStatus = 0;
+  const writesBeforeUnknownResult = profileWrites.length;
+  await page.locator('[data-reader-save-profile]').click();
+  await page.locator('[data-reader-retry-profile]').waitFor();
+  profile = sessionDto({ csrfToken: 'csrf-after-unknown', profile: profileDto({ version: 6, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest' }) });
+  await page.locator('[data-reader-retry-profile]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Версия обновлена'));
+  assert.equal(profileWrites.length, writesBeforeUnknownResult + 1, 'unknown write result must reconcile with GET, not replay the write');
+  assert.equal(await bioField.inputValue(), 'Этот текст нельзя потерять при загрузке фото.');
+  profileWriteStatus = 200;
+
+  profile = sessionDto({
+    profileUrl: null,
+    profile: profileDto({ id: '223e4567-e89b-42d3-a456-426614174001', displayName: 'Другой читатель', bio: '', favoriteClass: null, version: 1 }),
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForFunction(() => document.querySelector('[data-reader-display-name]').value === 'Другой читатель');
+  assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0, 'account switch must remove the prior account link');
+  assert.equal(await page.getByRole('button', { name: 'Выйти', exact: true }).count(), 1);
+
+  const longDisplayName = 'ОченьДлинноеИмяЧитателяБезПробелов123456';
+  profile = sessionDto({ user: { displayName: `${'ОченьДлинноеИмяЧитателя'.repeat(12)}${'UnbrokenLatinIdentity'.repeat(14)}` }, profile: profileDto({ displayName: longDisplayName }) });
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await assertFits();
-    assert.equal(await page.locator('[data-reader-identity]').textContent(), profile.user.displayName);
+    assert.equal(await page.locator('[data-reader-identity]').textContent(), longDisplayName);
   }
   const profileLink = page.getByRole('link', { name: 'Профиль HearthPulse', exact: true });
   await page.keyboard.press('Tab');
@@ -170,10 +321,10 @@ try {
   await assertFits();
   await capture('authenticated-long-name');
 
-  profile = { user: { displayName: '<img src=x onerror=alert(1)> Читатель' }, csrfToken: 'synthetic-only', profileUrl: null };
+  profile = sessionDto({ user: { displayName: '<img src=x onerror=alert(1)> Читатель' }, profileUrl: null, profile: profileDto({ displayName: '<img src=x onerror=alert(1)> Читатель' }) });
   await ready();
-  assert.equal(await page.locator('[data-reader-identity]').textContent(), profile.user.displayName);
-  assert.equal(await page.locator('.mc-reader img').count(), 0);
+  assert.equal(await page.locator('[data-reader-identity]').textContent(), profile.profile.displayName);
+  assert.equal(await page.locator('.mc-reader img:visible').count(), 0);
   assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0);
   logoutStatus = 503;
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
@@ -188,28 +339,61 @@ try {
   await retry.waitFor();
   profileStatus = 503;
   await ready();
-  await retry.waitFor();
+  assert.equal(await page.locator('[data-reader-actions] button').count(), 1, `${await status.textContent()} / ${await page.locator('[data-reader-actions]').textContent()}`);
   await assertFits();
   await capture('error');
-  hangProfile = true;
+  // Real loopback sockets, not immediate route.abort(): prove actual seven-second deadlines.
+  await page.unroute('**/reader-api/v1/me');
+  heldRequest = { path: '/reader-api/v1/me', method: 'GET' };
+  const meDeadlineStart = Date.now();
   await page.goto(origin, { waitUntil: 'domcontentloaded' });
-  await retry.waitFor({ timeout: 9000 });
+  await retry.waitFor({ timeout: 12000 });
   assert.match(await status.textContent(), /слишком много времени/);
-  hangProfile = false;
+  assert.ok(Date.now() - meDeadlineStart >= 6500, 'session request must wait for its actual UI deadline');
+  assert.ok(nativeDeadlineCalls.some(call => call.path === heldRequest.path));
+  heldRequest = null;
+  await page.route('**/reader-api/v1/me', fulfillMe);
   profileStatus = 200;
-  profile = { user: { displayName: 'Synthetic reader' }, csrfToken: 'synthetic-only', profileUrl: null };
+  profile = sessionDto({ user: { displayName: 'Synthetic reader' }, profileUrl: null, profile: profileDto({ displayName: 'Synthetic reader' }) });
   await ready();
-  hangLogout = true;
+  await page.unroute('**/reader-api/v1/profile');
+  heldRequest = { path: '/reader-api/v1/profile', method: 'PATCH', partialJson: true };
+  await nameField.fill('Черновик после таймаута');
+  const bodyDeadlineStart = Date.now();
+  await page.locator('[data-reader-save-profile]').click();
+  await page.locator('[data-reader-retry-profile]').waitFor({ timeout: 12000 });
+  assert.match(await editorStatus.textContent(), /не получен вовремя/);
+  assert.ok(Date.now() - bodyDeadlineStart >= 6500, 'partial response body must reach the actual mutation deadline');
+  assert.equal(await nameField.inputValue(), 'Черновик после таймаута');
+  assert.equal(await page.locator('[data-reader-save-profile]').isDisabled(), false);
+  const nativeWrites = nativeDeadlineCalls.filter(call => call.path === heldRequest.path).length;
+  heldRequest = null;
+  await page.locator('[data-reader-retry-profile]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Версия обновлена'));
+  assert.equal(nativeDeadlineCalls.filter(call => call.path === '/reader-api/v1/profile').length, nativeWrites, 'deadline recovery must read state without replaying the write');
+  await page.unroute('**/reader-auth/logout');
+  heldRequest = { path: '/reader-auth/logout', method: 'POST' };
+  const logoutDeadlineStart = Date.now();
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
-  await retry.waitFor({ timeout: 9000 });
+  await retry.waitFor({ timeout: 12000 });
   assert.match(await status.textContent(), /Не удалось выйти/);
-  hangLogout = false;
+  assert.ok(Date.now() - logoutDeadlineStart >= 6500, 'logout must wait for its actual UI deadline');
+  assert.ok(nativeDeadlineCalls.some(call => call.path === heldRequest.path));
+  heldRequest = null;
   await ready();
+  avatarDelay = 500;
+  await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('pending-avatar') });
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   assert.equal(await page.locator('[data-reader-identity]').textContent(), '');
   assert.equal(await page.locator('[data-reader-actions]').textContent(), '');
-  console.log('Reader browser regression: boxed theme alignment, responsive account states, semantic headings, keyboard targets, safe DTO, logout retry, deadlines, private-state clearing: PASS');
+  await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+  await page.waitForFunction(() => document.querySelector('[data-reader-status]').textContent === 'Вы вошли в кабинет.');
+  for (const selector of ['[data-reader-save-profile]', '[data-reader-avatar-input]', '[data-reader-remove-avatar]']) {
+    assert.equal(await page.locator(selector).isDisabled(), false, `${selector} must be re-enabled after pagehide abort and reauthentication`);
+  }
+  console.log('Reader browser regression: responsive account states, Unicode edits, conflicts, CSRF refresh, avatar writes, account switches, real request/body/logout deadlines, mutation reconciliation and private-state races: PASS');
 } finally {
   if (browser) await browser.close();
+  for (const response of heldResponses) response.destroy();
   await new Promise(resolve => server.close(resolve));
 }

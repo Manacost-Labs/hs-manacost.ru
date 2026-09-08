@@ -130,6 +130,16 @@
       "checks": ["nginx -t", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["ops/reader/**"],
+      "owner": "reader-staging-operations",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["reader-auth", "reader-account", "deployment", "proxy"],
+      "domains": ["test.hs-manacost.ru", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch", "agent-security-and-hardening"],
+      "checks": ["make reader-test", "nginx -t", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["ops/ci/**", ".github/workflows/**", "ops/deploy.sh", "ops/smoke-check.sh"],
       "owner": "delivery-pipeline",
       "classified": true,
