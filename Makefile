@@ -1,6 +1,6 @@
-.PHONY: check composer-validate code-quality php-lint test shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
+.PHONY: check composer-validate code-quality php-lint test reader-test reader-browser-test shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
 
-check: composer-validate php-lint contract-check skill-audit test shell-check
+check: composer-validate php-lint contract-check skill-audit test reader-test shell-check
 
 composer-validate:
 	@composer validate --strict --no-check-publish
@@ -14,6 +14,15 @@ php-lint:
 
 test:
 	@python3 -m unittest discover -s tests -v
+
+reader-test:
+	@for source in services/reader/*.js; do node --check "$$source" || exit; done
+	@node --test services/reader/test/*.test.js
+	@node --check wordpress/mu-plugins/hs-manacost-reader/reader.js
+	@python3 -m unittest discover -s tests/reader-ui -v
+
+reader-browser-test:
+	@node tests/reader-ui/browser.mjs
 
 shell-check:
 	@find ops -type f -name '*.sh' -print0 | xargs -0 -n 1 bash -n
