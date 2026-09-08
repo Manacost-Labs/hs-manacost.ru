@@ -80,7 +80,7 @@
       "checks": ["make integration", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/plausible-analytics.php", "wordpress/mu-plugins/manacost-ad-polish.php"],
+      "patterns": ["wordpress/mu-plugins/plausible-analytics.php", "wordpress/mu-plugins/manacost-ad-polish.php", "wordpress/mu-plugins/manacost-rsya-inline.php"],
       "owner": "ads-analytics",
       "classified": true,
       "risk": "high",

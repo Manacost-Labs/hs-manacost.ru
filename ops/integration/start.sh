@@ -79,5 +79,11 @@ find "$SITE_DIR/wp-content/mu-plugins" -type f -exec chmod 0644 {} +
 "${compose[@]}" run --rm cli plugin activate classic-editor hs-manacost-inline-deck wp-kolodahearthstone-spoilers --quiet
 "${compose[@]}" run --rm cli option update permalink_structure '/%postname%/' --quiet
 "${compose[@]}" run --rm cli rewrite flush --hard --quiet
+# The CLI container cannot detect Apache's mod_rewrite. Generate the rules
+# explicitly so browser tests exercise WordPress articles, not an Apache 404.
+# PHP, not the shell, must expand $wp_rewrite.
+# shellcheck disable=SC2016
+"${compose[@]}" run --rm cli eval 'global $wp_rewrite; echo $wp_rewrite->mod_rewrite_rules();' >"$SITE_DIR/.htaccess"
+chmod 0644 "$SITE_DIR/.htaccess"
 
 printf 'Integration WordPress is ready at http://127.0.0.1:%s\n' "$WP_TEST_PORT"
