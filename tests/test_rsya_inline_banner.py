@@ -12,14 +12,20 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/manacost-rsya-inline.php"
 PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 NODE_BINARY = shutil.which("node") or "/usr/bin/node"
-TARGET_SLUG = "kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti"
+RECENT_SLUG = "kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti"
+FIRST_ENABLED_POST_GMT = "2026-08-31 09:00:39"
+INTRO_BLOCK_ID = "R-A-16113237-6"
+FOOTER_BLOCK_ID = "R-A-16113237-5"
 
 
 class RsyaInlineBannerTest(unittest.TestCase):
     def render_result(
         self,
         *,
-        slug: str = TARGET_SLUG,
+        slug: str = RECENT_SLUG,
+        published_at: str = "2026-09-07 14:31:11",
+        status: str = "publish",
+        logged_in: bool = False,
         admin: bool = False,
         singular: bool = True,
         content_in_loop: bool = True,
@@ -39,7 +45,16 @@ class RsyaInlineBannerTest(unittest.TestCase):
         script = f"""
         define('ABSPATH', '/');
         {rsya_flag}
-        class WP_Post {{ public string $post_name; public function __construct($slug) {{ $this->post_name = $slug; }} }}
+        class WP_Post {{
+            public string $post_name;
+            public string $post_date_gmt;
+            public string $post_status;
+            public function __construct($slug, $published_at, $status) {{
+                $this->post_name = $slug;
+                $this->post_date_gmt = $published_at;
+                $this->post_status = $status;
+            }}
+        }}
         $phase = 'head';
         $actions = [];
         $filters = [];
@@ -59,7 +74,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
         function is_feed() {{ return false; }}
         function is_preview() {{ return false; }}
         function wp_doing_ajax() {{ return false; }}
-        function get_queried_object() {{ return new WP_Post({json.dumps(slug)}); }}
+        function is_user_logged_in() {{ return {json.dumps(logged_in)}; }}
+        function get_queried_object() {{ return new WP_Post({json.dumps(slug)}, {json.dumps(published_at)}, {json.dumps(status)}); }}
         function wp_strip_all_tags($value) {{ return trim(strip_tags($value)); }}
         function wp_json_encode($value) {{ return json_encode($value); }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
@@ -108,40 +124,57 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
-    def test_target_article_loads_yandex_once_and_places_banner_after_intro(self) -> None:
+    def test_enabled_article_loads_yandex_once_and_places_banner_after_intro(self) -> None:
         result = self.render_result()
 
         self.assertEqual(
             result["scripts"]["manacost-rsya-loader"],
-            ["https://yandex.ru/ads/system/context.js", [], "R-A-16113237-5", {"strategy": "async"}],
+            ["https://yandex.ru/ads/system/context.js", [], INTRO_BLOCK_ID, {"strategy": "async"}],
         )
         self.assertEqual(result["inline_scripts"][0][2], "before")
         self.assertIn("window.yaContextCb = window.yaContextCb || []", result["inline_scripts"][0][1])
 
         content = result["content"]
-        self.assertEqual(content.count('id="yandex_rtb_R-A-16113237-5"'), 1)
+        self.assertEqual(content.count(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'), 1)
         self.assertEqual(content.count('<div class="manacost-rsya-inline" data-manacost-rsya-unit'), 2)
-        self.assertIn('id="yandex_rtb_R-A-16113237-5-after-telegram"', content)
+        self.assertIn(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"', content)
         self.assertIn('data-manacost-rsya-unit', content)
         self.assertNotIn("manacost-rsya-consent", content)
         self.assertNotIn("Показать рекламу", content)
         self.assertIn("Ya.Context.AdvManager.render", content)
         self.assertLess(
             content.index("Третий текстовый абзац."),
-            content.index('id="yandex_rtb_R-A-16113237-5"'),
+            content.index(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'),
         )
         self.assertLess(
-            content.index('id="yandex_rtb_R-A-16113237-5"'),
+            content.index(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'),
             content.index("Основной раздел"),
         )
         self.assertLess(
             content.index("t.me/manacost_ru"),
-            content.index('id="yandex_rtb_R-A-16113237-5-after-telegram"'),
+            content.index(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'),
         )
 
-    def test_banner_does_not_run_for_other_articles_or_admin(self) -> None:
+    def test_banner_covers_the_initial_ten_and_all_future_articles(self) -> None:
         for kwargs in (
-            {"slug": "another-post"},
+            {"slug": "tenth-latest-post", "published_at": FIRST_ENABLED_POST_GMT},
+            {"slug": "future-post", "published_at": "2026-10-01 00:00:00"},
+        ):
+            with self.subTest(**kwargs):
+                result = self.render_result(**kwargs)
+                self.assertIn("yandex_rtb", result["content"])
+                self.assertIn("manacost-rsya-loader", result["scripts"])
+
+    def test_banner_renders_for_guest_and_authenticated_visitors(self) -> None:
+        for logged_in in (False, True):
+            with self.subTest(logged_in=logged_in):
+                result = self.render_result(logged_in=logged_in)
+                self.assertIn(f'id="yandex_rtb_{INTRO_BLOCK_ID}"', result["content"])
+
+    def test_banner_does_not_run_before_the_coverage_cutoff_or_admin(self) -> None:
+        for kwargs in (
+            {"slug": RECENT_SLUG, "published_at": "2026-08-31 09:00:38"},
+            {"status": "private"},
             {"admin": True},
             {"rsya_enabled": False},
         ):
