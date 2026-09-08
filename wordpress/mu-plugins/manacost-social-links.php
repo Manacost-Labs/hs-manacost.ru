@@ -15,6 +15,7 @@ final class Manacost_Social_Links {
 	private const THEME_OPTIONS_OPTION = 'td_011';
 	private const GITHUB_URL           = 'https://github.com/Manacost-Labs';
 	private const BOOSTY_URL           = 'https://boosty.to/kolodahearthstone';
+	private const PATREON_URL          = 'https://www.patreon.com/cw/manacostru';
 
 	/**
 	 * Registers the theme extension points.
@@ -61,7 +62,7 @@ final class Manacost_Social_Links {
 	}
 
 	/**
-	 * Replaces the legacy Website entry and inserts GitHub immediately before Boosty.
+	 * Replaces the legacy Website entry and adds the managed support links.
 	 *
 	 * @param array<string, string> $networks Existing Newspaper social network URLs.
 	 * @return array<string, string>
@@ -71,7 +72,7 @@ final class Manacost_Social_Links {
 		$targets_inserted = false;
 
 		foreach ( $networks as $network => $url ) {
-			if ( 'website' === $network || 'github' === $network || 'boosty' === $network ) {
+			if ( 'website' === $network || 'github' === $network || 'boosty' === $network || 'patreon' === $network ) {
 				if ( ! $targets_inserted ) {
 					self::append_target_networks( $updated );
 					$targets_inserted = true;
@@ -97,8 +98,9 @@ final class Manacost_Social_Links {
 	 * @return void
 	 */
 	private static function append_target_networks( array &$networks ): void {
-		$networks['github'] = self::GITHUB_URL;
-		$networks['boosty'] = self::BOOSTY_URL;
+		$networks['github']  = self::GITHUB_URL;
+		$networks['boosty']  = self::BOOSTY_URL;
+		$networks['patreon'] = self::PATREON_URL;
 	}
 
 	/**

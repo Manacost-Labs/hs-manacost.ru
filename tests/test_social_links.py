@@ -59,7 +59,7 @@ class SocialLinksTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
-    def test_replaces_website_with_boosty_and_inserts_github_once(self) -> None:
+    def test_replaces_website_with_support_links_once(self) -> None:
         result = self.run_plugin(
             {
                 "telegram": "https://t.me/manacost_ru",
@@ -76,6 +76,7 @@ class SocialLinksTest(unittest.TestCase):
                 "vk": "https://vk.com/manacost",
                 "github": "https://github.com/Manacost-Labs",
                 "boosty": "https://boosty.to/kolodahearthstone",
+                "patreon": "https://www.patreon.com/cw/manacostru",
             },
             result["networks"],
         )
@@ -87,6 +88,7 @@ class SocialLinksTest(unittest.TestCase):
                 "telegram": "https://t.me/manacost_ru",
                 "github": "https://github.com/other",
                 "boosty": "https://boosty.to/other",
+                "patreon": "https://www.patreon.com/other",
                 "discord": "https://discord.com/invite/manacost",
             }
         )["networks"]
@@ -96,6 +98,7 @@ class SocialLinksTest(unittest.TestCase):
         self.assertEqual("https://discord.com/invite/manacost", first["discord"])
         self.assertEqual("https://github.com/Manacost-Labs", first["github"])
         self.assertEqual("https://boosty.to/kolodahearthstone", first["boosty"])
+        self.assertEqual("https://www.patreon.com/cw/manacostru", first["patreon"])
 
     def test_outputs_the_scoped_boosty_icon_style(self) -> None:
         styles = self.run_plugin({})["styles"]
