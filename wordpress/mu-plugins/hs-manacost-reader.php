@@ -27,6 +27,12 @@ function hs_manacost_reader_page(): ?WP_Post {
 	return $page && 'publish' === $page->post_status && has_shortcode( $page->post_content, 'hs_manacost_reader_account' ) ? $page : null;
 }
 
+/**
+ * Append the account link only to the primary menu when its page exists.
+ *
+ * @param string   $items Existing menu markup.
+ * @param stdClass $args  WordPress menu rendering arguments.
+ */
 function hs_manacost_reader_menu( string $items, stdClass $args ): string {
 	if ( 'header-menu' !== ( $args->theme_location ?? '' ) ) {
 		return $items;
@@ -40,6 +46,7 @@ function hs_manacost_reader_menu( string $items, stdClass $args ): string {
 		. esc_url( $url ) . '">Кабинет</a></li>';
 }
 
+/** Load the scoped account bundle only on its explicitly provisioned page. */
 function hs_manacost_reader_assets(): void {
 	$page = hs_manacost_reader_page();
 	if ( ! $page || ! is_page( $page->ID ) ) {
@@ -47,9 +54,19 @@ function hs_manacost_reader_assets(): void {
 	}
 	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
 	wp_enqueue_style( 'hs-manacost-reader', $base . 'reader.css', array(), '0.1.0' );
-	wp_enqueue_script( 'hs-manacost-reader', $base . 'reader.js', array(), '0.1.0', array( 'strategy' => 'defer', 'in_footer' => true ) );
+	wp_enqueue_script(
+		'hs-manacost-reader',
+		$base . 'reader.js',
+		array(),
+		'0.1.0',
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
+	);
 }
 
+/** Keep the account page out of shared caches and search indexes. */
 function hs_manacost_reader_cache_policy(): void {
 	$page = hs_manacost_reader_page();
 	if ( $page && is_page( $page->ID ) ) {

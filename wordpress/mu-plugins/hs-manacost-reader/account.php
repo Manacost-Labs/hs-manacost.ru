@@ -1,5 +1,10 @@
 <?php
-/** Cache-safe account shell; loader owns hooks and no WP identity is read. */
+/**
+ * Cache-safe account shell; loader owns hooks and no WP identity is read.
+ *
+ * @package Manacost
+ */
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -9,11 +14,11 @@ defined( 'ABSPATH' ) || exit;
  */
 function hs_manacost_reader_account_shell( array $config = array() ): string {
 	$defaults = array(
-		'me_endpoint' => '/reader-api/v1/me',
+		'me_endpoint'     => '/reader-api/v1/me',
 		'logout_endpoint' => '/reader-auth/logout',
-		'login_endpoint' => '/reader-auth/start?returnTo=%2Faccount%2F',
+		'login_endpoint'  => '/reader-auth/start?returnTo=%2Faccount%2F',
 	);
-	$public = array();
+	$public   = array();
 	foreach ( $defaults as $key => $fallback ) {
 		$value = isset( $config[ $key ] ) && is_string( $config[ $key ] ) ? $config[ $key ] : $fallback;
 		if ( 0 !== strpos( $value, '/' ) || 0 === strpos( $value, '//' ) || false !== strpos( $value, '\\' ) || preg_match( '/[\x00-\x1F\x7F]/', $value ) ) {
