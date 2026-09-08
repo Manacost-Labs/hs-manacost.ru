@@ -29,13 +29,13 @@ function hs_manacost_reader_page(): ?WP_Post {
 }
 
 /**
- * Give the provisioned account its own workspace without changing editorial pages.
+ * Give the account a uniquely named template that Composer does not remap.
  *
  * @param string $template Theme template selected by WordPress.
  */
 function hs_manacost_reader_template( string $template ): string {
 	$page = hs_manacost_reader_page();
-	return $page && is_page( $page->ID ) ? __DIR__ . '/hs-manacost-reader/page.php' : $template;
+	return $page && is_page( $page->ID ) ? __DIR__ . '/hs-manacost-reader/reader-account-page.php' : $template;
 }
 
 /**

@@ -1,5 +1,6 @@
 import json
 import pathlib
+import re
 import subprocess
 import unittest
 
@@ -8,6 +9,46 @@ LOADER = ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php'
 
 
 class ReaderTemplateTests(unittest.TestCase):
+    def test_template_survives_active_composer_remapping(self):
+        composer = ROOT / 'wordpress/plugins/td-composer'
+        source = (composer / 'td-composer.php').read_text()
+        # Execute the installed vendor callback, without booting the whole plugin.
+        callback = re.search(r'function tdc_template_include\(\$template\) \{.*?^}', source, re.M | re.S)
+        self.assertIsNotNone(callback)
+        self.assertRegex(source, r"add_filter\(\s*'template_include',\s*'tdc_template_include',\s*99\s*\)")
+        fixture = r'''
+define('ABSPATH', '/fixture/');
+define('HS_MANACOST_READER_ENABLED', true);
+define('TDC_PATH_LEGACY', $argv[2] . '/legacy/Newspaper');
+define('STYLESHEETPATH', '/fixture/theme');
+class WP_Post {
+    public $ID = 42;
+    public $post_status = 'publish';
+    public $post_content = '[hs_manacost_reader_account]';
+}
+function add_action(...$args) {}
+function add_shortcode(...$args) {}
+function add_filter($name, $callback, $priority = 10, ...$args) { $GLOBALS['filters'][$name][$priority][] = $callback; }
+function get_page_by_path($path) { return new WP_Post(); }
+function has_shortcode($content, $name) { return true; }
+function is_page($id) { return $id === 42; }
+function wp_basename($path) { return basename($path); }
+function is_child_theme() { return false; }
+require $argv[1];
+hs_manacost_reader_bootstrap();
+add_filter('template_include', 'tdc_template_include', 99);
+$filters = $GLOBALS['filters']['template_include'];
+ksort($filters);
+$template = '/theme/page.php';
+foreach ($filters as $callbacks) {
+    foreach ($callbacks as $callback) { $template = $callback($template); }
+}
+echo $template;
+'''
+        result = subprocess.run(['php', '-r', callback.group(0) + fixture, str(LOADER), str(composer)],
+                                check=True, capture_output=True, text=True)
+        self.assertEqual(pathlib.Path(result.stdout).parent, LOADER.parent / 'hs-manacost-reader')
+
     def test_template_only_for_explicit_enabled_account_page(self):
         fixture = r'''
 define('ABSPATH', '/fixture/');
@@ -46,7 +87,7 @@ echo json_encode($results);
                 result = subprocess.run(['php', '-r', fixture, str(LOADER), mode],
                                         check=True, capture_output=True, text=True)
                 templates = json.loads(result.stdout)
-                expected = str(LOADER.parent / 'hs-manacost-reader/page.php') if mode == 'enabled' else '/theme/page.php'
+                expected = str(LOADER.parent / 'hs-manacost-reader/reader-account-page.php') if mode == 'enabled' else '/theme/page.php'
                 self.assertEqual(templates, [expected, '/theme/article.php', '/theme/page.php', '/theme/page.php', '/theme/page.php'])
 
     def test_page_keeps_theme_shell_and_normal_content_pipeline(self):
@@ -60,7 +101,7 @@ function the_content() { echo '<section>Filtered page content</section>'; }
 function get_sidebar() { throw new Exception('Editorial sidebar must not render in the account template'); }
 require $argv[1];
 '''
-        template = LOADER.parent / 'hs-manacost-reader/page.php'
+        template = LOADER.parent / 'hs-manacost-reader/reader-account-page.php'
         result = subprocess.run(['php', '-r', fixture, str(template)], check=True, capture_output=True, text=True)
         self.assertIn('<header>Site navigation</header>', result.stdout)
         self.assertIn('<footer>Site links</footer>', result.stdout)

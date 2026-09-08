@@ -1,6 +1,6 @@
 <?php
 /**
- * Reader workspace inside the existing theme header and footer.
+ * Reader workspace; unique basename avoids Composer's legacy page replacement.
  *
  * @package Manacost
  */

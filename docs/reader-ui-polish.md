@@ -15,6 +15,8 @@ captures were 3081px tall at 1440px and 3668px at 390px, mostly unrelated
 sidebar content. The account now uses an explicitly scoped page template with
 the normal theme header/footer and `the_content()` pipeline. No page-template
 database assignment, vendor theme edits, or CSS hiding of editorial blocks.
+The unique `reader-account-page.php` basename is intentional: active Composer
+remaps generic filenames such as `page.php` to its legacy theme at priority 99.
 
 One H1, two H2 sections, a desktop two-column workspace and stacked mobile
 layout. Keep native links/buttons, visible focus, 44px targets, live status,
@@ -35,6 +37,8 @@ labelled as in development; no pretend data or enabled save actions.
 
 Behavioral PHP tests cover opt-in/provisioned template selection, other-page
 passthrough and preservation of the content/header/footer pipeline. Browser
+tests are complemented by executing the installed Composer template callback
+after our filter to prevent a silent return to the editorial template. Browser
 tests use the real shell, theme stylesheet and auth JS with synthetic API
 responses: guest/authenticated/error states, 320/390/560/768/1024/1440 widths,
 long Cyrillic/Latin names, enlarged text, focus, logout retry, request deadlines
