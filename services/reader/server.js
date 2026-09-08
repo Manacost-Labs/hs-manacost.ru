@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ReaderStore } from './core.js';
@@ -48,6 +49,6 @@ function start() {
   server.listen(port, '127.0.0.1');
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { clearInterval(timer); server.close(() => { store.close(); }); });
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try { start(); } catch { process.stderr.write('Reader configuration invalid; service not started.\n'); process.exitCode = 1; }
 }

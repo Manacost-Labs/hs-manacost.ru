@@ -140,6 +140,14 @@ authenticated browser flows on real staging HTTPS, cache warm and cold,
 desktop/mobile, cancellation, expiry, parent reset/block, outage, and logout
 during callback. A local fixture is not evidence of successful live SSO.
 
+Both RU staging edges additionally include `ops/reader/proxy-staging-reader.conf`
+inside the existing HTTPS vhost using the single-include companion patch. This
+keeps their BasicAuth gate, suppresses callback queries in access/error logs,
+and enables CA-verified origin TLS for the reader routes (the pre-existing
+general proxy configuration is not changed). Back up each exact vhost before
+patching, run patch dry-run and `nginx -t`, then reload; rollback restores that
+vhost and reloads without touching its shared production configuration.
+
 Rollback hides the UI by disabling its flag first, disables new authorization
 at the provider, and stops routing the BFF. Preserve its encrypted DB and keys;
 do not delete users, historical comments or editorial data. Existing WP admin

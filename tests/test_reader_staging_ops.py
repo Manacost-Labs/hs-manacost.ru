@@ -260,6 +260,21 @@ class ReaderStagingOpsTests(unittest.TestCase):
         ):
             self.assertIn(directive, source)
 
+    def test_reader_edge_routes_disable_query_logs_and_verify_origin_tls(self) -> None:
+        source = (ROOT / "ops/reader/proxy-staging-reader.conf").read_text(encoding="utf-8")
+        for directive in (
+            "location ~ ^/(?:reader-auth|reader-api)/",
+            "access_log off;", "error_log /dev/null;", "proxy_cache off;",
+            "proxy_ssl_verify on;", "proxy_ssl_name test.hs-manacost.ru;",
+            "proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;",
+            "proxy_set_header Authorization $http_authorization;",
+            "proxy_set_header X-Forwarded-For $remote_addr;",
+            "proxy_set_header CF-Connecting-IP $remote_addr;",
+        ):
+            self.assertIn(directive, source)
+        self.assertNotIn("auth_basic off", source)
+        self.assertNotIn("$proxy_add_x_forwarded_for", source)
+
     def test_hearthpulse_vhost_is_public_but_has_exact_noindex_allowlist(self) -> None:
         source = HEARTHPULSE_NGINX.read_text(encoding="utf-8")
         self.assertIn("listen 151.80.21.140:443 ssl;", source)
