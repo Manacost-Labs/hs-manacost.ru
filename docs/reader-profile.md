@@ -114,6 +114,34 @@ new session state. Roll back UI through the staging release's recorded backup
 if needed. Restore the prior origin vhost and syntax-check/reload only if the
 proxy slice fails. Do not roll back the database for an ordinary binary issue.
 
+### Regional reader TLS boundary
+
+The staging reader must not use the ordinary `hs_manacost_origin` keepalive
+pool: ordinary pages disable upstream certificate verification while reader
+routes require it. A reused connection is not a fresh verified TLS handshake.
+Use the separate `hs_manacost_reader_origin` upstream without keepalive, with
+`Connection close` and `proxy_ssl_session_reuse off`. Keep the staging SNI,
+certificate verification/system CA bundle, BasicAuth forwarding and no-cache
+boundary. This is defense in depth, not a proven explanation of a transient 502.
+
+On each RU edge, install `ops/reader/proxy-staging-upstream.conf` as
+`/etc/nginx/conf.d/manacost-reader-staging-upstream.conf` (HTTP context), and
+`ops/reader/proxy-staging-reader.conf` as
+`/etc/nginx/snippets/manacost-reader-staging.conf` (already included by the
+active staging vhost). Resolve active paths with `nginx -T`; on Novosibirsk,
+`sites-available` is a stale shadow, not the active staging configuration.
+Never edit the production/shared upstream or other vhost settings in this slice.
+
+Before mutation, verify exact current/candidate hashes and root-controlled
+paths, seal candidates and save the original snippet in a private backup.
+Fail if the new upstream name/path already exists. Install both candidates,
+verify installed hashes, then `nginx -t` and reload; on any failure restore
+the old snippet and move the newly owned upstream out of the include directory
+before syntax-check/reload. Canary Novosibirsk before Moscow. Verify fresh TLS
+requests for unauthenticated `/me` and avatar (401), oversized upload (413),
+and guest login reaching the production HearthPulse form. Preserve credential
+and auth-URL privacy. Remove temporary staging QA credentials after verification.
+
 ## Acceptance
 
 Run `make check`, `make code-quality`, contracts, dependency/secret scans and
