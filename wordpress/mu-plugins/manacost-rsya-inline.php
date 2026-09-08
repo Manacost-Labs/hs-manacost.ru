@@ -113,12 +113,13 @@ final class Manacost_Rsya_Inline_Banner {
 		}
 
 		$text_paragraphs = 0;
+		$intro_inserted  = false;
 		$intro_banner    = self::render_banner( 'intro', self::INTRO_BLOCK_ID );
 		$footer_banner   = self::render_banner( 'after-telegram', self::FOOTER_BLOCK_ID, '-after-telegram' );
 
 		$result = preg_replace_callback(
 			'#<p\\b[^>]*>.*?</p>#is',
-			static function ( array $matches ) use ( &$text_paragraphs, $intro_banner ): string {
+			static function ( array $matches ) use ( &$text_paragraphs, &$intro_inserted, $intro_banner ): string {
 				$paragraph = $matches[0];
 
 				if ( '' === wp_strip_all_tags( $paragraph ) ) {
@@ -127,10 +128,42 @@ final class Manacost_Rsya_Inline_Banner {
 
 				++$text_paragraphs;
 
-				return $paragraph . ( self::TEXT_PARAGRAPH_POSITION === $text_paragraphs ? $intro_banner : '' );
+				if ( self::TEXT_PARAGRAPH_POSITION === $text_paragraphs ) {
+					$intro_inserted = true;
+
+					return $paragraph . $intro_banner;
+				}
+
+				return $paragraph;
 			},
 			$content
 		);
+
+		if ( ! is_string( $result ) ) {
+			return $content;
+		}
+
+		if ( ! $intro_inserted && $text_paragraphs > 0 ) {
+			$result = preg_replace_callback(
+				'#<p\\b[^>]*>.*?</p>#is',
+				static function ( array $matches ) use ( &$intro_inserted, $intro_banner ): string {
+					$paragraph = $matches[0];
+
+					if ( $intro_inserted || '' === wp_strip_all_tags( $paragraph ) ) {
+						return $paragraph;
+					}
+
+					$intro_inserted = true;
+
+					return $paragraph . $intro_banner;
+				},
+				$result
+			);
+		}
+
+		if ( ! $intro_inserted ) {
+			$result .= $intro_banner;
+		}
 
 		return is_string( $result ) ? $result . $footer_banner : $content;
 	}
