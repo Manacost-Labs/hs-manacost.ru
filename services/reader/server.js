@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ReaderStore } from './core.js';
@@ -27,7 +28,8 @@ function start() {
   process.umask(0o077);
   const options = { origin: process.env.READER_ORIGIN, issuer: process.env.READER_ISSUER,
     clientId: process.env.READER_CLIENT_ID, clientSecret: process.env.READER_CLIENT_SECRET,
-    deployment: process.env.READER_DEPLOYMENT };
+    deployment: process.env.READER_DEPLOYMENT,
+    allowProductionIdentityForStaging: process.env.READER_ALLOW_PRODUCTION_IDENTITY_FOR_STAGING === '1' };
   const identity = createIdentityClient(options);
   const filename = process.env.READER_DATABASE;
   if (!filename || !isAbsolute(filename)) throw new Error('An absolute private READER_DATABASE path is required');
@@ -48,6 +50,6 @@ function start() {
   server.listen(port, '127.0.0.1');
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { clearInterval(timer); server.close(() => { store.close(); }); });
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try { start(); } catch { process.stderr.write('Reader configuration invalid; service not started.\n'); process.exitCode = 1; }
 }

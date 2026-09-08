@@ -20,7 +20,7 @@
   },
   "rules": [
     {
-      "patterns": ["services/reader/**", "tests/test_reader*.py", "tests/reader-ui/**", "wordpress/mu-plugins/hs-manacost-reader.php", "wordpress/mu-plugins/hs-manacost-reader/**"],
+      "patterns": ["ops/reader/**", "services/reader/**", "tests/test_reader*.py", "tests/reader-ui/**", "wordpress/mu-plugins/hs-manacost-reader.php", "wordpress/mu-plugins/hs-manacost-reader/**"],
       "owner": "reader-identity",
       "classified": true,
       "risk": "high",
