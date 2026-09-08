@@ -31,8 +31,9 @@ class RsyaInlineBannerTest(unittest.TestCase):
         content_in_loop: bool = True,
         content_main_query: bool = True,
         rsya_enabled: bool = True,
+        content: str | None = None,
     ) -> dict:
-        content = (
+        content = content or (
             "<p><img src=\"cover.jpg\" alt=\"\"></p>"
             "<p>Первый текстовый абзац.</p>"
             "<p>Второй текстовый абзац.</p>"
@@ -164,6 +165,40 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 result = self.render_result(**kwargs)
                 self.assertIn("yandex_rtb", result["content"])
                 self.assertIn("manacost-rsya-loader", result["scripts"])
+
+    def test_short_article_keeps_the_intro_placement_separate_from_the_footer(self) -> None:
+        result = self.render_result(
+            slug="future-short-post",
+            published_at="2026-10-01 00:00:00",
+            content="<p>Короткий, но полноценный материал.</p>",
+        )
+
+        content = result["content"]
+        self.assertEqual(content.count(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'), 1)
+        self.assertEqual(content.count(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'), 1)
+        self.assertLess(
+            content.index("Короткий, но полноценный материал.</p>"),
+            content.index(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'),
+        )
+        self.assertLess(
+            content.index(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'),
+            content.index(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'),
+        )
+
+    def test_article_without_paragraph_tags_still_has_both_placements(self) -> None:
+        result = self.render_result(
+            slug="future-embed-only-post",
+            published_at="2026-10-01 00:00:00",
+            content="<figure><img src=\"cover.jpg\" alt=\"Обложка\"></figure>",
+        )
+
+        content = result["content"]
+        self.assertEqual(content.count(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'), 1)
+        self.assertEqual(content.count(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'), 1)
+        self.assertLess(
+            content.index(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'),
+            content.index(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'),
+        )
 
     def test_banner_renders_for_guest_and_authenticated_visitors(self) -> None:
         for logged_in in (False, True):
