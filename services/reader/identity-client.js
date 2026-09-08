@@ -1,7 +1,8 @@
 import * as oidc from 'openid-client';
 import { ReaderAuthorizationDenied } from './core.js';
 
-export function validateIdentityClient({ origin, issuer, clientId, clientSecret, deployment }) {
+export function validateIdentityClient(options) {
+  const { origin, issuer, clientId, clientSecret, deployment, allowProductionIdentityForStaging } = options;
   const site = new URL(origin); const identity = new URL(issuer);
   if (!['production', 'staging', 'test'].includes(deployment)
     || site.origin !== origin || site.protocol !== 'https:' || site.port
@@ -9,9 +10,15 @@ export function validateIdentityClient({ origin, issuer, clientId, clientSecret,
     || identity.username || identity.password || identity.search || identity.hash || identity.port
     || !clientId || typeof clientSecret !== 'string' || clientSecret.length < 43) throw new Error('Invalid identity client configuration');
   const production = deployment === 'production';
+  const productionIdentityForStaging = allowProductionIdentityForStaging === true
+    && deployment === 'staging'
+    && origin === 'https://test.hs-manacost.ru'
+    && issuer === 'https://hearthpulse.net/identity'
+    && clientId === 'manacost-reader-staging';
+  if (allowProductionIdentityForStaging === true && !productionIdentityForStaging) throw new Error('Invalid production identity bridge');
   if (production !== ['hs-manacost.ru', 'hs-manacost.com'].includes(site.hostname)
-    || production !== (issuer === 'https://hearthpulse.net/identity')
-    || (!production && identity.hostname === 'hearthpulse.net')) throw new Error('Mixed identity environments');
+    || (production && issuer !== 'https://hearthpulse.net/identity')
+    || (!production && identity.hostname === 'hearthpulse.net' && !productionIdentityForStaging)) throw new Error('Mixed identity environments');
 }
 
 /** Fixed first-party metadata avoids discovery-controlled outbound destinations. HTTPS and ID-token signatures stay mandatory. */
@@ -34,7 +41,10 @@ export function createIdentityClient(options, transport = fetch) {
     return value;
   }
   return {
-    profileUrl: options.deployment === 'production' ? 'https://hearthpulse.net/?login' : null,
+    profileUrl: options.deployment === 'production' || options.allowProductionIdentityForStaging === true
+      && options.deployment === 'staging' && options.origin === 'https://test.hs-manacost.ru'
+      && options.issuer === 'https://hearthpulse.net/identity' && options.clientId === 'manacost-reader-staging'
+      ? 'https://hearthpulse.net/?login' : null,
     authorizationUrl({ state, nonce, codeChallenge }) {
       return oidc.buildAuthorizationUrl(config(), { redirect_uri: `${origin}/reader-auth/callback`,
         scope: 'openid profile', response_type: 'code', prompt: 'login consent', state, nonce,

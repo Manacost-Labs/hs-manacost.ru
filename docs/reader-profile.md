@@ -97,6 +97,13 @@ Fetch `origin/main` explicitly first: the helper requires HEAD and origin/main
 to match the supplied SHA, without mutating refs during its dry run. Parent
 directories/artifact ownership are root-controlled; the active runtime user
 never receives write access while dependencies are being installed.
+The staging runtime uses an explicit production-identity bridge only for the
+exact staging host/client tuple. Preserve that existing opt-in and its environment
+flag; do not infer the active BFF revision from the WordPress deployment SHA.
+Compare the candidate against the actual current BFF artifact before replacing
+it. The entrypoint regression starts through a real release symlink with both
+isolated test identity and the exact production bridge, using synthetic keys and
+a temporary database; neither test sends requests to an identity provider.
 Apply the reader location from `ops/reader/origin-staging.conf` to the existing
 origin vhost only after backup, exact diff review and `nginx -t`. It preserves
 BasicAuth and auth headers; no production WP or HearthPulse proxy changes.
