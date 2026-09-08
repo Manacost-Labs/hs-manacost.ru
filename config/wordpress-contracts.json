@@ -2020,7 +2020,7 @@
         "resolved": true,
         "api": "add_shortcode",
         "file": "wordpress/mu-plugins/hs-manacost-reader.php",
-        "line": 18
+        "line": 20
       },
       {
         "name": "manacost_arena_decks",
@@ -2243,6 +2243,13 @@
       }
     ],
     "rest_routes": [
+      {
+        "name": "manacost-reader/v1/threads",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
+        "line": 110
+      },
       {
         "name": "manacost/v1/deck-meta/(?P<id>\\d+)",
         "resolved": true,

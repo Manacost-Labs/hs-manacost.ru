@@ -1,4 +1,5 @@
 import pathlib
+import subprocess
 import unittest
 
 ROOT = pathlib.Path(__file__).parents[2]
@@ -14,7 +15,16 @@ class ReaderUiContractTests(unittest.TestCase):
         cls.profile_js = PROFILE_JS.read_text() if PROFILE_JS.exists() else ''
     def test_shell_is_cache_safe_and_escaped(self):
         self.assertIn('hs_manacost_reader_account_shell', self.php); self.assertIn('esc_attr( $public[', self.php)
-        self.assertNotIn('wp_get_current_user', self.php); self.assertNotIn('get_current_user_id', self.php); self.assertNotIn('comment', self.php.lower())
+        for native_api in ('wp_get_current_user', 'get_current_user_id', 'wp_insert_comment', 'wp_list_comments', 'comment_form'):
+            self.assertNotIn(native_api, self.php)
+
+    def test_account_notice_matches_the_actual_community_flag(self):
+        fixture = "define('ABSPATH','/fixture/'); function esc_attr($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html__($s,$domain=''){return esc_html($s);} "
+        for enabled in (False, True):
+            setup = fixture + 'function hs_reader_comments_enabled(){return ' + ('true' if enabled else 'false') + ';} require $argv[1]; echo hs_manacost_reader_account_shell();'
+            html = subprocess.run(['php', '-r', setup, str(PHP)], capture_output=True, text=True, check=True).stdout
+            self.assertEqual('Комментарии пока недоступны.' in html, not enabled)
+            self.assertEqual('Публичный профиль появляется после вашего согласия и проверки модератором.' in html, enabled)
     def test_account_headings_and_live_status_are_semantic(self):
         self.assertRegex(self.php, r'<h1[^>]*>Кабинет читателя</h1>')
         self.assertRegex(self.php, r'<h2[^>]*id="mc-reader-profile-title"[^>]*>Профиль</h2>')

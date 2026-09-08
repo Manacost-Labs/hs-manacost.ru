@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { ReaderAuthorizationDenied, ReaderValidationError } from './core.js';
 import { createProfileRoutes, verifiedReader } from './profile-http.js';
+import { createCommentRoutes } from './comments-http.js';
 
 const SESSION_COOKIE = '__Host-manacost_reader';
 const ATTEMPT_COOKIE = '__Host-manacost_reader_login';
@@ -21,13 +22,15 @@ const matches = (left, right) => typeof left === 'string' && Buffer.byteLength(l
   && timingSafeEqual(Buffer.from(left), Buffer.from(right));
 
 /** Same-origin HTTP boundary. The first slice deliberately uses five-minute sessions without offline access. */
-export function createReaderHandler({ origin, store, identity, csrfKey, profiles }) {
+export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community }) {
   if (new URL(origin).origin !== origin || !origin.startsWith('https://') || csrfKey?.length !== 32) throw new Error('Invalid reader HTTP configuration');
   const csrf = id => createHmac('sha256', csrfKey).update(id).digest('base64url');
   const validWrite = (request, id) => request.headers.get('origin') === origin
     && request.headers.get('sec-fetch-site') !== 'cross-site' && Boolean(id)
     && matches(request.headers.get('x-reader-csrf'), csrf(id));
   const profileRoutes = createProfileRoutes({ store, identity, profiles, validWrite, json, securityHeaders });
+  if (community && origin !== 'https://test.hs-manacost.ru') throw new Error('Comments are staging-only');
+  const commentRoutes = createCommentRoutes({ community, store, identity, profiles, validWrite, json, securityHeaders });
   let windowStart = Date.now();
   const buckets = new Map();
   async function dispatch(request) {
@@ -95,7 +98,8 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       response.headers.append('Set-Cookie', store.serializeCookie('', 0));
       return response;
     }
-    return await profileRoutes(request, url, id, signal) ?? json(404, { error: 'not_found' });
+    return await profileRoutes(request, url, id, signal)
+      ?? await commentRoutes(request, url, id, signal) ?? json(404, { error: 'not_found' });
   }
   return async request => {
     try { return await dispatch(request); }

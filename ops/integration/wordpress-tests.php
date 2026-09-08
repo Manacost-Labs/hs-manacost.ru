@@ -186,4 +186,18 @@ hs_integration_assert(
     'manacost_cache_purge_last_results was not recorded'
 );
 
+// The reader bridge is additive and disabled here: no native user/comment activation.
+$readerUsersBefore = count_users()['total_users'];
+hs_manacost_reader_bootstrap();
+hs_integration_assert(count_users()['total_users'] === $readerUsersBefore, 'reader bootstrap created a WordPress user');
+hs_integration_assert(!shortcode_exists('hs_manacost_reader_account'), 'disabled reader registered an account shell');
+require_once WPMU_PLUGIN_DIR . '/hs-manacost-reader/comments-editorial.php';
+$readerRequest = new WP_REST_Request('POST', '/manacost-reader/v1/threads');
+hs_integration_assert($readerRequest->get_header('origin') === null, 'fixture must preserve the actual nullable REST header contract');
+$readerDenied = hs_reader_editorial_permission($readerRequest);
+hs_integration_assert(is_wp_error($readerDenied) && $readerDenied->get_error_data()['status'] === 403, 'disabled editorial adapter granted access');
+hs_reader_editorial_routes();
+hs_integration_assert(!isset(rest_get_server()->get_routes()['/manacost-reader/v1/threads']), 'disabled editorial route was registered');
+hs_integration_assert(!comments_open($postId), 'reader bridge enabled native comments');
+
 echo "WordPress PHP integration assertions: OK\n";

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Manacost Reader
  * Description: Opt-in anonymous account shell for the independent HearthPulse reader service.
- * Version: 0.3.0
+ * Version: 0.4.0
  *
  * @package Manacost
  */
@@ -15,6 +15,8 @@ function hs_manacost_reader_bootstrap(): void {
 		return;
 	}
 	require_once __DIR__ . '/hs-manacost-reader/account.php';
+	require_once __DIR__ . '/hs-manacost-reader/comments-loader.php';
+	hs_reader_comments_bootstrap();
 	add_shortcode( 'hs_manacost_reader_account', 'hs_manacost_reader_account_shell' );
 	add_filter( 'wp_nav_menu_items', 'hs_manacost_reader_menu', 20, 2 );
 	add_filter( 'template_include', 'hs_manacost_reader_template' );
@@ -65,6 +67,9 @@ function hs_manacost_reader_assets(): void {
 	}
 	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
 	wp_enqueue_style( 'hs-manacost-reader', $base . 'reader.css', array(), '0.3.0' );
+	if ( hs_reader_public_profile_request() ) {
+		return;
+	}
 	wp_enqueue_script(
 		'hs-manacost-reader-profile-editor',
 		$base . 'profile-editor.js',
