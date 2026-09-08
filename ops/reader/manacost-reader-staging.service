@@ -1,0 +1,36 @@
+[Unit]
+Description=Manacost Reader staging BFF
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=manacost-reader-staging
+Group=manacost-reader-staging
+WorkingDirectory=/srv/manacost-reader-staging/current
+EnvironmentFile=/etc/manacost-reader-staging/service.env
+Environment=NODE_ENV=staging
+Environment=READER_PORT=18181
+Environment=READER_DATABASE=/var/lib/manacost-reader-staging/reader.sqlite
+ExecStart=/usr/bin/node /srv/manacost-reader-staging/current/server.js
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+MemoryMax=256M
+StateDirectory=manacost-reader-staging
+StateDirectoryMode=0700
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1
+IPAddressAllow=::1
+IPAddressAllow=151.80.21.140
+BindReadOnlyPaths=/etc/manacost-reader-staging/identity-hosts:/etc/hosts
+InaccessiblePaths=-/var/lib/manacost-ecosystem -/var/lib/docker -/var/www -/srv/projects/web -/etc/hs-arena
+
+[Install]
+WantedBy=multi-user.target

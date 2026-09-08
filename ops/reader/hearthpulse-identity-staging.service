@@ -1,0 +1,41 @@
+[Unit]
+Description=HearthPulse identity staging service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=hearthpulse-identity-staging
+Group=hearthpulse-identity-staging
+WorkingDirectory=/srv/hearthpulse-identity-staging/current
+EnvironmentFile=/etc/hearthpulse-identity-staging/service.env
+Environment=HOST=127.0.0.1
+Environment=PORT=18182
+Environment=BACKGROUND_JOBS_ENABLED=0
+Environment=ARENA_DRAFT_REFRESH_ENABLED=0
+Environment=REDIS_ENABLED=0
+ExecStart=/usr/bin/node build/server/index.js
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+MemoryMax=512M
+StateDirectory=hearthpulse-identity-staging
+StateDirectoryMode=0700
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1
+IPAddressAllow=::1
+InaccessiblePaths=-/var/lib/manacost-ecosystem -/var/lib/docker -/var/www -/srv/projects/web -/etc/hs-arena
+
+[Install]
+WantedBy=multi-user.target
