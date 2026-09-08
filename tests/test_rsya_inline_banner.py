@@ -32,6 +32,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
             "<p>Второй текстовый абзац.</p>"
             "<p>Третий текстовый абзац.</p>"
             "<h2>Основной раздел</h2><p>Продолжение материала.</p>"
+            "<div class=\"su-note\"><p><a href=\"https://t.me/manacost_ru\">"
+            "t.me/manacost_ru</a></p></div>"
         )
         rsya_flag = "" if rsya_enabled else "define('MANACOST_RSYA_INLINE_ENABLED', false);"
         script = f"""
@@ -118,6 +120,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
 
         content = result["content"]
         self.assertEqual(content.count('id="yandex_rtb_R-A-16113237-5"'), 1)
+        self.assertEqual(content.count('<div class="manacost-rsya-inline" data-manacost-rsya-unit'), 2)
+        self.assertIn('id="yandex_rtb_R-A-16113237-5-after-telegram"', content)
         self.assertIn('data-manacost-rsya-unit', content)
         self.assertNotIn("manacost-rsya-consent", content)
         self.assertNotIn("Показать рекламу", content)
@@ -129,6 +133,10 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertLess(
             content.index('id="yandex_rtb_R-A-16113237-5"'),
             content.index("Основной раздел"),
+        )
+        self.assertLess(
+            content.index("t.me/manacost_ru"),
+            content.index('id="yandex_rtb_R-A-16113237-5-after-telegram"'),
         )
 
     def test_banner_does_not_run_for_other_articles_or_admin(self) -> None:
@@ -161,10 +169,9 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertIn("onRender", result["content"])
         self.assertIn("data-manacost-rsya-rendered", result["content"])
 
-    def run_banner_script(self, content: str, scenario: str) -> dict:
-        script_match = re.search(r"<script>(.*?)</script>", content)
-        self.assertIsNotNone(script_match)
-        assert script_match is not None
+    def run_banner_script(self, content: str, scenario: str, script_index: int = 0) -> dict:
+        script_matches = re.findall(r"<script>(.*?)</script>", content)
+        self.assertGreater(len(script_matches), script_index)
 
         actions = {
             "no_fill": "fallback();",
@@ -202,7 +209,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 }},
             }},
         }};
-        {script_match.group(1)}
+        {script_matches[script_index]}
         if (!window.manacostRsyaLoaderFailed) {{
             callbacks[0]();
         }}
@@ -278,6 +285,14 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertEqual(
             {"failed": True, "hidden": True},
             self.run_loader_error_handler(result["inline_scripts"][0][1]),
+        )
+
+    def test_footer_banner_follows_telegram_and_uses_a_unique_container(self) -> None:
+        content = self.render_result()["content"]
+
+        self.assertEqual(
+            {"hidden": False, "rendered": "true", "renderCalls": 1},
+            self.run_banner_script(content, "rendered", script_index=1),
         )
 
 
