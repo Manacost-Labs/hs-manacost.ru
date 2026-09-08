@@ -214,6 +214,21 @@ class RsyaInlineBannerTest(unittest.TestCase):
             with self.subTest(logged_in=logged_in):
                 result = self.render_result(logged_in=logged_in)
                 self.assertIn(f'id="yandex_rtb_{INTRO_BLOCK_ID}"', result["content"])
+                self.assertIn(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"', result["content"])
+                self.assertIn(FLOOR_BLOCK_ID, result["footer"])
+
+    def test_existing_single_placement_does_not_prevent_the_missing_placement(self) -> None:
+        for block_id in (INTRO_BLOCK_ID, FOOTER_BLOCK_ID):
+            with self.subTest(block_id=block_id):
+                original = f'<p>Introduction.</p><div id="yandex_rtb_{block_id}"></div><p>Article.</p>'
+                content = self.render_result(content=original)["content"]
+                for expected_id in (INTRO_BLOCK_ID, FOOTER_BLOCK_ID):
+                    self.assertEqual(len(re.findall(f'id="yandex_rtb_{expected_id}(?:-after-telegram)?"', content)), 1)
+                self.assertEqual(self.render_result(content=content)["content"], content)
+
+    def test_mentioning_an_ad_identifier_is_not_a_placement(self) -> None:
+        result = self.render_result(content=f'<p>Example: yandex_rtb_{INTRO_BLOCK_ID}</p>')
+        self.assertEqual(result["content"].count('data-manacost-rsya-unit data-'), 2)
 
     def test_banner_does_not_run_before_the_coverage_cutoff_or_admin(self) -> None:
         for kwargs in (
@@ -226,6 +241,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 result = self.render_result(**kwargs)
                 self.assertNotIn("yandex_rtb", result["content"])
                 self.assertEqual(result["scripts"], [])
+                self.assertEqual(result["footer"], "")
 
     def test_banner_does_not_run_for_secondary_content(self) -> None:
         for kwargs in ({"content_in_loop": False}, {"content_main_query": False}):
@@ -247,7 +263,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertIn("data-manacost-rsya-rendered", result["content"])
 
     def run_banner_script(self, content: str, scenario: str, script_index: int = 0) -> dict:
-        script_matches = re.findall(r"<script>(.*?)</script>", content)
+        script_matches = re.findall(r"<script>(.*?)</script>", content, re.S)
         self.assertGreater(len(script_matches), script_index)
 
         actions = {
@@ -255,6 +271,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
             "error": 'renderOptions.onError({ type: "error" });',
             "warning": 'renderOptions.onError({ type: "warning" });',
             "rendered": "renderOptions.onRender({ product: \"direct\" });",
+            "recovered": 'renderOptions.onError({ type: "error" }); renderOptions.onRender({ product: "rtb" });',
             "loader_failure": "",
         }
         self.assertIn(scenario, actions)
@@ -264,6 +281,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
         const attributes = {{}};
         const bannerUnit = {{
             hidden: false,
+            closest: () => null,
+            getAttribute: (name) => attributes[name] || null,
             setAttribute: (name, value) => {{ attributes[name] = value; }},
         }};
         const targetContainer = {{ closest: () => bannerUnit }};
@@ -371,6 +390,15 @@ class RsyaInlineBannerTest(unittest.TestCase):
             {"hidden": False, "rendered": "true", "renderCalls": 1},
             self.run_banner_script(content, "rendered", script_index=1),
         )
+
+    def test_successful_render_restores_a_previously_hidden_placement(self) -> None:
+        content = self.render_result()["content"]
+        for index in (0, 1):
+            with self.subTest(index=index):
+                self.assertEqual(
+                    {"hidden": False, "rendered": "true", "renderCalls": 1},
+                    self.run_banner_script(content, "recovered", script_index=index),
+                )
 
 
 if __name__ == "__main__":

@@ -47,14 +47,28 @@ final class Manacost_Rsya_Inline_Banner {
 			return;
 		}
 		?>
-		<script id="manacost-rsya-floor-ad">
+		<script id="manacost-rsya-floor-ad" data-manacost-rsya-state="queued">
+			window.yaContextCb = window.yaContextCb || [];
+			if (!window.manacostRsyaFloorQueued) {
+			window.manacostRsyaFloorQueued = true;
 			window.yaContextCb.push(() => {
+				const unit = document.getElementById('manacost-rsya-floor-ad');
+				const state = value => unit.setAttribute('data-manacost-rsya-state', value);
+				if (window.manacostRsyaLoaderFailed) { state('loader-error'); return; }
+				state('requested');
 				Ya.Context.AdvManager.render({
 					"blockId": "<?php echo esc_js( self::FLOOR_BLOCK_ID ); ?>",
 					"type": "floorAd",
-					"platform": "desktop"
-				})
-			})
+					"platform": "desktop",
+					"onError": data => {
+						unit.setAttribute('data-manacost-rsya-code', String(data.code || '').slice(0, 80));
+						if (data.type === 'error') { state('error'); }
+					},
+					"onClose": () => state('closed'),
+					"onRender": () => state('rendered')
+				}, () => state('no-fill'));
+			});
+			}
 		</script>
 		<?php
 	}
@@ -131,15 +145,20 @@ final class Manacost_Rsya_Inline_Banner {
 			! self::should_render()
 			|| ! in_the_loop()
 			|| ! is_main_query()
-			|| self::contains_banner_markup( $content )
 		) {
 			return $content;
+		}
+
+		$footer_banner = self::contains_banner_markup( $content, self::FOOTER_BLOCK_ID )
+			? '' : self::render_banner( 'after-telegram', self::FOOTER_BLOCK_ID, '-after-telegram' );
+
+		if ( self::contains_banner_markup( $content, self::INTRO_BLOCK_ID ) ) {
+			return $content . $footer_banner;
 		}
 
 		$text_paragraphs = 0;
 		$intro_inserted  = false;
 		$intro_banner    = self::render_banner( 'intro', self::INTRO_BLOCK_ID );
-		$footer_banner   = self::render_banner( 'after-telegram', self::FOOTER_BLOCK_ID, '-after-telegram' );
 
 		$result = preg_replace_callback(
 			'#<p\\b[^>]*>.*?</p>#is',
@@ -202,7 +221,44 @@ final class Manacost_Rsya_Inline_Banner {
 	 */
 	private static function render_banner( string $slot, string $block_id, string $container_suffix = '' ): string {
 		return sprintf(
-			'<div class="manacost-rsya-inline" data-manacost-rsya-unit data-manacost-rsya-slot="%3$s"><div id="%1$s"></div></div><script>(function () { var container = document.getElementById("%1$s"); var unit = container ? container.closest("[data-manacost-rsya-unit]") : null; var collapse = function () { if (unit) { unit.hidden = true; } }; if (window.manacostRsyaLoaderFailed) { collapse(); } else { window.yaContextCb.push(function () { Ya.Context.AdvManager.render({"blockId": "%2$s", "renderTo": "%1$s", "onError": function (data) { if (data && "error" === data.type) { collapse(); } }, "onRender": function () { if (unit) { unit.setAttribute("data-manacost-rsya-rendered", "true"); } }}, collapse); }); } }());</script>',
+			'<div class="manacost-rsya-inline" data-manacost-rsya-unit data-manacost-rsya-slot="%3$s"><div id="%1$s"></div></div><script>(function () {
+				var container = document.getElementById("%1$s");
+				var unit = container ? container.closest("[data-manacost-rsya-unit]") : null;
+				if (!unit || unit.getAttribute("data-manacost-rsya-state")) { return; }
+				var state = function (value) { unit.setAttribute("data-manacost-rsya-state", value); };
+				var collapse = function (value) { unit.hidden = true; state(value); };
+				state("queued");
+				if (window.manacostRsyaLoaderFailed) { collapse("loader-error"); return; }
+				var start = function () {
+					// A paragraph inside a collapsed shortcode is not a visible ad slot.
+					var wrapper = unit.closest(".mtp-spoiler-wrapper, .su-spoiler, details");
+					while (wrapper) {
+						wrapper.after(unit);
+						wrapper = unit.closest(".mtp-spoiler-wrapper, .su-spoiler, details");
+					}
+				window.yaContextCb = window.yaContextCb || [];
+				window.yaContextCb.push(function () {
+					if (window.manacostRsyaLoaderFailed) { collapse("loader-error"); return; }
+					state("requested");
+					Ya.Context.AdvManager.render({
+						"blockId": "%2$s", "renderTo": "%1$s",
+						"onError": function (data) {
+							if (!data) { return; }
+							unit.setAttribute("data-manacost-rsya-code", String(data.code || "").slice(0, 80));
+							if ("error" === data.type) { collapse("error"); }
+						},
+						"onRender": function () {
+							unit.hidden = false;
+							unit.setAttribute("data-manacost-rsya-rendered", "true");
+							state("rendered");
+						}
+					}, function () { collapse("no-fill"); });
+				});
+				};
+				if (document.readyState === "loading") {
+					document.addEventListener("DOMContentLoaded", start, { once: true });
+				} else { start(); }
+			}());</script>',
 			esc_attr( 'yandex_rtb_' . $block_id . $container_suffix ),
 			esc_attr( $block_id ),
 			esc_attr( $slot )
@@ -210,14 +266,17 @@ final class Manacost_Rsya_Inline_Banner {
 	}
 
 	/**
-	 * Detects either placement before a second content-filter pass can duplicate it.
+	 * Detects an existing container for one placement, not a mention in prose.
 	 *
 	 * @param string $content Current rendered content.
+	 * @param string $block_id Placement to detect independently of other units.
 	 * @return bool
 	 */
-	private static function contains_banner_markup( string $content ): bool {
-		return str_contains( $content, 'yandex_rtb_' . self::INTRO_BLOCK_ID )
-			|| str_contains( $content, 'yandex_rtb_' . self::FOOTER_BLOCK_ID );
+	private static function contains_banner_markup( string $content, string $block_id ): bool {
+		return 1 === preg_match(
+			'~<div\b[^>]*\bid\s*=\s*(["\'])yandex_rtb_' . preg_quote( $block_id, '~' ) . '(?:-[^"\']*)?\1~i',
+			$content
+		);
 	}
 
 	/**

@@ -38,7 +38,8 @@ for (const target of [
   { name: 'category', path: '/category/integration-category/' },
 ]) {
   test(`public ${target.name} page`, async ({ page }) => {
-    await page.goto(target.path, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(target.path, { waitUntil: 'domcontentloaded' });
+    expect(response?.status(), 'A screenshot of an error page is not a passing page test').toBe(200);
     await stabilize(page);
     await expect(page).toHaveScreenshot(`${target.name}.png`);
   });
