@@ -9,7 +9,7 @@ import { chromium } from 'playwright';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const plugin = `${root}wordpress/mu-plugins/hs-manacost-reader/`;
 const shell = execFileSync('php', ['-r',
-  "define('ABSPATH','/fixture/'); function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
+  "define('ABSPATH','/fixture/'); function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
   `${plugin}account.php`], { encoding: 'utf8' });
 const assets = new Map([
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],

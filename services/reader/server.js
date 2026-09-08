@@ -6,6 +6,7 @@ import { ReaderStore } from './core.js';
 import { ReaderProfiles } from './profiles.js';
 import { createIdentityClient } from './identity-client.js';
 import { createReaderHandler, drainRevocations } from './http.js';
+import { createCommunity } from './community.js';
 
 export function createReaderServer({ origin, handle }) {
   const authority = new URL(origin).host;
@@ -58,7 +59,8 @@ function start() {
   if (!filename || !isAbsolute(filename)) throw new Error('An absolute private READER_DATABASE path is required');
   const store = new ReaderStore({ filename, encryptionKey: Buffer.from(process.env.READER_ENCRYPTION_KEY ?? '', 'base64url') });
   const profiles = new ReaderProfiles({ db: store.db, issuer: options.issuer });
-  const handle = createReaderHandler({ origin: options.origin, identity, store, profiles,
+  const community = createCommunity({ options, db: store.db });
+  const handle = createReaderHandler({ origin: options.origin, identity, store, profiles, community,
     csrfKey: Buffer.from(process.env.READER_CSRF_KEY ?? '', 'base64url') });
   const server = createReaderServer({ origin: options.origin, handle });
   const port = Number(process.env.READER_PORT || 18081);
@@ -67,7 +69,7 @@ function start() {
   const timer = setInterval(async () => {
     if (draining) return;
     draining = true;
-    try { store.cleanup(); await drainRevocations(store, identity); } catch { /* Retry on the next tick; never log tokens. */ }
+    try { store.cleanup(); community?.comments.cleanup(); await drainRevocations(store, identity); } catch { /* Retry on the next tick; never log tokens. */ }
     finally { draining = false; }
   }, 15_000);
   timer.unref();

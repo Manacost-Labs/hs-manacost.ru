@@ -13,6 +13,11 @@ defined( 'ABSPATH' ) || exit;
  * @param array<string, mixed> $config Public shortcode attributes.
  */
 function hs_manacost_reader_account_shell( array $config = array() ): string {
+	if ( function_exists( 'hs_reader_public_profile_request' ) && hs_reader_public_profile_request() ) {
+		$id = hs_reader_public_profile_id();
+		return '' !== $id ? hs_reader_public_profile_shell( $id )
+			: '<section class="mc-public-profile"><h1>Профиль недоступен</h1><a href="/">К материалам</a></section>';
+	}
 	$defaults = array(
 		'me_endpoint'      => '/reader-api/v1/me',
 		'profile_endpoint' => '/reader-api/v1/profile',
@@ -28,6 +33,9 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		}
 		$public[ $key ] = $value;
 	}
+	$comments_note = function_exists( 'hs_reader_comments_enabled' ) && hs_reader_comments_enabled()
+		? 'Комментарии доступны в тестовых обсуждениях. Публичный профиль появляется после вашего согласия и проверки модератором.'
+		: 'Комментарии пока недоступны.';
 	return '<section class="mc-reader" aria-label="Кабинет читателя" data-mc-reader-root'
 		. ' data-me-endpoint="' . esc_attr( $public['me_endpoint'] ) . '"'
 		. ' data-profile-endpoint="' . esc_attr( $public['profile_endpoint'] ) . '"'
@@ -74,7 +82,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<button class="mc-reader__button mc-reader__button--secondary" data-reader-retry-profile type="button" hidden>Повторить</button>'
 		. '<button class="mc-reader__button mc-reader__button--secondary" data-reader-reload-version type="button" hidden>Обновить версию</button></div>'
 		. '<p class="mc-reader__editor-status" data-reader-editor-status role="status" aria-live="polite"></p>'
-		. '<p class="mc-reader__note">Профиль Манакоста не изменяет профиль HearthPulse. Комментарии пока недоступны.</p>'
+		. '<p class="mc-reader__note">Профиль Манакоста не изменяет профиль HearthPulse. ' . esc_html( $comments_note ) . '</p>'
 		. '</div></form></section>'
 		. '<section class="mc-reader__saved" aria-labelledby="mc-reader-saved-title">'
 		. '<div class="mc-reader__section-heading"><span class="mc-reader__mark mc-reader__mark--gold" aria-hidden="true">'

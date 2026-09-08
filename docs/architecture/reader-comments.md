@@ -1,133 +1,155 @@
-# Comments using Manacost reader profiles — design, not activation
+# Reader comments — isolated staging pilot
 
-Status: proposed next stage for test.hs-manacost.ru. This document adds no
-comment route, database migration, widget, Cackle integration or WordPress
-comment output. Existing disabled-comments policy remains authoritative.
+Status: implemented behind default-OFF switches. Source, fixtures and a merged
+release do not establish live activation. Record deployed SHAs, pilot article IDs
+and actual runtime checks in the release task.
 
-## Ownership
+## Ownership and public identity
 
-HearthPulse authenticates the reader. Manacost's BFF owns reader profiles and
-will own comments. WordPress owns articles and editorial publication state.
-Do not create `wp_users` for readers or use a WordPress admin cookie as a
-reader identity. Do not use a display name, email or HP subject as a public ID.
+HearthPulse authenticates readers; the Manacost BFF owns local sessions, private
+profiles, comments and moderated public profiles. WordPress supplies fresh
+editorial visibility and an identity-free shell inside the article container.
+No reader wp_users, WordPress auth cookies, native comments, Cackle import or
+moderation HTTP endpoint. Production WordPress stays off.
 
-```text
-HearthPulse session → Manacost BFF session → reader_profile.id
-                                              │
-WordPress published article → validated thread ├─ author card
-                                              ├─ comments and replies
-                                              └─ own activity in cabinet
-```
+Public IDs are local random profile UUIDs, never email or HearthPulse subjects.
+Approved comments show an avatar, name, profile link and, when verified, the title
+**«Платный подписчик»**. The public screen at `/account/?reader=<UUID>` includes
+approved name, bio, favorite class and avatar, never another reader's editor.
 
-## First user flow
+## User flow and moderation
 
-1. Under an eligible article, show a compact discussion section in the same
-   content width. Guests can read published comments and see “Войти, чтобы
-   ответить”; login returns to this article and discussion anchor.
-2. A reader sees their current avatar, display name and favorite-class label,
-   a plain-text input and “Отправить”. An initial notice explains that name,
-   avatar and class will be public. Bio stays in the profile card, not every row.
-3. Sending has explicit pending/success/error states. New/untrusted readers'
-   messages initially await moderation and are visible only to their author
-   and moderators; never claim “Опубликовано” before it is actually public.
-4. Replies have at most one visual nesting level, with a quoted author/context
-   link. Editing is permitted for 15 minutes by the author, before moderation
-   locking; subsequent corrections can be a reply. A moderator retains authority.
-5. The cabinet gains “Мои комментарии” with article links and moderation state.
-   Existing saved-articles development is separate; no fake counters/history.
+1. Guests read published comments. Login through production HearthPulse returns
+   to the same article and `#reader-comments`.
+2. A reader enters 2–1000 Unicode code points of plain text and explicitly agrees
+   to publish profile fields/title (unchecked by default). Every new message is
+   pending, visible only to its author, without a public avatar/profile link.
+3. An operator inspects the body/profile and approves exact comment, profile and
+   avatar versions. Profile edits cannot silently bypass review. Published authors
+   use one moderated snapshot; a later approval updates that public snapshot.
+4. Replies target a published root in the same article; deeper replies fail.
+   Lists are oldest first, 20 items/page with a cursor.
+5. Owners can delete messages and export/erase their community data. Erasure
+   keeps their private account and login session.
 
-Proposed compact visual layout (labels describe future controls):
+Operator entrypoint: `services/reader/comments-admin.js`, commands `pending`,
+`inspect`, `review`, `takedown`. Requires an existing absolute staging DB and
+exact staging origin/issuer/enabled environment. Publishing requires inspected
+`--expected-profile-version`, `--expected-avatar-version` (literal `null` when
+absent), comment `--version`, `--decision publish` and explicit `--actor`.
+Use `--include-avatar` only for deliberate private inspection. Never paste
+inspection output into public issues/logs. Reader input cannot grant moderation.
 
-```text
-Обсуждение · 12                        Сначала новые ▾
-[аватар] Имя пользователя · Маг
-         [ Написать комментарий…                     ]
-         Публичный профиль Манакоста       Отправить
-─────────────────────────────────────────────────────
-[аватар] Имя · Жрец                         10 мин назад
-         Текст комментария без декоративной карточки.
-         Ответить · Изменить (свой) · Пожаловаться
-         └─ Ответ: имя, текст, время
-```
+## API contracts
 
-Use the cabinet's typography, navy/blue accents and restrained class colour.
-No neon frames around comments, large avatar medallions, gamified scores or
-colour-only moderation indicators. Desktop/mobile have the same actions;
-touch targets ≥44px, visible focus, associated labels, live status and reduced
-motion. Article covers remain the strongest artwork on the page.
+| Boundary | Contract |
+| --- | --- |
+| GET/POST `/reader-api/v1/threads/{postId}/comments` | GET cursor page; POST exact `{body,parentId,operationId,profileVersion,publicConsent:true}` |
+| DELETE `/reader-api/v1/comments/{UUID}` | Owner only, exact `{version}`, compare-and-swap |
+| GET `/reader-api/v1/readers/{UUID}` | Allowlisted public profile |
+| GET `/reader-api/v1/readers/{UUID}/avatar?v={version}` | Exact current 32-character version; moderated WebP |
+| GET `/reader-api/v1/community/export` | Online authenticated owner, 100 rows/page |
+| DELETE `/reader-api/v1/community/profile` | Online owner, exact `{profileId,confirm:"erase-community"}` |
+| POST WP `/wp-json/manacost-reader/v1/threads` | Private server-only `{ids:[1..20 unique positive integers]}` |
+| POST HP `/identity/reader-entitlements` | Confidential staging client, `{subjects:[1..20 unique opaque subjects]}` |
 
-## Data model (future migrations)
+Writes use existing same-origin session, CSRF and online HearthPulse verification.
+Wrong owners, unknown fields, stale versions, controls and oversized inputs fail.
+Idempotency binds operation UUID to owner and exact input. Ambiguous failures
+lock the draft until explicit byte-identical retry. HTTP 401 wipes private state;
+409 retains text but requires fresh profile/consent. Request deadlines include
+response bodies. Page hide aborts/clears state; restored pages reload identity.
+Rendering uses text nodes and exact same-origin avatar/profile paths, not HTML.
 
-- `comment_threads`: id, site_key, wp_post_id (unique pair), status, created_at.
-- `reader_comments`: UUID, thread_id, author_profile_id, parent_id nullable,
-  plain body (2–3000 code points), status, version, created_at, updated_at,
-  deleted_at. Index `(thread_id, status, created_at, id)` and author pagination.
-- `comment_operations`: subject-scoped idempotency key, request digest,
-  resulting comment ID, expiry; do not store full duplicate bodies in logs.
-- `comment_reports`: reporter_profile_id/comment_id unique pair, reason enum,
-  moderation state; bounded private detail if required.
-- `comment_moderation_events`: moderator actor, action, reason, timestamp;
-  restricted audit access, no public email/IP or authentication data.
+Public responses are private/no-store and noindex, with no email, HP subject,
+subscription details, tokens or private-avatar URL. The BFF rechecks local
+deletion/visibility/session state after upstream awaits. Public profile/avatar
+access requires a published comment in a currently allowed article. Editorial
+failures hide data; payment-service failures only hide the title.
 
-Published comments join the current profile by stable UUID. A name/photo/class
-change updates authorship display without changing ownership or losing history.
-Do not preserve old photos in each comment. Display-name uniqueness is not
-promised; impersonation reports and a stable opaque author reference are needed.
-Moderation may mask an abusive profile name/photo independently from comment
-text. Profile IDs are not authentication credentials.
+## Paid title
 
-## Contracts and security
+Only current, confirmed **Boosty OR Patreon** entitlement counts. Manual access,
+Telegram, grace, stale/failed checks, blocked or malformed evidence do not.
+HearthPulse reads its existing cache (up to 30 minutes, capped by provider expiry),
+without provider HTTP calls while rendering comments. Response fields:
+`subject`, strict boolean `paid`, `checkedAt`, `validUntil`. The BFF independently
+validates freshness and does not persist the title. This is decoration, not
+access control. Existing identity/login behavior is unchanged.
 
-Proposed API (not yet implemented): GET article comments with opaque cursor,
-POST comment with Idempotency-Key, PATCH own comment with version, DELETE own
-comment, POST report, GET own activity. Limit page size to 20 (max50), sort by
-stable `(created_at,id)`, and prohibit arbitrary sort/SQL or public author lists.
-All writes use the existing same-origin session + online HP check + CSRF.
-Body validation rejects owner IDs, HTML and control characters; render only
-escaped text. Do not fetch pasted URLs or provide link previews in the MVP.
-Replies must belong to the same visible thread, cannot form cycles or reply to
-private moderated content, and obey a bounded depth. Requests aborted/revoked
-while pending cannot create comments.
+## Editorial and nginx boundary
 
-Public comment responses must embed a separate allowlisted author DTO, never
-reuse `/me`. The current owner-only avatar route cannot serve other authors:
-add a moderated public thumbnail route with opaque versioned references only
-after explicit public-profile notice. Do not expose subject/issuer/email or
-allow enumeration of private profiles. Erasure/moderation must invalidate those
-thumbnail references and their cache, rather than retaining old public photos.
+An explicit reviewed article-ID allowlist and feature flag are both required.
+The current post must be published, password-free and have an exact staging URL.
+Content containing `[` and encoded/unsupported paths fail closed in this pilot.
+This is not a general legacy VIP/paywall classifier. Browser URLs are not trusted.
 
-Before creating/reading a public thread, the BFF's read-only editorial adapter
-must verify the exact site and immutable WP post ID are published, public,
-not password-protected or VIP/paywalled. Do not trust article URLs supplied by
-the browser. Article deletion/unpublishing must invalidate public thread reads;
-on verification failure hide the thread rather than serve stale private data.
-This adapter needs a narrowly authenticated server-to-server contract, not
-public exposure of all WP post metadata. Resolve that contract before coding.
+The BFF sends a dedicated staging Basic principal plus HMAC-SHA256 over
+`POST + "\\n" + "/manacost-reader/v1/threads" + "\\n" + unixSeconds + "\\n" + rawBody`.
+WordPress requires a valid signature within 60 seconds; Origin/cross-site fails.
+The principal is not a WP user. The inherited shared staging Basic gate intentionally
+accepts any valid staging credential, including the separately provisioned BFF
+credential; it is not the endpoint's BFF authorization. Only the separate HMAC
+permits the WordPress operation. On the exact route nginx validates that Basic
+gate, then clears Authorization, PHP_AUTH_USER and PHP_AUTH_PW
+before FastCGI; otherwise WP application-password authentication may reject it
+before HMAC permission. HMAC identifies the BFF, not a reader.
+Use reviewed `services/reader/editorial-staging.nginx.conf`. Normal WP/BFF
+deployment does not apply it. Preserve all other PHP and regional TLS rules.
 
-Initial moderation defaults: first comments pending, subject/IP abuse limits
-with privacy-preserving short-lived counters, duplicate-body cooldown, ≤5 writes
-per minute and ≤50/day subject (tune from staging evidence), report deduplication.
-No CAPTCHA dependency by default. Moderator permission must be explicitly
-granted by a server-side role, never inferred from reader-supplied fields or
-an “admin” display name. Moderation UI and permission audit are a separate slice.
+## Storage, retention and pilot limits
 
-Deletion replaces public text with a tombstone while preserving reply structure;
-profile erasure anonymizes the author reference and removes name/bio/avatar.
-Before release choose and document retention of deleted text/moderation evidence,
-backup expiry, ownership-verified export and erasure, and provider-account
-deletion signalling. No indefinite retention or silent Cackle import by default.
+Additive transactional SQLite tables: comments, moderated profile snapshots,
+audit, erased-operation hashes and pseudonymous rate events. No existing profile
+or session schema is dropped. Identity queries are issuer-scoped.
 
-## Delivery plan and gates
+- Published content remains until owner deletion, erasure or takedown. Removal
+  clears body immediately; tombstones preserve reply structure.
+- Pending/rejected bodies expire after 30 days; audit entries after 90 days.
+- Erased-operation hashes/rate events expire after 24 hours to prevent retry
+  resurrection and erase-to-reset abuse.
+- New-message limits: 5/minute and 50/day per issuer/subject.
+- Erasure is atomic up to 5000 rows; larger accounts fail before mutation and
+  need a separately implemented batched/operator path before general rollout.
+- Browser export is complete-only, up to 5000 rows. Repeated/malformed cursors
+  or service failure never generate a partial download.
+- After the last qualifying comment, snapshots are inaccessible publicly but
+  remain privately stored until community erasure. Private-profile edits do not
+  automatically erase/replace an approved snapshot; the privacy notice must say so.
+- Backups can retain old content/avatars. Before accepting real community data,
+  record backup expiry, access ownership and deletion replay after restore.
+  Do not promise physical deletion from backups or silently delete existing backups.
 
-1. Accept this UX/data contract and privacy/moderation decisions. Implement the
-   editorial visibility adapter and isolated tests first.
-2. Add comment storage/API behind a new server flag default OFF; test IDOR,
-   CSRF, revoked sessions, replay/idempotency, concurrency and pagination.
-3. Build the same-design widget and cabinet activity with synthetic fixtures;
-   verify keyboard, screen reader, long Russian text, mobile, 200% zoom and
-   network failures. Do not inject sample comments into actual articles.
-4. Add moderation/reporting/export/deletion, test restore/rollback. Complete
-   fresh security review and a real staging account flow.
-5. Enable only on an explicit disposable staging article. Keep production,
-   Cackle and native WP comments disabled. General activation requires a
-   separate decision after moderation/visibility/abuse checks pass.
+## Release and rollback
+
+Required before pilot activation:
+
+1. Canonical `make check`, `make code-quality`, contracts, staged secret check,
+   full reader browser target, isolated `make visual`, focused tests, independent
+   HIGH-risk review and green exact-SHA CI on both repositories.
+2. Real ephemeral nginx/FPM Basic-to-PHP proof, then actual `nginx -t` and exact
+   staging-route checks. No production WP routing changes.
+3. Fresh consistent BFF DB backup, integrity check and isolated restore drill;
+   record current/previous immutable artifacts and separately retained rollback DB.
+4. Provision server-only keys outside Git/logs. BFF:
+   `READER_COMMENTS_ENABLED=1`, `READER_EDITORIAL_KEY`,
+   `READER_EDITORIAL_USERNAME`, `READER_EDITORIAL_PASSWORD`.
+   WP: `HS_MANACOST_READER_COMMENTS_ENABLED`, `HS_MANACOST_READER_EDITORIAL_KEY`,
+   `HS_MANACOST_READER_COMMENT_POSTS`. HP: `READER_ENTITLEMENTS_ENABLED=1`,
+   existing browser-identity flag and confidential staging client registration.
+5. Enable only a disposable reviewed plain staging article; verify login return,
+   pending owner visibility, moderation, avatar/profile, paid/nonpaid fixtures,
+   deletion/unpublishing/erasure, mobile and keyboard. Distinguish synthetic
+   evidence from a real user's completed login/subscription flow.
+
+Rollback: disable comment/title flags, restore the exact backed-up staging nginx
+location, validate/reload, switch BFF to the recorded previous immutable artifact
+and restart only its staging service. Additive tables can remain unused. Never
+restore an old DB over newer user data just to roll back binaries. HearthPulse
+release/rollback follows its own immutable deployment workflow.
+
+Deferred: self-service editing, reactions, reporting/moderator UI, profile
+directory, cabinet activity tab, notifications, legacy import, general paywall
+mapping, large-account erasure and automatic snapshot-retention cleanup.
+Saved articles and the approved private-account redesign remain separate work;
+never replace the actual account editor with prototype/demo JavaScript.
