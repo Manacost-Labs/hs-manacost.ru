@@ -962,6 +962,27 @@
         "line": 266
       },
       {
+        "name": "_hs_show_on_homepage",
+        "resolved": true,
+        "api": "delete_post_meta",
+        "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
+        "line": 99
+      },
+      {
+        "name": "_hs_show_on_homepage",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
+        "line": 104
+      },
+      {
+        "name": "_hs_show_on_homepage",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
+        "line": 201
+      },
+      {
         "name": "_hs_tooltips_enabled",
         "resolved": true,
         "api": "get_post_meta",
@@ -2596,6 +2617,13 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-dashboard-latest-decks.php",
         "line": 133
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
+        "line": 79
       },
       {
         "name": "edit_post",

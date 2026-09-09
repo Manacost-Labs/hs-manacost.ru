@@ -50,6 +50,16 @@
       "checks": ["make admin-performance", "make integration", "make visual"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-homepage-visibility.php"],
+      "owner": "homepage-editorial-visibility",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["wp-admin", "editor", "frontend", "newspaper", "cache"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-admin-ui", "wordpress-article-editor", "newspaper-tagdiv", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-local-image-optimizer.php", "wordpress/mu-plugins/hs-local-image-optimizer/**", "wordpress/mu-plugins/hs-manacost-s3-offload.php", "wordpress/mu-plugins/hs-manacost-s3-offload/**", "wordpress/mu-plugins/manacost-media-unique-filenames.php", "wordpress/mu-plugins/hs-media-upload-accelerator.php"],
       "owner": "media-s3",
       "classified": true,
