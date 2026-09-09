@@ -9,6 +9,15 @@ PROFILE_JS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/profile-editor.js'
 CSS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.css'
 
 class ReaderUiContractTests(unittest.TestCase):
+    def test_v3_account_and_comments_invalidate_old_browser_bundles(self):
+        loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
+        comments_loader = (PHP.parent / 'comments-loader.php').read_text()
+        self.assertIn('Version: 0.5.0', loader)
+        for source in (loader, comments_loader):
+            self.assertNotIn("'0.3.0'", source)
+            self.assertNotIn("'0.4.0'", source)
+            self.assertIn("'0.5.0'", source)
+
     @classmethod
     def setUpClass(cls):
         cls.php, cls.js, cls.css = PHP.read_text(), JS.read_text(), CSS.read_text()
@@ -23,11 +32,11 @@ class ReaderUiContractTests(unittest.TestCase):
         for enabled in (False, True):
             setup = fixture + 'function hs_reader_comments_enabled(){return ' + ('true' if enabled else 'false') + ';} require $argv[1]; echo hs_manacost_reader_account_shell();'
             html = subprocess.run(['php', '-r', setup, str(PHP)], capture_output=True, text=True, check=True).stdout
-            self.assertEqual('Комментарии пока недоступны.' in html, not enabled)
-            self.assertEqual('Публичный профиль появляется после вашего согласия и проверки модератором.' in html, enabled)
+            self.assertEqual('Комментарии сейчас недоступны.' in html, not enabled)
+            self.assertEqual('Комментарии публикуются сразу после вашего согласия.' in html, enabled)
     def test_account_headings_and_live_status_are_semantic(self):
-        self.assertRegex(self.php, r'<h1[^>]*>Кабинет читателя</h1>')
-        self.assertRegex(self.php, r'<h2[^>]*id="mc-reader-profile-title"[^>]*>Профиль</h2>')
+        self.assertIn('id="mc-reader-profile-title"', self.php)
+        self.assertIn('data-reader-identity', self.php)
         self.assertRegex(self.php, r'<h2[^>]*id="mc-reader-saved-title"[^>]*>Сохранённые статьи</h2>')
         self.assertIn('aria-labelledby="mc-reader-profile-title"', self.php)
         self.assertIn('aria-labelledby="mc-reader-saved-title"', self.php)
@@ -66,8 +75,8 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('editorStatus.textContent === message', self.profile_js)
     def test_profile_editor_explains_scope_and_unavailable_comments(self):
         self.assertIn('Профиль Манакоста не изменяет профиль HearthPulse.', self.php)
-        self.assertIn('Комментарии пока недоступны.', self.php)
-        self.assertIn('Предпросмотр', self.php)
+        self.assertIn('Комментарии сейчас недоступны.', self.php)
+        self.assertIn('Изменить профиль', self.php)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
             self.assertIn(value, self.js)
@@ -77,11 +86,11 @@ class ReaderUiContractTests(unittest.TestCase):
         for value in ('const requestController = new AbortController()', 'const requestGeneration = ++generation', 'current( requestController, requestGeneration )', 'logoutInFlight = true'):
             self.assertIn(value, self.js)
     def test_copy_is_public_and_honest(self):
-        self.assertIn('Ваш профиль Манакоста со входом через HearthPulse.', self.php)
-        self.assertIn('Сохранение статей появится здесь в следующем обновлении.', self.php)
+        self.assertIn('Личный кабинет', self.php)
+        self.assertIn('Закладки пока недоступны.', self.php)
         self.assertNotIn('reader API', self.php)
     def test_responsive_accessible_geometry(self):
-        self.assertRegex(self.css, r'--mc-reader-(?:navy|panel|blue|text|muted)\s*:')
+        self.assertRegex(self.css, r'--mc-reader-(?:navy|slate|ice|muted|gold|blue)\s*:')
         self.assertRegex(self.css, r'min-(?:height|block-size)\s*:\s*44px')
         self.assertRegex(self.css, r'overflow-wrap\s*:\s*anywhere')
         self.assertIn('focus-visible', self.css); self.assertIn('prefers-reduced-motion', self.css)

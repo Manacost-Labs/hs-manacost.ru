@@ -22,6 +22,12 @@ let heldRequest = null;
 const heldResponses = new Set();
 const nativeDeadlineCalls = [];
 const server = createServer((request, response) => {
+	if (request.url?.startsWith('/wp-content/mu-plugins/hs-manacost-reader/class-icons/')) {
+		const name = request.url.split('/').at(-1);
+		if (/^(deathknight|demonhunter|druid|hunter|mage|paladin|priest|rogue|shaman|warlock|warrior)\.png$/.test(name || '')) {
+			response.writeHead(200, { 'Content-Type': 'image/png' }); response.end(readFileSync(`${plugin}class-icons/${name}`)); return;
+		}
+	}
   if (heldRequest?.path === request.url && heldRequest.method === request.method) {
     nativeDeadlineCalls.push({ path: request.url, started: Date.now() });
     request.resume();
@@ -101,9 +107,9 @@ try {
   };
   const layout = () => page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - innerWidth,
-    title: parseFloat(getComputedStyle(document.querySelector('.mc-reader__title')).fontSize),
+    title: parseFloat(getComputedStyle(document.querySelector('.mc-reader__eyebrow')).fontSize),
     viewport: innerWidth,
-    sections: [...document.querySelectorAll('.mc-reader__panel > [aria-labelledby]')].filter(element => element.getClientRects().length).map(element => {
+    sections: [...document.querySelectorAll('.mc-reader__shell > [aria-labelledby]')].filter(element => element.getClientRects().length).map(element => {
       const rect = element.getBoundingClientRect();
       return { bottom: rect.bottom, height: rect.height, left: rect.left, right: rect.right, top: rect.top, width: rect.width };
     }),
@@ -111,7 +117,7 @@ try {
   const assertFits = async () => {
     const result = await layout();
     assert.equal(result.overflow, 0, 'the account page must not horizontally scroll');
-    assert.ok(result.title >= 28, 'the page title must retain readable hierarchy');
+    assert.ok(result.title >= 12, 'the cabinet label must remain readable');
     assert.ok(result.sections.every(section => section.left >= 0 && section.right <= result.viewport && section.width > 0), `each account section must fit the viewport: ${JSON.stringify(result)}`);
     return result;
   };
@@ -145,13 +151,12 @@ try {
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
   }
   await capture('guest');
-  assert.equal(await page.getByRole('heading', { name: 'Кабинет читателя', level: 1 }).count(), 1);
-  assert.equal(await page.getByRole('heading', { name: 'Профиль', level: 2 }).count(), 1);
+  assert.equal(await page.getByText('Личный кабинет').count(), 1);
   assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 1);
   assert.equal(await status.getAttribute('role'), 'status');
   assert.equal(await status.getAttribute('aria-live'), 'polite');
   const guestLogin = page.getByRole('link', { name: 'Войти через HearthPulse', exact: true });
-  await page.keyboard.press('Tab');
+  for (let step = 0; step < 6 && !await guestLogin.evaluate(element => document.activeElement === element); step++) await page.keyboard.press('Tab');
   assert.equal(await guestLogin.evaluate(element => document.activeElement === element), true);
   assert.ok(await guestLogin.evaluate(element => {
     const style = getComputedStyle(element);
@@ -179,9 +184,12 @@ try {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
+    await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Читатель Манакоста');
     await assertFits();
     await capture(`authenticated-${width}`);
   }
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
 
   const nameField = page.locator('[data-reader-display-name]');
   const bioField = page.locator('[data-reader-bio]');
@@ -199,8 +207,15 @@ try {
   assert.equal(await nameField.evaluate(element => element.validationMessage), '', 'correcting a name must clear stale custom validity');
   await bioField.fill('Черновик с кириллицей и эмодзи 🃏');
   await classField.selectOption('priest');
-  assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
   assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Исправленное имя');
+
+  await page.getByRole('button', { name: '← Назад', exact: true }).click();
+  assert.equal(await page.locator('[data-reader-profile-editor]').isVisible(), false);
+  assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
+  assert.match(await page.locator('[data-reader-preview-label]').textContent(), /несохранённые/);
+  assert.equal(await page.locator('[data-reader-open-editor]').evaluate(element => element === document.activeElement), true);
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
+  assert.equal(await nameField.inputValue(), 'Исправленное имя');
 
   profile = sessionDto({ csrfToken: 'rotated-synthetic-token' });
   const callsBeforeFocus = meCalls;
@@ -298,7 +313,7 @@ try {
     assert.equal(await page.locator('[data-reader-identity]').textContent(), longDisplayName);
   }
   const profileLink = page.getByRole('link', { name: 'Профиль HearthPulse', exact: true });
-  await page.keyboard.press('Tab');
+  for (let step = 0; step < 8 && !await profileLink.evaluate(element => document.activeElement === element); step++) await page.keyboard.press('Tab');
   assert.equal(await profileLink.evaluate(element => document.activeElement === element), true);
   assert.ok(await profileLink.evaluate(element => {
     const style = getComputedStyle(element);
@@ -324,7 +339,7 @@ try {
   profile = sessionDto({ user: { displayName: '<img src=x onerror=alert(1)> Читатель' }, profileUrl: null, profile: profileDto({ displayName: '<img src=x onerror=alert(1)> Читатель' }) });
   await ready();
   assert.equal(await page.locator('[data-reader-identity]').textContent(), profile.profile.displayName);
-  assert.equal(await page.locator('.mc-reader img:visible').count(), 0);
+  assert.equal(await page.locator('[data-reader-avatar-image]:visible').count(), 0);
   assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0);
   logoutStatus = 503;
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
@@ -356,6 +371,7 @@ try {
   profileStatus = 200;
   profile = sessionDto({ user: { displayName: 'Synthetic reader' }, profileUrl: null, profile: profileDto({ displayName: 'Synthetic reader' }) });
   await ready();
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
   await page.unroute('**/reader-api/v1/profile');
   heldRequest = { path: '/reader-api/v1/profile', method: 'PATCH', partialJson: true };
   await nameField.fill('Черновик после таймаута');
@@ -382,6 +398,7 @@ try {
   heldRequest = null;
   await ready();
   avatarDelay = 500;
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
   await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('pending-avatar') });
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   assert.equal(await page.locator('[data-reader-identity]').textContent(), '');

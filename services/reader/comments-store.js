@@ -68,9 +68,11 @@ export class ReaderComments {
     return { ...base, author: row.public_name ? { id: row.author_profile_id, name: row.public_name, bio: row.public_bio, favoriteClass: row.public_class, avatarVersion: row.public_avatar_version } : null };
   }
   submit(subject, input) {
-    const data = this.input(input); const profile = this.profile(subject); const now = this.now(); const requestDigest = digest(JSON.stringify(data)); const rateKey = digest(`${this.issuer}\u0000${subject}`);
+    const data = this.input(input); const now = this.now(); const requestDigest = digest(JSON.stringify(data)); const rateKey = digest(`${this.issuer}\u0000${subject}`);
     this.db.exec('BEGIN IMMEDIATE');
     try {
+      // Read the consented version under the same write lock as publication.
+      const profile = this.profile(subject);
       const retry = this.db.prepare('SELECT * FROM reader_comments WHERE issuer = ? AND author_profile_id = ? AND operation_id = ?').get(this.issuer, profile.id, data.operationId);
       if (retry) {
         if (retry.request_digest !== requestDigest) fail(409, 'idempotency_conflict');
@@ -89,11 +91,18 @@ export class ReaderComments {
         if (!parent || parent.status !== 'published' || parent.post_id !== data.postId || parent.parent_id !== null) fail(409, 'invalid_parent');
       }
       const id = randomUUID();
-      this.db.prepare('INSERT INTO reader_comments VALUES (?, ?, ?, ?, ?, ?, ?, \'pending\', 1, ?, ?, ?, 1, ?, ?)').run(id, this.issuer, subject, profile.id, data.postId, data.body, data.parentId, data.profileVersion, data.operationId, requestDigest, now, now);
+      this.db.prepare('INSERT INTO reader_comments VALUES (?, ?, ?, ?, ?, ?, ?, \'published\', 1, ?, ?, ?, 1, ?, ?)').run(id, this.issuer, subject, profile.id, data.postId, data.body, data.parentId, data.profileVersion, data.operationId, requestDigest, now, now);
+      this.publishProfile(profile, now);
       this.db.prepare('INSERT INTO reader_comment_rate_events VALUES (?, ?, ?)').run(rateKey, now, now + 86_400_000);
       const row = this.db.prepare('SELECT * FROM reader_comments WHERE id = ?').get(id); this.db.exec('COMMIT');
-      return this.dto({ ...row, current_name: profile.display_name, current_bio: profile.bio, current_class: profile.favorite_class, current_avatar_version: profile.avatar_version }, profile.id);
+      return this.dto({ ...row, public_name: profile.display_name, public_bio: profile.bio, public_class: profile.favorite_class, public_avatar_version: profile.avatar_version }, profile.id);
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
+  }
+  /** Caller holds the comment transaction and has verified explicit versioned consent. */
+  publishProfile(profile, now) {
+    this.db.prepare(`INSERT INTO reader_comment_public_profiles VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      ON CONFLICT(profile_id,issuer) DO UPDATE SET name=excluded.name,bio=excluded.bio,favorite_class=excluded.favorite_class,avatar=excluded.avatar,avatar_version=excluded.avatar_version,profile_version=excluded.profile_version,consent_revision=excluded.consent_revision,approved_at=excluded.approved_at
+      WHERE excluded.profile_version >= reader_comment_public_profiles.profile_version`).run(profile.id, this.issuer, profile.display_name, profile.bio, profile.favorite_class, profile.avatar, profile.avatar_version, profile.version, now);
   }
   list(postId, { viewerSubject = null, cursor = null, limit = 20 } = {}) {
     if (!Number.isSafeInteger(postId) || postId < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50 || (cursor !== null && (typeof cursor !== 'string' || !UUID.test(cursor)))) fail(400, 'invalid_input');
@@ -130,9 +139,7 @@ export class ReaderComments {
       if (decision === 'publish') {
         const profile = this.db.prepare('SELECT id,display_name,bio,favorite_class,version,avatar,avatar_version FROM reader_profiles WHERE id=? AND issuer=?').get(row.author_profile_id, this.issuer);
         if (!profile || profile.version !== row.profile_version) fail(409, 'profile_version_conflict');
-        this.db.prepare(`INSERT INTO reader_comment_public_profiles VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-          ON CONFLICT(profile_id,issuer) DO UPDATE SET name=excluded.name,bio=excluded.bio,favorite_class=excluded.favorite_class,avatar=excluded.avatar,avatar_version=excluded.avatar_version,profile_version=excluded.profile_version,consent_revision=excluded.consent_revision,approved_at=excluded.approved_at
-          WHERE excluded.profile_version >= reader_comment_public_profiles.profile_version`).run(profile.id, this.issuer, profile.display_name, profile.bio, profile.favorite_class, profile.avatar, profile.avatar_version, profile.version, now);
+        this.publishProfile(profile, now);
       }
       const status = decision === 'publish' ? 'published' : 'rejected';
       if (this.db.prepare('UPDATE reader_comments SET status=?,version=version+1,updated_at=? WHERE id=? AND status=\'pending\' AND version=?').run(status, now, id, version).changes !== 1) fail(409, 'review_conflict');

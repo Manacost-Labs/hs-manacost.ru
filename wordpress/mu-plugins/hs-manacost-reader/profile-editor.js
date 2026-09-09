@@ -47,11 +47,16 @@
 
 	function create( root, options ) {
 		const form = root.querySelector( '[data-reader-profile-editor]' );
+		const overview = root.querySelector( '[data-reader-profile-overview]' );
+		const openEditor = root.querySelector( '[data-reader-open-editor]' );
+		const cancelEditor = root.querySelector( '[data-reader-cancel-editor]' );
 		const name = root.querySelector( '[data-reader-display-name]' );
 		const bio = root.querySelector( '[data-reader-bio]' );
 		const favoriteClass = root.querySelector( '[data-reader-favorite-class]' );
 		const identity = root.querySelector( '[data-reader-identity]' );
 		const previewClass = root.querySelector( '[data-reader-preview-class]' );
+		const classCrest = root.querySelector( '[data-reader-class-crest]' );
+		const classIconBase = root.dataset.classIconBase || '';
 		const previewBio = root.querySelector( '[data-reader-preview-bio]' );
 		const previewLabel = root.querySelector( '[data-reader-preview-label]' );
 		const avatarImage = root.querySelector( '[data-reader-avatar-image]' );
@@ -116,7 +121,17 @@
 		function renderPreview() {
 			const current = draft();
 			identity.textContent = current.displayName || 'Читатель';
-			previewClass.textContent = current.favoriteClass ? `Любимый класс: ${ classNames.get( current.favoriteClass ) }` : 'Любимый класс не выбран';
+			previewClass.textContent = current.favoriteClass ? classNames.get( current.favoriteClass ) : 'Не выбран';
+			const icon = current.favoriteClass && classIconBase ? `${ classIconBase }${ current.favoriteClass.replace( /-/g, '' ) }.png` : '';
+			if ( icon ) {
+				classCrest.src = icon;
+				classCrest.alt = `Эмблема класса ${ classNames.get( current.favoriteClass ) }`;
+				classCrest.hidden = false;
+			} else {
+				classCrest.removeAttribute( 'src' );
+				classCrest.alt = '';
+				classCrest.hidden = true;
+			}
 			previewBio.textContent = current.bio || 'Описание пока не добавлено.';
 			avatarPlaceholder.textContent = initials( current.displayName );
 			const source = localAvatarUrl || serverProfile?.avatarUrl || '';
@@ -129,6 +144,7 @@
 				avatarImage.hidden = true;
 				avatarPlaceholder.hidden = false;
 			}
+			previewLabel.textContent = dirty || localAvatarUrl ? 'Есть несохранённые изменения.' : '';
 			previewLabel.hidden = ! dirty && ! localAvatarUrl;
 			removeAvatar.hidden = ! serverProfile?.avatarUrl && ! localAvatarUrl;
 			updateCounters();
@@ -154,7 +170,8 @@
 			const profile = validProfile( rawProfile, options.avatarEndpoint );
 			if ( typeof nextCsrfToken !== 'string' || ! nextCsrfToken ) throw new Error( 'invalid_profile' );
 			csrfToken = nextCsrfToken;
-			form.hidden = false;
+			if ( ! serverProfile ) form.hidden = true;
+			overview.hidden = false;
 			if ( serverProfile?.id === profile.id && profile.version < knownVersion ) {
 				renderPreview();
 				return;
@@ -207,6 +224,7 @@
 			reloadVersion.hidden = true;
 			showEditorStatus( '' );
 			form.hidden = true;
+			overview.hidden = true;
 			setBusy( false );
 		}
 
@@ -344,6 +362,17 @@
 		}
 
 		form.addEventListener( 'submit', ( event ) => { event.preventDefault(); saveProfile(); } );
+		openEditor.addEventListener( 'click', () => {
+			form.hidden = false;
+			form.querySelector( '#mc-reader-display-name' )?.focus();
+			form.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+		} );
+		cancelEditor.addEventListener( 'click', () => {
+			if ( ! mutationController ) {
+				form.hidden = true;
+				openEditor.focus();
+			}
+		} );
 		form.addEventListener( 'input', ( event ) => {
 			if ( event.target === name ) name.setCustomValidity( '' );
 			if ( event.target === bio ) bio.setCustomValidity( '' );
