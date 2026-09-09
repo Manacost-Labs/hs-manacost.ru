@@ -145,7 +145,10 @@ try {
 
   for (const width of [320, 390, 560, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
+    const callsBeforeNavigation = meCalls;
     await ready();
+    await page.waitForLoadState('load');
+    assert.equal(meCalls - callsBeforeNavigation, 1, 'initial pageshow must not restart the initial identity request');
     await assertFits();
     await assertThemeOuterAlignment(width);
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
@@ -442,7 +445,7 @@ try {
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   assert.equal(await page.locator('[data-reader-identity]').textContent(), '');
   assert.equal(await page.locator('[data-reader-actions]').textContent(), '');
-  await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
   await page.waitForFunction(() => !document.querySelector('[data-reader-account-menu]').hidden && document.querySelector('[data-reader-status]').textContent === '');
   for (const selector of ['[data-reader-save-profile]', '[data-reader-avatar-input]', '[data-reader-remove-avatar]']) {
     assert.equal(await page.locator(selector).isDisabled(), false, `${selector} must be re-enabled after pagehide abort and reauthentication`);

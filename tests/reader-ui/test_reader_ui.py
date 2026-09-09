@@ -12,12 +12,12 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.6.0', loader)
+        self.assertIn('Version: 0.6.1', loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
             self.assertNotIn("'0.5.0'", source)
-            self.assertIn("'0.6.0'", source)
+            self.assertIn("'0.6.1'", source)
 
     @classmethod
     def setUpClass(cls):

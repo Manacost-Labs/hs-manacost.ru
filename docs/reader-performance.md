@@ -90,3 +90,36 @@ is authorized by this task.
 Profile: WordPress. The project-mandated baseline plus UI/accessibility,
 performance and release skills exceed the generic skill-count budget. They
 were applied in bounded phases; no catalog/policy edits or unbounded indexes.
+
+## Live first release and 0.6.1 follow-up
+
+The compact UI and BFF were deployed to staging at `36390c00ab914e8790aa1a6e29dfe36c7552cd9e`.
+Account requests no longer contained the selected advertising/analytics hosts.
+First-release diagnostic medians fell to approximately 100 KB JavaScript and
+974 KB observed transfer (about 89% and 47% below the original cold baseline).
+These are provisional diagnostics: the first samples overlapped a separate
+browser verification. Repeat the final benchmark without concurrent browsers.
+
+The lighter page now completed its load within the observation window. This
+exposed an initial `pageshow` handler restarting `/me`: two calls in all ten
+desktop observations. Version 0.6.1 refreshes on persisted BFCache restoration,
+not the initial `pageshow`; the initial request and focus revalidation remain.
+A browser regression failed with two calls before this fix and passes with one;
+the existing restoration test explicitly exercises `PageTransitionEvent.persisted`.
+
+A separate alternating control/preload experiment (three fresh contexts each,
+1440×900, six seconds) isolated the navigation font. Median layout-shift sum
+fell from 0.25866 to 0.01093 when the already-used Latin/Cyrillic PT Sans files
+were preloaded. Both variants fetched/fulfilled the same document route; only
+the preload variant inserted links. This was an in-browser HTML experiment,
+not a deployed result.
+The follow-up uses WordPress resource preloads only on the account, and only
+while the queued Google stylesheet still includes PT Sans 400. It does not
+change the theme font family, weights, local-font configuration or article
+routes. The v18 URLs are pinned to the currently observed Google CSS; recheck
+them if the upstream stylesheet changes. Existing third-party preloads remain.
+
+This follow-up changes only the WordPress UI; the reviewed staging BFF artifact
+at `36390c0` does not require a restart. Its rollback is the preceding WordPress
+artifact, with database and sessions untouched. Real OAuth/profile-save/comment
+publication latency remains separate from anonymous and synthetic UI checks.
