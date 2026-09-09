@@ -42,12 +42,13 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.1', loader)
+        self.assertIn('Version: 0.7.2', loader)
+        self.assertIn("'0.7.2'", loader)
+        self.assertIn("'0.7.1'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
             self.assertNotIn("'0.5.0'", source)
-            self.assertIn("'0.7.1'", source)
 
     @classmethod
     def setUpClass(cls):
@@ -66,6 +67,9 @@ class ReaderUiContractTests(unittest.TestCase):
             self.assertEqual('Комментарии сейчас недоступны.' in html, not enabled)
             self.assertEqual('Комментарии публикуются сразу после вашего согласия.' in html, enabled)
     def test_account_headings_and_live_status_are_semantic(self):
+        self.assertIn('<p class="mc-reader__masthead-kicker">Профиль Манакоста</p>', self.php)
+        self.assertIn('<h1 class="mc-reader__eyebrow">Кабинет</h1>', self.php)
+        self.assertIn('<p class="mc-reader__profile-kicker">Ваш профиль</p>', self.php)
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
         self.assertIn('<details class="mc-reader__account-menu"', self.php)
@@ -118,11 +122,14 @@ class ReaderUiContractTests(unittest.TestCase):
         for value in ('const requestController = new AbortController()', 'const requestGeneration = ++generation', 'current( requestController, requestGeneration )', 'logoutInFlight = true'):
             self.assertIn(value, self.js)
     def test_copy_is_public_and_honest(self):
-        self.assertIn('Личный кабинет', self.php)
+        self.assertIn('Профиль Манакоста', self.php)
+        self.assertIn('Кабинет', self.php)
         self.assertNotIn('Закладки пока недоступны.', self.php)
         self.assertNotIn('reader API', self.php)
     def test_responsive_accessible_geometry(self):
-        self.assertRegex(self.css, r'--mc-reader-(?:navy|slate|ice|muted|gold|blue)\s*:')
+        self.assertRegex(self.css, r'--mc-reader-(?:navy|slate|ice|muted|gold|blue|panel|line|panel-quiet)\s*:')
+        for selector in ('.mc-reader__title-group', '.mc-reader__profile-kicker', '.mc-reader__profile'):
+            self.assertIn(selector, self.css)
         self.assertRegex(self.css, r'min-(?:height|block-size)\s*:\s*44px')
         self.assertRegex(self.css, r'overflow-wrap\s*:\s*anywhere')
         self.assertIn('focus-visible', self.css); self.assertIn('prefers-reduced-motion', self.css)

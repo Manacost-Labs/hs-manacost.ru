@@ -1,5 +1,5 @@
 {
-  "project": "hs-manacost reader shared UI v6",
+  "project": "hs-manacost reader shared UI v7",
   "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
   "goals": [
     "Implement the approved dark profile screenshot using real saved data",
@@ -29,10 +29,10 @@
     }
   ],
   "direction": {
-    "name": "Manacost twilight shared UI v6",
-    "thesis": "One maintained control system: a navy personal cabinet and an editorial-white discussion surface",
-    "signature": "Reader identity and the real class crest; quiet navy cabinet surfaces, small gold paid titles and transparent comments on the article canvas",
-    "rationale": "Owner requested modern aligned maintainable forms and a discussion that belongs to the white article page",
+    "name": "Manacost field dossier shared UI v7",
+    "thesis": "One maintained control system: a navy reader dossier and an editorial-white discussion surface",
+    "signature": "A calm cabinet masthead, one asymmetrical profile passport with the real class crest, and a separate working surface for profile editing",
+    "rationale": "Owner asked for a more presentable cabinet without a generic dashboard; this preserves the mature dark Manacost direction while making hierarchy and actions easier to scan",
     "avoid": [
       "Generic dashboard grids",
       "Bright page background in account",
@@ -48,10 +48,13 @@
     "colors": {
       "surface": "#102331",
       "raised": "#19313e",
+      "panel": "#17303f",
+      "panel_quiet": "#0e2230",
       "text": "#eef3f5",
       "muted": "#b8c9d3",
       "accent": "#c7a777",
       "border": "#49616e",
+      "line": "#5b7482",
       "focus": "#73b4d8"
     },
     "discussion_colors": {
@@ -78,7 +81,7 @@
         28,
         32
       ],
-      "rationale": "Keep current site Cyrillic families; no new font download; the compact profile name is 28–32px"
+      "rationale": "Keep current site Cyrillic families; no new font download; Cabinet is 32–44px while the reader name is 32–48px"
     },
     "spacing": [
       4,
@@ -92,6 +95,7 @@
     ],
     "radii": {
       "control": 8,
+      "surface": 12,
       "avatar": "50%"
     },
     "shadows": {
@@ -172,7 +176,7 @@
       "mu-plugin"
     ],
     "vertical_slices": [
-      "Shared UI tokens and controls",
+      "Cabinet masthead and profile passport hierarchy",
       "Dedicated profile editor with visible photo preview",
       "Compact transparent discussion and public profile"
     ],
@@ -181,7 +185,7 @@
   "rollout": {
     "staging_evidence": "Required exact-SHA reader browser suite and live staging shell/login checks; evidence recorded in release task",
     "approval_owner": "Site owner requested frontend/form redesign in the existing Manacost navy direction",
-    "rollback_commit": "840b30ab2008a12ebf87c20b1e46e02d00609d88",
+    "rollback_commit": "9188a1eb6c03f1b60957bd402978f3f24f6c7b2c",
     "template_restore": "No Cloud Template assignments changed; rollback first-party source only, keep live DB"
   }
 }

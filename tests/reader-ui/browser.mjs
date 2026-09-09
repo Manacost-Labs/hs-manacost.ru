@@ -155,7 +155,8 @@ try {
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
   }
   await capture('guest');
-  assert.equal(await page.getByText('Личный кабинет').count(), 1);
+  assert.equal(await page.getByRole('heading', { name: 'Кабинет', level: 1 }).count(), 1);
+  assert.equal(await page.getByText('Профиль Манакоста', { exact: true }).count(), 1);
   assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 0, 'unavailable future navigation must not be rendered');
   assert.equal(await page.getByText('Закладки пока недоступны.').count(), 0, 'unavailable bookmark copy must not consume account space');
   assert.equal(await status.getAttribute('role'), 'status');
@@ -194,6 +195,24 @@ try {
     await assertFits();
     await capture(`authenticated-${width}`);
   }
+  const profileHierarchy = await page.locator('[data-reader-profile-overview]').evaluate(profile => {
+    const rect = element => {
+      const value = element.getBoundingClientRect();
+      return { top: value.top, bottom: value.bottom, width: value.width };
+    };
+    const kicker = profile.querySelector('.mc-reader__profile-kicker');
+    const identity = profile.querySelector('[data-reader-identity]');
+    const classMark = profile.querySelector('.mc-reader__class-mark');
+    return {
+      kicker: kicker?.textContent?.trim(),
+      kickerRect: kicker ? rect(kicker) : null,
+      identityRect: identity ? rect(identity) : null,
+      classRect: classMark ? rect(classMark) : null,
+    };
+  });
+  assert.equal(profileHierarchy.kicker, 'Ваш профиль', 'the profile overview must identify itself as a reader profile');
+  assert.ok(profileHierarchy.kickerRect && profileHierarchy.identityRect && profileHierarchy.kickerRect.bottom <= profileHierarchy.identityRect.bottom, 'profile label must stay within the identity composition');
+  assert.ok(profileHierarchy.classRect && profileHierarchy.classRect.width > 0, 'favorite class remains part of the visible profile passport');
   const accountMenu = page.locator('[data-reader-account-menu]');
   const accountSummary = page.getByText('Аккаунт', { exact: true });
   const assertAccountMenuFits = async width => {
