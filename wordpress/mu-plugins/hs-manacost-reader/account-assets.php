@@ -31,6 +31,35 @@ function hs_reader_account_integrations(): void {
 	remove_action( 'wp_head', 'td_header_analytics_code', 40 );
 	remove_action( 'wp_footer', 'td_footer_script_code', 40 );
 	remove_action( 'wp_head', array( 'Manacost_Plausible_Analytics', 'render_tracker' ), 20 );
+	add_filter( 'wp_preload_resources', 'hs_reader_account_font_preloads' );
+}
+
+/**
+ * Load the current theme's Latin/Cyrillic menu font before its metrics shift layout.
+ *
+ * @param array<int, array<string, mixed>> $resources Existing resource hints, preserved unchanged.
+ * @return array<int, array<string, mixed>>
+ */
+function hs_reader_account_font_preloads( array $resources ): array {
+	if ( ! hs_reader_account_request() || ! wp_style_is( 'google-fonts-style', 'enqueued' ) ) {
+		return $resources;
+	}
+	$style = wp_styles()->registered['google-fonts-style'] ?? null;
+	$src   = $style ? (string) $style->src : '';
+	// Do not fetch Google fonts if the theme switches family or serves local fonts.
+	if ( 'fonts.googleapis.com' !== wp_parse_url( $src, PHP_URL_HOST ) || false === strpos( urldecode( $src ), 'PT Sans:400' ) ) {
+		return $resources;
+	}
+	// These existing v18 files were verified against the deployed Google CSS.
+	foreach ( array( 'jizaRExUiTo99u79D0aExdGM', 'jizaRExUiTo99u79D0KExQ' ) as $file ) {
+		$resources[] = array(
+			'href'        => 'https://fonts.gstatic.com/s/ptsans/v18/' . $file . '.woff2',
+			'as'          => 'font',
+			'type'        => 'font/woff2',
+			'crossorigin' => 'anonymous',
+		);
+	}
+	return $resources;
 }
 
 /** Keep navigation/search dependencies; the account has none of these article widgets. */

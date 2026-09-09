@@ -211,7 +211,8 @@
 			accountMenu.querySelector( 'summary' ).focus();
 		} );
 		const refreshIfActive = () => { if ( ! logoutInFlight && ! profileEditor.isBusy() ) refresh( { preserveDraft: true, silent: true } ); };
-		window.addEventListener( 'pageshow', refreshIfActive );
+		// Initial navigation already calls refresh below; only BFCache needs a second entry path.
+		window.addEventListener( 'pageshow', event => { if ( event.persisted ) refreshIfActive(); } );
 		window.addEventListener( 'focus', refreshIfActive );
 		window.addEventListener( 'pagehide', () => {
 			generation += 1;
