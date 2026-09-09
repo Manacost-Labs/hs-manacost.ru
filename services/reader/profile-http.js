@@ -12,6 +12,18 @@ export async function verifiedReader(store, identity, id, signal) {
   return { session, profile };
 }
 
+/** A profile write needs an active subject, not a display-name round trip. */
+export async function verifiedWriter(store, identity, id, signal) {
+  const session = store.getSession(id);
+  if (!session) return null;
+  const active = await identity.verify(session.upstreamToken, session.userId, signal);
+  signal.throwIfAborted();
+  if (!active) { store.revokeAndQueue(id); return null; }
+  const current = store.getSession(id);
+  if (!current || current.userId !== session.userId || current.upstreamToken !== session.upstreamToken) return null;
+  return { session: current };
+}
+
 class BodyTooLarge extends Error {}
 async function bodyBytes(request, limit) {
   if (Number(request.headers.get('content-length') ?? 0) > limit) throw new BodyTooLarge();
@@ -47,7 +59,9 @@ export function createProfileRoutes({ store, identity, profiles, validWrite, jso
         try { input = JSON.parse(body.toString('utf8')); } catch { throw new ProfileValidationError(); }
       }
       if (avatar && request.method === 'PUT') bytes = await bodyBytes(request, 4 * 1024 * 1024);
-      let verified = await verifiedReader(store, identity, id, signal);
+      const verified = request.method === 'GET'
+        ? await verifiedReader(store, identity, id, signal)
+        : await verifiedWriter(store, identity, id, signal);
       if (!verified) return json(401, { error: 'not_authenticated' });
       const subject = verified.session.userId;
       if (request.method === 'GET') {
@@ -55,7 +69,7 @@ export function createProfileRoutes({ store, identity, profiles, validWrite, jso
         if (!image || (url.searchParams.has('v') && url.searchParams.get('v') !== image.version)) return json(404, { error: 'not_found' });
         return new Response(image.bytes, { headers: { ...securityHeaders, 'Content-Type': 'image/webp', 'Cross-Origin-Resource-Policy': 'same-origin' } });
       }
-      const current = profiles.getOrCreate(subject, verified.profile.displayName);
+      const current = profiles.getOrCreate(subject, 'Читатель');
       if (edit) return json(200, { profile: profiles.update(subject, input) });
       const value = request.headers.get('x-reader-profile-version') ?? '';
       if (!/^[1-9][0-9]{0,14}$/.test(value)) throw new ProfileValidationError();
@@ -67,9 +81,12 @@ export function createProfileRoutes({ store, identity, profiles, validWrite, jso
       const count = (uploads.get(subject) ?? 0) + 1; uploads.set(subject, count);
       if (count > 10) return new Response(null, { status: 429, headers: { ...securityHeaders, 'Retry-After': '60' } });
       const normalized = await normalizeAvatar(bytes, request.headers.get('content-type'));
-      // Recheck both local and parent session after asynchronous image decoding.
-      verified = await verifiedReader(store, identity, id, signal);
-      if (!verified) return json(401, { error: 'not_authenticated' });
+      // Decoding may outlive the first identity check. Verify again without fetching userinfo.
+      const stillVerified = await verifiedWriter(store, identity, id, signal);
+      if (!stillVerified || stillVerified.session.userId !== subject
+        || stillVerified.session.upstreamToken !== verified.session.upstreamToken) {
+        return json(401, { error: 'not_authenticated' });
+      }
       return json(200, { profile: profiles.setAvatar(subject, normalized, version) });
     } catch (error) {
       if (error instanceof BodyTooLarge) return json(413, { error: 'too_large' });

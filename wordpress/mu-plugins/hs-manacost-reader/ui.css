@@ -8,6 +8,7 @@
   --mc-ui-border: #49616e;
   --mc-ui-focus: #73b4d8;
   --mc-ui-danger: #ffb4ab;
+  --mc-ui-on-accent: #102331;
   --mc-ui-radius: 8px;
   --mc-ui-body: Roboto, Arial, sans-serif;
   --mc-ui-display: "Roboto Condensed", Arial, sans-serif;
@@ -34,7 +35,7 @@
   border: 1px solid var(--mc-ui-accent);
   border-radius: var(--mc-ui-radius);
   background: var(--mc-ui-accent);
-  color: var(--mc-ui-surface);
+  color: var(--mc-ui-on-accent);
   font: 700 14px/1.4 var(--mc-ui-body);
   text-align: center;
   text-decoration: none;

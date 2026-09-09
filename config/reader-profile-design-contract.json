@@ -1,5 +1,5 @@
 {
-  "project": "hs-manacost reader shared UI v5",
+  "project": "hs-manacost reader shared UI v6",
   "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
   "goals": [
     "Implement the approved dark profile screenshot using real saved data",
@@ -29,10 +29,10 @@
     }
   ],
   "direction": {
-    "name": "Manacost twilight shared UI v5",
-    "thesis": "One maintained set of controls and states, with a dedicated editor and compact discussion",
-    "signature": "Reader identity and the real class crest; quiet navy surfaces and small gold paid titles",
-    "rationale": "Owner requested modern aligned maintainable forms within the existing navy direction",
+    "name": "Manacost twilight shared UI v6",
+    "thesis": "One maintained control system: a navy personal cabinet and an editorial-white discussion surface",
+    "signature": "Reader identity and the real class crest; quiet navy cabinet surfaces, small gold paid titles and transparent comments on the article canvas",
+    "rationale": "Owner requested modern aligned maintainable forms and a discussion that belongs to the white article page",
     "avoid": [
       "Generic dashboard grids",
       "Bright page background in account",
@@ -53,6 +53,17 @@
       "accent": "#c7a777",
       "border": "#49616e",
       "focus": "#73b4d8"
+    },
+    "discussion_colors": {
+      "surface": "#ffffff",
+      "raised": "#f5f7f8",
+      "text": "#152d3a",
+      "muted": "#566c78",
+      "accent": "#78530e",
+      "on_accent": "#ffffff",
+      "border": "#6f8791",
+      "focus": "#25759f",
+      "danger": "#b3261e"
     },
     "typography": {
       "display": "Existing Roboto Condensed with Arial fallback",
@@ -163,7 +174,7 @@
     "vertical_slices": [
       "Shared UI tokens and controls",
       "Dedicated profile editor with visible photo preview",
-      "Compact discussion and public profile"
+      "Compact transparent discussion and public profile"
     ],
     "dependencies": "Existing reader BFF and Newspaper; no native WP accounts/comments"
   },
