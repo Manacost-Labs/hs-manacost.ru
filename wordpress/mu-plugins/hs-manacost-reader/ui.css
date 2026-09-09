@@ -1,0 +1,103 @@
+/* Reader UI primitives. Account and discussion layouts live in their own files. */
+.mc-reader-ui {
+  --mc-ui-surface: #102331;
+  --mc-ui-raised: #19313e;
+  --mc-ui-text: #eef3f5;
+  --mc-ui-muted: #b8c9d3;
+  --mc-ui-accent: #c7a777;
+  --mc-ui-border: #49616e;
+  --mc-ui-focus: #73b4d8;
+  --mc-ui-danger: #ffb4ab;
+  --mc-ui-radius: 8px;
+  --mc-ui-body: Roboto, Arial, sans-serif;
+  --mc-ui-display: "Roboto Condensed", Arial, sans-serif;
+  box-sizing: border-box;
+  color: var(--mc-ui-text);
+  font: 400 16px/1.5 var(--mc-ui-body);
+  overflow-wrap: anywhere;
+  color-scheme: dark;
+}
+.mc-reader-ui *,
+.mc-reader-ui *::before,
+.mc-reader-ui *::after { box-sizing: border-box; }
+.mc-reader-ui [hidden] { display: none !important; }
+
+.mc-reader-ui .mc-ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--mc-ui-accent);
+  border-radius: var(--mc-ui-radius);
+  background: var(--mc-ui-accent);
+  color: var(--mc-ui-surface);
+  font: 700 14px/1.4 var(--mc-ui-body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+.mc-reader-ui .mc-ui-button--secondary {
+  background: transparent;
+  border-color: var(--mc-ui-border);
+  color: var(--mc-ui-text);
+}
+.mc-reader-ui .mc-ui-button--text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--mc-ui-muted);
+  padding-inline: 8px;
+}
+.mc-reader-ui .mc-ui-button:hover:not(:disabled) { filter: brightness(1.12); }
+.mc-reader-ui .mc-ui-button--text:hover:not(:disabled) {
+  background: var(--mc-ui-raised);
+  color: var(--mc-ui-text);
+}
+.mc-reader-ui .mc-ui-button:disabled,
+.mc-reader-ui .mc-ui-control:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mc-reader-ui .mc-ui-control {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-height: 48px;
+  height: auto;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--mc-ui-border);
+  border-radius: var(--mc-ui-radius);
+  background: var(--mc-ui-surface);
+  color: var(--mc-ui-text);
+  font: 400 16px/1.5 var(--mc-ui-body);
+  box-shadow: none;
+}
+.mc-reader-ui textarea.mc-ui-control { resize: vertical; }
+.mc-reader-ui .mc-ui-control::placeholder { color: var(--mc-ui-muted); opacity: 1; }
+.mc-reader-ui .mc-ui-label {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--mc-ui-text);
+  font: 700 14px/1.5 var(--mc-ui-body);
+}
+.mc-reader-ui .mc-ui-help {
+  margin: 8px 0 0;
+  color: var(--mc-ui-muted);
+  font: 400 13px/1.5 var(--mc-ui-body);
+}
+.mc-reader-ui :is(button, a, input, textarea, select, summary):focus-visible {
+  outline: 3px solid var(--mc-ui-focus);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-reader-ui *, .mc-reader-ui *::before, .mc-reader-ui *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

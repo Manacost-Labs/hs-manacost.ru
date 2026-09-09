@@ -12,6 +12,7 @@ const shell = execFileSync('php', ['-r',
   "define('ABSPATH','/fixture/'); function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
   `${plugin}account.php`], { encoding: 'utf8' });
 const assets = new Map([
+  ['/ui.css', ['text/css', readFileSync(`${plugin}ui.css`)]],
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
   ['/profile-editor.js', ['text/javascript', readFileSync(`${plugin}profile-editor.js`)]],
   ['/reader.js', ['text/javascript', readFileSync(`${plugin}reader.js`)]],
@@ -45,7 +46,7 @@ const server = createServer((request, response) => {
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   // The account shell owns the only page title, just as the dedicated template does.
-  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/profile-editor.js"></script><script src="/reader.js"></script></body></html>`);
+  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/ui.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/profile-editor.js"></script><script src="/reader.js"></script></body></html>`);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -228,6 +229,26 @@ try {
     await assertAccountMenuFits(width);
   }
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
+  assert.equal(await page.locator('[data-reader-profile-overview]').isVisible(), false, 'editing is a dedicated view, not another duplicate profile panel');
+
+  for (const width of [320, 390, 560, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await assertFits();
+    const editorGeometry = await page.locator('[data-reader-profile-editor]').evaluate(form => {
+      const rect = node => { const r = node.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width, height: r.height }; };
+      return {
+        preview: Boolean(form.querySelector('[data-reader-editor-avatar]')),
+        controls: [...form.querySelectorAll('input:not([type=file]), textarea, select')].map(rect),
+        photo: rect(form.querySelector('.mc-reader__preview')),
+        upload: rect(form.querySelector('[data-reader-avatar-input]')),
+      };
+    });
+    assert.equal(editorGeometry.preview, true, 'the photo must be visible next to its upload control inside the editor');
+    assert.ok(editorGeometry.controls.every(r => r.height >= 44 && r.width > 0), 'all fields keep usable targets');
+    assert.ok(editorGeometry.controls.every(r => Math.abs(r.left - editorGeometry.controls[0].left) < 1 && Math.abs(r.right - editorGeometry.controls[0].right) < 1), 'name, bio and class share one field alignment');
+    assert.ok(editorGeometry.upload.left >= editorGeometry.photo.left && editorGeometry.upload.right <= editorGeometry.photo.right, 'upload control stays in the photo component');
+    if ([390, 1440].includes(width)) await capture(`editor-${width}`);
+  }
 
   const nameField = page.locator('[data-reader-display-name]');
   const bioField = page.locator('[data-reader-bio]');
@@ -247,7 +268,7 @@ try {
   await classField.selectOption('priest');
   assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Исправленное имя');
 
-  await page.getByRole('button', { name: '← Назад', exact: true }).click();
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
   assert.equal(await page.locator('[data-reader-profile-editor]').isVisible(), false);
   assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
   assert.match(await page.locator('[data-reader-preview-label]').textContent(), /несохранённые/);
@@ -303,7 +324,7 @@ try {
   assert.equal(avatarWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
   assert.ok(avatarWrites.at(-1).size > 0);
   await page.waitForFunction(() => {
-    const image = document.querySelector('[data-reader-avatar-image]');
+    const image = document.querySelector('[data-reader-editor-avatar-image]');
     return !image.hidden && image.complete && image.naturalWidth > 0;
   });
   assert.equal(await page.locator('[data-reader-remove-avatar]').isVisible(), true);
@@ -315,11 +336,11 @@ try {
   assert.equal(avatarWrites.at(-1).method, 'DELETE');
   assert.equal(avatarWrites.at(-1).headers['x-reader-profile-version'], '4');
   assert.equal(await page.locator('[data-reader-avatar-image]').isVisible(), false);
-  assert.equal(await page.locator('[data-reader-avatar-placeholder]').isVisible(), true);
+  assert.equal(await page.locator('[data-reader-editor-avatar-placeholder]').isVisible(), true);
   profile = sessionDto({ csrfToken: 'csrf-after-403', profile: profileDto({ version: 4, avatarUrl: '/reader-api/v1/profile/avatar?v=stale4' }) });
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await page.waitForTimeout(100);
-  assert.equal(await page.locator('[data-reader-avatar-image]').isVisible(), false, 'stale GET must not roll back a newer avatar response');
+  assert.equal(await page.locator('[data-reader-editor-avatar-image]').isVisible(), false, 'stale GET must not roll back a newer avatar response');
   assert.equal(await bioField.inputValue(), 'Этот текст нельзя потерять при загрузке фото.');
 
   profileWriteStatus = 0;

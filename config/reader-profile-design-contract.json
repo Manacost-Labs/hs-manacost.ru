@@ -1,33 +1,153 @@
 {
-  "project": "hs-manacost reader account v4 compact profile and comments",
+  "project": "hs-manacost reader shared UI v5",
   "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
-  "goals": ["Implement the approved dark profile screenshot using real saved data", "Publish new consented comments immediately", "Preserve article and site containers"],
-  "user_journeys": [
-    {"name": "Edit profile", "entry": "/account/", "success": "Open editor, save name/bio/class/avatar through existing versioned API and return to overview"},
-    {"name": "Join discussion", "entry": "Allowlisted staging article", "success": "Consent and publish once; guest sees avatar/name/profile link and verified paid title"}
+  "goals": [
+    "Implement the approved dark profile screenshot using real saved data",
+    "Publish new consented comments immediately",
+    "Preserve article and site containers"
   ],
-  "pages": [{"template": "First-party account shortcode in Newspaper", "job": "Personal overview and separate editor"}, {"template": "Reader comments inside article", "job": "Read, publish, reply, delete"}],
+  "user_journeys": [
+    {
+      "name": "Edit profile",
+      "entry": "/account/",
+      "success": "Open editor, save name/bio/class/avatar through existing versioned API and return to overview"
+    },
+    {
+      "name": "Join discussion",
+      "entry": "Allowlisted staging article",
+      "success": "Consent and publish once; guest sees avatar/name/profile link and verified paid title"
+    }
+  ],
+  "pages": [
+    {
+      "template": "First-party account shortcode in Newspaper",
+      "job": "Personal overview and separate editor"
+    },
+    {
+      "template": "Reader comments inside article",
+      "job": "Read, publish, reply, delete"
+    }
+  ],
   "direction": {
-    "name": "Manacost twilight profile v4 compact",
-    "thesis": "Keep the existing navy account frame and make the reader identity the only overview task",
-    "signature": "One compact identity block with an 80–96px avatar, 28–32px name and restrained 64px class crest",
-    "rationale": "Approved compact refinement of the existing twilight direction; no site-wide redesign or new theme",
-    "avoid": ["Generic dashboard grids", "Bright page background in account", "Decorative gradients", "Fake profile data", "Prototype JavaScript", "Unimplemented navigation presented as working", "Unavailable bookmarks or history tabs", "A redundant visual sign-in row"]
+    "name": "Manacost twilight shared UI v5",
+    "thesis": "One maintained set of controls and states, with a dedicated editor and compact discussion",
+    "signature": "Reader identity and the real class crest; quiet navy surfaces and small gold paid titles",
+    "rationale": "Owner requested modern aligned maintainable forms within the existing navy direction",
+    "avoid": [
+      "Generic dashboard grids",
+      "Bright page background in account",
+      "Decorative gradients",
+      "Fake profile data",
+      "Prototype JavaScript",
+      "Unimplemented navigation presented as working",
+      "Unavailable bookmarks or history tabs",
+      "A redundant visual sign-in row"
+    ]
   },
   "tokens": {
-    "colors": {"surface": "#102331", "raised": "#19313e", "text": "#eef3f5", "muted": "#c5d1d8", "accent": "#c7a777", "border": "#536873", "focus": "#73b4d8"},
-    "typography": {"display": "Existing Roboto Condensed with Arial fallback", "body": "Existing Roboto with Arial fallback", "utility": "Existing Roboto Condensed with Arial fallback", "scale": [12, 14, 16, 18, 20, 28, 32], "rationale": "Keep current site Cyrillic families; no new font download; the compact profile name is 28–32px"},
-    "spacing": [4, 8, 12, 16, 24, 32, 48, 64],
-    "radii": {"control": 2, "avatar": "50%"},
-    "shadows": {"policy": "Restrained depth inside account; no shadow-heavy comment cards"},
-    "motion": {"duration_ms": 120, "reduced_motion": "No transitions or animation"}
+    "colors": {
+      "surface": "#102331",
+      "raised": "#19313e",
+      "text": "#eef3f5",
+      "muted": "#b8c9d3",
+      "accent": "#c7a777",
+      "border": "#49616e",
+      "focus": "#73b4d8"
+    },
+    "typography": {
+      "display": "Existing Roboto Condensed with Arial fallback",
+      "body": "Existing Roboto with Arial fallback",
+      "utility": "Existing Roboto Condensed with Arial fallback",
+      "scale": [
+        12,
+        14,
+        16,
+        18,
+        20,
+        28,
+        32
+      ],
+      "rationale": "Keep current site Cyrillic families; no new font download; the compact profile name is 28–32px"
+    },
+    "spacing": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32,
+      48,
+      64
+    ],
+    "radii": {
+      "control": 8,
+      "avatar": "50%"
+    },
+    "shadows": {
+      "policy": "Restrained depth inside account; no shadow-heavy comment cards"
+    },
+    "motion": {
+      "duration_ms": 120,
+      "reduced_motion": "No transitions or animation"
+    }
   },
   "components": [
-    {"name": "Account overview", "states": ["guest", "loading", "authenticated", "missing avatar", "long name", "error", "expired", "account menu open", "account menu closed"]},
-    {"name": "Profile editor", "states": ["closed", "editing", "saving", "conflict", "retry", "avatar upload", "avatar removal", "cancel"]},
-    {"name": "Discussion", "states": ["empty", "guest", "composer", "published", "legacy pending", "paid author", "reply", "deleted", "failure", "expired"]}
+    {
+      "name": "Account overview",
+      "states": [
+        "guest",
+        "loading",
+        "authenticated",
+        "missing avatar",
+        "long name",
+        "error",
+        "expired",
+        "account menu open",
+        "account menu closed"
+      ]
+    },
+    {
+      "name": "Profile editor",
+      "states": [
+        "closed",
+        "editing",
+        "saving",
+        "conflict",
+        "retry",
+        "avatar upload",
+        "avatar removal",
+        "cancel"
+      ]
+    },
+    {
+      "name": "Discussion",
+      "states": [
+        "empty",
+        "guest",
+        "composer",
+        "published",
+        "legacy pending",
+        "paid author",
+        "reply",
+        "deleted",
+        "failure",
+        "expired"
+      ]
+    }
   ],
-  "responsive": {"viewports": [320, 390, 560, 768, 1024, 1440], "zoom_percent": 200, "horizontal_overflow_px": 0, "containers": "Existing Newspaper 1068/980/740px inner grid; 24px desktop and 16px mobile profile padding, intrinsic account layout and article-width comments; same capabilities on mobile"},
+  "responsive": {
+    "viewports": [
+      320,
+      390,
+      560,
+      768,
+      1024,
+      1440
+    ],
+    "zoom_percent": 200,
+    "horizontal_overflow_px": 0,
+    "containers": "Existing Newspaper 1068/980/740px inner grid; 24px desktop and 16px mobile profile padding, intrinsic account layout and article-width comments; same capabilities on mobile"
+  },
   "quality": {
     "accessibility": "Keyboard, visible focus, labeled controls, status announcements and real errors, 44px actions, native Account disclosure with Escape focus return, 4.5:1 body contrast",
     "performance": "No added libraries/fonts; fixed avatar geometry; scoped CSS/JS; compare local cold/warm layout and transfer evidence",
@@ -36,6 +156,21 @@
     "ads": "The account-only asset owner deliberately dequeues ad assets from /account/; article ad slots and view counting are unchanged",
     "analytics": "The account-only asset owner deliberately dequeues analytics assets from /account/; articles retain existing analytics and no new identity tracking is added"
   },
-  "implementation": {"ownership_layers": ["mu-plugin"], "vertical_slices": ["Real account overview/editor", "Immediate comment publication and consent", "Comment presentation"], "dependencies": "Existing reader BFF and Newspaper; no native WP accounts/comments"},
-  "rollout": {"staging_evidence": "Required exact-SHA reader browser suite and live staging shell/login checks; evidence recorded in release task", "approval_owner": "Site owner: v3 screenshot explicitly selected", "rollback_commit": "39a70dc357e9733c9290e4df89e96a825a333ed7", "template_restore": "No Cloud Template assignments changed; rollback first-party source only, keep live DB"}
+  "implementation": {
+    "ownership_layers": [
+      "mu-plugin"
+    ],
+    "vertical_slices": [
+      "Shared UI tokens and controls",
+      "Dedicated profile editor with visible photo preview",
+      "Compact discussion and public profile"
+    ],
+    "dependencies": "Existing reader BFF and Newspaper; no native WP accounts/comments"
+  },
+  "rollout": {
+    "staging_evidence": "Required exact-SHA reader browser suite and live staging shell/login checks; evidence recorded in release task",
+    "approval_owner": "Site owner requested frontend/form redesign in the existing Manacost navy direction",
+    "rollback_commit": "840b30ab2008a12ebf87c20b1e46e02d00609d88",
+    "template_restore": "No Cloud Template assignments changed; rollback first-party source only, keep live DB"
+  }
 }

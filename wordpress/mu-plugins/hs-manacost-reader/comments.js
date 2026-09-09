@@ -16,7 +16,7 @@
   const eraseButton = $('[data-comments-erase]');
   const more = document.createElement('button');
   more.type = 'button'; more.textContent = 'Показать ещё'; more.hidden = true;
-  more.className = 'mc-comments__more'; list.after(more);
+  more.className = 'mc-comments__more mc-ui-button mc-ui-button--secondary'; list.after(more);
   const requests = new Set();
   const stale = new Error('stale');
   let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null;
@@ -101,23 +101,30 @@
     if (item.status === 'deleted') { node.textContent = 'Комментарий удалён.'; return node; }
     if (item.status === 'pending') node.append(element('strong', 'mc-comments__pending', 'Ваш комментарий · На проверке'));
     else {
+      const header = element('header', 'mc-comments__identity');
       const author = element('a', 'mc-comments__author'); author.href = item.author.profileUrl;
       const photo = avatar(item.author);
       const placeholder = element('span', 'mc-comments__avatar mc-comments__avatar--placeholder', Array.from(item.author.name)[0] || 'М');
       placeholder.setAttribute('aria-hidden', 'true');
       if (photo) {
-        const image = element('img', 'mc-comments__avatar'); image.src = photo; image.alt = ''; image.width = image.height = 44;
+        const image = element('img', 'mc-comments__avatar'); image.src = photo; image.alt = ''; image.width = image.height = 40;
         image.addEventListener('error', () => image.replaceWith(placeholder), { once: true }); author.append(image);
       } else author.append(placeholder);
-      author.append(element('span', 'mc-comments__name', item.author.name)); node.append(author);
-      if (item.author.paidSubscriber === true) node.append(element('span', 'mc-comments__paid', 'Платный подписчик'));
+      const identityText = element('span', 'mc-comments__identity-text');
+      identityText.append(element('span', 'mc-comments__name', item.author.name));
+      if (item.author.paidSubscriber === true) identityText.append(element('span', 'mc-comments__paid', 'Платный подписчик'));
+      author.append(identityText); header.append(author);
+      const time = element('time', 'mc-comments__meta', new Date(item.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
+      time.dateTime = new Date(item.createdAt).toISOString(); header.append(time); node.append(header);
     }
-    const time = element('time', 'mc-comments__meta', new Date(item.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
-    time.dateTime = new Date(item.createdAt).toISOString(); node.append(time);
+    if (item.status === 'pending') {
+      const time = element('time', 'mc-comments__meta', new Date(item.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
+      time.dateTime = new Date(item.createdAt).toISOString(); node.append(time);
+    }
     node.append(element('p', 'mc-comments__body', item.body));
     const actions = element('div', 'mc-comments__actions');
     function action(label, callback) {
-      const button = element('button', '', label); button.type = 'button'; button.dataset.commentAction = '';
+      const button = element('button', 'mc-ui-button mc-ui-button--text', label); button.type = 'button'; button.dataset.commentAction = '';
       button.addEventListener('click', callback); actions.append(button);
     }
     if (item.status === 'published' && !item.parentId) action('Ответить', () => {

@@ -12,6 +12,7 @@ import { chromium } from 'playwright';
 const ownRoot = fileURLToPath(new URL('../../', import.meta.url));
 const root = process.env.READER_UI_SOURCE_ROOT || ownRoot;
 const plugin = `${root}/wordpress/mu-plugins/hs-manacost-reader`;
+const sharedUi = `${plugin}/ui.css`;
 const id = '123e4567-e89b-42d3-a456-426614174000';
 const otherId = '223e4567-e89b-42d3-a456-426614174000';
 const commentId = '323e4567-e89b-42d3-a456-426614174000';
@@ -27,6 +28,7 @@ const assets = new Map([
   ['/comments.js', ['text/javascript', readFileSync(`${plugin}/comments.js`)]],
   ['/public-profile.js', ['text/javascript', readFileSync(`${plugin}/public-profile.js`)]],
   ['/comments.css', ['text/css', readFileSync(`${plugin}/comments.css`)]],
+  ['/ui.css', ['text/css', readFileSync(sharedUi)]],
 ]);
 
 const author = (overrides = {}) => ({
@@ -61,11 +63,11 @@ const server = createServer(async (request, response) => {
   if (asset) { response.writeHead(200, { 'content-type': asset[0] }); response.end(asset[1]); return; }
   if (request.url === '/') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/comments.css><body>${commentShell}<script src=/comments.js></script>`); return;
+    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${commentShell}<script src=/comments.js></script>`); return;
   }
   if (request.url === '/profile') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><link rel=stylesheet href=/comments.css><body>${profileShell}<script src=/public-profile.js></script>`); return;
+    response.end(`<!doctype html><meta charset=utf-8><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${profileShell}<script src=/public-profile.js></script>`); return;
   }
   if (request.url === '/reader-api/v1/me') {
     if (hold.me) { request.resume(); held.me.push({ response }); return; }

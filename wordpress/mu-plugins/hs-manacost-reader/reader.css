@@ -1,3 +1,4 @@
+/* Account composition only. Shared controls, colors and states belong to ui.css. */
 .td-main-content-wrap.mc-reader-page {
   background: #102331;
   padding: 0;
@@ -6,68 +7,34 @@
   margin: 0;
   padding: 0;
 }
-
 .mc-reader {
-  --mc-reader-navy: #102331;
-  --mc-reader-slate: #19313e;
-  --mc-reader-ice: #eef3f5;
-  --mc-reader-muted: #c5d1d8;
-  --mc-reader-gold: #c7a777;
-  --mc-reader-blue: #73b4d8;
-  --mc-reader-danger: #ffb4ab;
-  box-sizing: border-box;
-  color: var(--mc-reader-ice);
-  font:
-    400 16px/1.55 Roboto,
-    Arial,
-    sans-serif;
+  --mc-reader-navy: var(--mc-ui-surface);
+  padding: 24px 0;
   overflow-wrap: anywhere;
-  padding: 26px 0 20px;
 }
-
-.mc-reader *,
-.mc-reader *::before,
-.mc-reader *::after {
-  box-sizing: inherit;
-}
-.mc-reader [hidden] {
-  display: none !important;
-}
-
 .mc-reader .mc-reader__shell {
   width: min(1068px, 100%);
   margin: auto;
-  padding: 24px clamp(16px, 3vw, 28px) 18px;
-  background: var(--mc-reader-navy);
+  padding: 16px clamp(16px, 3vw, 28px);
 }
-
 .mc-reader .mc-reader__masthead,
 .mc-reader .mc-reader__editor-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
 }
-
 .mc-reader .mc-reader__masthead {
-  border-bottom: 1px solid rgb(199 167 119 / 38%);
-  padding-bottom: 14px;
+  min-height: 60px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--mc-ui-border);
 }
 .mc-reader .mc-reader__eyebrow {
-  color: var(--mc-reader-gold);
-  font:
-    700 12px/1.4 "Roboto Condensed",
-    Arial,
-    sans-serif;
-  letter-spacing: 0.12em;
   margin: 0;
+  color: var(--mc-ui-accent);
+  font: 700 13px/1.5 var(--mc-ui-display);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-.mc-reader .mc-reader__account-actions,
-.mc-reader .mc-reader__form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
 }
 .mc-reader .mc-reader__account-menu {
   position: relative;
@@ -76,56 +43,55 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: 10px 0 10px 12px;
-  color: var(--mc-reader-ice);
+  padding: 10px 12px;
+  border-radius: var(--mc-ui-radius);
+  color: var(--mc-ui-text);
   cursor: pointer;
-  font: 700 15px/1 "Roboto Condensed", Arial, sans-serif;
+  font: 700 14px/1.4 var(--mc-ui-body);
 }
 .mc-reader .mc-reader__account-menu summary::after {
   content: "⌄";
-  margin-left: 6px;
-  color: var(--mc-reader-gold);
-  font-size: 18px;
-  line-height: 0.75;
+  margin-left: 8px;
+  color: var(--mc-ui-accent);
 }
 .mc-reader .mc-reader__account-menu[open] summary::after {
   content: "⌃";
-}
-.mc-reader .mc-reader__account-menu summary::marker {
-  color: var(--mc-reader-gold);
 }
 .mc-reader .mc-reader__account-actions {
   position: absolute;
   z-index: 2;
   top: calc(100% + 4px);
   right: 0;
+  display: grid;
+  gap: 4px;
   min-width: max-content;
-  max-width: min(100%, calc(100vw - 32px));
   padding: 8px;
-  background: var(--mc-reader-slate);
-  border: 1px solid rgb(199 167 119 / 42%);
-  box-shadow: 0 8px 18px rgb(5 16 23 / 24%);
+  background: var(--mc-ui-raised);
+  border: 1px solid var(--mc-ui-border);
+  border-radius: var(--mc-ui-radius);
+  box-shadow: 0 8px 24px rgb(5 16 23 / 24%);
 }
 .mc-reader .mc-reader__status {
-  color: var(--mc-reader-muted);
-  margin: 20px 0 0;
-  min-height: 1.55em;
+  color: var(--mc-ui-muted);
+  margin: 24px 0 16px;
+  min-height: 24px;
 }
-.mc-reader .mc-reader__actions {
+/* Keep the live region in the DOM without an empty visual row after sign-in. */
+.mc-reader .mc-reader__status:empty {
+  margin: 0;
   min-height: 0;
 }
-
 .mc-reader .mc-reader__profile {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px;
+  grid-template-columns: minmax(0, 1fr) 184px;
   align-items: center;
   gap: 24px;
-  margin-top: 16px;
+  margin-top: 24px;
   padding: 24px;
-  background: var(--mc-reader-slate);
-  border-left: 3px solid var(--mc-reader-gold);
+  background: var(--mc-ui-raised);
+  border: 1px solid var(--mc-ui-border);
+  border-radius: 12px;
 }
-
 .mc-reader .mc-reader__identity-wrap {
   display: flex;
   align-items: center;
@@ -136,19 +102,17 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: clamp(80px, 8vw, 96px);
-  height: clamp(80px, 8vw, 96px);
+  width: 88px;
+  height: 88px;
   overflow: hidden;
-  border: 1px solid rgb(199 167 119 / 68%);
+  border: 2px solid var(--mc-ui-accent);
   border-radius: 50%;
-  background: var(--mc-reader-navy);
-  color: var(--mc-reader-gold);
-  font:
-    700 32px/1 "Roboto Condensed",
-    Arial,
-    sans-serif;
+  background: var(--mc-ui-surface);
+  color: var(--mc-ui-accent);
+  font: 700 30px/1 var(--mc-ui-display);
 }
 .mc-reader .mc-reader__avatar img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -157,273 +121,214 @@
   min-width: 0;
 }
 .mc-reader .mc-reader__identity {
-  color: var(--mc-reader-ice);
-  font:
-    700 clamp(1.75rem, 3vw, 2rem)/1.08 "Roboto Condensed",
-    Arial,
-    sans-serif;
-  margin: 0 0 9px;
+  margin: 0 0 8px;
+  color: var(--mc-ui-text);
+  font: 700 clamp(1.75rem, 3vw, 2rem)/1.2 var(--mc-ui-display);
 }
 .mc-reader .mc-reader__bio {
-  color: var(--mc-reader-muted);
-  margin: 0 0 15px;
   max-width: 530px;
+  margin: 0 0 16px;
+  color: var(--mc-ui-muted);
+  font: 400 15px/1.6 var(--mc-ui-body);
   white-space: pre-wrap;
 }
-
 .mc-reader .mc-reader__draft-note {
-  color: var(--mc-reader-blue);
+  margin: 0 0 12px;
+  color: var(--mc-ui-focus);
   font-size: 13px;
-  margin: -6px 0 12px;
 }
 .mc-reader .mc-reader__class-mark {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 18px;
-  border-left: 1px solid rgb(238 243 245 / 15%);
+  padding-left: 20px;
+  border-left: 1px solid var(--mc-ui-border);
 }
 .mc-reader .mc-reader__crest {
   display: block;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  filter: none;
 }
 .mc-reader .mc-reader__class-mark p {
-  color: var(--mc-reader-muted);
-  font-size: 13px;
-  margin: 0 0 3px;
+  margin: 0 0 4px;
+  color: var(--mc-ui-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 .mc-reader .mc-reader__class-mark strong {
-  color: var(--mc-reader-gold);
-  font:
-    700 20px/1.15 "Roboto Condensed",
-    Arial,
-    sans-serif;
-}
-
-.mc-reader .mc-reader__editor-head h2,
-.mc-reader .mc-reader__fields h3 {
-  color: var(--mc-reader-ice);
-  font:
-    700 19px/1.2 "Roboto Condensed",
-    Arial,
-    sans-serif;
-  margin: 0;
+  color: var(--mc-ui-accent);
+  font: 700 20px/1.2 var(--mc-ui-display);
 }
 .mc-reader .mc-reader__workspace {
-  margin-top: 22px;
+  margin: 24px 0 0;
   padding: 24px;
-  border-left: 3px solid var(--mc-reader-blue);
-  background: var(--mc-reader-slate);
+  background: var(--mc-ui-raised);
+  border: 1px solid var(--mc-ui-border);
+  border-radius: 12px;
 }
 .mc-reader .mc-reader__editor-head h2 {
-  font-size: 30px;
+  margin: 0;
+  color: var(--mc-ui-text);
+  font: 700 24px/1.3 var(--mc-ui-display);
 }
 .mc-reader .mc-reader__editor-grid {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 24px;
-  margin: 24px 0;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: 32px;
+  margin-top: 24px;
 }
-.mc-reader .mc-reader__avatar-controls > label,
-.mc-reader .mc-reader__field > span {
-  display: block;
-  color: var(--mc-reader-muted);
-  font:
-    700 14px/1.4 "Roboto Condensed",
-    Arial,
-    sans-serif;
-  margin-bottom: 7px;
+.mc-reader .mc-reader__preview {
+  min-width: 0;
 }
-.mc-reader .mc-reader__avatar-controls input[type="file"] {
+.mc-reader .mc-reader__avatar--editor {
+  width: 96px;
+  height: 96px;
+  margin: 16px 0;
+}
+.mc-reader .mc-reader__upload {
+  position: relative;
   width: 100%;
-  color: var(--mc-reader-muted);
+  overflow: hidden;
 }
-.mc-reader
-  .mc-reader__avatar-controls
-  input[type="file"]::file-selector-button {
-  min-height: 44px;
-  margin: 0 8px 8px 0;
-  padding: 9px 12px;
-  background: transparent;
-  border: 1px solid rgb(238 243 245 / 32%);
-  color: var(--mc-reader-ice);
+.mc-reader .mc-reader__upload input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
 }
-.mc-reader .mc-reader__help,
-.mc-reader .mc-reader__counter,
-.mc-reader .mc-reader__note,
-.mc-reader .mc-reader__editor-status {
-  color: var(--mc-reader-muted);
-  font-size: 13px;
+.mc-reader .mc-reader__upload:focus-within {
+  outline: 3px solid var(--mc-ui-focus);
+  outline-offset: 3px;
+}
+.mc-reader .mc-reader__upload:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mc-reader .mc-reader__upload input:disabled {
+  cursor: not-allowed;
 }
 .mc-reader .mc-reader__text-button {
-  min-height: 44px;
-  padding: 8px 0;
-  border: 0;
-  background: transparent;
-  color: var(--mc-reader-muted);
-  cursor: pointer;
-  text-decoration: underline;
+  margin-top: 8px;
+}
+.mc-reader .mc-reader__fields {
+  min-width: 0;
 }
 .mc-reader .mc-reader__field {
   display: block;
-  margin-top: 16px;
+  margin: 20px 0 0;
 }
-.mc-reader .mc-reader__field input,
-.mc-reader .mc-reader__field textarea,
-.mc-reader .mc-reader__field select {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 11px;
-  color: var(--mc-reader-ice);
-  background: rgb(16 35 49 / 72%);
-  border: 1px solid rgb(159 179 193 / 42%);
-  font:
-    16px/1.4 Roboto,
-    Arial,
-    sans-serif;
-}
-.mc-reader .mc-reader__field textarea {
-  min-height: 120px;
-  resize: vertical;
+.mc-reader .mc-reader__field:first-child {
+  margin-top: 0;
 }
 .mc-reader .mc-reader__counter {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
+  color: var(--mc-ui-muted);
   text-align: end;
+  font-size: 12px;
 }
 .mc-reader .mc-reader__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 24px;
 }
 .mc-reader .mc-reader__editor-status {
-  min-height: 1.55em;
-  margin: 12px 0 0;
+  margin: 16px 0 0;
+  color: var(--mc-ui-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.mc-reader .mc-reader__editor-status:empty {
+  margin: 0;
 }
 .mc-reader .mc-reader__editor-status[data-state="error"] {
-  color: var(--mc-reader-danger);
+  color: var(--mc-ui-danger);
 }
 .mc-reader .mc-reader__editor-status[data-state="success"] {
-  color: var(--mc-reader-blue);
-}
-.mc-reader .mc-reader__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  max-width: 100%;
-  padding: 10px 16px;
-  border: 1px solid var(--mc-reader-gold);
-  border-radius: 2px;
-  background: var(--mc-reader-gold);
-  color: var(--mc-reader-navy);
-  cursor: pointer;
-  font:
-    700 15px/1 "Roboto Condensed",
-    Arial,
-    sans-serif;
-  text-decoration: none;
-  transition: filter 120ms;
-}
-.mc-reader .mc-reader__button--quiet,
-.mc-reader .mc-reader__button--secondary {
-  border-color: rgb(238 243 245 / 32%);
-  background: transparent;
-  color: var(--mc-reader-ice);
-}
-.mc-reader .mc-reader__button:hover {
-  filter: brightness(1.08);
+  color: var(--mc-ui-focus);
 }
 .mc-reader .mc-reader__note {
-  border-top: 1px solid rgb(238 243 245 / 15%);
   margin: 24px 0 0;
   padding-top: 16px;
+  border-top: 1px solid var(--mc-ui-border);
+  color: var(--mc-ui-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 .mc-reader .mc-reader__footer {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 .mc-reader .mc-reader__back {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  color: var(--mc-reader-muted);
+  color: var(--mc-ui-muted);
   font-size: 14px;
   text-decoration: none;
 }
-.mc-reader :is(button, a, input, textarea, select):focus-visible {
-  outline: 3px solid var(--mc-reader-blue);
-  outline-offset: 3px;
-}
-
 @media (max-width: 680px) {
-  .mc-reader .mc-reader__masthead,
-  .mc-reader .mc-reader__editor-head {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
+  .mc-reader .mc-reader__masthead {
+    position: relative;
+  }
+  .mc-reader .mc-reader__account-menu {
+    position: static;
+  }
+  .mc-reader .mc-reader__account-actions {
+    top: calc(100% + 4px);
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    left: 0;
+    right: 0;
   }
   .mc-reader .mc-reader__profile {
     grid-template-columns: 1fr;
-    gap: 22px;
     padding: 16px;
-  }
-  .mc-reader .mc-reader__account-actions {
-    left: 0;
-    right: 0;
-    min-width: 0;
-    width: 100%;
-    max-width: 100%;
-    flex-direction: column;
-    box-sizing: border-box;
-  }
-  .mc-reader .mc-reader__account-menu {
-    width: 100%;
-    min-width: 0;
-  }
-  .mc-reader .mc-reader__account-actions > .mc-reader__button {
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
   }
   .mc-reader .mc-reader__class-mark {
     padding: 16px 0 0;
-    border-top: 1px solid rgb(238 243 245 / 15%);
     border-left: 0;
+    border-top: 1px solid var(--mc-ui-border);
+  }
+  .mc-reader .mc-reader__workspace {
+    padding: 16px;
+  }
+  .mc-reader .mc-reader__editor-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
   .mc-reader .mc-reader__editor-grid {
     grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .mc-reader .mc-reader__preview {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 16px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--mc-ui-border);
+  }
+  .mc-reader .mc-reader__preview > .mc-ui-label {
+    grid-column: 1 / -1;
+  }
+  .mc-reader .mc-reader__avatar--editor {
+    width: 80px;
+    height: 80px;
+    margin: 8px 0;
   }
 }
 @media (max-width: 390px) {
-  .mc-reader .mc-reader__shell {
-    padding-inline: 16px;
-  }
   .mc-reader .mc-reader__identity-wrap {
     align-items: flex-start;
     flex-direction: column;
   }
-  .mc-reader .mc-reader__avatar {
-    width: 80px;
-    height: 80px;
-  }
-  .mc-reader .mc-reader__form-actions,
-  .mc-reader .mc-reader__account-actions {
-    align-items: stretch;
+  .mc-reader .mc-reader__form-actions {
     flex-direction: column;
-  }
-  .mc-reader .mc-reader__button {
-    width: 100%;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mc-reader *,
-  .mc-reader *::before,
-  .mc-reader *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
-    animation: none !important;
   }
 }

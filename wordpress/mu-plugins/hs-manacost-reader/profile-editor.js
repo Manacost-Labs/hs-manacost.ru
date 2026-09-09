@@ -61,6 +61,10 @@
 		const previewLabel = root.querySelector( '[data-reader-preview-label]' );
 		const avatarImage = root.querySelector( '[data-reader-avatar-image]' );
 		const avatarPlaceholder = root.querySelector( '[data-reader-avatar-placeholder]' );
+		const avatarViews = [
+			{ image: avatarImage, placeholder: avatarPlaceholder },
+			{ image: root.querySelector( '[data-reader-editor-avatar-image]' ), placeholder: root.querySelector( '[data-reader-editor-avatar-placeholder]' ) },
+		];
 		const avatarInput = root.querySelector( '[data-reader-avatar-input]' );
 		const removeAvatar = root.querySelector( '[data-reader-remove-avatar]' );
 		const save = root.querySelector( '[data-reader-save-profile]' );
@@ -133,16 +137,18 @@
 				classCrest.hidden = true;
 			}
 			previewBio.textContent = current.bio || 'Описание пока не добавлено.';
-			avatarPlaceholder.textContent = initials( current.displayName );
 			const source = localAvatarUrl || serverProfile?.avatarUrl || '';
-			if ( source ) {
-				if ( avatarImage.getAttribute( 'src' ) !== source ) avatarImage.src = source;
-				avatarImage.hidden = false;
-				avatarPlaceholder.hidden = true;
-			} else {
-				avatarImage.removeAttribute( 'src' );
-				avatarImage.hidden = true;
-				avatarPlaceholder.hidden = false;
+			for ( const view of avatarViews ) {
+				view.placeholder.textContent = initials( current.displayName );
+				if ( source ) {
+					if ( view.image.getAttribute( 'src' ) !== source ) view.image.src = source;
+					view.image.hidden = false;
+					view.placeholder.hidden = true;
+				} else {
+					view.image.removeAttribute( 'src' );
+					view.image.hidden = true;
+					view.placeholder.hidden = false;
+				}
 			}
 			previewLabel.textContent = dirty || localAvatarUrl ? 'Есть несохранённые изменения.' : '';
 			previewLabel.hidden = ! dirty && ! localAvatarUrl;
@@ -171,7 +177,7 @@
 			if ( typeof nextCsrfToken !== 'string' || ! nextCsrfToken ) throw new Error( 'invalid_profile' );
 			csrfToken = nextCsrfToken;
 			if ( ! serverProfile ) form.hidden = true;
-			overview.hidden = false;
+			overview.hidden = ! form.hidden;
 			if ( serverProfile?.id === profile.id && profile.version < knownVersion ) {
 				renderPreview();
 				return;
@@ -217,8 +223,12 @@
 			identity.replaceChildren();
 			previewClass.replaceChildren();
 			previewBio.replaceChildren();
-			avatarPlaceholder.replaceChildren();
-			avatarImage.removeAttribute( 'src' );
+			for ( const view of avatarViews ) {
+				view.placeholder.replaceChildren();
+				view.image.removeAttribute( 'src' );
+				view.image.hidden = true;
+				view.placeholder.hidden = false;
+			}
 			avatarInput.value = '';
 			setRetry( null );
 			reloadVersion.hidden = true;
@@ -364,12 +374,14 @@
 		form.addEventListener( 'submit', ( event ) => { event.preventDefault(); saveProfile(); } );
 		openEditor.addEventListener( 'click', () => {
 			form.hidden = false;
+			overview.hidden = true;
 			form.querySelector( '#mc-reader-display-name' )?.focus();
-			form.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+			form.scrollIntoView( { behavior: window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 'auto' : 'smooth', block: 'start' } );
 		} );
 		cancelEditor.addEventListener( 'click', () => {
 			if ( ! mutationController ) {
 				form.hidden = true;
+				overview.hidden = false;
 				openEditor.focus();
 			}
 		} );
@@ -382,10 +394,12 @@
 		removeAvatar.addEventListener( 'click', deleteAvatar );
 		retry.addEventListener( 'click', () => retryAction?.() );
 		reloadVersion.addEventListener( 'click', () => options.onRefresh( { preserveDraft: true, acceptVersion: true } ) );
-		avatarImage.addEventListener( 'error', () => {
-			avatarImage.hidden = true;
-			avatarPlaceholder.hidden = false;
-		} );
+		for ( const view of avatarViews ) {
+			view.image.addEventListener( 'error', () => {
+				view.image.hidden = true;
+				view.placeholder.hidden = false;
+			} );
+		}
 
 		return {
 			applySession,
