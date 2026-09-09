@@ -26,10 +26,30 @@ function hs_manacost_reader_account_icon( string $name ): string {
 		'retry'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M19.5 8.5V4.75L22 7.25A8 8 0 1 0 20 17.5"></path></svg>',
 		'youtube' => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M21.3 7.1a2.77 2.77 0 0 0-1.95-1.96C17.63 4.67 12 4.67 12 4.67s-5.63 0-7.35.47A2.77 2.77 0 0 0 2.7 7.1C2.23 8.82 2.23 12 2.23 12s0 3.18.47 4.9a2.77 2.77 0 0 0 1.95 1.96c1.72.47 7.35.47 7.35.47s5.63 0 7.35-.47a2.77 2.77 0 0 0 1.95-1.96c.47-1.72.47-4.9.47-4.9s0-3.18-.47-4.9Z"></path><path d="m10 15.5 5-3.5-5-3.5v7Z"></path></svg>',
 		'twitch'  => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M5.25 3.5h13.5v12.75H13.5L10 19.75v-3.5H5.25V3.5Z"></path><path d="M10 8v4M14 8v4"></path></svg>',
+		'crown'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="m4 8 4.25 3.25L12 5l3.75 6.25L20 8l-1.7 10H5.7L4 8Z"></path><path d="M6.25 20h11.5"></path></svg>',
 		'back'    => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>',
 	);
 
 	return $icons[ $name ] ?? '';
+}
+
+/**
+ * Render a non-interactive trust mark after the reader name.
+ *
+ * The profile editor toggles these static, accessible marks; profile input is
+ * never concatenated into HTML.
+ *
+ * @param string $service Consent-based platform identifier.
+ */
+function hs_manacost_reader_author_mark( string $service ): string {
+	$labels = array(
+		'twitch'  => 'Автор ведёт Twitch',
+		'youtube' => 'Автор ведёт YouTube',
+	);
+	if ( ! isset( $labels[ $service ] ) ) {
+		return '';
+	}
+	return '<span class="mc-reader__author-mark mc-reader__author-mark--' . esc_attr( $service ) . '" data-reader-' . esc_attr( $service ) . '-mark role="img" aria-label="' . esc_attr( $labels[ $service ] ) . '" hidden>' . hs_manacost_reader_account_icon( $service ) . '</span>';
 }
 
 /**
@@ -77,7 +97,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<p class="mc-reader__profile-kicker">Ваш профиль</p>'
 		. '<div class="mc-reader__identity-wrap"><div class="mc-reader__avatar" role="img" aria-label="Фото профиля">'
 		. '<img data-reader-avatar-image alt="" hidden><span data-reader-avatar-placeholder aria-hidden="true">М</span></div>'
-		. '<div class="mc-reader__identity-copy"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2>'
+		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2>' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div>'
 		. '<p class="mc-reader__bio" data-reader-preview-bio></p><nav class="mc-reader__socials" data-reader-socials aria-label="Ссылки профиля" hidden><a class="mc-reader__social-link" data-reader-twitch-link href="#" target="_blank" rel="noopener noreferrer" hidden>' . hs_manacost_reader_account_icon( 'twitch' ) . '<span>Twitch</span></a><a class="mc-reader__social-link" data-reader-youtube-link href="#" target="_blank" rel="noopener noreferrer" hidden>' . hs_manacost_reader_account_icon( 'youtube' ) . '<span>YouTube</span></a></nav><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">' . hs_manacost_reader_account_icon( 'edit' ) . '<span>Изменить профиль</span></button></div></div>'
 		. '<aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="64" height="64" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside></section>'
 		. '<form class="mc-reader__workspace" data-reader-profile-editor hidden aria-labelledby="mc-reader-editor-title">'
@@ -98,8 +118,8 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<textarea class="mc-ui-control" id="mc-reader-bio" data-reader-bio rows="3" aria-describedby="mc-reader-bio-count"></textarea></label>'
 		. '<span id="mc-reader-bio-count" class="mc-reader__counter" data-reader-bio-count>0 / 280</span>'
 		. '<fieldset class="mc-reader__social-fields"><legend class="mc-ui-label">Где меня найти</legend><p class="mc-reader__social-help mc-ui-help" data-reader-social-help>Необязательно. Ссылки появятся в публичном профиле после нового комментария с вашим согласием.</p><div class="mc-reader__social-grid">'
-		. '<label class="mc-reader__field" for="mc-reader-twitch"><span>Twitch</span><input class="mc-ui-control" id="mc-reader-twitch" data-reader-twitch type="url" inputmode="url" autocomplete="url" placeholder="https://twitch.tv/your_channel"></label>'
-		. '<label class="mc-reader__field" for="mc-reader-youtube"><span>YouTube</span><input class="mc-ui-control" id="mc-reader-youtube" data-reader-youtube type="url" inputmode="url" autocomplete="url" placeholder="https://youtube.com/@your_channel" aria-describedby="mc-reader-youtube-help"></label>'
+		. '<label class="mc-reader__field" for="mc-reader-twitch"><span class="mc-reader__social-label">' . hs_manacost_reader_account_icon( 'twitch' ) . '<span>Twitch</span></span><input class="mc-ui-control" id="mc-reader-twitch" data-reader-twitch type="url" inputmode="url" autocomplete="url" placeholder="https://twitch.tv/your_channel"></label>'
+		. '<label class="mc-reader__field" for="mc-reader-youtube"><span class="mc-reader__social-label">' . hs_manacost_reader_account_icon( 'youtube' ) . '<span>YouTube</span></span><input class="mc-ui-control" id="mc-reader-youtube" data-reader-youtube type="url" inputmode="url" autocomplete="url" placeholder="https://youtube.com/@your_channel" aria-describedby="mc-reader-youtube-help"></label>'
 		. '</div><p id="mc-reader-youtube-help" class="mc-reader__social-help mc-ui-help">YouTube: канал вида @имя или /channel/UC…</p></fieldset>'
 		. '<label class="mc-reader__field" for="mc-reader-favorite-class"><span class="mc-ui-label">Любимый класс</span>'
 		. '<select class="mc-ui-control" id="mc-reader-favorite-class" data-reader-favorite-class><option value="">Не выбран</option>'

@@ -340,6 +340,8 @@ try {
 
   await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
   assert.equal(await page.locator('[data-reader-profile-editor]').isVisible(), false);
+  assert.equal(await page.locator('[data-reader-twitch-mark]').isVisible(), true, 'a valid Twitch link must add a mark after the profile name');
+  assert.equal(await page.locator('[data-reader-youtube-mark]').isVisible(), true, 'a valid YouTube link must add a mark after the profile name');
   assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
   assert.match(await page.locator('[data-reader-preview-label]').textContent(), /несохранённые/);
   assert.equal(await page.locator('[data-reader-open-editor]').evaluate(element => element === document.activeElement), true);

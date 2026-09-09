@@ -87,6 +87,10 @@
 		const socialHelp = root.querySelector( '[data-reader-social-help]' );
 		const favoriteClass = root.querySelector( '[data-reader-favorite-class]' );
 		const identity = root.querySelector( '[data-reader-identity]' );
+		const authorMarks = [
+			{ node: root.querySelector( '[data-reader-twitch-mark]' ), service: 'twitch' },
+			{ node: root.querySelector( '[data-reader-youtube-mark]' ), service: 'youtube' },
+		];
 		const previewClass = root.querySelector( '[data-reader-preview-class]' );
 		const classCrest = root.querySelector( '[data-reader-class-crest]' );
 		const classIconBase = root.dataset.classIconBase || '';
@@ -178,6 +182,11 @@
 		function renderPreview() {
 			const current = draft();
 			identity.textContent = current.displayName || 'Читатель';
+			for ( const mark of authorMarks ) {
+				let url = null;
+				try { url = current[ `${ mark.service }Url` ] ? safeSocialUrl( current[ `${ mark.service }Url` ], mark.service ) : null; } catch ( error ) { /* A malformed draft remains unmarked until fixed. */ }
+				mark.node.hidden = ! url;
+			}
 			previewClass.textContent = current.favoriteClass ? classNames.get( current.favoriteClass ) : 'Не выбран';
 			const icon = current.favoriteClass && classIconBase ? `${ classIconBase }${ current.favoriteClass.replace( /-/g, '' ) }.png` : '';
 			if ( icon ) {
@@ -293,6 +302,7 @@
 			dirty = false;
 			fill( { displayName: '', bio: '', favoriteClass: null, twitchUrl: null, youtubeUrl: null } );
 			identity.replaceChildren();
+			for ( const mark of authorMarks ) mark.node.hidden = true;
 			previewClass.replaceChildren();
 			previewBio.replaceChildren();
 			for ( const view of avatarViews ) {

@@ -73,8 +73,10 @@
   const write = () => ({ 'Content-Type': 'application/json', 'X-Reader-CSRF': csrf });
   function validAuthor(author, pending) {
     if (!author || !uuid.test(author.id) || typeof author.name !== 'string' || author.name.length > 160) return false;
-    return pending ? author.profileUrl === null && author.avatarUrl === null && author.paidSubscriber === false
-      : author.profileUrl === `/account/?reader=${author.id}` && typeof author.paidSubscriber === 'boolean';
+    const platformFlags = (author.hasTwitch === undefined && author.hasYoutube === undefined)
+      || (typeof author.hasTwitch === 'boolean' && typeof author.hasYoutube === 'boolean');
+    return pending ? author.profileUrl === null && author.avatarUrl === null && author.paidSubscriber === false && platformFlags
+      : author.profileUrl === `/account/?reader=${author.id}` && typeof author.paidSubscriber === 'boolean' && platformFlags;
   }
   function valid(item) {
     if (!item || !uuid.test(item.id) || item.postId !== postId
@@ -95,6 +97,17 @@
     if (text !== undefined) node.textContent = text;
     return node;
   }
+  function authorBadge(service, label) {
+    const badge = element('span', `mc-comments__author-badge mc-comments__author-badge--${service}`);
+    badge.setAttribute('role', 'img'); badge.setAttribute('aria-label', label); badge.title = label;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    if (service === 'twitch') path.setAttribute('d', 'M5.25 3.5h13.5v12.75H13.5L10 19.75v-3.5H5.25V3.5Z M10 8v4M14 8v4');
+    else if (service === 'youtube') path.setAttribute('d', 'M21.3 7.1a2.77 2.77 0 0 0-1.95-1.96C17.63 4.67 12 4.67 12 4.67s-5.63 0-7.35.47A2.77 2.77 0 0 0 2.7 7.1C2.23 8.82 2.23 12 2.23 12s0 3.18.47 4.9a2.77 2.77 0 0 0 1.95 1.96c1.72.47 7.35.47 7.35.47s5.63 0 7.35-.47a2.77 2.77 0 0 0 1.95-1.96c.47-1.72.47-4.9.47-4.9s0-3.18-.47-4.9Z M10 15.5l5-3.5-5-3.5v7Z');
+    else path.setAttribute('d', 'm4 8 4.25 3.25L12 5l3.75 6.25L20 8l-1.7 10H5.7L4 8Z M6.25 20h11.5');
+    svg.append(path); badge.append(svg); return badge;
+  }
   function commentNode(item) {
     const node = element('article', `mc-comments__comment${item.parentId ? ' mc-comments__reply' : ''}`);
     node.dataset.pending = String(item.status === 'pending');
@@ -112,7 +125,9 @@
       } else author.append(placeholder);
       const identityText = element('span', 'mc-comments__identity-text');
       identityText.append(element('span', 'mc-comments__name', item.author.name));
-      if (item.author.paidSubscriber === true) identityText.append(element('span', 'mc-comments__paid', 'Платный подписчик'));
+      if (item.author.hasTwitch) identityText.append(authorBadge('twitch', 'Автор ведёт Twitch'));
+      if (item.author.hasYoutube) identityText.append(authorBadge('youtube', 'Автор ведёт YouTube'));
+      if (item.author.paidSubscriber === true) identityText.append(authorBadge('paid', 'Платный подписчик'));
       author.append(identityText); header.append(author);
       const time = element('time', 'mc-comments__meta', new Date(item.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
       time.dateTime = new Date(item.createdAt).toISOString(); header.append(time); node.append(header);

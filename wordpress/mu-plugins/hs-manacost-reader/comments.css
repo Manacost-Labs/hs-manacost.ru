@@ -103,15 +103,30 @@
   font: 700 15px/1.4 var(--mc-ui-body);
   overflow-wrap: anywhere;
 }
-.mc-comments .mc-comments__paid,
-.mc-public-profile [data-public-profile-paid] {
-  display: inline-flex;
-  padding: 2px 7px;
-  border: 1px solid var(--mc-ui-accent);
-  border-radius: 4px;
-  color: var(--mc-ui-accent);
-  font: 700 12px/1.5 var(--mc-ui-body);
+.mc-comments .mc-comments__author-badge,
+.mc-public-profile .mc-public-profile__author-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--mc-ui-muted);
 }
+.mc-comments .mc-comments__author-badge svg,
+.mc-public-profile .mc-public-profile__author-mark svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.mc-comments .mc-comments__author-badge--twitch,
+.mc-public-profile .mc-public-profile__author-mark--twitch { color: #7650a9; }
+.mc-comments .mc-comments__author-badge--youtube,
+.mc-public-profile .mc-public-profile__author-mark--youtube { color: #a33a34; }
+.mc-comments .mc-comments__author-badge--paid,
+.mc-public-profile .mc-public-profile__author-mark--paid { color: #936715; }
 .mc-comments .mc-comments__meta {
   padding-top: 4px;
   color: var(--mc-ui-muted);
@@ -239,13 +254,7 @@
   color: var(--mc-ui-accent);
   font: 700 32px/1 var(--mc-ui-display);
 }
-.mc-public-profile h1 {
-  margin-bottom: 12px;
-}
-.mc-public-profile [data-public-profile-paid] {
-  justify-self: start;
-  margin-bottom: 12px;
-}
+.mc-public-profile h1 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 12px; }
 .mc-public-profile [data-public-profile-class] {
   margin-bottom: 12px;
   color: var(--mc-ui-muted);

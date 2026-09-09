@@ -22,7 +22,9 @@ function authorDTO(author, paid, pending = false, includeSocials = false) {
   const dto = { id: author.id, name: author.name, bio: author.bio, favoriteClass: author.favoriteClass,
     avatarVersion: pending ? null : author.avatarVersion,
     avatarUrl: !pending && author.avatarVersion ? `/reader-api/v1/readers/${author.id}/avatar?v=${author.avatarVersion}` : null,
-    profileUrl: pending ? null : `/account/?reader=${author.id}`, paidSubscriber: !pending && paid === true };
+    profileUrl: pending ? null : `/account/?reader=${author.id}`, paidSubscriber: !pending && paid === true,
+    hasTwitch: !pending && typeof author.twitchUrl === 'string',
+    hasYoutube: !pending && typeof author.youtubeUrl === 'string' };
   // Social links are consented profile data. They belong on the public profile,
   // never on every thread response.
   if (includeSocials) {
