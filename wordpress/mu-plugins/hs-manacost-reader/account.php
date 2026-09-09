@@ -16,7 +16,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 	if ( function_exists( 'hs_reader_public_profile_request' ) && hs_reader_public_profile_request() ) {
 		$id = hs_reader_public_profile_id();
 		return '' !== $id ? hs_reader_public_profile_shell( $id )
-			: '<section class="mc-public-profile"><h1>Профиль недоступен</h1><a href="/">К материалам</a></section>';
+			: '<section class="mc-reader-ui mc-public-profile"><h1>Профиль недоступен</h1><a class="mc-public-profile__back" href="/">К материалам</a></section>';
 	}
 	$defaults = array(
 		'me_endpoint'      => '/reader-api/v1/me',
