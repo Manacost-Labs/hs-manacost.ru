@@ -9,19 +9,32 @@ PROFILE_JS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/profile-editor.js'
 CSS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.css'
 
 class ReaderUiContractTests(unittest.TestCase):
+    def test_shared_ui_is_an_explicit_dependency_and_single_token_owner(self):
+        for path in (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php', PHP.parent / 'comments-loader.php'):
+            source = path.read_text()
+            self.assertIn("$base . 'ui.css'", source)
+            self.assertIn("array( 'hs-manacost-reader-ui' )", source)
+        shared = (PHP.parent / 'ui.css').read_text()
+        for path in (CSS, PHP.parent / 'comments.css'):
+            self.assertNotIn('--mc-ui-surface:', path.read_text())
+            self.assertNotIn('--mc-ui-accent:', path.read_text())
+        self.assertIn('--mc-ui-surface:', shared)
+        self.assertIn('.mc-ui-control', shared)
+        self.assertIn('.mc-ui-button:disabled', shared)
+
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.6.1', loader)
+        self.assertIn('Version: 0.7.0', loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
             self.assertNotIn("'0.5.0'", source)
-            self.assertIn("'0.6.1'", source)
+            self.assertIn("'0.7.0'", source)
 
     @classmethod
     def setUpClass(cls):
-        cls.php, cls.js, cls.css = PHP.read_text(), JS.read_text(), CSS.read_text()
+        cls.php, cls.js, cls.css = PHP.read_text(), JS.read_text(), CSS.read_text() + (PHP.parent / 'ui.css').read_text()
         cls.profile_js = PROFILE_JS.read_text() if PROFILE_JS.exists() else ''
     def test_shell_is_cache_safe_and_escaped(self):
         self.assertIn('hs_manacost_reader_account_shell', self.php); self.assertIn('esc_attr( $public[', self.php)
@@ -69,7 +82,7 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertNotIn('http://', self.profile_js)
     def test_session_refresh_and_mutation_races_preserve_safe_state(self):
         for value in ('currentCsrfToken', 'profile.version < knownVersion', 'options.onMutationStart()',
-                      "avatarImage.getAttribute( 'src' )", 'profileEditor.isBusy()', 'setBusy( false )',
+                      "view.image.getAttribute( 'src' )", 'profileEditor.isBusy()', 'setBusy( false )',
                       'logoutGeneration', 'actions.replaceChildren()'):
             self.assertIn(value, self.js + self.profile_js)
         self.assertIn("error.message === 'invalid_profile'", self.js)

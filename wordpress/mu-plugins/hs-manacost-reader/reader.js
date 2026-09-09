@@ -68,7 +68,7 @@
 		function guest( message ) {
 			clearPrivate();
 			status.textContent = message;
-			const login = link( 'Войти через HearthPulse', 'mc-reader__button mc-reader__button--primary' );
+			const login = link( 'Войти через HearthPulse', 'mc-reader__button mc-reader__button--primary mc-ui-button' );
 			login.href = loginEndpoint;
 			actions.append( login );
 		}
@@ -76,7 +76,7 @@
 		function showRetry( message, retryAction = refresh ) {
 			clearPrivate();
 			status.textContent = message;
-			const retry = actionButton( 'Повторить', 'mc-reader__button mc-reader__button--secondary' );
+			const retry = actionButton( 'Повторить', 'mc-reader__button mc-reader__button--secondary mc-ui-button mc-ui-button--secondary' );
 			retry.addEventListener( 'click', retryAction );
 			actions.append( retry );
 		}
@@ -84,7 +84,7 @@
 		function showPreservedRetry( message ) {
 			status.textContent = message;
 			if ( actions.querySelector( '[data-reader-refresh-session]' ) ) return;
-			const retry = actionButton( 'Обновить вход', 'mc-reader__button mc-reader__button--secondary' );
+			const retry = actionButton( 'Обновить вход', 'mc-reader__button mc-reader__button--secondary mc-ui-button mc-ui-button--secondary' );
 			retry.dataset.readerRefreshSession = '';
 			retry.addEventListener( 'click', () => refresh( { preserveDraft: true } ) );
 			actions.append( retry );
@@ -106,13 +106,13 @@
 			accountMenu.hidden = false;
 			const profileHref = allowedProfileUrl( data.profileUrl );
 			if ( profileHref ) {
-				const profile = link( 'Профиль HearthPulse', 'mc-reader__button mc-reader__button--secondary' );
+				const profile = link( 'Профиль HearthPulse', 'mc-reader__button mc-reader__button--secondary mc-ui-button mc-ui-button--secondary' );
 				profile.href = profileHref;
 				profile.target = '_blank';
 				profile.rel = 'noopener';
 				accountActions.append( profile );
 			}
-			const logout = actionButton( 'Выйти', 'mc-reader__button mc-reader__button--quiet' );
+			const logout = actionButton( 'Выйти', 'mc-reader__button mc-reader__button--quiet mc-ui-button mc-ui-button--text' );
 			logout.addEventListener( 'click', () => logoutRequest( currentCsrfToken ) );
 			accountActions.append( logout );
 			sessionActive = true;
