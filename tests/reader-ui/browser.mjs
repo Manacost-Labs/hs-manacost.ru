@@ -59,7 +59,13 @@ try {
   const page = await browser.newPage();
   page.on('pageerror', error => console.error(`Browser page error: ${error.message}`));
   const profileId = '123e4567-e89b-42d3-a456-426614174000';
-  const profileDto = overrides => ({ id: profileId, displayName: 'Читатель Манакоста', bio: 'Люблю вдумчивые колоды и длинные партии.', favoriteClass: 'mage', version: 1, avatarUrl: null, ...overrides });
+  const profileDto = overrides => ({ id: profileId, displayName: 'Читатель Манакоста', bio: 'Люблю вдумчивые колоды и длинные партии.', favoriteClass: 'mage', twitchUrl: null, youtubeUrl: null, version: 1, avatarUrl: null, ...overrides });
+  const legacyProfileDto = overrides => {
+    const legacy = profileDto(overrides);
+    delete legacy.twitchUrl;
+    delete legacy.youtubeUrl;
+    return legacy;
+  };
   const sessionDto = overrides => ({ user: { displayName: 'Читатель Манакоста' }, csrfToken: 'synthetic-only', profileUrl: 'https://hearthpulse.net/profile/synthetic', profile: profileDto(), ...overrides });
   let profileStatus = 401;
   let profile = {};
@@ -247,6 +253,43 @@ try {
     await ready();
     await assertAccountMenuFits(width);
   }
+  profile = sessionDto({
+    user: { displayName: 'Совместимый читатель' },
+    profile: legacyProfileDto({ id: '323e4567-e89b-42d3-a456-426614174002', displayName: 'Совместимый читатель', bio: '', favoriteClass: null }),
+  });
+  await ready();
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
+  const legacyNameField = page.locator('[data-reader-display-name]');
+  assert.equal(await page.locator('[data-reader-twitch]').isDisabled(), true, 'an older Reader response must not accept a social link it cannot save');
+  assert.equal(await page.locator('[data-reader-youtube]').isDisabled(), true, 'an older Reader response must not accept a social link it cannot save');
+  assert.match(await page.locator('[data-reader-social-help]').textContent(), /станут доступны сразу после обновления/);
+  await legacyNameField.fill('Совместимый профиль');
+  profileWriteResponse = legacyProfileDto({ id: '323e4567-e89b-42d3-a456-426614174002', displayName: 'Совместимый профиль', bio: '', favoriteClass: null, version: 2 });
+  await page.locator('[data-reader-save-profile]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
+  assert.deepEqual(profileWrites.at(-1).body, { version: 1, displayName: 'Совместимый профиль', bio: '', favoriteClass: null }, 'the compatibility path must keep the legacy four-field PATCH contract');
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  profile = sessionDto({
+    user: { displayName: 'Аватар совместимости' },
+    profile: profileDto({ id: '423e4567-e89b-42d3-a456-426614174003', displayName: 'Аватар совместимости', bio: '', favoriteClass: null }),
+  });
+  await ready();
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
+  avatarWriteResponse = legacyProfileDto({ id: '423e4567-e89b-42d3-a456-426614174003', displayName: 'Аватар совместимости', bio: '', favoriteClass: null, version: 2, avatarUrl: '/reader-api/v1/profile/avatar?v=legacy-avatar' });
+  await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'legacy-avatar.png', mimeType: 'image/png', buffer: Buffer.from('legacy-avatar') });
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Фотография профиля обновлена'));
+  assert.equal(await page.locator('[data-reader-twitch]').isDisabled(), true, 'a legacy mutation response must disable social fields before another write');
+  assert.equal(await page.locator('[data-reader-youtube]').isDisabled(), true, 'a legacy mutation response must disable social fields before another write');
+  await page.locator('[data-reader-display-name]').fill('Аватар совместим');
+  profileWriteResponse = legacyProfileDto({ id: '423e4567-e89b-42d3-a456-426614174003', displayName: 'Аватар совместим', bio: '', favoriteClass: null, version: 3, avatarUrl: '/reader-api/v1/profile/avatar?v=legacy-avatar' });
+  await page.locator('[data-reader-save-profile]').click();
+  await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
+  assert.deepEqual(profileWrites.at(-1).body, { version: 2, displayName: 'Аватар совместим', bio: '', favoriteClass: null }, 'a legacy mutation response must keep the following PATCH on the four-field contract');
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  profile = sessionDto();
+  profileWriteResponse = profileDto({ version: 2 });
+  avatarWriteResponse = profileDto({ version: 2, avatarUrl: '/reader-api/v1/profile/avatar?v=avatar2' });
+  await ready();
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
   assert.equal(await page.locator('[data-reader-profile-overview]').isVisible(), false, 'editing is a dedicated view, not another duplicate profile panel');
 
@@ -257,33 +300,41 @@ try {
       const rect = node => { const r = node.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width, height: r.height }; };
       return {
         preview: Boolean(form.querySelector('[data-reader-editor-avatar]')),
-        controls: [...form.querySelectorAll('input:not([type=file]), textarea, select')].map(rect),
+        controls: [...form.querySelectorAll('input:not([type=file]), textarea, select')].map(element => ({ ...rect(element), social: Object.hasOwn(element.dataset, 'readerTwitch') || Object.hasOwn(element.dataset, 'readerYoutube') })),
         photo: rect(form.querySelector('.mc-reader__preview')),
         upload: rect(form.querySelector('[data-reader-avatar-input]')),
       };
     });
     assert.equal(editorGeometry.preview, true, 'the photo must be visible next to its upload control inside the editor');
     assert.ok(editorGeometry.controls.every(r => r.height >= 44 && r.width > 0), 'all fields keep usable targets');
-    assert.ok(editorGeometry.controls.every(r => Math.abs(r.left - editorGeometry.controls[0].left) < 1 && Math.abs(r.right - editorGeometry.controls[0].right) < 1), 'name, bio and class share one field alignment');
+    const primaryControls = editorGeometry.controls.filter(control => !control.social);
+    assert.ok(primaryControls.every(r => Math.abs(r.left - primaryControls[0].left) < 1 && Math.abs(r.right - primaryControls[0].right) < 1), 'name, bio and class share one field alignment');
     assert.ok(editorGeometry.upload.left >= editorGeometry.photo.left && editorGeometry.upload.right <= editorGeometry.photo.right, 'upload control stays in the photo component');
     if ([390, 1440].includes(width)) await capture(`editor-${width}`);
   }
 
   const nameField = page.locator('[data-reader-display-name]');
   const bioField = page.locator('[data-reader-bio]');
+  const twitchField = page.locator('[data-reader-twitch]');
+  const youtubeField = page.locator('[data-reader-youtube]');
   const classField = page.locator('[data-reader-favorite-class]');
   const editorStatus = page.locator('[data-reader-editor-status]');
   const fortyUnicodeCharacters = '😀'.repeat(40);
+  const writesBeforeValidation = profileWrites.length;
   await nameField.fill(fortyUnicodeCharacters);
   assert.equal(await page.locator('[data-reader-name-count]').textContent(), '40 / 40');
   assert.equal(await nameField.evaluate(element => element.checkValidity()), true, '40 Unicode code points must remain valid');
   await nameField.fill('   ');
   await page.locator('[data-reader-save-profile]').click();
   assert.match(await nameField.evaluate(element => element.validationMessage), /2|символ/);
-  assert.equal(profileWrites.length, 0, 'invalid whitespace-only names must not reach the API');
+  assert.equal(profileWrites.length, writesBeforeValidation, 'invalid whitespace-only names must not reach the API');
   await nameField.fill('Исправленное имя');
   assert.equal(await nameField.evaluate(element => element.validationMessage), '', 'correcting a name must clear stale custom validity');
   await bioField.fill('Черновик с кириллицей и эмодзи 🃏');
+  await twitchField.fill('https://evil.test/not-a-channel');
+  assert.equal(await page.locator('[data-reader-twitch-link]').isHidden(), true, 'unfinished or untrusted social input must never become an overview link');
+  await twitchField.fill('https://twitch.tv/Mana_Cost');
+  await youtubeField.fill('https://youtube.com/@Manacost');
   await classField.selectOption('priest');
   assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Исправленное имя');
 
@@ -292,6 +343,8 @@ try {
   assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
   assert.match(await page.locator('[data-reader-preview-label]').textContent(), /несохранённые/);
   assert.equal(await page.locator('[data-reader-open-editor]').evaluate(element => element === document.activeElement), true);
+  assert.equal(await page.locator('[data-reader-twitch-link]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
+  assert.equal(await page.locator('[data-reader-youtube-link]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
   assert.equal(await nameField.inputValue(), 'Исправленное имя');
 
@@ -317,20 +370,20 @@ try {
   await page.locator('[data-reader-save-profile]').click();
   await page.locator('[data-reader-reload-version]').waitFor();
   assert.equal(profileWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
-  assert.deepEqual(profileWrites.at(-1).body, { version: 1, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest' });
+  assert.deepEqual(profileWrites.at(-1).body, { version: 1, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost' });
   profile = sessionDto({ csrfToken: 'csrf-after-403', profile: profileDto({ version: 2, displayName: 'Серверное имя' }) });
   await page.locator('[data-reader-reload-version]').click();
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Версия обновлена'));
   assert.equal(await nameField.inputValue(), 'Исправленное имя', 'conflict reload must preserve the text draft');
 
   profileWriteStatus = 200;
-  profileWriteResponse = profileDto({ version: 3, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest' });
+  profileWriteResponse = profileDto({ version: 3, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost' });
   await page.locator('[data-reader-save-profile]').click();
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
   assert.equal(profileWrites.at(-1).body.version, 2, 'retry after conflict must use the reloaded version');
 
   await bioField.fill('Этот текст нельзя потерять при загрузке фото.');
-  avatarWriteResponse = profileDto({ version: 4, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', avatarUrl: '/reader-api/v1/profile/avatar?v=avatar4' });
+  avatarWriteResponse = profileDto({ version: 4, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost', avatarUrl: '/reader-api/v1/profile/avatar?v=avatar4' });
   avatarDelay = 250;
   const callsBeforeUpload = meCalls;
   await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('synthetic-png') });
@@ -349,7 +402,7 @@ try {
   assert.equal(await page.locator('[data-reader-remove-avatar]').isVisible(), true);
 
   avatarDelay = 0;
-  avatarWriteResponse = profileDto({ version: 5, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', avatarUrl: null });
+  avatarWriteResponse = profileDto({ version: 5, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost', avatarUrl: null });
   await page.locator('[data-reader-remove-avatar]').click();
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Фотография профиля обновлена'));
   assert.equal(avatarWrites.at(-1).method, 'DELETE');

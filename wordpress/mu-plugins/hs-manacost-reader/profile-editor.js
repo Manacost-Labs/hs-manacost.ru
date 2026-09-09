@@ -17,7 +17,9 @@
 		[ 'warrior', 'Воин' ],
 	] );
 	const codepointLength = ( value ) => Array.from( value ).length;
-	const sameDraft = ( left, right ) => left.displayName === right.displayName && left.bio === right.bio && left.favoriteClass === right.favoriteClass;
+	const hasOwn = ( value, key ) => Object.prototype.hasOwnProperty.call( value, key );
+	const sameDraft = ( left, right ) => left.displayName === right.displayName && left.bio === right.bio && left.favoriteClass === right.favoriteClass
+		&& left.twitchUrl === right.twitchUrl && left.youtubeUrl === right.youtubeUrl;
 
 	function safeAvatarPath( value, endpoint ) {
 		if ( value === null ) return null;
@@ -29,17 +31,45 @@
 		return url.pathname + url.search;
 	}
 
+	function safeSocialUrl( value, service ) {
+		if ( value === null || value === '' ) return null;
+		if ( typeof value !== 'string' || value.length > 200 || /[\u0000-\u001f\u007f]/.test( value ) ) throw new Error( 'invalid_profile' );
+		let url;
+		try { url = new URL( value.trim() ); } catch ( error ) { throw new Error( 'invalid_profile' ); }
+		if ( url.protocol !== 'https:' || url.username || url.password || url.port || url.search || url.hash ) throw new Error( 'invalid_profile' );
+		const host = url.hostname.toLowerCase();
+		if ( 'twitch' === service ) {
+			if ( ! /^(?:www\.)?twitch\.tv$/i.test( host ) ) throw new Error( 'invalid_profile' );
+			const match = url.pathname.match( /^\/([a-z0-9_]{4,25})\/?$/i );
+			if ( ! match ) throw new Error( 'invalid_profile' );
+			return `https://www.twitch.tv/${ match[ 1 ].toLowerCase() }`;
+		}
+		if ( ! /^(?:www\.|m\.)?youtube\.com$/i.test( host ) ) throw new Error( 'invalid_profile' );
+		const handle = url.pathname.match( /^\/@([a-z0-9_.-]{3,30})$/i );
+		if ( handle ) return `https://www.youtube.com/@${ handle[ 1 ] }`;
+		const channel = url.pathname.match( /^\/channel\/(UC[a-z0-9_-]{22})$/i );
+		if ( channel ) return `https://www.youtube.com/channel/${ channel[ 1 ] }`;
+		throw new Error( 'invalid_profile' );
+	}
+
 	function validProfile( value, avatarEndpoint ) {
 		if ( ! value || typeof value !== 'object' || ! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test( value.id )
 			|| typeof value.displayName !== 'string' || codepointLength( value.displayName ) < 2 || codepointLength( value.displayName ) > 40
 			|| typeof value.bio !== 'string' || codepointLength( value.bio ) > 280
 			|| ( value.favoriteClass !== null && ! classNames.has( value.favoriteClass ) )
 			|| ! Number.isSafeInteger( value.version ) || value.version < 1 ) throw new Error( 'invalid_profile' );
+		const hasTwitchUrl = hasOwn( value, 'twitchUrl' );
+		const hasYoutubeUrl = hasOwn( value, 'youtubeUrl' );
+		if ( hasTwitchUrl !== hasYoutubeUrl ) throw new Error( 'invalid_profile' );
+		const socialFieldsAvailable = hasTwitchUrl && hasYoutubeUrl;
 		return {
 			id: value.id,
 			displayName: value.displayName,
 			bio: value.bio,
 			favoriteClass: value.favoriteClass,
+			twitchUrl: socialFieldsAvailable ? safeSocialUrl( value.twitchUrl, 'twitch' ) : null,
+			youtubeUrl: socialFieldsAvailable ? safeSocialUrl( value.youtubeUrl, 'youtube' ) : null,
+			socialFieldsAvailable,
 			version: value.version,
 			avatarUrl: safeAvatarPath( value.avatarUrl, avatarEndpoint ),
 		};
@@ -52,12 +82,20 @@
 		const cancelEditor = root.querySelector( '[data-reader-cancel-editor]' );
 		const name = root.querySelector( '[data-reader-display-name]' );
 		const bio = root.querySelector( '[data-reader-bio]' );
+		const twitch = root.querySelector( '[data-reader-twitch]' );
+		const youtube = root.querySelector( '[data-reader-youtube]' );
+		const socialHelp = root.querySelector( '[data-reader-social-help]' );
 		const favoriteClass = root.querySelector( '[data-reader-favorite-class]' );
 		const identity = root.querySelector( '[data-reader-identity]' );
 		const previewClass = root.querySelector( '[data-reader-preview-class]' );
 		const classCrest = root.querySelector( '[data-reader-class-crest]' );
 		const classIconBase = root.dataset.classIconBase || '';
 		const previewBio = root.querySelector( '[data-reader-preview-bio]' );
+		const socials = root.querySelector( '[data-reader-socials]' );
+		const socialLinks = [
+			{ link: root.querySelector( '[data-reader-twitch-link]' ), service: 'twitch' },
+			{ link: root.querySelector( '[data-reader-youtube-link]' ), service: 'youtube' },
+		];
 		const previewLabel = root.querySelector( '[data-reader-preview-label]' );
 		const avatarImage = root.querySelector( '[data-reader-avatar-image]' );
 		const avatarPlaceholder = root.querySelector( '[data-reader-avatar-placeholder]' );
@@ -81,11 +119,14 @@
 		let mutationController = null;
 		let mutationGeneration = 0;
 		let retryAction = null;
+		let socialFieldsAvailable = false;
 
 		const draft = () => ( {
 			displayName: name.value,
 			bio: bio.value,
 			favoriteClass: favoriteClass.value || null,
+			twitchUrl: twitch.value || null,
+			youtubeUrl: youtube.value || null,
 		} );
 
 		function revokeLocalAvatar() {
@@ -104,10 +145,22 @@
 			retry.hidden = ! action;
 		}
 
+		function syncSocialFields() {
+			const unavailable = ! socialFieldsAvailable;
+			twitch.disabled = Boolean( mutationController ) || unavailable;
+			youtube.disabled = Boolean( mutationController ) || unavailable;
+			if ( socialHelp ) {
+				socialHelp.textContent = unavailable
+					? 'Ссылки Twitch и YouTube станут доступны сразу после обновления сервиса профиля. Остальные данные можно сохранять уже сейчас.'
+					: 'Необязательно. Ссылки появятся в публичном профиле после нового комментария с вашим согласием.';
+			}
+		}
+
 		function setBusy( busy, label = '' ) {
 			save.disabled = busy;
 			avatarInput.disabled = busy;
 			removeAvatar.disabled = busy;
+			syncSocialFields();
 			form.setAttribute( 'aria-busy', String( busy ) );
 			if ( busy && label ) showEditorStatus( label );
 		}
@@ -137,6 +190,18 @@
 				classCrest.hidden = true;
 			}
 			previewBio.textContent = current.bio || 'Описание пока не добавлено.';
+			let socialCount = 0;
+			for ( const social of socialLinks ) {
+				const value = current[ `${ social.service }Url` ];
+				let url = null;
+				try { url = value ? safeSocialUrl( value, social.service ) : null; } catch ( error ) { /* Field validation explains an unfinished or invalid link on save. */ }
+				social.link.hidden = ! url;
+				if ( url ) {
+					social.link.href = url;
+					socialCount += 1;
+				} else social.link.removeAttribute( 'href' );
+			}
+			socials.hidden = 0 === socialCount;
 			const source = localAvatarUrl || serverProfile?.avatarUrl || '';
 			for ( const view of avatarViews ) {
 				view.placeholder.textContent = initials( current.displayName );
@@ -170,6 +235,8 @@
 			name.value = profile.displayName;
 			bio.value = profile.bio;
 			favoriteClass.value = profile.favoriteClass || '';
+			twitch.value = profile.twitchUrl || '';
+			youtube.value = profile.youtubeUrl || '';
 		}
 
 		function applySession( rawProfile, nextCsrfToken, sessionOptions = {} ) {
@@ -184,6 +251,7 @@
 			}
 			const mayPreserve = sessionOptions.preserveDraft && ( dirty || mutationController ) && serverProfile?.id === profile.id;
 			if ( mayPreserve ) {
+				socialFieldsAvailable = profile.socialFieldsAvailable;
 				if ( sessionOptions.acceptVersion ) {
 					serverProfile = profile;
 					knownVersion = profile.version;
@@ -196,17 +264,20 @@
 					setRetry( null );
 					showEditorStatus( 'Вход обновлён. Несохранённые изменения остались в форме.', 'success' );
 				}
+				syncSocialFields();
 				renderPreview();
 				return;
 			}
 			revokeLocalAvatar();
 			serverProfile = profile;
 			knownVersion = profile.version;
+			socialFieldsAvailable = profile.socialFieldsAvailable;
 			fill( profile );
 			dirty = false;
 			setRetry( null );
 			reloadVersion.hidden = true;
 			showEditorStatus( '' );
+			syncSocialFields();
 			renderPreview();
 		}
 
@@ -216,10 +287,11 @@
 			mutationController = null;
 			revokeLocalAvatar();
 			serverProfile = null;
+			socialFieldsAvailable = false;
 			csrfToken = '';
 			knownVersion = 0;
 			dirty = false;
-			fill( { displayName: '', bio: '', favoriteClass: null } );
+			fill( { displayName: '', bio: '', favoriteClass: null, twitchUrl: null, youtubeUrl: null } );
 			identity.replaceChildren();
 			previewClass.replaceChildren();
 			previewBio.replaceChildren();
@@ -256,7 +328,7 @@
 				return;
 			}
 			if ( response.status === 413 ) showEditorStatus( 'Файл больше 4 МБ. Выберите изображение меньшего размера.', 'error' );
-			else if ( response.status === 400 ) showEditorStatus( operation === 'profile' ? 'Проверьте имя, описание и выбранный класс.' : 'Не удалось обработать изображение. Выберите другой файл.', 'error' );
+			else if ( response.status === 400 ) showEditorStatus( operation === 'profile' ? 'Проверьте имя, описание, выбранный класс и ссылки.' : 'Не удалось обработать изображение. Выберите другой файл.', 'error' );
 			else if ( response.status === 429 || response.status === 503 ) showEditorStatus( 'Сервис занят. Повторите попытку чуть позже.', 'error' );
 			else if ( response.status >= 500 ) {
 				showEditorStatus( 'Ответ сервиса неизвестен. Сначала обновите версию профиля, затем при необходимости сохраните снова.', 'error' );
@@ -292,6 +364,8 @@
 				if ( profile.id !== serverProfile.id ) throw new Error( 'invalid_profile' );
 				serverProfile = profile;
 				knownVersion = profile.version;
+				socialFieldsAvailable = profile.socialFieldsAvailable;
+				syncSocialFields();
 				if ( operation === 'profile' && sentDraft && sameDraft( draft(), sentDraft ) ) fill( profile );
 				dirty = ! sameDraft( draft(), serverProfile );
 				revokeLocalAvatar();
@@ -323,12 +397,25 @@
 		function validateDraft( value ) {
 			name.setCustomValidity( '' );
 			bio.setCustomValidity( '' );
+			twitch.setCustomValidity( '' );
+			youtube.setCustomValidity( '' );
 			const displayLength = codepointLength( value.displayName.trim() );
 			if ( displayLength < 2 || displayLength > 40 ) name.setCustomValidity( 'Введите имя длиной от 2 до 40 символов.' );
 			if ( codepointLength( value.bio.trim() ) > 280 ) bio.setCustomValidity( 'Описание должно быть не длиннее 280 символов.' );
+			if ( socialFieldsAvailable ) {
+				try { value.twitchUrl = safeSocialUrl( value.twitchUrl, 'twitch' ); } catch ( error ) { twitch.setCustomValidity( 'Укажите ссылку вида https://twitch.tv/your_channel.' ); }
+				try { value.youtubeUrl = safeSocialUrl( value.youtubeUrl, 'youtube' ); } catch ( error ) { youtube.setCustomValidity( 'Укажите канал YouTube вида https://youtube.com/@your_channel.' ); }
+			} else {
+				value.twitchUrl = null;
+				value.youtubeUrl = null;
+			}
 			if ( ! form.reportValidity() ) {
 				showEditorStatus( 'Исправьте отмеченные поля.', 'error' );
 				return false;
+			}
+			if ( socialFieldsAvailable ) {
+				twitch.value = value.twitchUrl || '';
+				youtube.value = value.youtubeUrl || '';
 			}
 			return true;
 		}
@@ -338,7 +425,9 @@
 			value.displayName = value.displayName.trim();
 			value.bio = value.bio.trim();
 			if ( ! validateDraft( value ) ) return;
-			const body = JSON.stringify( { version: knownVersion, ...value } );
+			const payload = { version: knownVersion, displayName: value.displayName, bio: value.bio, favoriteClass: value.favoriteClass };
+			if ( socialFieldsAvailable ) Object.assign( payload, { twitchUrl: value.twitchUrl, youtubeUrl: value.youtubeUrl } );
+			const body = JSON.stringify( payload );
 			request( {
 				method: 'PATCH', endpoint: options.profileEndpoint, body, operation: 'profile', sentDraft: value,
 				headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Reader-CSRF': csrfToken },
@@ -388,6 +477,8 @@
 		form.addEventListener( 'input', ( event ) => {
 			if ( event.target === name ) name.setCustomValidity( '' );
 			if ( event.target === bio ) bio.setCustomValidity( '' );
+			if ( event.target === twitch ) twitch.setCustomValidity( '' );
+			if ( event.target === youtube ) youtube.setCustomValidity( '' );
 			if ( event.target !== avatarInput ) updateDirtyState();
 		} );
 		avatarInput.addEventListener( 'change', () => uploadAvatar( avatarInput.files?.[ 0 ] ) );

@@ -34,7 +34,7 @@ export class ReaderComments {
     CREATE INDEX IF NOT EXISTS reader_comments_owner_created ON reader_comments(issuer, subject, created_at, id);
     CREATE TABLE IF NOT EXISTS reader_comment_public_profiles (
       profile_id TEXT NOT NULL, issuer TEXT NOT NULL, name TEXT NOT NULL, bio TEXT NOT NULL, favorite_class TEXT,
-      avatar BLOB, avatar_version TEXT, profile_version INTEGER NOT NULL, consent_revision INTEGER NOT NULL,
+      avatar BLOB, avatar_version TEXT, twitch_url TEXT, youtube_url TEXT, profile_version INTEGER NOT NULL, consent_revision INTEGER NOT NULL,
       approved_at INTEGER NOT NULL, PRIMARY KEY(profile_id, issuer)
     ); CREATE TABLE IF NOT EXISTS reader_comment_erased_operations (
       operation_key TEXT PRIMARY KEY, request_digest TEXT NOT NULL, expires_at INTEGER NOT NULL
@@ -43,12 +43,16 @@ export class ReaderComments {
     ); CREATE INDEX IF NOT EXISTS reader_comment_rate_events_key ON reader_comment_rate_events(rate_key, created_at);
     CREATE TABLE IF NOT EXISTS reader_comment_audit (
       id TEXT PRIMARY KEY, comment_id TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL, created_at INTEGER NOT NULL
-    );`); db.exec('COMMIT'); } catch (error) { try { db.exec('ROLLBACK'); } catch {} throw error; }
+    );`);
+      const columns = new Set(db.prepare('PRAGMA table_info(reader_comment_public_profiles)').all().map(row => row.name));
+      if (!columns.has('twitch_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN twitch_url TEXT');
+      if (!columns.has('youtube_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN youtube_url TEXT');
+      db.exec('COMMIT'); } catch (error) { try { db.exec('ROLLBACK'); } catch {} throw error; }
   }
 
   profile(subject) {
     if (typeof subject !== 'string' || !subject.trim() || subject.length > 512) fail(401, 'authentication_required');
-    const row = this.db.prepare('SELECT id, display_name, bio, favorite_class, version, avatar, avatar_version FROM reader_profiles WHERE issuer = ? AND subject = ?').get(this.issuer, subject);
+    const row = this.db.prepare('SELECT id, display_name, bio, favorite_class, version, avatar, avatar_version, twitch_url, youtube_url FROM reader_profiles WHERE issuer = ? AND subject = ?').get(this.issuer, subject);
     if (!row) fail(404, 'profile_not_found');
     return row;
   }
@@ -100,9 +104,10 @@ export class ReaderComments {
   }
   /** Caller holds the comment transaction and has verified explicit versioned consent. */
   publishProfile(profile, now) {
-    this.db.prepare(`INSERT INTO reader_comment_public_profiles VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-      ON CONFLICT(profile_id,issuer) DO UPDATE SET name=excluded.name,bio=excluded.bio,favorite_class=excluded.favorite_class,avatar=excluded.avatar,avatar_version=excluded.avatar_version,profile_version=excluded.profile_version,consent_revision=excluded.consent_revision,approved_at=excluded.approved_at
-      WHERE excluded.profile_version >= reader_comment_public_profiles.profile_version`).run(profile.id, this.issuer, profile.display_name, profile.bio, profile.favorite_class, profile.avatar, profile.avatar_version, profile.version, now);
+    this.db.prepare(`INSERT INTO reader_comment_public_profiles (profile_id,issuer,name,bio,favorite_class,avatar,avatar_version,twitch_url,youtube_url,profile_version,consent_revision,approved_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      ON CONFLICT(profile_id,issuer) DO UPDATE SET name=excluded.name,bio=excluded.bio,favorite_class=excluded.favorite_class,avatar=excluded.avatar,avatar_version=excluded.avatar_version,twitch_url=excluded.twitch_url,youtube_url=excluded.youtube_url,profile_version=excluded.profile_version,consent_revision=excluded.consent_revision,approved_at=excluded.approved_at
+      WHERE excluded.profile_version >= reader_comment_public_profiles.profile_version`).run(profile.id, this.issuer, profile.display_name, profile.bio, profile.favorite_class, profile.avatar, profile.avatar_version, profile.twitch_url, profile.youtube_url, profile.version, now);
   }
   list(postId, { viewerSubject = null, cursor = null, limit = 20 } = {}) {
     if (!Number.isSafeInteger(postId) || postId < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50 || (cursor !== null && (typeof cursor !== 'string' || !UUID.test(cursor)))) fail(400, 'invalid_input');
@@ -118,7 +123,7 @@ export class ReaderComments {
   }
   publicProfile(id) {
     if (typeof id !== 'string' || !UUID.test(id)) return null;
-    const row = this.db.prepare("SELECT s.profile_id id,s.name,s.bio,s.favorite_class favoriteClass,s.avatar_version avatarVersion FROM reader_comment_public_profiles s JOIN reader_profiles p ON p.id=s.profile_id AND p.issuer=s.issuer WHERE s.profile_id=? AND s.issuer=? AND EXISTS (SELECT 1 FROM reader_comments c WHERE c.author_profile_id=s.profile_id AND c.issuer=s.issuer AND c.status='published')").get(id, this.issuer);
+    const row = this.db.prepare("SELECT s.profile_id id,s.name,s.bio,s.favorite_class favoriteClass,s.avatar_version avatarVersion,s.twitch_url twitchUrl,s.youtube_url youtubeUrl FROM reader_comment_public_profiles s JOIN reader_profiles p ON p.id=s.profile_id AND p.issuer=s.issuer WHERE s.profile_id=? AND s.issuer=? AND EXISTS (SELECT 1 FROM reader_comments c WHERE c.author_profile_id=s.profile_id AND c.issuer=s.issuer AND c.status='published')").get(id, this.issuer);
     return row || null;
   }
   publicAvatar(id, version) {
@@ -137,7 +142,7 @@ export class ReaderComments {
       const row = this.db.prepare('SELECT * FROM reader_comments WHERE id=? AND issuer=?').get(id, this.issuer);
       if (!row || row.status !== 'pending' || row.body === null || row.author_profile_id === null || row.created_at <= now - 30 * 86_400_000 || row.version !== version) fail(409, 'review_conflict');
       if (decision === 'publish') {
-        const profile = this.db.prepare('SELECT id,display_name,bio,favorite_class,version,avatar,avatar_version FROM reader_profiles WHERE id=? AND issuer=?').get(row.author_profile_id, this.issuer);
+        const profile = this.db.prepare('SELECT id,display_name,bio,favorite_class,version,avatar,avatar_version,twitch_url,youtube_url FROM reader_profiles WHERE id=? AND issuer=?').get(row.author_profile_id, this.issuer);
         if (!profile || profile.version !== row.profile_version) fail(409, 'profile_version_conflict');
         this.publishProfile(profile, now);
       }
