@@ -1,6 +1,6 @@
 /* Account composition only. Shared controls, colors and states belong to ui.css. */
 .td-main-content-wrap.mc-reader-page {
-  background: #102331;
+  background: #152d3a;
   padding: 0;
 }
 .mc-reader-page .td-page-content {
@@ -14,9 +14,9 @@
   --mc-reader-muted: var(--mc-ui-muted);
   --mc-reader-gold: var(--mc-ui-accent);
   --mc-reader-blue: var(--mc-ui-focus);
-  --mc-reader-panel: #17303f;
-  --mc-reader-panel-quiet: #0e2230;
-  --mc-reader-line: #5b7482;
+  --mc-reader-panel: #1c3946;
+  --mc-reader-panel-quiet: #183340;
+  --mc-reader-line: #5f7a83;
   padding: clamp(20px, 3vw, 40px) 0;
   overflow-wrap: anywhere;
 }
@@ -40,14 +40,14 @@
 .mc-reader .mc-reader__title-group {
   position: relative;
   min-width: 0;
-  padding-left: 16px;
+  padding-left: 14px;
 }
 .mc-reader .mc-reader__title-group::before {
   position: absolute;
   top: 3px;
   bottom: 3px;
   left: 0;
-  width: 3px;
+  width: 2px;
   background: var(--mc-reader-gold);
   content: "";
 }
@@ -82,7 +82,7 @@
 }
 .mc-reader .mc-reader__account-menu summary:hover {
   border-color: var(--mc-reader-line);
-  background: var(--mc-reader-panel-quiet);
+  background: rgb(11 29 38 / 22%);
 }
 .mc-reader .mc-reader__account-menu summary::after {
   content: "⌄";
@@ -104,7 +104,7 @@
   background: var(--mc-reader-panel-quiet);
   border: 1px solid var(--mc-reader-line);
   border-radius: var(--mc-ui-radius);
-  box-shadow: 0 12px 28px rgb(5 16 23 / 28%);
+  box-shadow: 0 10px 24px rgb(7 20 28 / 18%);
 }
 .mc-reader .mc-reader__status {
   margin: 24px 0 16px;
@@ -124,8 +124,8 @@
   padding: 24px;
   background: var(--mc-reader-panel);
   border: 1px solid var(--mc-reader-line);
-  border-left: 3px solid var(--mc-reader-gold);
-  border-radius: 12px;
+  border-top: 2px solid var(--mc-reader-gold);
+  border-radius: 16px;
 }
 .mc-reader .mc-reader__profile {
   display: grid;
@@ -136,9 +136,9 @@
   padding: clamp(24px, 4vw, 40px);
   background: var(--mc-reader-panel);
   border: 1px solid var(--mc-reader-line);
-  border-left: 3px solid var(--mc-reader-gold);
-  border-radius: 12px;
-  box-shadow: 0 20px 42px rgb(5 16 23 / 16%);
+  border-top: 2px solid var(--mc-reader-gold);
+  border-radius: 16px;
+  box-shadow: 0 16px 34px rgb(7 20 28 / 11%);
 }
 .mc-reader .mc-reader__profile-kicker {
   grid-column: 1 / -1;
@@ -161,7 +161,7 @@
   border: 2px solid var(--mc-reader-gold);
   border-radius: 50%;
   background: var(--mc-reader-panel-quiet);
-  box-shadow: 0 0 0 5px var(--mc-reader-panel);
+  box-shadow: 0 0 0 3px var(--mc-reader-panel);
   color: var(--mc-reader-gold);
   font: 700 34px/1 var(--mc-ui-display);
 }
@@ -186,6 +186,27 @@
   color: var(--mc-reader-muted);
   font: 400 16px/1.6 var(--mc-ui-body);
   white-space: pre-wrap;
+}
+.mc-reader .mc-reader__socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 18px;
+}
+.mc-reader .mc-reader__social-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgb(214 184 135 / 68%);
+  border-radius: 7px;
+  color: var(--mc-reader-ice);
+  font: 700 13px/1.35 var(--mc-ui-body);
+  text-decoration: none;
+}
+.mc-reader .mc-reader__social-link:hover {
+  border-color: var(--mc-reader-gold);
+  color: var(--mc-reader-gold);
 }
 .mc-reader .mc-reader__draft-note {
   margin: 0 0 12px;
@@ -225,8 +246,8 @@
   padding: clamp(24px, 4vw, 40px);
   background: var(--mc-reader-panel);
   border: 1px solid var(--mc-reader-line);
-  border-radius: 12px;
-  box-shadow: 0 20px 42px rgb(5 16 23 / 12%);
+  border-radius: 16px;
+  box-shadow: 0 16px 34px rgb(7 20 28 / 9%);
 }
 .mc-reader .mc-reader__editor-head {
   align-items: flex-start;
@@ -247,9 +268,38 @@
 .mc-reader .mc-reader__preview {
   min-width: 0;
   padding: 20px;
-  background: var(--mc-reader-panel-quiet);
+  background: rgb(11 29 38 / 34%);
   border: 1px solid var(--mc-reader-line);
   border-radius: var(--mc-ui-radius);
+}
+.mc-reader .mc-reader__social-fields {
+  min-width: 0;
+  margin: 28px 0 0;
+  padding: 20px;
+  border: 1px solid rgb(95 122 131 / 74%);
+  border-radius: 12px;
+  background: rgb(11 29 38 / 18%);
+}
+.mc-reader .mc-reader__social-fields legend {
+  padding: 0;
+}
+.mc-reader .mc-reader__social-help {
+  max-width: 660px;
+}
+.mc-reader .mc-reader__social-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.mc-reader .mc-reader__social-fields .mc-reader__field {
+  margin: 0;
+}
+.mc-reader .mc-reader__social-fields .mc-reader__field > span {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--mc-reader-ice);
+  font: 700 14px/1.5 var(--mc-ui-body);
 }
 .mc-reader .mc-reader__avatar--editor {
   width: 112px;
@@ -385,6 +435,9 @@
   .mc-reader .mc-reader__editor-grid {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+  .mc-reader .mc-reader__social-grid {
+    grid-template-columns: 1fr;
   }
   .mc-reader .mc-reader__preview {
     display: grid;

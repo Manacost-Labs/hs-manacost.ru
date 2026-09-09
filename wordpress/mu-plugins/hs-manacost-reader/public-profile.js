@@ -7,13 +7,37 @@
   const status = $('[data-public-profile-status]'), content = $('[data-public-profile-content]');
   const image = $('[data-public-profile-avatar]');
   const placeholder = $('[data-public-profile-placeholder]');
+  const socials = $('[data-public-profile-socials]');
+  const socialLinks = [
+    { node: $('[data-public-profile-twitch]'), service: 'twitch' },
+    { node: $('[data-public-profile-youtube]'), service: 'youtube' },
+  ];
   const classes = { 'death-knight': 'Рыцарь смерти', 'demon-hunter': 'Охотник на демонов', druid: 'Друид', hunter: 'Охотник', mage: 'Маг', paladin: 'Паладин', priest: 'Жрец', rogue: 'Разбойник', shaman: 'Шаман', warlock: 'Чернокнижник', warrior: 'Воин' };
   let controller = null, generation = 0;
+  function safeSocialUrl(value, service) {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== 'string' || value.length > 200 || /[\u0000-\u001f\u007f]/.test(value)) return null;
+    let url; try { url = new URL(value); } catch { return null; }
+    if (url.protocol !== 'https:' || url.username || url.password || url.port || url.search || url.hash) return null;
+    const host = url.hostname.toLowerCase();
+    if (service === 'twitch') {
+      if (!/^(?:www\.)?twitch\.tv$/i.test(host)) return null;
+      const match = url.pathname.match(/^\/([a-z0-9_]{4,25})\/?$/i);
+      return match ? `https://www.twitch.tv/${match[1].toLowerCase()}` : null;
+    }
+    if (!/^(?:www\.|m\.)?youtube\.com$/i.test(host)) return null;
+    const handle = url.pathname.match(/^\/@([a-z0-9_.-]{3,30})$/i);
+    if (handle) return `https://www.youtube.com/@${handle[1]}`;
+    const channel = url.pathname.match(/^\/channel\/(UC[a-z0-9_-]{22})$/i);
+    return channel ? `https://www.youtube.com/channel/${channel[1]}` : null;
+  }
   function clear() {
     content.hidden = true; image.hidden = true; image.removeAttribute('src');
     placeholder.textContent = 'М'; placeholder.hidden = false;
     for (const selector of ['[data-public-profile-name]', '[data-public-profile-bio]', '[data-public-profile-class]']) $(selector).textContent = '';
     $('[data-public-profile-paid]').hidden = true;
+    socials.hidden = true;
+    for (const social of socialLinks) { social.node.hidden = true; social.node.removeAttribute('href'); }
   }
   async function load() {
     controller?.abort(); const ticket = ++generation;
@@ -32,6 +56,15 @@
       placeholder.textContent = Array.from(profile.name)[0] || 'М';
       $('[data-public-profile-bio]').textContent = profile.bio;
       $('[data-public-profile-class]').textContent = classes[profile.favoriteClass] ? `Любимый класс: ${classes[profile.favoriteClass]}` : '';
+
+      let socialCount = 0;
+      for (const social of socialLinks) {
+        const href = safeSocialUrl(profile[`${social.service}Url`], social.service);
+        social.node.hidden = !href;
+        if (href) { social.node.href = href; socialCount += 1; }
+        else social.node.removeAttribute('href');
+      }
+      socials.hidden = socialCount === 0;
       if (typeof profile.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(profile.avatarVersion)
         && profile.avatarUrl === `/reader-api/v1/readers/${id}/avatar?v=${profile.avatarVersion}`) {
         image.src = profile.avatarUrl; image.hidden = false; placeholder.hidden = true;

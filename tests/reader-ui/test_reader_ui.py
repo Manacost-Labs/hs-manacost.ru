@@ -42,9 +42,9 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.2', loader)
-        self.assertIn("'0.7.2'", loader)
-        self.assertIn("'0.7.1'", comments_loader)
+        self.assertIn('Version: 0.7.3', loader)
+        self.assertIn("'0.7.3'", loader)
+        self.assertIn("'0.7.3'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
@@ -85,7 +85,8 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_profile_editor_contract_is_explicit_and_same_origin(self):
         for value in ('data-profile-endpoint', 'data-avatar-endpoint', 'data-reader-profile-editor',
                       'data-reader-display-name', 'data-reader-bio', 'data-reader-favorite-class',
-                      'data-reader-avatar-input', 'data-reader-remove-avatar'):
+                      'data-reader-avatar-input', 'data-reader-remove-avatar', 'data-reader-twitch',
+                      'data-reader-youtube', 'data-reader-socials'):
             self.assertIn(value, self.php)
         for value in ("method: 'PATCH'", "method: 'PUT'", "method: 'DELETE'",
                       "'X-Reader-CSRF'", "'X-Reader-Profile-Version'", "credentials: 'same-origin'",
@@ -113,6 +114,9 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('Профиль Манакоста не изменяет профиль HearthPulse.', self.php)
         self.assertIn('Комментарии сейчас недоступны.', self.php)
         self.assertIn('Изменить профиль', self.php)
+        self.assertIn('Где меня найти', self.php)
+        self.assertIn('после нового комментария с вашим согласием', self.php)
+        self.assertIn('Twitch или YouTube', self.php)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
             self.assertIn(value, self.js)
@@ -134,3 +138,5 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertRegex(self.css, r'overflow-wrap\s*:\s*anywhere')
         self.assertIn('focus-visible', self.css); self.assertIn('prefers-reduced-motion', self.css)
         self.assertNotIn('@import', self.css); self.assertNotIn('url(http', self.css)
+        self.assertIn('.mc-reader__social-fields', self.css)
+        self.assertIn('.mc-reader__social-link', self.css)

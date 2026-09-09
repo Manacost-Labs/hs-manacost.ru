@@ -1,14 +1,14 @@
 /* Reader UI primitives. Account and discussion layouts live in their own files. */
 .mc-reader-ui {
-  --mc-ui-surface: #102331;
-  --mc-ui-raised: #19313e;
-  --mc-ui-text: #eef3f5;
-  --mc-ui-muted: #b8c9d3;
-  --mc-ui-accent: #c7a777;
-  --mc-ui-border: #49616e;
-  --mc-ui-focus: #73b4d8;
+  --mc-ui-surface: #152d3a;
+  --mc-ui-raised: #223f4b;
+  --mc-ui-text: #f2f4ef;
+  --mc-ui-muted: #c2d0d2;
+  --mc-ui-accent: #d6b887;
+  --mc-ui-border: #5c7780;
+  --mc-ui-focus: #9ccbd3;
   --mc-ui-danger: #ffb4ab;
-  --mc-ui-on-accent: #102331;
+  --mc-ui-on-accent: #152d3a;
   --mc-ui-radius: 8px;
   --mc-ui-body: Roboto, Arial, sans-serif;
   --mc-ui-display: "Roboto Condensed", Arial, sans-serif;
@@ -53,7 +53,7 @@
   color: var(--mc-ui-muted);
   padding-inline: 8px;
 }
-.mc-reader-ui .mc-ui-button:hover:not(:disabled) { filter: brightness(1.12); }
+.mc-reader-ui .mc-ui-button:hover:not(:disabled) { filter: brightness(1.06); }
 .mc-reader-ui .mc-ui-button--text:hover:not(:disabled) {
   background: var(--mc-ui-raised);
   color: var(--mc-ui-text);

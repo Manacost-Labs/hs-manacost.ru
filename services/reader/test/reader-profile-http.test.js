@@ -22,7 +22,7 @@ function fixture(t) {
   const call = (path, { method = 'GET', headers = {}, body } = {}) => handle(new Request(origin + path, { method, headers, body }));
   return { store, profiles, identity, reader, call };
 }
-const draft = version => ({ version, displayName: 'Ледяной маг', bio: 'Играю контроль\nи собираю колоды.', favoriteClass: 'mage' });
+const draft = version => ({ version, displayName: 'Ледяной маг', bio: 'Играю контроль\nи собираю колоды.', favoriteClass: 'mage', twitchUrl: null, youtubeUrl: null });
 const patch = (f, user, input, headers = {}) => f.call('/reader-api/v1/profile', {
   method: 'PATCH', headers: { ...user.headers, 'content-type': 'application/json', ...headers }, body: JSON.stringify(input),
 });
@@ -40,6 +40,22 @@ test('profile persists across sessions, isolates readers and rejects stale edits
   assert.equal((await patch(f, a, draft(1))).status, 409);
   assert.equal((await patch(f, b, { ...draft(1), subject: 'subject-a' })).status, 400);
   assert.ok(!JSON.stringify(profile).includes('subject-a'));
+});
+
+test('profile write returns canonical social profile URLs and retains them for a legacy browser payload', async t => {
+  const f = fixture(t); const a = await f.reader('subject-a');
+  const saved = await patch(f, a, { ...draft(1), twitchUrl: 'https://twitch.tv/Mana_Cost', youtubeUrl: 'https://youtube.com/@Manacost' });
+  assert.equal(saved.status, 200);
+  const profile = (await saved.json()).profile;
+  assert.equal(profile.twitchUrl, 'https://www.twitch.tv/mana_cost');
+  assert.equal(profile.youtubeUrl, 'https://www.youtube.com/@Manacost');
+  const legacy = await patch(f, a, { version: profile.version, displayName: 'Ледяной маг', bio: '', favoriteClass: 'mage' });
+  assert.equal(legacy.status, 200);
+  const stored = (await legacy.json()).profile;
+  assert.equal(stored.twitchUrl, profile.twitchUrl);
+  assert.equal(stored.youtubeUrl, profile.youtubeUrl);
+  const invalid = await patch(f, a, { ...draft(stored.version), twitchUrl: 'https://evil.test/mana_cost' });
+  assert.equal(invalid.status, 400);
 });
 
 test('writes require online identity, origin and CSRF; malformed inputs remain unchanged', async t => {

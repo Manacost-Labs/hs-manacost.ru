@@ -47,7 +47,11 @@ test('comments are absent by default and reject guest, CSRF, spoofing and nonpub
 
 test('new posts are immediately public with server-derived author links and paid title', async t => {
   const f = fixture(t); const user = await f.reader('paid-reader'); const other = await f.reader('other');
-  const posted = await f.submit(user); assert.equal(posted.status, 201); const { comment } = await posted.json();
+  const updated = f.profiles.update('paid-reader', {
+    version: user.me.profile.version, displayName: 'Читатель', bio: '', favoriteClass: null,
+    twitchUrl: 'https://twitch.tv/Mana_Cost', youtubeUrl: 'https://youtube.com/@Manacost',
+  });
+  const posted = await f.submit(user, { profileVersion: updated.version }); assert.equal(posted.status, 201); const { comment } = await posted.json();
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments')).json()).items[0].id, comment.id);
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: other.headers })).json()).items[0].id, comment.id);
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: user.headers })).json()).items[0].status, 'published');
@@ -57,9 +61,13 @@ test('new posts are immediately public with server-derived author links and paid
   const page = await (await f.call('/reader-api/v1/threads/17/comments')).json();
   assert.equal(page.items[0].author.paidSubscriber, true);
   assert.equal(page.items[0].author.profileUrl, `/account/?reader=${user.me.profile.id}`);
+  assert.equal(Object.hasOwn(page.items[0].author, 'twitchUrl'), false);
+  assert.equal(Object.hasOwn(page.items[0].author, 'youtubeUrl'), false);
   assert.ok(!JSON.stringify(page).includes('paid-reader'));
   const profile = await (await f.call(`/reader-api/v1/readers/${user.me.profile.id}`)).json();
   assert.equal(profile.profile.paidSubscriber, true);
+  assert.equal(profile.profile.twitchUrl, 'https://www.twitch.tv/mana_cost');
+  assert.equal(profile.profile.youtubeUrl, 'https://www.youtube.com/@Manacost');
   f.entitlements.get = async () => { throw new Error('private provider error'); };
   const withoutBadge = await f.call('/reader-api/v1/threads/17/comments'); assert.equal(withoutBadge.status, 200);
   assert.equal((await withoutBadge.json()).items[0].author.paidSubscriber, false);

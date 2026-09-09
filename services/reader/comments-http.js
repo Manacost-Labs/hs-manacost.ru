@@ -17,12 +17,19 @@ async function input(request, keys) {
 }
 
 /** Public DTO decoration never changes authorization and never exposes upstream subjects. */
-function authorDTO(author, paid, pending = false) {
+function authorDTO(author, paid, pending = false, includeSocials = false) {
   if (!author) return null;
-  return { id: author.id, name: author.name, bio: author.bio, favoriteClass: author.favoriteClass,
+  const dto = { id: author.id, name: author.name, bio: author.bio, favoriteClass: author.favoriteClass,
     avatarVersion: pending ? null : author.avatarVersion,
     avatarUrl: !pending && author.avatarVersion ? `/reader-api/v1/readers/${author.id}/avatar?v=${author.avatarVersion}` : null,
     profileUrl: pending ? null : `/account/?reader=${author.id}`, paidSubscriber: !pending && paid === true };
+  // Social links are consented profile data. They belong on the public profile,
+  // never on every thread response.
+  if (includeSocials) {
+    dto.twitchUrl = author.twitchUrl ?? null;
+    dto.youtubeUrl = author.youtubeUrl ?? null;
+  }
+  return dto;
 }
 
 export function createCommentRoutes({ community, store, profiles, identity, validWrite, json, securityHeaders }) {
@@ -68,7 +75,7 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     // Re-read after awaits: erasure/takedown must win over an in-flight public response.
     const current = comments.publicProfile(profileId);
     if (!current || !comments.postIdsForProfile(profileId).some(id => articles.get(id)?.allowed === true)) fail(404, 'not_found');
-    if (!avatar) return json(200, { profile: authorDTO(current, paid.get(profileId)) });
+    if (!avatar) return json(200, { profile: authorDTO(current, paid.get(profileId), false, true) });
     const version = url.searchParams.get('v');
     if (typeof version !== 'string' || !/^[A-Za-z0-9_-]{32}$/.test(version)) fail(404, 'not_found');
     const bytes = comments.publicAvatar(profileId, version);

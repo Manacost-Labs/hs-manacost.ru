@@ -35,16 +35,22 @@ test('a stale or refused consent cannot publish private profile changes; a new c
   const f = fixture(t);
   const original = f.input();
   f.comments.submit('reader-one', original);
-  const changed = f.profiles.update('reader-one', { version: 1, displayName: 'Новое имя', bio: 'Личное описание', favoriteClass: 'mage' });
+  const changed = f.profiles.update('reader-one', {
+    version: 1, displayName: 'Новое имя', bio: 'Личное описание', favoriteClass: 'mage',
+    twitchUrl: 'https://twitch.tv/mana_cost', youtubeUrl: 'https://youtube.com/@Manacost',
+  });
   assert.equal(f.comments.publicProfile(f.profile.id).name, 'Алиса');
   assert.throws(() => f.comments.submit('reader-one', f.input()), { code: 'profile_version_conflict' });
   assert.throws(() => f.comments.submit('reader-one', f.input({ profileVersion: changed.version, publicConsent: false })), { code: 'invalid_input' });
   assert.equal(f.comments.publicProfile(f.profile.id).bio, '');
+  assert.equal(f.comments.publicProfile(f.profile.id).twitchUrl, null);
   // An acknowledged old request is a retry, never consent to a later private edit.
   assert.equal(f.comments.submit('reader-one', original).author.name, 'Алиса');
   const next = f.comments.submit('reader-one', f.input({ profileVersion: changed.version }));
   assert.equal(next.author.name, 'Новое имя');
   assert.equal(f.comments.publicProfile(f.profile.id).bio, 'Личное описание');
+  assert.equal(f.comments.publicProfile(f.profile.id).twitchUrl, 'https://www.twitch.tv/mana_cost');
+  assert.equal(f.comments.publicProfile(f.profile.id).youtubeUrl, 'https://www.youtube.com/@Manacost');
   assert.equal(f.comments.list(17).items.every(item => item.author.name === 'Новое имя'), true);
 });
 
@@ -55,6 +61,21 @@ test('publication and profile consent roll back together on snapshot storage fai
   assert.deepEqual(f.comments.list(17).items, []);
   assert.equal(f.comments.publicProfile(f.profile.id), null);
   assert.equal(f.db.prepare('SELECT count(*) n FROM reader_comment_rate_events').get().n, 0);
+});
+
+test('public profile snapshot migration adds social columns without replacing existing consented data', t => {
+  const db = new DatabaseSync(':memory:'); t.after(() => db.close());
+  const issuer = 'https://hearthpulse.net/identity';
+  new ReaderProfiles({ db, issuer });
+  db.exec(`CREATE TABLE reader_comment_public_profiles (
+    profile_id TEXT NOT NULL, issuer TEXT NOT NULL, name TEXT NOT NULL, bio TEXT NOT NULL, favorite_class TEXT,
+    avatar BLOB, avatar_version TEXT, profile_version INTEGER NOT NULL, consent_revision INTEGER NOT NULL,
+    approved_at INTEGER NOT NULL, PRIMARY KEY(profile_id, issuer)
+  ); INSERT INTO reader_comment_public_profiles VALUES ('123e4567-e89b-42d3-a456-426614174000', '${issuer}', 'Алиса', '', NULL, NULL, NULL, 1, 1, 1)`);
+  new ReaderComments({ db, issuer });
+  const columns = db.prepare('PRAGMA table_info(reader_comment_public_profiles)').all().map(row => row.name);
+  assert.ok(columns.includes('twitch_url')); assert.ok(columns.includes('youtube_url'));
+  assert.equal(db.prepare('SELECT name FROM reader_comment_public_profiles').get().name, 'Алиса');
 });
 
 test('immediate replies remain one level, same-article and parent-status checked', t => {

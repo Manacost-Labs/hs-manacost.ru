@@ -1,8 +1,8 @@
 {
-  "project": "hs-manacost reader shared UI v7",
+  "project": "hs-manacost reader shared UI v8",
   "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
   "goals": [
-    "Implement the approved dark profile screenshot using real saved data",
+    "Implement a gentle dark Manacost cabinet using real saved data",
     "Publish new consented comments immediately",
     "Preserve article and site containers"
   ],
@@ -10,7 +10,7 @@
     {
       "name": "Edit profile",
       "entry": "/account/",
-      "success": "Open editor, save name/bio/class/avatar through existing versioned API and return to overview"
+      "success": "Open editor, save name/bio/class/avatar and optional Twitch or YouTube links through the versioned API, then return to overview"
     },
     {
       "name": "Join discussion",
@@ -29,14 +29,15 @@
     }
   ],
   "direction": {
-    "name": "Manacost field dossier shared UI v7",
-    "thesis": "One maintained control system: a navy reader dossier and an editorial-white discussion surface",
-    "signature": "A calm cabinet masthead, one asymmetrical profile passport with the real class crest, and a separate working surface for profile editing",
-    "rationale": "Owner asked for a more presentable cabinet without a generic dashboard; this preserves the mature dark Manacost direction while making hierarchy and actions easier to scan",
+    "name": "Manacost gentle dossier shared UI v8",
+    "thesis": "One maintained control system: a soft twilight cabinet and an editorial-white discussion surface",
+    "signature": "A quiet warm-gold masthead, one softened profile passport with the real class crest, and restrained outbound social links",
+    "rationale": "Owner asked for a more pleasant, gentle cabinet without a generic dashboard or a bright redesign; lower contrast surfaces and a warmer accent preserve mature Manacost character while making editing calmer",
     "avoid": [
       "Generic dashboard grids",
       "Bright page background in account",
       "Decorative gradients",
+      "Hard card outlines and heavy shadows",
       "Fake profile data",
       "Prototype JavaScript",
       "Unimplemented navigation presented as working",
@@ -46,16 +47,16 @@
   },
   "tokens": {
     "colors": {
-      "surface": "#102331",
-      "raised": "#19313e",
-      "panel": "#17303f",
-      "panel_quiet": "#0e2230",
-      "text": "#eef3f5",
-      "muted": "#b8c9d3",
-      "accent": "#c7a777",
-      "border": "#49616e",
-      "line": "#5b7482",
-      "focus": "#73b4d8"
+      "surface": "#152d3a",
+      "raised": "#223f4b",
+      "panel": "#1c3946",
+      "panel_quiet": "#183340",
+      "text": "#f2f4ef",
+      "muted": "#c2d0d2",
+      "accent": "#d6b887",
+      "border": "#5c7780",
+      "line": "#5f7a83",
+      "focus": "#9ccbd3"
     },
     "discussion_colors": {
       "surface": "#ffffff",
@@ -131,6 +132,8 @@
         "retry",
         "avatar upload",
         "avatar removal",
+        "optional Twitch link",
+        "optional YouTube link",
         "cancel"
       ]
     },
@@ -164,8 +167,8 @@
     "containers": "Existing Newspaper 1068/980/740px inner grid; 24px desktop and 16px mobile profile padding, intrinsic account layout and article-width comments; same capabilities on mobile"
   },
   "quality": {
-    "accessibility": "Keyboard, visible focus, labeled controls, status announcements and real errors, 44px actions, native Account disclosure with Escape focus return, 4.5:1 body contrast",
-    "performance": "No added libraries/fonts; fixed avatar geometry; scoped CSS/JS; compare local cold/warm layout and transfer evidence",
+    "accessibility": "Keyboard, visible focus, labeled controls, status announcements and real errors, 44px actions, native Account disclosure with Escape focus return, 4.5:1 body contrast and labelled external links",
+    "performance": "No added libraries, fonts or third-party embeds; fixed avatar geometry; scoped CSS/JS; compare local cold/warm layout and transfer evidence",
     "seo": "hs-manacost.ru remains canonical; hs-manacost.com noindex mirror; test.hs-manacost.ru fully noindex",
     "media": "Keep existing covers/header/artwork and safe avatar API",
     "ads": "The account-only asset owner deliberately dequeues ad assets from /account/; article ad slots and view counting are unchanged",
@@ -177,15 +180,15 @@
     ],
     "vertical_slices": [
       "Cabinet masthead and profile passport hierarchy",
-      "Dedicated profile editor with visible photo preview",
-      "Compact transparent discussion and public profile"
+      "Dedicated profile editor with visible photo preview and optional social links",
+      "Compact transparent discussion and public profile with consented links only"
     ],
     "dependencies": "Existing reader BFF and Newspaper; no native WP accounts/comments"
   },
   "rollout": {
     "staging_evidence": "Required exact-SHA reader browser suite and live staging shell/login checks; evidence recorded in release task",
     "approval_owner": "Site owner requested frontend/form redesign in the existing Manacost navy direction",
-    "rollback_commit": "9188a1eb6c03f1b60957bd402978f3f24f6c7b2c",
+    "rollback_commit": "20a549402f4420b7c0bb9237d9f7f59cff34f90b",
     "template_restore": "No Cloud Template assignments changed; rollback first-party source only, keep live DB"
   }
 }

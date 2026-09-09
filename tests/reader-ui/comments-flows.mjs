@@ -34,7 +34,7 @@ const assets = new Map([
 const author = (overrides = {}) => ({
   id, name: 'Я <script>window.injected=1</script>', bio: 'Люблю колоды', favoriteClass: 'mage',
   avatarVersion, avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${avatarVersion}`,
-  profileUrl: `/account/?reader=${id}`, paidSubscriber: true, ...overrides,
+  profileUrl: `/account/?reader=${id}`, paidSubscriber: true, twitchUrl: null, youtubeUrl: null, ...overrides,
 });
 const me = (version = 1) => ({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version, avatarUrl: null }, csrfToken: `csrf-${version}` });
 const row = (overrides = {}) => ({ id: commentId, postId: 7, parentId: null, status: 'published', version: 1, createdAt: 1700000000000, body: 'Серверный текст', author: author(), ...overrides });
@@ -189,11 +189,16 @@ try {
   hold.comments = hold.me = false;
 
   // 5. The public shell uses textContent for Russian/XSS input, accepts only an exact self-avatar, clears failures, and ignores stale completion.
-  publicStatus = 200; publicProfile = author({ name: 'Жрец <img src=x onerror=window.injected=1>', bio: 'Русский текст <b>не HTML</b>', favoriteClass: 'priest' });
+  publicStatus = 200; publicProfile = author({ name: 'Жрец <img src=x onerror=window.injected=1>', bio: 'Русский текст <b>не HTML</b>', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost' });
   await page.goto(`${origin}/profile`); await page.getByRole('heading', { name: /Жрец/ }).waitFor();
   assert.equal(await page.evaluate(() => window.injected), undefined);
   assert.equal(await page.locator('[data-public-profile-class]').textContent(), 'Любимый класс: Жрец');
   assert.equal(await page.locator('[data-public-profile-avatar]').getAttribute('src'), publicProfile.avatarUrl);
+  assert.equal(await page.locator('[data-public-profile-twitch]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
+  assert.equal(await page.locator('[data-public-profile-youtube]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
+  publicProfile = author({ twitchUrl: 'https://evil.test/channel', youtubeUrl: 'https://youtube.com/watch?v=not-a-channel' });
+  await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
+  assert.equal(await page.locator('[data-public-profile-socials]').isHidden(), true, 'unrecognised public URLs must never become outbound links');
   publicProfile = author({ avatarUrl: `/reader-api/v1/readers/${otherId}/avatar?v=${avatarVersion}` });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
   assert.equal(await page.locator('[data-public-profile-avatar]').isHidden(), true);

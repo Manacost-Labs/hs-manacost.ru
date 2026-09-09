@@ -34,7 +34,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		$public[ $key ] = $value;
 	}
 	$comments_note = function_exists( 'hs_reader_comments_enabled' ) && hs_reader_comments_enabled()
-		? 'Комментарии публикуются сразу после вашего согласия. Имя, аватар, профиль и выбранный класс будут видны другим читателям.'
+		? 'Комментарии публикуются сразу после вашего согласия. Имя, аватар, профиль, выбранный класс и ссылки Twitch или YouTube будут видны другим читателям после нового согласованного комментария.'
 		: 'Комментарии сейчас недоступны.';
 	return '<section class="mc-reader mc-reader-ui" aria-label="Кабинет читателя" data-mc-reader-root'
 		. ' data-me-endpoint="' . esc_attr( $public['me_endpoint'] ) . '"'
@@ -53,7 +53,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<div class="mc-reader__identity-wrap"><div class="mc-reader__avatar" role="img" aria-label="Фото профиля">'
 		. '<img data-reader-avatar-image alt="" hidden><span data-reader-avatar-placeholder aria-hidden="true">М</span></div>'
 		. '<div class="mc-reader__identity-copy"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2>'
-		. '<p class="mc-reader__bio" data-reader-preview-bio></p><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">Изменить профиль</button></div></div>'
+		. '<p class="mc-reader__bio" data-reader-preview-bio></p><nav class="mc-reader__socials" data-reader-socials aria-label="Ссылки профиля" hidden><a class="mc-reader__social-link" data-reader-twitch-link href="#" target="_blank" rel="noopener noreferrer" hidden>Twitch</a><a class="mc-reader__social-link" data-reader-youtube-link href="#" target="_blank" rel="noopener noreferrer" hidden>YouTube</a></nav><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">Изменить профиль</button></div></div>'
 		. '<aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="64" height="64" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside></section>'
 		. '<form class="mc-reader__workspace" data-reader-profile-editor hidden aria-labelledby="mc-reader-editor-title">'
 		. '<div class="mc-reader__editor-head"><div><h2 id="mc-reader-editor-title">Настройки профиля</h2><p class="mc-ui-help">Так вас увидят в обсуждениях Манакоста.</p></div><button class="mc-reader__button mc-ui-button mc-ui-button--text" data-reader-cancel-editor type="button">Закрыть</button></div>'
@@ -72,6 +72,10 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<label class="mc-reader__field" for="mc-reader-bio"><span class="mc-ui-label">О себе</span>'
 		. '<textarea class="mc-ui-control" id="mc-reader-bio" data-reader-bio rows="3" aria-describedby="mc-reader-bio-count"></textarea></label>'
 		. '<span id="mc-reader-bio-count" class="mc-reader__counter" data-reader-bio-count>0 / 280</span>'
+		. '<fieldset class="mc-reader__social-fields"><legend class="mc-ui-label">Где меня найти</legend><p class="mc-reader__social-help mc-ui-help" data-reader-social-help>Необязательно. Ссылки появятся в публичном профиле после нового комментария с вашим согласием.</p><div class="mc-reader__social-grid">'
+		. '<label class="mc-reader__field" for="mc-reader-twitch"><span>Twitch</span><input class="mc-ui-control" id="mc-reader-twitch" data-reader-twitch type="url" inputmode="url" autocomplete="url" placeholder="https://twitch.tv/your_channel"></label>'
+		. '<label class="mc-reader__field" for="mc-reader-youtube"><span>YouTube</span><input class="mc-ui-control" id="mc-reader-youtube" data-reader-youtube type="url" inputmode="url" autocomplete="url" placeholder="https://youtube.com/@your_channel" aria-describedby="mc-reader-youtube-help"></label>'
+		. '</div><p id="mc-reader-youtube-help" class="mc-reader__social-help mc-ui-help">YouTube: канал вида @имя или /channel/UC…</p></fieldset>'
 		. '<label class="mc-reader__field" for="mc-reader-favorite-class"><span class="mc-ui-label">Любимый класс</span>'
 		. '<select class="mc-ui-control" id="mc-reader-favorite-class" data-reader-favorite-class><option value="">Не выбран</option>'
 		. '<option value="death-knight">Рыцарь смерти</option><option value="demon-hunter">Охотник на демонов</option>'
