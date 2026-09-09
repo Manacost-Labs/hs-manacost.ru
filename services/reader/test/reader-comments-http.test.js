@@ -57,10 +57,16 @@ test('new posts are immediately public with server-derived author links and paid
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: user.headers })).json()).items[0].status, 'published');
   assert.equal((await f.call(`/reader-api/v1/readers/${user.me.profile.id}`)).status, 200);
   assert.equal(comment.author.paidSubscriber, false, 'POST does not fetch decoration; the subsequent GET verifies it');
+  assert.equal(comment.author.hasTwitch, true);
+  assert.equal(comment.author.hasYoutube, true);
+  assert.equal(Object.hasOwn(comment.author, 'twitchUrl'), false);
+  assert.equal(Object.hasOwn(comment.author, 'youtubeUrl'), false);
   assert.equal(comment.status, 'published');
   const page = await (await f.call('/reader-api/v1/threads/17/comments')).json();
   assert.equal(page.items[0].author.paidSubscriber, true);
   assert.equal(page.items[0].author.profileUrl, `/account/?reader=${user.me.profile.id}`);
+  assert.equal(page.items[0].author.hasTwitch, true);
+  assert.equal(page.items[0].author.hasYoutube, true);
   assert.equal(Object.hasOwn(page.items[0].author, 'twitchUrl'), false);
   assert.equal(Object.hasOwn(page.items[0].author, 'youtubeUrl'), false);
   assert.ok(!JSON.stringify(page).includes('paid-reader'));

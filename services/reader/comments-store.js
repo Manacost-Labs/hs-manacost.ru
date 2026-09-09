@@ -69,7 +69,9 @@ export class ReaderComments {
     const base = { id: row.id, postId: row.post_id, parentId: row.parent_id, status: row.status, version: row.version, createdAt: row.created_at, body: row.body };
     if (row.status === 'deleted') return { ...base, body: null, author: null };
     if (owner && row.status === 'pending') return { ...base, author: { id: row.author_profile_id, name: row.current_name, bio: row.current_bio, favoriteClass: row.current_class, avatarVersion: row.current_avatar_version } };
-    return { ...base, author: row.public_name ? { id: row.author_profile_id, name: row.public_name, bio: row.public_bio, favoriteClass: row.public_class, avatarVersion: row.public_avatar_version } : null };
+    // These are consented snapshot values. The HTTP DTO below reduces them to
+    // presence booleans, so thread readers never receive the profile URLs.
+    return { ...base, author: row.public_name ? { id: row.author_profile_id, name: row.public_name, bio: row.public_bio, favoriteClass: row.public_class, avatarVersion: row.public_avatar_version, twitchUrl: row.public_twitch_url, youtubeUrl: row.public_youtube_url } : null };
   }
   submit(subject, input) {
     const data = this.input(input); const now = this.now(); const requestDigest = digest(JSON.stringify(data)); const rateKey = digest(`${this.issuer}\u0000${subject}`);
@@ -81,8 +83,8 @@ export class ReaderComments {
       if (retry) {
         if (retry.request_digest !== requestDigest) fail(409, 'idempotency_conflict');
         if (retry.subject === null || retry.body === null) fail(410, 'erased');
-        const snapshot = this.db.prepare('SELECT name,bio,favorite_class,avatar_version FROM reader_comment_public_profiles WHERE profile_id=? AND issuer=?').get(profile.id, this.issuer);
-        this.db.exec('COMMIT'); return this.dto({ ...retry, current_name: profile.display_name, current_bio: profile.bio, current_class: profile.favorite_class, current_avatar_version: profile.avatar_version, public_name: snapshot?.name, public_bio: snapshot?.bio, public_class: snapshot?.favorite_class, public_avatar_version: snapshot?.avatar_version }, profile.id);
+        const snapshot = this.db.prepare('SELECT name,bio,favorite_class,avatar_version,twitch_url,youtube_url FROM reader_comment_public_profiles WHERE profile_id=? AND issuer=?').get(profile.id, this.issuer);
+        this.db.exec('COMMIT'); return this.dto({ ...retry, current_name: profile.display_name, current_bio: profile.bio, current_class: profile.favorite_class, current_avatar_version: profile.avatar_version, public_name: snapshot?.name, public_bio: snapshot?.bio, public_class: snapshot?.favorite_class, public_avatar_version: snapshot?.avatar_version, public_twitch_url: snapshot?.twitch_url, public_youtube_url: snapshot?.youtube_url }, profile.id);
       }
       const erased = this.db.prepare('SELECT request_digest FROM reader_comment_erased_operations WHERE operation_key=? AND expires_at>?').get(operationKey(this.issuer, profile.id, data.operationId), now);
       if (erased) fail(erased.request_digest === requestDigest ? 410 : 409, erased.request_digest === requestDigest ? 'erased' : 'idempotency_conflict');
@@ -99,7 +101,7 @@ export class ReaderComments {
       this.publishProfile(profile, now);
       this.db.prepare('INSERT INTO reader_comment_rate_events VALUES (?, ?, ?)').run(rateKey, now, now + 86_400_000);
       const row = this.db.prepare('SELECT * FROM reader_comments WHERE id = ?').get(id); this.db.exec('COMMIT');
-      return this.dto({ ...row, public_name: profile.display_name, public_bio: profile.bio, public_class: profile.favorite_class, public_avatar_version: profile.avatar_version }, profile.id);
+      return this.dto({ ...row, public_name: profile.display_name, public_bio: profile.bio, public_class: profile.favorite_class, public_avatar_version: profile.avatar_version, public_twitch_url: profile.twitch_url, public_youtube_url: profile.youtube_url }, profile.id);
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
   }
   /** Caller holds the comment transaction and has verified explicit versioned consent. */
@@ -115,7 +117,7 @@ export class ReaderComments {
     const cursorRow = cursor && this.db.prepare("SELECT created_at FROM reader_comments WHERE id=? AND issuer=? AND post_id=? AND (status IN ('published','deleted') OR (status='pending' AND author_profile_id=?))").get(cursor, this.issuer, postId, viewer?.id ?? '');
     if (cursor && !cursorRow) fail(400, 'invalid_cursor');
     const rows = this.db.prepare(`SELECT c.*, p.display_name current_name, p.bio current_bio, p.favorite_class current_class, p.avatar_version current_avatar_version,
-      s.name public_name, s.bio public_bio, s.favorite_class public_class, s.avatar_version public_avatar_version
+      s.name public_name, s.bio public_bio, s.favorite_class public_class, s.avatar_version public_avatar_version, s.twitch_url public_twitch_url, s.youtube_url public_youtube_url
       FROM reader_comments c LEFT JOIN reader_profiles p ON p.id=c.author_profile_id AND p.issuer=c.issuer LEFT JOIN reader_comment_public_profiles s ON s.profile_id=c.author_profile_id AND s.issuer=c.issuer
       WHERE c.issuer=? AND c.post_id=? AND (c.status IN ('published','deleted') OR (c.status='pending' AND c.author_profile_id=?))
       AND (? IS NULL OR c.created_at > ? OR (c.created_at=? AND c.id>?)) ORDER BY c.created_at, c.id LIMIT ?`).all(this.issuer, postId, viewer?.id ?? '', cursorRow?.created_at ?? null, cursorRow?.created_at ?? null, cursorRow?.created_at ?? null, cursor ?? '', limit);

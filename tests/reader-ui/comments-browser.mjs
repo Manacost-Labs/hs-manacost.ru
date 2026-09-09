@@ -12,7 +12,7 @@ const shell = execFileSync('php', ['-r', php, `${plugin}comments.php`], { encodi
 const sharedUi = `${plugin}ui.css`;
 const assets = new Map([['/comments.js', readFileSync(`${plugin}comments.js`)], ['/comments.css', readFileSync(`${plugin}comments.css`)], ['/ui.css', readFileSync(sharedUi)], ['/theme.css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)], ['/theme-boxed.css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]]);
 const id = '123e4567-e89b-42d3-a456-426614174000';
-const author = { id, name: 'Маг <script>alert(1)</script>', bio: 'Люблю колоды', favoriteClass: 'mage', avatarVersion: 'a'.repeat(32), avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${'a'.repeat(32)}`, profileUrl: `/account/?reader=${id}`, paidSubscriber: true };
+const author = { id, name: 'Маг <script>alert(1)</script>', bio: 'Люблю колоды', favoriteClass: 'mage', avatarVersion: 'a'.repeat(32), avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${'a'.repeat(32)}`, profileUrl: `/account/?reader=${id}`, paidSubscriber: true, hasTwitch: true, hasYoutube: true };
 let comments = [{ id: '223e4567-e89b-42d3-a456-426614174000', postId: 7, parentId: null, status: 'published', version: 1, createdAt: Date.now(), body: '<img src=x onerror=alert(1)> Первый комментарий', author }];
 let writes = [];
 let holdCommentBody = false;
@@ -25,7 +25,7 @@ const server = createServer(async (req, res) => {
   if (req.url === '/favicon.ico') { res.writeHead(204); return res.end(); }
   if (req.url === '/reader-api/v1/me') return res.end(JSON.stringify({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version: 1, avatarUrl: null }, csrfToken: 'synthetic' }));
   if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} return res.end(JSON.stringify({items: comments, nextCursor: null})); }
-  if (req.url === '/reader-api/v1/threads/7/comments' && req.method === 'POST') { let raw=''; for await (const chunk of req) raw += chunk; const body=JSON.parse(raw); writes.push(body); if(failPost)return req.socket.destroy(); const comment={id:'323e4567-e89b-42d3-a456-426614174000',postId:7,parentId:body.parentId,status:'published',version:1,createdAt:Date.now(),body:body.body,author:{...author,id,name:'Я',avatarUrl:null,avatarVersion:null,paidSubscriber:false}}; comments=[...comments,comment]; res.writeHead(201,{'content-type':'application/json'}); return res.end(JSON.stringify({comment})); }
+  if (req.url === '/reader-api/v1/threads/7/comments' && req.method === 'POST') { let raw=''; for await (const chunk of req) raw += chunk; const body=JSON.parse(raw); writes.push(body); if(failPost)return req.socket.destroy(); const comment={id:'323e4567-e89b-42d3-a456-426614174000',postId:7,parentId:body.parentId,status:'published',version:1,createdAt:Date.now(),body:body.body,author:{...author,id,name:'Я',avatarUrl:null,avatarVersion:null,paidSubscriber:false,hasTwitch:false,hasYoutube:false}}; comments=[...comments,comment]; res.writeHead(201,{'content-type':'application/json'}); return res.end(JSON.stringify({comment})); }
 	if (req.url === '/reader-api/v1/comments/223e4567-e89b-42d3-a456-426614174000' && req.method === 'DELETE') { let raw=''; for await (const chunk of req) raw += chunk; deletes.push({headers:req.headers,body:JSON.parse(raw)}); return res.end('{}'); }
   res.statusCode=404; res.end();
 });
@@ -41,6 +41,9 @@ try {
     await page.getByRole('heading', { name: 'Комментарии' }).waitFor();
     await page.locator('.mc-comments__body').waitFor();
     await page.locator('.mc-comments__avatar').waitFor();
+    assert.equal(await page.locator('.mc-comments__author-badge--twitch').isVisible(), true, 'a Twitch author receives the Twitch mark');
+    assert.equal(await page.locator('.mc-comments__author-badge--youtube').isVisible(), true, 'a YouTube author receives the YouTube mark');
+    assert.equal(await page.locator('.mc-comments__author-badge--paid').getAttribute('aria-label'), 'Платный подписчик');
     if (process.env.READER_UI_SCREENSHOTS) await page.screenshot({
       path: `${process.env.READER_UI_SCREENSHOTS}/comments-${width}.png`, fullPage: true,
     });
@@ -53,8 +56,7 @@ try {
       return {
         avatar: rect('.mc-comments__avatar'), name: rect('.mc-comments__name'),
         header: rect('.mc-comments__identity'), body: rect('.mc-comments__body'),
-        time: rect('.mc-comments__meta'), paid: rect('.mc-comments__paid'),
-        paidFont: parseFloat(getComputedStyle(node.querySelector('.mc-comments__paid')).fontSize),
+        time: rect('.mc-comments__meta'), paid: rect('.mc-comments__author-badge--paid'),
         targets: [...node.querySelectorAll('[data-comment-action]')].map(button => button.getBoundingClientRect().height),
       };
     });
@@ -68,7 +70,6 @@ try {
       assert.ok(layout[key].left >= layout.header.left && layout[key].right <= layout.header.right,
         `${key} remains inside author header at ${width}px`);
     }
-    assert.ok(layout.paidFont >= 12, 'the paid title stays readable instead of being shrunk to fit');
     assert.ok(layout.targets.every(height => height >= 44), 'comment actions retain touch targets');
   }
   assert.deepEqual(consoleErrors, [], `fixture console errors: ${consoleErrors.join('; ')}`);

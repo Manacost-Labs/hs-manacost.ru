@@ -34,7 +34,7 @@ const assets = new Map([
 const author = (overrides = {}) => ({
   id, name: 'Я <script>window.injected=1</script>', bio: 'Люблю колоды', favoriteClass: 'mage',
   avatarVersion, avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${avatarVersion}`,
-  profileUrl: `/account/?reader=${id}`, paidSubscriber: true, twitchUrl: null, youtubeUrl: null, ...overrides,
+  profileUrl: `/account/?reader=${id}`, paidSubscriber: true, hasTwitch: false, hasYoutube: false, twitchUrl: null, youtubeUrl: null, ...overrides,
 });
 const me = (version = 1) => ({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version, avatarUrl: null }, csrfToken: `csrf-${version}` });
 const row = (overrides = {}) => ({ id: commentId, postId: 7, parentId: null, status: 'published', version: 1, createdAt: 1700000000000, body: 'Серверный текст', author: author(), ...overrides });
@@ -196,6 +196,9 @@ try {
   assert.equal(await page.locator('[data-public-profile-avatar]').getAttribute('src'), publicProfile.avatarUrl);
   assert.equal(await page.locator('[data-public-profile-twitch]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
   assert.equal(await page.locator('[data-public-profile-youtube]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
+  assert.equal(await page.locator('[data-public-profile-twitch-mark]').isVisible(), true);
+  assert.equal(await page.locator('[data-public-profile-youtube-mark]').isVisible(), true);
+  assert.equal(await page.locator('[data-public-profile-paid]').getAttribute('aria-label'), 'Платный подписчик');
   publicProfile = author({ twitchUrl: 'https://evil.test/channel', youtubeUrl: 'https://youtube.com/watch?v=not-a-channel' });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
   assert.equal(await page.locator('[data-public-profile-socials]').isHidden(), true, 'unrecognised public URLs must never become outbound links');

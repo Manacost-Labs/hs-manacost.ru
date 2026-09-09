@@ -42,9 +42,9 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.4', loader)
-        self.assertIn("'0.7.4'", loader)
-        self.assertIn("'0.7.4'", comments_loader)
+        self.assertIn('Version: 0.7.5', loader)
+        self.assertIn("'0.7.5'", loader)
+        self.assertIn("'0.7.5'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
@@ -72,6 +72,10 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('<p class="mc-reader__profile-kicker">Ваш профиль</p>', self.php)
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
+        self.assertIn('hs_manacost_reader_author_mark', self.php)
+        self.assertIn("'twitch'  => 'Автор ведёт Twitch'", self.php)
+        self.assertIn("'youtube' => 'Автор ведёт YouTube'", self.php)
+        self.assertIn('mc-reader__social-label', self.php)
         self.assertIn('<details class="mc-reader__account-menu"', self.php)
         self.assertIn("hs_manacost_reader_account_icon( 'account' )", self.php)
         self.assertIn("hs_manacost_reader_account_icon( 'chevron' )", self.php)
