@@ -8,13 +8,14 @@ import test from 'node:test';
 import { decide, inspect, listPending, openCommentsAdmin, PRODUCTION_ISSUER, ReaderCommentsAdminError, run, takedown } from '../comments-admin.js';
 import { ReaderComments } from '../comments-store.js';
 import { ReaderProfiles } from '../profiles.js';
+import { legacyPending } from './legacy-comments-fixture.js';
 
 const env = { READER_DEPLOYMENT: 'staging', READER_ORIGIN: 'https://test.hs-manacost.ru', READER_ISSUER: 'https://hearthpulse.net/identity', READER_COMMENTS_ENABLED: '1' };
 const error = (fn, code) => assert.throws(fn, item => item instanceof ReaderCommentsAdminError && item.code === code);
 function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'reader-admin-')); const filename = join(dir, 'reader.sqlite'); const db = new DatabaseSync(filename);
   const profiles = new ReaderProfiles({ db, issuer: 'https://hearthpulse.net/identity', now: () => 1 }); const comments = new ReaderComments({ db, issuer: 'https://hearthpulse.net/identity', now: () => 1 });
-  const profile = profiles.getOrCreate('private-subject', 'Модерируемый'); const item = comments.submit('private-subject', { postId: 1, body: 'Проверяемый текст', parentId: null, operationId: randomUUID(), profileVersion: profile.version, publicConsent: true }); db.close();
+  const profile = profiles.getOrCreate('private-subject', 'Модерируемый'); const item = legacyPending(comments, 'private-subject', { postId: 1, body: 'Проверяемый текст', parentId: null, operationId: randomUUID(), profileVersion: profile.version, publicConsent: true }); db.close();
   return { filename, item, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 

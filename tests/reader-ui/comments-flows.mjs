@@ -84,7 +84,7 @@ const server = createServer(async (request, response) => {
     }
     if (postStatus === 401) { json(response, 401, { error: 'not_authenticated' }); return; }
     if (postStatus === 409) { json(response, 409, { error: 'profile_conflict' }); return; }
-    json(response, postStatus, { comment: row({ status: 'pending', body: writes.at(-1).body, author: author({ profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) }) }); return;
+    json(response, postStatus, { comment: row({ status: 'published', body: writes.at(-1).body }) }); return;
   }
   if (request.url.startsWith('/reader-api/v1/community/export') && request.method === 'GET') {
     const cursor = new URL(request.url, 'http://fixture').searchParams.get('cursor');
@@ -114,7 +114,7 @@ try {
   const page = await browser.newPage();
   page.setDefaultTimeout(4000);
   const loadComments = async () => { await page.goto(`${origin}/`); await page.getByLabel('Комментарий').waitFor(); };
-  const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('checkbox', { name: /Согласен/ }).check(); await page.getByRole('button', { name: 'Отправить комментарий' }).click(); };
+  const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('checkbox', { name: /Согласен/ }).check(); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
   const openCommunityData = async () => { if (!await page.locator('[data-comments-data]').evaluate(element => element.open)) await page.locator('[data-comments-data] summary').click(); };
 
   // 1. Only the viewer's pending DTO is valid/rendered; it intentionally has no public identity.
@@ -144,7 +144,7 @@ try {
   assert.equal(await page.getByLabel('Комментарий').inputValue(), 'Сохранённый после конфликта');
   assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isChecked(), false);
   postStatus = 201; await submit('После новой версии');
-  await page.getByText('Комментарий ожидает проверки.').waitFor();
+  await page.getByText('Комментарий опубликован.').waitFor();
   assert.equal(writes.at(-1).profileVersion, 2);
   assert.notEqual(writes.at(-1).operationId, writes.at(-2).operationId);
 
@@ -253,7 +253,7 @@ try {
   assert.equal(postHeaders.at(-1)['x-reader-csrf'], 'csrf-12');
   postPartial = false;
   await page.getByRole('button', { name: 'Повторить отправку' }).click();
-  await page.getByText('Комментарий ожидает проверки.').waitFor();
+  await page.getByText('Комментарий опубликован.').waitFor();
   assert.deepEqual(writes.at(-1), unknown);
   assert.equal(writes.filter(payload => payload.operationId === unknown.operationId).length, 2);
   console.log('comments-flows: pass (8 focused flows)');

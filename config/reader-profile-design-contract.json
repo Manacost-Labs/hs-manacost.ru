@@ -1,0 +1,41 @@
+{
+  "project": "hs-manacost reader account v3 and comments",
+  "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
+  "goals": ["Implement the approved dark profile screenshot using real saved data", "Publish new consented comments immediately", "Preserve article and site containers"],
+  "user_journeys": [
+    {"name": "Edit profile", "entry": "/account/", "success": "Open editor, save name/bio/class/avatar through existing versioned API and return to overview"},
+    {"name": "Join discussion", "entry": "Allowlisted staging article", "success": "Consent and publish once; guest sees avatar/name/profile link and verified paid title"}
+  ],
+  "pages": [{"template": "First-party account shortcode in Newspaper", "job": "Personal overview and separate editor"}, {"template": "Reader comments inside article", "job": "Read, publish, reply, delete"}],
+  "direction": {
+    "name": "Manacost twilight profile v3",
+    "thesis": "A quiet navy frame for the reader's identity and colorful Hearthstone artwork",
+    "signature": "Gold-edged identity band: avatar/name/bio left, favorite-class crest right",
+    "rationale": "User chose the existing v3 screenshot; no new art direction or site-wide redesign",
+    "avoid": ["Generic dashboard grids", "Bright page background in account", "Decorative gradients", "Fake profile data", "Prototype JavaScript", "Unimplemented navigation presented as working"]
+  },
+  "tokens": {
+    "colors": {"surface": "#102331", "raised": "#19313e", "text": "#eef3f5", "muted": "#c5d1d8", "accent": "#c7a777", "border": "#536873", "focus": "#73b4d8"},
+    "typography": {"display": "Existing Roboto Condensed with Arial fallback", "body": "Existing Roboto with Arial fallback", "utility": "Existing Roboto Condensed with Arial fallback", "scale": [12, 14, 16, 18, 24, 32, 38], "rationale": "Keep current site Cyrillic families; no new font download; 38px profile name is an approved screenshot-specific role"},
+    "spacing": [4, 8, 12, 16, 24, 32, 48, 64],
+    "radii": {"control": 2, "avatar": "50%"},
+    "shadows": {"policy": "Restrained depth inside account; no shadow-heavy comment cards"},
+    "motion": {"duration_ms": 120, "reduced_motion": "No transitions or animation"}
+  },
+  "components": [
+    {"name": "Account overview", "states": ["guest", "loading", "authenticated", "missing avatar", "long name", "error", "expired"]},
+    {"name": "Profile editor", "states": ["closed", "editing", "saving", "conflict", "retry", "avatar upload", "avatar removal", "cancel"]},
+    {"name": "Discussion", "states": ["empty", "guest", "composer", "published", "legacy pending", "paid author", "reply", "deleted", "failure", "expired"]}
+  ],
+  "responsive": {"viewports": [320, 390, 560, 768, 1024, 1440], "zoom_percent": 200, "horizontal_overflow_px": 0, "containers": "Existing Newspaper 1068/980/740px inner grid; intrinsic account layout and article-width comments; same capabilities on mobile"},
+  "quality": {
+    "accessibility": "Keyboard, visible focus, labeled controls, status announcements, 44px actions, 4.5:1 body contrast",
+    "performance": "No added libraries/fonts; fixed avatar geometry; scoped CSS/JS; compare local cold/warm layout and transfer evidence",
+    "seo": "hs-manacost.ru remains canonical; hs-manacost.com noindex mirror; test.hs-manacost.ru fully noindex",
+    "media": "Keep existing covers/header/artwork and safe avatar API",
+    "ads": "No ad slot or view-counter changes",
+    "analytics": "No staging analytics; no new identity tracking"
+  },
+  "implementation": {"ownership_layers": ["mu-plugin"], "vertical_slices": ["Real account overview/editor", "Immediate comment publication and consent", "Comment presentation"], "dependencies": "Existing reader BFF and Newspaper; no native WP accounts/comments"},
+  "rollout": {"staging_evidence": "Required exact-SHA reader browser suite and live staging shell/login checks; evidence recorded in release task", "approval_owner": "Site owner: v3 screenshot explicitly selected", "rollback_commit": "2ddeb949fc9466c910b28cdbc6f8ab9587ce82a0", "template_restore": "No Cloud Template assignments changed; rollback first-party source only, keep live DB"}
+}

@@ -185,7 +185,7 @@
       }
       if (!response.ok || !valid(data?.comment)) throw new Error('ambiguous_result');
       clearDraft(); await loadComments();
-      if (current(ticket)) say(data.comment.status === 'pending' ? 'Комментарий ожидает проверки.' : 'Комментарий опубликован.');
+      if (current(ticket)) say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.');
     } catch (error) {
       if (error === stale || !current(ticket)) return;
       retryPayload = Object.freeze({ ...payload });

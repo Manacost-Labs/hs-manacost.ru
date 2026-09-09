@@ -7,30 +7,38 @@ and actual runtime checks in the release task.
 ## Ownership and public identity
 
 HearthPulse authenticates readers; the Manacost BFF owns local sessions, private
-profiles, comments and moderated public profiles. WordPress supplies fresh
+profiles, comments and consented public profiles. WordPress supplies fresh
 editorial visibility and an identity-free shell inside the article container.
 No reader wp_users, WordPress auth cookies, native comments, Cackle import or
 moderation HTTP endpoint. Production WordPress stays off.
 
 Public IDs are local random profile UUIDs, never email or HearthPulse subjects.
-Approved comments show an avatar, name, profile link and, when verified, the title
+Published comments show an avatar, name, profile link and, when verified, the title
 **«Платный подписчик»**. The public screen at `/account/?reader=<UUID>` includes
-approved name, bio, favorite class and avatar, never another reader's editor.
+consented name, bio, favorite class and avatar, never another reader's editor.
 
-## User flow and moderation
+## User flow and direct publication
 
 1. Guests read published comments. Login through production HearthPulse returns
    to the same article and `#reader-comments`.
 2. A reader enters 2–1000 Unicode code points of plain text and explicitly agrees
    to publish profile fields/title (unchecked by default). Every new message is
-   pending, visible only to its author, without a public avatar/profile link.
-3. An operator inspects the body/profile and approves exact comment, profile and
-   avatar versions. Profile edits cannot silently bypass review. Published authors
-   use one moderated snapshot; a later approval updates that public snapshot.
+   immediately published, together with the exact consented profile version.
+   POST returns status `published`, version 1 and the public author links. It does
+   not fetch paid decoration (`paidSubscriber:false`); the UI immediately reloads
+   the list through GET, which verifies the badge without delaying publication.
+3. Private profile edits do not silently update public fields. The next explicitly
+   consented comment updates the author's public snapshot for all their comments.
+   Stale profile versions fail before publication; snapshot and comment commit
+   atomically. An identical retry never consents to later private edits.
 4. Replies target a published root in the same article; deeper replies fail.
    Lists are oldest first, 20 items/page with a cursor.
 5. Owners can delete messages and export/erase their community data. Erasure
    keeps their private account and login session.
+
+There is no premoderation for new submissions. Existing pending/rejected rows
+are not bulk-published during deployment. Pending rows stay owner-only and can
+still be reviewed through the legacy operator workflow. Takedown remains available.
 
 Operator entrypoint: `services/reader/comments-admin.js`, commands `pending`,
 `inspect`, `review`, `takedown`. Requires an existing absolute staging DB and
@@ -47,7 +55,7 @@ inspection output into public issues/logs. Reader input cannot grant moderation.
 | GET/POST `/reader-api/v1/threads/{postId}/comments` | GET cursor page; POST exact `{body,parentId,operationId,profileVersion,publicConsent:true}` |
 | DELETE `/reader-api/v1/comments/{UUID}` | Owner only, exact `{version}`, compare-and-swap |
 | GET `/reader-api/v1/readers/{UUID}` | Allowlisted public profile |
-| GET `/reader-api/v1/readers/{UUID}/avatar?v={version}` | Exact current 32-character version; moderated WebP |
+| GET `/reader-api/v1/readers/{UUID}/avatar?v={version}` | Exact current 32-character version; consented WebP |
 | GET `/reader-api/v1/community/export` | Online authenticated owner, 100 rows/page |
 | DELETE `/reader-api/v1/community/profile` | Online owner, exact `{profileId,confirm:"erase-community"}` |
 | POST WP `/wp-json/manacost-reader/v1/threads` | Private server-only `{ids:[1..20 unique positive integers]}` |
@@ -99,7 +107,7 @@ deployment does not apply it. Preserve all other PHP and regional TLS rules.
 
 ## Storage, retention and pilot limits
 
-Additive transactional SQLite tables: comments, moderated profile snapshots,
+Additive transactional SQLite tables: comments, consented profile snapshots,
 audit, erased-operation hashes and pseudonymous rate events. No existing profile
 or session schema is dropped. Identity queries are issuer-scoped.
 
@@ -115,7 +123,7 @@ or session schema is dropped. Identity queries are issuer-scoped.
   or service failure never generate a partial download.
 - After the last qualifying comment, snapshots are inaccessible publicly but
   remain privately stored until community erasure. Private-profile edits do not
-  automatically erase/replace an approved snapshot; the privacy notice must say so.
+  automatically erase/replace a public snapshot; the privacy notice must say so.
 - Backups can retain old content/avatars. Before accepting real community data,
   record backup expiry, access ownership and deletion replay after restore.
   Do not promise physical deletion from backups or silently delete existing backups.
@@ -138,7 +146,7 @@ Required before pilot activation:
    `HS_MANACOST_READER_COMMENT_POSTS`. HP: `READER_ENTITLEMENTS_ENABLED=1`,
    existing browser-identity flag and confidential staging client registration.
 5. Enable only a disposable reviewed plain staging article; verify login return,
-   pending owner visibility, moderation, avatar/profile, paid/nonpaid fixtures,
+   immediate guest visibility, legacy pending isolation, avatar/profile, paid/nonpaid fixtures,
    deletion/unpublishing/erasure, mobile and keyboard. Distinguish synthetic
    evidence from a real user's completed login/subscription flow.
 
@@ -151,5 +159,23 @@ release/rollback follows its own immutable deployment workflow.
 Deferred: self-service editing, reactions, reporting/moderator UI, profile
 directory, cabinet activity tab, notifications, legacy import, general paywall
 mapping, large-account erasure and automatic snapshot-retention cleanup.
-Saved articles and the approved private-account redesign remain separate work;
-never replace the actual account editor with prototype/demo JavaScript.
+Saved articles remain unavailable. The approved v3 account layout uses the real
+versioned editor, never the prototype's in-memory JavaScript. See
+`config/reader-profile-design-contract.json` for its visual boundaries.
+
+### Direct-publication release (2026-09-09)
+
+User requested immediate publication and implementation of the already approved
+dark profile v3. No new schema, provider, identity flow, rate limit or production
+WordPress activation is required. The same staging pilot allowlist remains in use.
+Rollback binaries/UI to `2ddeb949fc9466c910b28cdbc6f8ab9587ce82a0`; keep the live
+DB and new published rows. The previous binary understands their status/snapshots.
+Backup/restore must never erase comments or profiles created after the backup.
+
+Verification covers direct submit/list/profile/avatar, refused/stale consent,
+atomic snapshot failure, duplicate retry, erase replay, cross-article replies,
+paid-service failure, no entitlement traffic from POST and logout during editorial requests. Legacy moderation
+tests seed explicitly named legacy fixtures, not a hidden runtime moderation flag.
+Required skills exceed the normal budget because project policy mandates the
+WordPress baseline plus privacy/security/UI/release routes; no unrelated vendor,
+editor, media, cache or infrastructure redesign is included.
