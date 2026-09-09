@@ -53,13 +53,13 @@ function hs_reader_comments_assets(): void {
 		return;
 	}
 	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
-	wp_enqueue_style( 'hs-manacost-reader-ui', $base . 'ui.css', array(), '0.7.3' );
-	wp_enqueue_style( 'hs-manacost-reader-comments', $base . 'comments.css', array( 'hs-manacost-reader-ui' ), '0.7.3' );
+	wp_enqueue_style( 'hs-manacost-reader-ui', $base . 'ui.css', array(), '0.7.4' );
+	wp_enqueue_style( 'hs-manacost-reader-comments', $base . 'comments.css', array( 'hs-manacost-reader-ui' ), '0.7.4' );
 	wp_enqueue_script(
 		$public ? 'hs-manacost-reader-public-profile' : 'hs-manacost-reader-comments',
 		$base . ( $public ? 'public-profile.js' : 'comments.js' ),
 		array(),
-		'0.7.3',
+		'0.7.4',
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,

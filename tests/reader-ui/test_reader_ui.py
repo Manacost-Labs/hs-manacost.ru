@@ -42,9 +42,9 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.3', loader)
-        self.assertIn("'0.7.3'", loader)
-        self.assertIn("'0.7.3'", comments_loader)
+        self.assertIn('Version: 0.7.4', loader)
+        self.assertIn("'0.7.4'", loader)
+        self.assertIn("'0.7.4'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
@@ -73,7 +73,8 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
         self.assertIn('<details class="mc-reader__account-menu"', self.php)
-        self.assertIn('<summary>Аккаунт</summary>', self.php)
+        self.assertIn("hs_manacost_reader_account_icon( 'account' )", self.php)
+        self.assertIn("hs_manacost_reader_account_icon( 'chevron' )", self.php)
         self.assertNotIn('mc-reader-saved-title', self.php)
         self.assertIn('aria-labelledby="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-status role="status" aria-live="polite"', self.php)
@@ -140,3 +141,11 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertNotIn('@import', self.css); self.assertNotIn('url(http', self.css)
         self.assertIn('.mc-reader__social-fields', self.css)
         self.assertIn('.mc-reader__social-link', self.css)
+
+    def test_account_controls_use_self_contained_icons_without_new_dependencies(self):
+        self.assertIn('function hs_manacost_reader_account_icon', self.php)
+        self.assertIn('aria-hidden="true"', self.php)
+        for icon in ('account', 'edit', 'camera', 'trash', 'check', 'retry', 'youtube', 'twitch', 'back'):
+            self.assertIn("'" + icon + "'", self.php)
+        self.assertIn('.mc-reader__icon', self.css)
+        self.assertNotIn('url(http', self.php)

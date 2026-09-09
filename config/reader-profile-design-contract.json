@@ -1,5 +1,5 @@
 {
-  "project": "hs-manacost reader shared UI v8",
+  "project": "hs-manacost reader shared UI v9",
   "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
   "goals": [
     "Implement a gentle dark Manacost cabinet using real saved data",
@@ -29,15 +29,17 @@
     }
   ],
   "direction": {
-    "name": "Manacost gentle dossier shared UI v8",
-    "thesis": "One maintained control system: a soft twilight cabinet and an editorial-white discussion surface",
-    "signature": "A quiet warm-gold masthead, one softened profile passport with the real class crest, and restrained outbound social links",
-    "rationale": "Owner asked for a more pleasant, gentle cabinet without a generic dashboard or a bright redesign; lower contrast surfaces and a warmer accent preserve mature Manacost character while making editing calmer",
+    "name": "Manacost reader passport shared UI v9",
+    "thesis": "One maintained control system: a calm dark reader passport and an editorial-white discussion surface",
+    "signature": "A warm-gold editorial rule, readable Roboto hierarchy, a compact class card and self-contained line icons inside real actions",
+    "rationale": "Owner asked for a cabinet that feels presentable rather than like a technical form. The new composition removes nested cards and visual clutter, gives one clear primary action and keeps familiar Manacost navy and gold without a generic dashboard treatment",
     "avoid": [
       "Generic dashboard grids",
       "Bright page background in account",
       "Decorative gradients",
       "Hard card outlines and heavy shadows",
+      "Icon-only actions",
+      "Condensed display type for long reader names",
       "Fake profile data",
       "Prototype JavaScript",
       "Unimplemented navigation presented as working",
@@ -82,7 +84,7 @@
         28,
         32
       ],
-      "rationale": "Keep current site Cyrillic families; no new font download; Cabinet is 32–44px while the reader name is 32–48px"
+      "rationale": "Keep current site Cyrillic families; no new font download. Roboto carries all profile and form copy for more even Russian text, while Roboto Condensed is reserved for small editorial labels"
     },
     "spacing": [
       4,
@@ -96,11 +98,11 @@
     ],
     "radii": {
       "control": 8,
-      "surface": 12,
+      "surface": 14,
       "avatar": "50%"
     },
     "shadows": {
-      "policy": "Restrained depth inside account; no shadow-heavy comment cards"
+      "policy": "Flat bordered account surfaces, one restrained menu shadow and no shadow-heavy comment cards"
     },
     "motion": {
       "duration_ms": 120,
@@ -164,7 +166,7 @@
     ],
     "zoom_percent": 200,
     "horizontal_overflow_px": 0,
-    "containers": "Existing Newspaper 1068/980/740px inner grid; 24px desktop and 16px mobile profile padding, intrinsic account layout and article-width comments; same capabilities on mobile"
+    "containers": "Existing Newspaper container with a 1024px cabinet inner limit; 24px desktop and 16px mobile profile padding, intrinsic account layout and article-width comments; same capabilities on mobile"
   },
   "quality": {
     "accessibility": "Keyboard, visible focus, labeled controls, status announcements and real errors, 44px actions, native Account disclosure with Escape focus return, 4.5:1 body contrast and labelled external links",
