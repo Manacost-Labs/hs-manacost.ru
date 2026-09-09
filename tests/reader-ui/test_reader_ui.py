@@ -9,6 +9,15 @@ PROFILE_JS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/profile-editor.js'
 CSS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.css'
 
 class ReaderUiContractTests(unittest.TestCase):
+    def test_invalid_public_profile_keeps_shared_styles_without_private_editor(self):
+        fixture = "define('ABSPATH','/fixture/'); function hs_reader_public_profile_request(){return true;} function hs_reader_public_profile_id(){return '';} require $argv[1]; echo hs_manacost_reader_account_shell();"
+        html = subprocess.run(['php', '-r', fixture, str(PHP)], capture_output=True, text=True, check=True).stdout
+        self.assertIn('class="mc-reader-ui mc-public-profile"', html)
+        self.assertIn('class="mc-public-profile__back"', html)
+        self.assertIn('Профиль недоступен', html)
+        self.assertNotIn('data-reader-profile-editor', html)
+        self.assertNotIn('data-mc-reader-root', html)
+
     def test_shared_ui_is_an_explicit_dependency_and_single_token_owner(self):
         for path in (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php', PHP.parent / 'comments-loader.php'):
             source = path.read_text()
