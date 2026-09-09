@@ -95,11 +95,6 @@
 		const classCrest = root.querySelector( '[data-reader-class-crest]' );
 		const classIconBase = root.dataset.classIconBase || '';
 		const previewBio = root.querySelector( '[data-reader-preview-bio]' );
-		const socials = root.querySelector( '[data-reader-socials]' );
-		const socialLinks = [
-			{ link: root.querySelector( '[data-reader-twitch-link]' ), service: 'twitch' },
-			{ link: root.querySelector( '[data-reader-youtube-link]' ), service: 'youtube' },
-		];
 		const previewLabel = root.querySelector( '[data-reader-preview-label]' );
 		const avatarImage = root.querySelector( '[data-reader-avatar-image]' );
 		const avatarPlaceholder = root.querySelector( '[data-reader-avatar-placeholder]' );
@@ -185,7 +180,10 @@
 			for ( const mark of authorMarks ) {
 				let url = null;
 				try { url = current[ `${ mark.service }Url` ] ? safeSocialUrl( current[ `${ mark.service }Url` ], mark.service ) : null; } catch ( error ) { /* A malformed draft remains unmarked until fixed. */ }
+				if ( ! mark.node ) continue;
 				mark.node.hidden = ! url;
+				if ( url ) mark.node.href = url;
+				else mark.node.removeAttribute( 'href' );
 			}
 			previewClass.textContent = current.favoriteClass ? classNames.get( current.favoriteClass ) : 'Не выбран';
 			const icon = current.favoriteClass && classIconBase ? `${ classIconBase }${ current.favoriteClass.replace( /-/g, '' ) }.png` : '';
@@ -199,18 +197,6 @@
 				classCrest.hidden = true;
 			}
 			previewBio.textContent = current.bio || 'Описание пока не добавлено.';
-			let socialCount = 0;
-			for ( const social of socialLinks ) {
-				const value = current[ `${ social.service }Url` ];
-				let url = null;
-				try { url = value ? safeSocialUrl( value, social.service ) : null; } catch ( error ) { /* Field validation explains an unfinished or invalid link on save. */ }
-				social.link.hidden = ! url;
-				if ( url ) {
-					social.link.href = url;
-					socialCount += 1;
-				} else social.link.removeAttribute( 'href' );
-			}
-			socials.hidden = 0 === socialCount;
 			const source = localAvatarUrl || serverProfile?.avatarUrl || '';
 			for ( const view of avatarViews ) {
 				view.placeholder.textContent = initials( current.displayName );

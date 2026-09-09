@@ -34,7 +34,7 @@ function hs_manacost_reader_account_icon( string $name ): string {
 }
 
 /**
- * Render a non-interactive trust mark after the reader name.
+ * Render a compact, consent-based social link after the reader name.
  *
  * The profile editor toggles these static, accessible marks; profile input is
  * never concatenated into HTML.
@@ -43,13 +43,13 @@ function hs_manacost_reader_account_icon( string $name ): string {
  */
 function hs_manacost_reader_author_mark( string $service ): string {
 	$labels = array(
-		'twitch'  => 'Автор ведёт Twitch',
-		'youtube' => 'Автор ведёт YouTube',
+		'twitch'  => 'Открыть Twitch-канал',
+		'youtube' => 'Открыть YouTube-канал',
 	);
 	if ( ! isset( $labels[ $service ] ) ) {
 		return '';
 	}
-	return '<span class="mc-reader__author-mark mc-reader__author-mark--' . esc_attr( $service ) . '" data-reader-' . esc_attr( $service ) . '-mark role="img" aria-label="' . esc_attr( $labels[ $service ] ) . '" hidden>' . hs_manacost_reader_account_icon( $service ) . '</span>';
+	return '<a class="mc-reader__author-mark mc-reader__author-mark--' . esc_attr( $service ) . '" data-reader-' . esc_attr( $service ) . '-mark href="#" target="_blank" rel="noopener noreferrer" aria-label="' . esc_attr( $labels[ $service ] ) . '" title="' . esc_attr( $labels[ $service ] ) . '" hidden>' . hs_manacost_reader_account_icon( $service ) . '</a>';
 }
 
 /**
@@ -98,8 +98,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<div class="mc-reader__identity-wrap"><div class="mc-reader__avatar" role="img" aria-label="Фото профиля">'
 		. '<img data-reader-avatar-image alt="" hidden><span data-reader-avatar-placeholder aria-hidden="true">М</span></div>'
 		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2>' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div>'
-		. '<p class="mc-reader__bio" data-reader-preview-bio></p><nav class="mc-reader__socials" data-reader-socials aria-label="Ссылки профиля" hidden><a class="mc-reader__social-link" data-reader-twitch-link href="#" target="_blank" rel="noopener noreferrer" hidden>' . hs_manacost_reader_account_icon( 'twitch' ) . '<span>Twitch</span></a><a class="mc-reader__social-link" data-reader-youtube-link href="#" target="_blank" rel="noopener noreferrer" hidden>' . hs_manacost_reader_account_icon( 'youtube' ) . '<span>YouTube</span></a></nav><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">' . hs_manacost_reader_account_icon( 'edit' ) . '<span>Изменить профиль</span></button></div></div>'
-		. '<aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="64" height="64" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside></section>'
+		. '<p class="mc-reader__bio" data-reader-preview-bio></p><aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="64" height="64" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">' . hs_manacost_reader_account_icon( 'edit' ) . '<span>Изменить профиль</span></button></div></div></section>'
 		. '<form class="mc-reader__workspace" data-reader-profile-editor hidden aria-labelledby="mc-reader-editor-title">'
 		. '<div class="mc-reader__editor-head"><div><p class="mc-reader__editor-kicker">Профиль читателя</p><h2 id="mc-reader-editor-title">Настройки профиля</h2><p class="mc-ui-help">Так вас увидят в обсуждениях Манакоста.</p></div><button class="mc-reader__button mc-ui-button mc-ui-button--text" data-reader-cancel-editor type="button">' . hs_manacost_reader_account_icon( 'close' ) . '<span>Закрыть</span></button></div>'
 		. '<p class="mc-reader__editor-status" data-reader-editor-status role="status" aria-live="polite"></p>'

@@ -1,5 +1,5 @@
 {
-  "project": "hs-manacost reader shared UI v10",
+  "project": "hs-manacost reader shared UI v11",
   "audience": "Russian-speaking Hearthstone readers with independent HearthPulse accounts",
   "goals": [
     "Implement a gentle dark Manacost cabinet using real saved data",
@@ -29,10 +29,10 @@
     }
   ],
   "direction": {
-    "name": "Manacost reader passport shared UI v10",
+    "name": "Manacost reader passport shared UI v11",
     "thesis": "One maintained control system: a calm dark reader passport and an editorial-white discussion surface",
-    "signature": "A warm-gold editorial rule, readable Roboto hierarchy, an inline class cue, and compact Twitch, YouTube and server-verified crown marks beside reader names",
-    "rationale": "Owner asked for a cabinet that feels presentable rather than like a technical form. The new composition removes nested cards and visual clutter, gives one clear primary action and keeps familiar Manacost navy and gold without a generic dashboard treatment",
+    "signature": "A warm-gold editorial rule, readable Roboto hierarchy, a compact class token, and small linked Twitch, YouTube and server-verified crown marks beside reader names",
+    "rationale": "Owner asked for a cabinet that feels presentable rather than like a technical form. The overview now keeps the identity in one compact reading column: platform links are icons after the name, not duplicate buttons, and the favourite class is a quiet token within the profile instead of a disconnected right column.",
     "avoid": [
       "Generic dashboard grids",
       "Bright page background in account",

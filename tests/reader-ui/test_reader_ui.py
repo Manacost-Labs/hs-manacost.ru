@@ -42,8 +42,8 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.5', loader)
-        self.assertIn("'0.7.5'", loader)
+        self.assertIn('Version: 0.7.6', loader)
+        self.assertIn("'0.7.6'", loader)
         self.assertIn("'0.7.5'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
@@ -73,8 +73,8 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
         self.assertIn('hs_manacost_reader_author_mark', self.php)
-        self.assertIn("'twitch'  => 'Автор ведёт Twitch'", self.php)
-        self.assertIn("'youtube' => 'Автор ведёт YouTube'", self.php)
+        self.assertIn("'twitch'  => 'Открыть Twitch-канал'", self.php)
+        self.assertIn("'youtube' => 'Открыть YouTube-канал'", self.php)
         self.assertIn('mc-reader__social-label', self.php)
         self.assertIn('<details class="mc-reader__account-menu"', self.php)
         self.assertIn("hs_manacost_reader_account_icon( 'account' )", self.php)
@@ -91,8 +91,9 @@ class ReaderUiContractTests(unittest.TestCase):
         for value in ('data-profile-endpoint', 'data-avatar-endpoint', 'data-reader-profile-editor',
                       'data-reader-display-name', 'data-reader-bio', 'data-reader-favorite-class',
                       'data-reader-avatar-input', 'data-reader-remove-avatar', 'data-reader-twitch',
-                      'data-reader-youtube', 'data-reader-socials'):
+                      'data-reader-youtube', 'hs_manacost_reader_author_mark'):
             self.assertIn(value, self.php)
+        self.assertNotIn('data-reader-socials', self.php)
         for value in ("method: 'PATCH'", "method: 'PUT'", "method: 'DELETE'",
                       "'X-Reader-CSRF'", "'X-Reader-Profile-Version'", "credentials: 'same-origin'",
                       "cache: 'no-store'", "'/reader-api/v1/profile'", "'/reader-api/v1/profile/avatar'"):
@@ -144,7 +145,8 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('focus-visible', self.css); self.assertIn('prefers-reduced-motion', self.css)
         self.assertNotIn('@import', self.css); self.assertNotIn('url(http', self.css)
         self.assertIn('.mc-reader__social-fields', self.css)
-        self.assertIn('.mc-reader__social-link', self.css)
+        self.assertIn('.mc-reader__author-mark', self.css)
+        self.assertNotIn('.mc-reader__social-link', self.css)
 
     def test_account_controls_use_self_contained_icons_without_new_dependencies(self):
         self.assertIn('function hs_manacost_reader_account_icon', self.php)
