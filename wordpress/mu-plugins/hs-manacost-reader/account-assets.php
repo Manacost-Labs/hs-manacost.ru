@@ -57,6 +57,7 @@ function hs_reader_account_font_preloads( array $resources ): array {
 			'as'          => 'font',
 			'type'        => 'font/woff2',
 			'crossorigin' => 'anonymous',
+			'media'       => '(min-width: 768px)', // Newspaper replaces this menu below 768px.
 		);
 	}
 	return $resources;

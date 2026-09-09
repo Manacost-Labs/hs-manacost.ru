@@ -39,6 +39,7 @@ class AccountAssetsTest(unittest.TestCase):
         for font in actual[1:]:
             self.assertEqual((font["as"], font["type"], font["crossorigin"]),
                              ("font", "font/woff2", "anonymous"))
+            self.assertEqual(font.get("media"), "(min-width: 768px)")
 
     def test_preloads_stop_when_theme_font_is_changed_removed_or_local(self):
         for font in ["different", "missing", "local", "dequeued"]:

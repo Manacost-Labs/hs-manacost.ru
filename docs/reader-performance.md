@@ -123,3 +123,10 @@ This follow-up changes only the WordPress UI; the reviewed staging BFF artifact
 at `36390c0` does not require a restart. Its rollback is the preceding WordPress
 artifact, with database and sessions untouched. Real OAuth/profile-save/comment
 publication latency remains separate from anonymous and synthetic UI checks.
+
+Live 0.6.1 verification confirmed both preloaded faces were consumed at 1440
+and 1024 px, but neither was used at 390 px (the theme renders another menu).
+The resource hints now use `media="(min-width: 768px)"`, matching Newspaper's
+767 px mobile breakpoint. Browsers must not preload these desktop-only fonts
+on a narrow initial viewport; normal CSS font loading remains available when
+needed. No asset content/version or server/account behavior changes here.
