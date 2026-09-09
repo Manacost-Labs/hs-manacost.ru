@@ -35,7 +35,42 @@ try {
   if(process.env.READER_UI_SCREENSHOTS) mkdirSync(process.env.READER_UI_SCREENSHOTS,{recursive:true});
   browser = await chromium.launch({headless:true, ...(process.env.READER_TEST_CHROMIUM ? { executablePath: process.env.READER_TEST_CHROMIUM } : {})}); const page = await browser.newPage(); page.setDefaultTimeout(3000);
   const consoleErrors=[]; page.on('console', message=>{if(message.type()==='error')consoleErrors.push(message.text())}); page.on('pageerror', error=>consoleErrors.push(error.message));
-  for (const width of [320,390,560,768,1024,1440]) { await page.setViewportSize({width,height:800}); await page.goto(`http://127.0.0.1:${server.address().port}/`); await page.getByRole('heading', {name:'Комментарии'}).waitFor(); await page.locator('.mc-comments__body').waitFor(); await page.locator('.mc-comments__avatar').waitFor(); if(process.env.READER_UI_SCREENSHOTS) await page.screenshot({path:`${process.env.READER_UI_SCREENSHOTS}/comments-${width}.png`,fullPage:true}); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false); const layout=await page.locator('.mc-comments__comment').first().evaluate(node=>{const a=node.querySelector('.mc-comments__avatar').getBoundingClientRect(),n=node.querySelector('.mc-comments__name').getBoundingClientRect(),b=node.querySelector('.mc-comments__body').getBoundingClientRect(),t=node.querySelector('.mc-comments__meta').getBoundingClientRect();return {a,n,b,t}}); assert.ok(Math.abs(layout.b.x-layout.a.x)<=52,'body aligns with author identity'); assert.ok(layout.b.y-layout.n.y<100,'author-to-body gap remains compact'); assert.ok(layout.t.width<=width,'long metadata remains contained'); }
+  for (const width of [320, 390, 560, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.getByRole('heading', { name: 'Комментарии' }).waitFor();
+    await page.locator('.mc-comments__body').waitFor();
+    await page.locator('.mc-comments__avatar').waitFor();
+    if (process.env.READER_UI_SCREENSHOTS) await page.screenshot({
+      path: `${process.env.READER_UI_SCREENSHOTS}/comments-${width}.png`, fullPage: true,
+    });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    const layout = await page.locator('.mc-comments__comment').first().evaluate(node => {
+      const rect = selector => {
+        const r = node.querySelector(selector).getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+      };
+      return {
+        avatar: rect('.mc-comments__avatar'), name: rect('.mc-comments__name'),
+        header: rect('.mc-comments__identity'), body: rect('.mc-comments__body'),
+        time: rect('.mc-comments__meta'), paid: rect('.mc-comments__paid'),
+        paidFont: parseFloat(getComputedStyle(node.querySelector('.mc-comments__paid')).fontSize),
+        targets: [...node.querySelectorAll('[data-comment-action]')].map(button => button.getBoundingClientRect().height),
+      };
+    });
+    // Text may legitimately wrap. Measure whitespace after the entire author
+    // header, not from the first name line through the badge and timestamp.
+    const gap = layout.body.top - layout.header.bottom;
+    assert.ok(gap >= 0 && gap <= 12, `header/body gap at ${width}px: ${gap}`);
+    const textLeft = width <= 560 ? layout.avatar.left : layout.name.left;
+    assert.ok(Math.abs(layout.body.left - textLeft) < 1, 'body follows the responsive identity alignment');
+    for (const key of ['name', 'time', 'paid']) {
+      assert.ok(layout[key].left >= layout.header.left && layout[key].right <= layout.header.right,
+        `${key} remains inside author header at ${width}px`);
+    }
+    assert.ok(layout.paidFont >= 12, 'the paid title stays readable instead of being shrunk to fit');
+    assert.ok(layout.targets.every(height => height >= 44), 'comment actions retain touch targets');
+  }
   assert.deepEqual(consoleErrors, [], `fixture console errors: ${consoleErrors.join('; ')}`);
   // Emulate 200% desktop zoom: 1440 physical pixels / 2 = 720 CSS pixels.
   // This checks zoom-equivalent reflow, not browser-chrome zoom controls.
