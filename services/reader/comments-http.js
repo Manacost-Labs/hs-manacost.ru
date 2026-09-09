@@ -59,8 +59,10 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     if (!profile) fail(404, 'not_found');
     const ids = comments.postIdsForProfile(profileId);
     if (!ids.length) fail(404, 'not_found');
-    const paid = avatar ? new Map() : await paidFor([profileId], signal);
-    const articles = await editorial.get(ids, signal);
+    const [paid, articles] = await Promise.all([
+      avatar ? new Map() : paidFor([profileId], signal),
+      editorial.get(ids, signal),
+    ]);
     signal.throwIfAborted();
     if (!ids.some(id => articles.get(id)?.allowed === true)) fail(404, 'not_found');
     // Re-read after awaits: erasure/takedown must win over an in-flight public response.
@@ -92,8 +94,10 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
       try { options.viewerSubject = (await reader(id, signal)).userId; } catch { /* Public reading survives an unavailable identity provider. */ }
     }
     const initial = comments.list(postId, options);
-    const paid = await paidFor(initial.items.filter(item => item.status === 'published').map(item => item.author?.id).filter(Boolean), signal);
-    await allowed(postId, signal);
+    const [paid] = await Promise.all([
+      paidFor(initial.items.filter(item => item.status === 'published').map(item => item.author?.id).filter(Boolean), signal),
+      allowed(postId, signal),
+    ]);
     if (!store.getSession(id)) options.viewerSubject = null;
     const result = comments.list(postId, options);
     return json(200, { ...result, items: result.items.map(item => ({ ...item,

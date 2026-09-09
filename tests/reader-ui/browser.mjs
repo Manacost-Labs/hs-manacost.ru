@@ -152,7 +152,8 @@ try {
   }
   await capture('guest');
   assert.equal(await page.getByText('Личный кабинет').count(), 1);
-  assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 1);
+  assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 0, 'unavailable future navigation must not be rendered');
+  assert.equal(await page.getByText('Закладки пока недоступны.').count(), 0, 'unavailable bookmark copy must not consume account space');
   assert.equal(await status.getAttribute('role'), 'status');
   assert.equal(await status.getAttribute('aria-live'), 'polite');
   const guestLogin = page.getByRole('link', { name: 'Войти через HearthPulse', exact: true });
@@ -188,6 +189,40 @@ try {
     assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Читатель Манакоста');
     await assertFits();
     await capture(`authenticated-${width}`);
+  }
+  const accountMenu = page.locator('[data-reader-account-menu]');
+  const accountSummary = page.getByText('Аккаунт', { exact: true });
+  const assertAccountMenuFits = async width => {
+    await accountSummary.click();
+    const bounds = await accountMenu.evaluate(element => {
+      const rect = element.querySelector('[data-reader-account-actions]').getBoundingClientRect();
+      const container = element.closest('.mc-reader__masthead').getBoundingClientRect();
+      const controls = [...element.querySelectorAll('a, button')].map(control => {
+        const controlRect = control.getBoundingClientRect();
+        return { left: controlRect.left, right: controlRect.right, top: controlRect.top, bottom: controlRect.bottom, width: controlRect.width, height: controlRect.height };
+      });
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, viewport: innerWidth, containerLeft: container.left, containerRight: container.right, controls };
+    });
+    assert.ok(bounds.left >= 0 && bounds.right <= bounds.viewport && bounds.width > 0 && bounds.height > 0, `open Account menu must fit ${width}px: ${JSON.stringify(bounds)}`);
+    assert.ok(bounds.controls.every(control => control.left >= 0 && control.right <= bounds.viewport && control.width > 0 && control.height >= 44), `Account controls must fit and keep 44px targets at ${width}px: ${JSON.stringify(bounds)}`);
+    assert.ok(bounds.left >= bounds.containerLeft && bounds.right <= bounds.containerRight, `Account menu must stay inside its actual account container at ${width}px: ${JSON.stringify(bounds)}`);
+    assert.ok(bounds.controls.every(control => control.left >= bounds.left && control.right <= bounds.right), `Account controls must stay inside the dropdown at ${width}px: ${JSON.stringify(bounds)}`);
+    await accountSummary.click();
+  };
+  assert.equal(await accountMenu.isVisible(), true, 'authenticated controls belong in the account menu');
+  assert.equal(await accountMenu.evaluate(element => element.open), false);
+  assert.equal(await status.textContent(), '', 'authentication must not leave a redundant visual status row');
+  await accountSummary.focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await accountMenu.evaluate(element => element.open), true, 'native account disclosure opens from the keyboard');
+  assert.equal(await page.getByRole('button', { name: 'Выйти', exact: true }).count(), 1);
+  await page.keyboard.press('Escape');
+  assert.equal(await accountMenu.evaluate(element => element.open), false, 'Escape closes the account disclosure');
+  assert.equal(await accountSummary.evaluate(element => element === document.activeElement), true, 'Escape returns focus to the account summary');
+  for (const width of [320, 390, 560]) {
+    await page.setViewportSize({ width, height: 900 });
+    await ready();
+    await assertAccountMenuFits(width);
   }
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
 
@@ -302,6 +337,7 @@ try {
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await page.waitForFunction(() => document.querySelector('[data-reader-display-name]').value === 'Другой читатель');
   assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0, 'account switch must remove the prior account link');
+  await accountSummary.click();
   assert.equal(await page.getByRole('button', { name: 'Выйти', exact: true }).count(), 1);
 
   const longDisplayName = 'ОченьДлинноеИмяЧитателяБезПробелов123456';
@@ -312,6 +348,7 @@ try {
     await assertFits();
     assert.equal(await page.locator('[data-reader-identity]').textContent(), longDisplayName);
   }
+  await accountSummary.click();
   const profileLink = page.getByRole('link', { name: 'Профиль HearthPulse', exact: true });
   for (let step = 0; step < 8 && !await profileLink.evaluate(element => document.activeElement === element); step++) await page.keyboard.press('Tab');
   assert.equal(await profileLink.evaluate(element => document.activeElement === element), true);
@@ -323,17 +360,17 @@ try {
   await page.setViewportSize({ width: 1024, height: 900 });
   await ready();
   let sections = await assertFits();
-  assert.ok(sections.sections[1].top >= sections.sections[0].bottom, 'saved articles must remain a secondary strip below the primary profile panel');
-  assert.ok(sections.sections[1].height < sections.sections[0].height, 'the saved-articles strip must stay more compact than the profile panel');
+  assert.equal(sections.sections.length, 1, 'the profile is the only overview panel');
   await page.setViewportSize({ width: 560, height: 900 });
   await ready();
   sections = await assertFits();
-  assert.ok(sections.sections[1].top >= sections.sections[0].bottom, 'narrow account sections should stack without overlap');
+  assert.equal(sections.sections.length, 1, 'narrow layouts keep one compact profile panel');
   const identitySize = () => page.locator('[data-reader-identity]').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
   const originalIdentitySize = await identitySize();
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   assert.ok(await identitySize() >= originalIdentitySize * 2, '200% text enlargement must actually resize the identity');
   await assertFits();
+  await assertAccountMenuFits('560px at 200% zoom');
   await capture('authenticated-long-name');
 
   profile = sessionDto({ user: { displayName: '<img src=x onerror=alert(1)> Читатель' }, profileUrl: null, profile: profileDto({ displayName: '<img src=x onerror=alert(1)> Читатель' }) });
@@ -341,6 +378,7 @@ try {
   assert.equal(await page.locator('[data-reader-identity]').textContent(), profile.profile.displayName);
   assert.equal(await page.locator('[data-reader-avatar-image]:visible').count(), 0);
   assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0);
+  await accountSummary.click();
   logoutStatus = 503;
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
   await retry.waitFor();
@@ -390,6 +428,7 @@ try {
   await page.unroute('**/reader-auth/logout');
   heldRequest = { path: '/reader-auth/logout', method: 'POST' };
   const logoutDeadlineStart = Date.now();
+  await accountSummary.click();
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
   await retry.waitFor({ timeout: 12000 });
   assert.match(await status.textContent(), /Не удалось выйти/);
@@ -404,7 +443,7 @@ try {
   assert.equal(await page.locator('[data-reader-identity]').textContent(), '');
   assert.equal(await page.locator('[data-reader-actions]').textContent(), '');
   await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
-  await page.waitForFunction(() => document.querySelector('[data-reader-status]').textContent === 'Вы вошли в кабинет.');
+  await page.waitForFunction(() => !document.querySelector('[data-reader-account-menu]').hidden && document.querySelector('[data-reader-status]').textContent === '');
   for (const selector of ['[data-reader-save-profile]', '[data-reader-avatar-input]', '[data-reader-remove-avatar]']) {
     assert.equal(await page.locator(selector).isDisabled(), false, `${selector} must be re-enabled after pagehide abort and reauthentication`);
   }

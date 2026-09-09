@@ -1,10 +1,10 @@
-# Reader cabinet UI polish — staging
+# Reader cabinet UI polish v4 compact — staging
 
 ## Scope and design
 
 Continue the existing dark Manacost direction on `/account/` only: navy
-`#062638`, panels `#102f40`, readable text `#f4f8fa`, muted text `#bdd1db`,
-blue actions `#6db9e8`, restrained gold `#f5cf6b`, borders `#365260`.
+`#102331`, panels `#19313e`, readable text `#eef3f5`, muted text `#c5d1d8`,
+blue focus/status `#73b4d8`, restrained gold `#c7a777`.
 Use the existing Roboto/Arial stack, rem-based typography, 4/8px radii,
 4–48px spacing, no shadows, new fonts, imagery, or animation dependencies.
 The bright editorial covers and fantasy site header remain the site's identity.
@@ -18,16 +18,20 @@ database assignment, vendor theme edits, or CSS hiding of editorial blocks.
 The unique `reader-account-page.php` basename is intentional: active Composer
 remaps generic filenames such as `page.php` to its legacy theme at priority 99.
 
-One H1 and two H2 sections keep the profile as a full-width primary panel;
-saved articles follows as a compact secondary strip, then stacks internally on
-narrow screens. The dark main wrapper intentionally carries both
+One H1 and one compact profile panel keep reader identity as the only overview
+task. Unavailable bookmarks and history are absent rather than presented as
+future navigation. HearthPulse profile and logout live in the native `Аккаунт`
+details menu in the masthead; it has a 44px summary target and Escape closes it
+and returns focus to the summary. The authenticated status stays available to
+assistive technology for real errors, but does not render a redundant "Вы
+вошли" row. The dark main wrapper intentionally carries both
 `td-main-content-wrap` and `td-container-wrap`: the runtime boxed theme aligns
 that outer band with header/footer, while its normal `td-container` keeps the
 inner 1068px content measure. Do not hardcode the outer width or move the dark
 background to the inner container. Keep native links/buttons, visible focus,
 44px targets, live status, safe long-name wrapping and reduced-motion support.
-Saved articles are clearly labelled as in development; no pretend data or
-enabled save actions.
+The avatar is 80–96px, the name 28–32px, and the crest 64px; profile padding is
+24px on desktop and 16px on mobile. No pretend data or enabled future actions.
 
 ## Boundaries
 
@@ -35,6 +39,9 @@ enabled save actions.
   explicitly provisioned `/account/` page containing the reader shortcode.
 - Existing article/homepage templates and ads, comments policy, WordPress
   identities, BFF, HearthPulse, sessions and authorization rules are unchanged.
+- The first-party account asset owner may deliberately remove ad and analytics
+  assets on `/account/` only. It must not alter article ad slots, view counting,
+  analytics, theme settings, or global asset behavior.
 - `reader.js` and API attributes retain the existing authentication contract.
 - Public shell HTML contains no personal data; no-cache/noindex policy remains.
 - This branch is a staging UI release, not authorization for production promotion.

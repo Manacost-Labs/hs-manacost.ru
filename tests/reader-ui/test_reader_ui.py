@@ -9,14 +9,15 @@ PROFILE_JS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/profile-editor.js'
 CSS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.css'
 
 class ReaderUiContractTests(unittest.TestCase):
-    def test_v3_account_and_comments_invalidate_old_browser_bundles(self):
+    def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.5.0', loader)
+        self.assertIn('Version: 0.6.0', loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
-            self.assertIn("'0.5.0'", source)
+            self.assertNotIn("'0.5.0'", source)
+            self.assertIn("'0.6.0'", source)
 
     @classmethod
     def setUpClass(cls):
@@ -37,9 +38,10 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_account_headings_and_live_status_are_semantic(self):
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
-        self.assertRegex(self.php, r'<h2[^>]*id="mc-reader-saved-title"[^>]*>Сохранённые статьи</h2>')
+        self.assertIn('<details class="mc-reader__account-menu"', self.php)
+        self.assertIn('<summary>Аккаунт</summary>', self.php)
+        self.assertNotIn('mc-reader-saved-title', self.php)
         self.assertIn('aria-labelledby="mc-reader-profile-title"', self.php)
-        self.assertIn('aria-labelledby="mc-reader-saved-title"', self.php)
         self.assertIn('data-reader-status role="status" aria-live="polite"', self.php)
     def test_auth_contract_and_no_private_html_injection(self):
         for value in ("credentials: 'same-origin'", "cache: 'no-store'", 'response.status === 200', 'response.status === 401', 'response.status === 503', 'response.status !== 204', 'X-Reader-CSRF', 'textContent'):
@@ -87,7 +89,7 @@ class ReaderUiContractTests(unittest.TestCase):
             self.assertIn(value, self.js)
     def test_copy_is_public_and_honest(self):
         self.assertIn('Личный кабинет', self.php)
-        self.assertIn('Закладки пока недоступны.', self.php)
+        self.assertNotIn('Закладки пока недоступны.', self.php)
         self.assertNotIn('reader API', self.php)
     def test_responsive_accessible_geometry(self):
         self.assertRegex(self.css, r'--mc-reader-(?:navy|slate|ice|muted|gold|blue)\s*:')

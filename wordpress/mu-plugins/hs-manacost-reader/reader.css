@@ -37,13 +37,11 @@
 .mc-reader .mc-reader__shell {
   width: min(1068px, 100%);
   margin: auto;
-  padding: 26px clamp(16px, 3vw, 28px) 18px;
+  padding: 24px clamp(16px, 3vw, 28px) 18px;
   background: var(--mc-reader-navy);
-  box-shadow: 0 18px 42px rgb(5 16 23 / 35%);
 }
 
 .mc-reader .mc-reader__masthead,
-.mc-reader .mc-reader__saved,
 .mc-reader .mc-reader__editor-head {
   display: flex;
   align-items: center;
@@ -65,33 +63,48 @@
   margin: 0;
   text-transform: uppercase;
 }
-.mc-reader .mc-reader__tabs,
-.mc-reader .mc-reader__actions,
+.mc-reader .mc-reader__account-actions,
 .mc-reader .mc-reader__form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 18px;
 }
-.mc-reader .mc-reader__tabs {
-  justify-content: flex-end;
+.mc-reader .mc-reader__account-menu {
+  position: relative;
 }
-.mc-reader .mc-reader__tab {
-  color: var(--mc-reader-muted);
-  font:
-    700 15px/1.5 "Roboto Condensed",
-    Arial,
-    sans-serif;
-  padding: 8px 0;
-  text-decoration: none;
-}
-.mc-reader .mc-reader__tab[aria-current="page"] {
-  border-bottom: 2px solid var(--mc-reader-gold);
+.mc-reader .mc-reader__account-menu summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 0 10px 12px;
   color: var(--mc-reader-ice);
+  cursor: pointer;
+  font: 700 15px/1 "Roboto Condensed", Arial, sans-serif;
 }
-.mc-reader .mc-reader__tab small {
+.mc-reader .mc-reader__account-menu summary::after {
+  content: "⌄";
+  margin-left: 6px;
   color: var(--mc-reader-gold);
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 18px;
+  line-height: 0.75;
+}
+.mc-reader .mc-reader__account-menu[open] summary::after {
+  content: "⌃";
+}
+.mc-reader .mc-reader__account-menu summary::marker {
+  color: var(--mc-reader-gold);
+}
+.mc-reader .mc-reader__account-actions {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: max-content;
+  max-width: min(100%, calc(100vw - 32px));
+  padding: 8px;
+  background: var(--mc-reader-slate);
+  border: 1px solid rgb(199 167 119 / 42%);
+  box-shadow: 0 8px 18px rgb(5 16 23 / 24%);
 }
 .mc-reader .mc-reader__status {
   color: var(--mc-reader-muted);
@@ -99,40 +112,39 @@
   min-height: 1.55em;
 }
 .mc-reader .mc-reader__actions {
-  margin-top: 14px;
-  min-height: 44px;
+  min-height: 0;
 }
 
 .mc-reader .mc-reader__profile {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) 190px;
   align-items: center;
-  gap: 34px;
-  margin-top: 22px;
-  padding: clamp(22px, 4vw, 48px);
-  background: linear-gradient(105deg, rgb(25 49 62 / 98%), rgb(25 49 62 / 88%));
+  gap: 24px;
+  margin-top: 16px;
+  padding: 24px;
+  background: var(--mc-reader-slate);
   border-left: 3px solid var(--mc-reader-gold);
 }
 
 .mc-reader .mc-reader__identity-wrap {
   display: flex;
   align-items: center;
-  gap: clamp(20px, 3vw, 34px);
+  gap: 20px;
   min-width: 0;
 }
 .mc-reader .mc-reader__avatar {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 132px;
-  height: 132px;
+  width: clamp(80px, 8vw, 96px);
+  height: clamp(80px, 8vw, 96px);
   overflow: hidden;
   border: 1px solid rgb(199 167 119 / 68%);
   border-radius: 50%;
   background: var(--mc-reader-navy);
   color: var(--mc-reader-gold);
   font:
-    700 42px/1 "Roboto Condensed",
+    700 32px/1 "Roboto Condensed",
     Arial,
     sans-serif;
 }
@@ -147,7 +159,7 @@
 .mc-reader .mc-reader__identity {
   color: var(--mc-reader-ice);
   font:
-    700 clamp(2rem, 4vw, 2.375rem)/1.08 "Roboto Condensed",
+    700 clamp(1.75rem, 3vw, 2rem)/1.08 "Roboto Condensed",
     Arial,
     sans-serif;
   margin: 0 0 9px;
@@ -167,16 +179,16 @@
 .mc-reader .mc-reader__class-mark {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding-left: 22px;
+  gap: 12px;
+  padding-left: 18px;
   border-left: 1px solid rgb(238 243 245 / 15%);
 }
 .mc-reader .mc-reader__crest {
   display: block;
-  width: 82px;
-  height: 82px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
-  filter: drop-shadow(0 6px 12px rgb(0 0 0 / 25%));
+  filter: none;
 }
 .mc-reader .mc-reader__class-mark p {
   color: var(--mc-reader-muted);
@@ -186,17 +198,11 @@
 .mc-reader .mc-reader__class-mark strong {
   color: var(--mc-reader-gold);
   font:
-    700 24px/1.15 "Roboto Condensed",
+    700 20px/1.15 "Roboto Condensed",
     Arial,
     sans-serif;
 }
 
-.mc-reader .mc-reader__saved {
-  margin-top: 18px;
-  padding: 15px 22px;
-  border-block: 1px solid rgb(159 179 193 / 20%);
-}
-.mc-reader .mc-reader__saved h2,
 .mc-reader .mc-reader__editor-head h2,
 .mc-reader .mc-reader__fields h3 {
   color: var(--mc-reader-ice);
@@ -206,14 +212,9 @@
     sans-serif;
   margin: 0;
 }
-.mc-reader .mc-reader__saved p {
-  color: var(--mc-reader-muted);
-  font-size: 14px;
-  margin: 0;
-}
 .mc-reader .mc-reader__workspace {
   margin-top: 22px;
-  padding: clamp(22px, 4vw, 48px);
+  padding: 24px;
   border-left: 3px solid var(--mc-reader-blue);
   background: var(--mc-reader-slate);
 }
@@ -359,18 +360,33 @@
 
 @media (max-width: 680px) {
   .mc-reader .mc-reader__masthead,
-  .mc-reader .mc-reader__saved,
   .mc-reader .mc-reader__editor-head {
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
   }
-  .mc-reader .mc-reader__tabs {
-    justify-content: flex-start;
-  }
   .mc-reader .mc-reader__profile {
     grid-template-columns: 1fr;
     gap: 22px;
+    padding: 16px;
+  }
+  .mc-reader .mc-reader__account-actions {
+    left: 0;
+    right: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  .mc-reader .mc-reader__account-menu {
+    width: 100%;
+    min-width: 0;
+  }
+  .mc-reader .mc-reader__account-actions > .mc-reader__button {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .mc-reader .mc-reader__class-mark {
     padding: 16px 0 0;
@@ -390,11 +406,11 @@
     flex-direction: column;
   }
   .mc-reader .mc-reader__avatar {
-    width: 108px;
-    height: 108px;
+    width: 80px;
+    height: 80px;
   }
   .mc-reader .mc-reader__form-actions,
-  .mc-reader .mc-reader__actions {
+  .mc-reader .mc-reader__account-actions {
     align-items: stretch;
     flex-direction: column;
   }

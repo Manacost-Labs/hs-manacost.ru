@@ -22,6 +22,8 @@
 		const status = root.querySelector( '[data-reader-status]' );
 		const identity = root.querySelector( '[data-reader-identity]' );
 		const actions = root.querySelector( '[data-reader-actions]' );
+		const accountMenu = root.querySelector( '[data-reader-account-menu]' );
+		const accountActions = root.querySelector( '[data-reader-account-actions]' );
 		const loginEndpoint = endpoint( root, 'loginEndpoint', '/reader-auth/start?returnTo=%2Faccount%2F' );
 		const logoutEndpoint = endpoint( root, 'logoutEndpoint', '/reader-auth/logout' );
 		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/me' );
@@ -40,6 +42,9 @@
 			identity.replaceChildren();
 			identity.hidden = true;
 			actions.replaceChildren();
+			accountActions.replaceChildren();
+			accountMenu.open = false;
+			accountMenu.hidden = true;
 			profileEditor?.clear();
 			currentCsrfToken = '';
 			sessionActive = false;
@@ -96,18 +101,20 @@
 			currentCsrfToken = data.csrfToken;
 			identity.hidden = false;
 			actions.replaceChildren();
-			status.textContent = 'Вы вошли в кабинет.';
+			accountActions.replaceChildren();
+			status.textContent = '';
+			accountMenu.hidden = false;
 			const profileHref = allowedProfileUrl( data.profileUrl );
 			if ( profileHref ) {
 				const profile = link( 'Профиль HearthPulse', 'mc-reader__button mc-reader__button--secondary' );
 				profile.href = profileHref;
 				profile.target = '_blank';
 				profile.rel = 'noopener';
-				actions.append( profile );
+				accountActions.append( profile );
 			}
 			const logout = actionButton( 'Выйти', 'mc-reader__button mc-reader__button--quiet' );
 			logout.addEventListener( 'click', () => logoutRequest( currentCsrfToken ) );
-			actions.append( logout );
+			accountActions.append( logout );
 			sessionActive = true;
 		}
 
@@ -196,6 +203,12 @@
 				controller = null;
 				guest( 'Сессия завершена. Войдите через HearthPulse снова.' );
 			},
+		} );
+		accountMenu.addEventListener( 'keydown', ( event ) => {
+			if ( 'Escape' !== event.key || ! accountMenu.open ) return;
+			event.preventDefault();
+			accountMenu.open = false;
+			accountMenu.querySelector( 'summary' ).focus();
 		} );
 		const refreshIfActive = () => { if ( ! logoutInFlight && ! profileEditor.isBusy() ) refresh( { preserveDraft: true, silent: true } ); };
 		window.addEventListener( 'pageshow', refreshIfActive );

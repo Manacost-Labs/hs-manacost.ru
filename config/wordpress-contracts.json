@@ -2020,7 +2020,7 @@
         "resolved": true,
         "api": "add_shortcode",
         "file": "wordpress/mu-plugins/hs-manacost-reader.php",
-        "line": 20
+        "line": 21
       },
       {
         "name": "manacost_arena_decks",

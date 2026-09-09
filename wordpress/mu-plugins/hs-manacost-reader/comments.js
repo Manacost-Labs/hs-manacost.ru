@@ -133,19 +133,23 @@
     list.replaceChildren(...rows.filter(valid).map(commentNode));
     more.hidden = !cursor; controls();
   }
-  async function loadMe() {
+  async function loadMe(initial = false) {
     const { response, data } = await request('/reader-api/v1/me');
+    // An anonymous initial visit is not a lost session. Keep its prefetched public read.
+    if (response.status === 401 && initial) { resetPrivate(); return; }
     if (response.status === 401) { expired(); throw stale; }
     if (!response.ok || !uuid.test(data?.profile?.id) || !Number.isSafeInteger(data.profile.version)
       || data.profile.version < 1 || typeof data.csrfToken !== 'string' || !data.csrfToken) throw new Error('profile_unavailable');
     me = data.profile; csrf = data.csrfToken;
     form.hidden = dataTools.hidden = false; login.hidden = true;
   }
-  async function loadComments(append = false) {
+  async function loadComments(append = false, prefetched = null) {
     const ticket = generation;
     more.disabled = true;
     try {
-      const { response, data } = await request(endpoint + (append && cursor ? `?cursor=${cursor}` : ''));
+      const outcome = await (prefetched || request(endpoint + (append && cursor ? `?cursor=${cursor}` : '')));
+      if (outcome.error) throw outcome.error;
+      const { response, data } = outcome;
       if (response.status === 401) { expired(); return; }
       if (!response.ok || !Array.isArray(data?.items) || data.items.length > 20
         || (data.nextCursor !== null && !uuid.test(data.nextCursor))) throw new Error('comments_unavailable');
@@ -241,9 +245,12 @@
   async function start() {
     visible = true; invalidate(); resetPrivate();
     const ticket = generation;
-    try { await loadMe(); }
+    // Fetch concurrently, but validate/render pending rows only after /me has settled.
+    // Capture rejection immediately: pagehide may abandon this generation while /me waits.
+    const prefetched = request(endpoint).catch(error => ({ error }));
+    try { await loadMe(true); }
     catch (error) { if (error === stale || !current(ticket)) return; resetPrivate(); }
-    if (current(ticket)) await loadComments();
+    if (current(ticket)) await loadComments(false, prefetched);
   }
   addEventListener('pagehide', () => { visible = false; invalidate(); resetPrivate(); rows = []; cursor = null; render(); });
   addEventListener('pageshow', event => { if (event.persisted) void start(); });

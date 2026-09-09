@@ -44,12 +44,12 @@
   padding: 24px 0;
 }
 .mc-comments .mc-comments__reply {
-  margin-left: 36px;
+  margin-left: 28px;
 }
 .mc-comments .mc-comments__author {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   max-width: 100%;
   color: #102331;
   font-weight: 700;
@@ -60,7 +60,7 @@
   width: 44px;
   height: 44px;
   flex: 0 0 44px;
-  border-radius: 8px;
+  border-radius: 50%;
   object-fit: cover;
 }
 .mc-comments .mc-comments__avatar--placeholder {
@@ -77,12 +77,12 @@
   display: inline-flex;
   align-items: center;
   margin: 6px 0 6px 12px;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border: 1px solid #e7d9b9;
   border-radius: 3px;
   color: #725319;
   background: #f8f1e1;
-  font-size: 12px;
+  font: 400 12px/1.4 "Roboto Condensed", Arial, sans-serif;
   font-weight: 700;
   vertical-align: middle;
 }
@@ -216,9 +216,9 @@
 .mc-public-profile {
   box-sizing: border-box;
   margin: 32px 0;
-  padding: clamp(24px, 4vw, 44px);
+  padding: 24px;
   border: 1px solid #49606c;
-  border-radius: 8px;
+  border-radius: 2px;
   background: #102331;
   color: #eef3f5;
   font:
@@ -237,8 +237,8 @@
 }
 .mc-public-profile [data-public-profile-content] {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  column-gap: 32px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  column-gap: 20px;
   align-items: start;
 }
 .mc-public-profile [data-public-profile-content] > * {
@@ -250,10 +250,10 @@
   grid-column: 1;
   grid-row: 1 / span 6;
   box-sizing: border-box;
-  width: 120px;
-  height: 120px;
+  width: 96px;
+  height: 96px;
   border: 1px solid #c7a777;
-  border-radius: 12px;
+  border-radius: 50%;
   object-fit: cover;
 }
 .mc-public-profile [data-public-profile-placeholder] {
@@ -262,7 +262,7 @@
   color: #dac08b;
   background: #19313e;
   font:
-    700 56px/1 "Roboto Condensed",
+    700 40px/1 "Roboto Condensed",
     Arial,
     sans-serif;
 }
@@ -280,7 +280,7 @@
   margin-bottom: 12px;
   color: #eef3f5;
   font:
-    700 clamp(28px, 5vw, 40px)/1.1 "Roboto Condensed",
+    700 clamp(28px, 4vw, 32px)/1.1 "Roboto Condensed",
     Arial,
     sans-serif;
 }
@@ -386,7 +386,7 @@
   color: #19313e;
 }
 .mc-comments .mc-comments__composer {
-  box-shadow: 0 8px 18px rgb(16 35 49 / 6%);
+  box-shadow: none;
 }
 
 @media (max-width: 560px) {

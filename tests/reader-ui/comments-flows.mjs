@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
@@ -116,6 +117,17 @@ try {
   const loadComments = async () => { await page.goto(`${origin}/`); await page.getByLabel('Комментарий').waitFor(); };
   const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('checkbox', { name: /Согласен/ }).check(); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
   const openCommunityData = async () => { if (!await page.locator('[data-comments-data]').evaluate(element => element.open)) await page.locator('[data-comments-data] summary').click(); };
+
+  // Reading starts alongside identity verification, but private pending rows wait for identity.
+  hold.me = hold.comments = true;
+  await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded' });
+  await expect.poll(() => held.me.length).toBe(1);
+  await expect.poll(() => held.comments.length, { message: 'comments request starts while identity is held' }).toBe(1);
+  release('comments', 200, { items: [row({ status: 'pending', body: 'Только после проверки входа', author: author({ profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) })], nextCursor: null });
+  assert.equal(await page.getByText('Только после проверки входа').count(), 0);
+  release('me', 200, me());
+  await page.getByText('Только после проверки входа').waitFor();
+  hold.me = hold.comments = false;
 
   // 1. Only the viewer's pending DTO is valid/rendered; it intentionally has no public identity.
   comments = [
