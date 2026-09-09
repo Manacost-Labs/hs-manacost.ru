@@ -40,6 +40,13 @@ export function createIdentityClient(options, transport = fetch) {
     oidc.enableNonRepudiationChecks(value);
     return value;
   }
+
+  async function verify(token, subject, signal) {
+    const status = await oidc.tokenIntrospection(config(signal), token, { token_type_hint: 'access_token' });
+    return Boolean(status.active && status.sub === subject && status.client_id === clientId
+      && typeof status.exp === 'number' && status.exp > Date.now() / 1000);
+  }
+
   return {
     profileUrl: options.deployment === 'production' || options.allowProductionIdentityForStaging === true
       && options.deployment === 'staging' && options.origin === 'https://test.hs-manacost.ru'
@@ -65,11 +72,10 @@ export function createIdentityClient(options, transport = fetch) {
       if (!claims?.sub || !tokens.access_token || !tokens.expires_in) throw new Error('Incomplete identity tokens');
       return { subject: claims.sub, accessToken: tokens.access_token, expiresIn: tokens.expires_in };
     },
+    verify,
     async profile(token, subject, signal) {
+      if (!await verify(token, subject, signal)) return null;
       const configuration = config(signal);
-      const status = await oidc.tokenIntrospection(configuration, token, { token_type_hint: 'access_token' });
-      if (!status.active || status.sub !== subject || status.client_id !== clientId
-        || typeof status.exp !== 'number' || status.exp <= Date.now() / 1000) return null;
       const profile = await oidc.fetchUserInfo(configuration, token, subject);
       if (typeof profile.name !== 'string' || profile.name.length > 200) throw new Error('Invalid profile');
       return { displayName: profile.name || 'Читатель' };

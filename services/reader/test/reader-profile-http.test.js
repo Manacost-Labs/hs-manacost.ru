@@ -11,7 +11,7 @@ function fixture(t) {
   const store = new ReaderStore({ encryptionKey: randomBytes(32) });
   t.after(() => store.close());
   const profiles = new ReaderProfiles({ db: store.db, issuer: 'https://identity.test/identity' });
-  const identity = { profile: async () => ({ displayName: 'Читатель' }) };
+  const identity = { verify: async () => true, profile: async () => ({ displayName: 'Читатель' }) };
   const handle = createReaderHandler({ origin, store, profiles, identity, csrfKey: randomBytes(32) });
   async function reader(subject) {
     const session = store.createSession({ userId: subject, upstreamToken: 'synthetic-token', ttlMs: 300000 });
@@ -51,20 +51,48 @@ test('writes require online identity, origin and CSRF; malformed inputs remain u
   assert.equal((await patch(f, a, draft(1), { 'content-type': 'text/plain' })).status, 400);
   assert.equal((await patch(f, a, { ...draft(1), displayName: 'x' })).status, 400);
   assert.equal((await patch(f, a, { ...draft(1), bio: 'x'.repeat(5000) })).status, 413);
-  f.identity.profile = async () => { throw new Error('private upstream information'); };
+  f.identity.verify = async () => { throw new Error('private upstream information'); };
   const failed = await patch(f, a, draft(1)); assert.equal(failed.status, 503);
   assert.equal((await failed.text()).includes('private upstream'), false);
   assert.equal(f.profiles.getOrCreate('reader').version, 1);
-  f.identity.profile = async () => null;
+  f.identity.verify = async () => false;
   assert.equal((await patch(f, a, draft(1))).status, 401);
   assert.equal(f.store.getSession(a.id), null);
+});
+
+test('profile writes verify the active token without a second userinfo lookup', async t => {
+  const f = fixture(t); const a = await f.reader('reader');
+  let userinfoCalls = 0;
+  f.identity.verify = async () => true;
+  f.identity.profile = async () => { userinfoCalls += 1; throw new Error('userinfo is slow'); };
+  const saved = await patch(f, a, draft(1));
+  assert.equal(saved.status, 200);
+  const bytes = await sharp({ create: { width: 64, height: 32, channels: 3, background: '#224466' } }).png().toBuffer();
+  const uploaded = await f.call('/reader-api/v1/profile/avatar', {
+    method: 'PUT', headers: { ...a.headers, 'content-type': 'image/png', 'x-reader-profile-version': '2' }, body: bytes,
+  });
+  assert.equal(uploaded.status, 200);
+  assert.equal(userinfoCalls, 0);
+});
+
+test('avatar upload does not persist after its second active-token check fails', async t => {
+  const f = fixture(t); const a = await f.reader('reader');
+  let checks = 0;
+  f.identity.verify = async () => { checks += 1; return checks === 1; };
+  const bytes = await sharp({ create: { width: 64, height: 32, channels: 3, background: '#224466' } }).png().toBuffer();
+  const uploaded = await f.call('/reader-api/v1/profile/avatar', {
+    method: 'PUT', headers: { ...a.headers, 'content-type': 'image/png', 'x-reader-profile-version': '1' }, body: bytes,
+  });
+  assert.equal(uploaded.status, 401);
+  assert.equal(checks, 2);
+  assert.equal(f.profiles.getOrCreate('reader').version, 1);
 });
 
 test('logout wins over an in-flight profile save and /me response', async t => {
   const f = fixture(t); const a = await f.reader('reader');
   let release; let entered;
   const waiting = new Promise(resolve => { entered = resolve; });
-  f.identity.profile = () => { entered(); return new Promise(resolve => { release = resolve; }); };
+  f.identity.verify = () => { entered(); return new Promise(resolve => { release = resolve; }); };
   const pending = patch(f, a, draft(1)); await waiting;
   assert.equal((await f.call('/reader-auth/logout', { method: 'POST', headers: a.headers })).status, 204);
   release({ displayName: 'Читатель' });

@@ -137,6 +137,14 @@ try {
     row({ id: '423e4567-e89b-42d3-a456-426614174000', status: 'pending', body: 'Чужой ожидающий', author: author({ id: otherId, profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) }),
   ];
   await loadComments();
+  assert.deepEqual(await page.locator('[data-mc-comments]').evaluate(root => ({
+    background: getComputedStyle(root).backgroundColor,
+    color: getComputedStyle(root).color,
+    colorScheme: getComputedStyle(root).colorScheme,
+    composerBackground: getComputedStyle(root.querySelector('[data-comments-form]')).backgroundColor,
+  })), {
+    background: 'rgba(0, 0, 0, 0)', color: 'rgb(21, 45, 58)', colorScheme: 'light', composerBackground: 'rgba(0, 0, 0, 0)',
+  });
   assert.equal(await page.getByText('Мой ожидающий').count(), 1);
   assert.equal(await page.getByText('Чужой ожидающий').count(), 0);
   assert.equal(await page.locator('.mc-comments__pending').count(), 1);

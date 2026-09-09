@@ -24,22 +24,30 @@ class ReaderUiContractTests(unittest.TestCase):
             self.assertIn("$base . 'ui.css'", source)
             self.assertIn("array( 'hs-manacost-reader-ui' )", source)
         shared = (PHP.parent / 'ui.css').read_text()
-        for path in (CSS, PHP.parent / 'comments.css'):
-            self.assertNotIn('--mc-ui-surface:', path.read_text())
-            self.assertNotIn('--mc-ui-accent:', path.read_text())
+        self.assertNotIn('--mc-ui-surface:', CSS.read_text())
+        comments = (PHP.parent / 'comments.css').read_text()
+        self.assertIn('.mc-reader-ui.mc-comments {', comments)
+        self.assertIn('--mc-ui-surface: #ffffff;', comments)
+        self.assertIn('--mc-ui-text: #152d3a;', comments)
+        self.assertIn('--mc-ui-accent: #78530e;', comments)
+        self.assertIn('--mc-ui-on-accent: #ffffff;', comments)
+        self.assertIn('--mc-ui-border: #6f8791;', comments)
+        self.assertIn('background: transparent;', comments)
+        self.assertIn('color-scheme: light;', comments)
         self.assertIn('--mc-ui-surface:', shared)
+        self.assertIn('--mc-ui-on-accent:', shared)
         self.assertIn('.mc-ui-control', shared)
         self.assertIn('.mc-ui-button:disabled', shared)
 
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.0', loader)
+        self.assertIn('Version: 0.7.1', loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
             self.assertNotIn("'0.5.0'", source)
-            self.assertIn("'0.7.0'", source)
+            self.assertIn("'0.7.1'", source)
 
     @classmethod
     def setUpClass(cls):

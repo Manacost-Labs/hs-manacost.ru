@@ -1,11 +1,21 @@
-/* Discussion and public-profile composition. ui.css owns shared controls/tokens. */
+/* Discussion uses the article's white canvas; ui.css owns the shared primitives. */
 .mc-reader-ui.mc-comments {
+  --mc-ui-surface: #ffffff;
+  --mc-ui-raised: #f5f7f8;
+  --mc-ui-text: #152d3a;
+  --mc-ui-muted: #566c78;
+  --mc-ui-accent: #78530e;
+  --mc-ui-on-accent: #ffffff;
+  --mc-ui-border: #6f8791;
+  --mc-ui-focus: #25759f;
+  --mc-ui-danger: #b3261e;
+  color-scheme: light;
   max-width: 100%;
   margin: 32px 0;
-  padding: clamp(16px, 3vw, 24px);
-  border: 1px solid var(--mc-ui-border);
-  border-radius: 12px;
-  background: var(--mc-ui-surface);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .mc-comments .mc-comments__header {
   margin: 0 0 8px;
@@ -128,7 +138,7 @@
   padding: clamp(16px, 3vw, 24px);
   border: 1px solid var(--mc-ui-border);
   border-radius: var(--mc-ui-radius);
-  background: var(--mc-ui-raised);
+  background: transparent;
 }
 .mc-comments .mc-comments__composer-heading {
   margin-bottom: 16px;
