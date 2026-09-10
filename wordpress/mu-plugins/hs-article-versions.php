@@ -7,7 +7,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
 /**
  * Adds explicit editorial versions without changing an article's permalink.
  *
@@ -19,12 +18,19 @@ defined( 'ABSPATH' ) || exit;
  * @phpstan-type ArticleVersions array<int, ArticleVersion>
  */
 final class HS_Article_Versions {
-	private const ACTION         = 'hs_create_article_version';
-	private const UPDATE_ACTION  = 'hs_update_article_version';
-	private const DELETE_ACTION  = 'hs_delete_article_version';
-	private const META_KEY       = '_hs_article_versions';
-	private const REST_NAMESPACE = 'manacost/v1';
-	private const REST_ROUTE     = '/article-versions/(?P<post_id>\d+)/(?P<version>\d+)';
+	private const ACTION            = 'hs_create_article_version';
+	private const UPDATE_ACTION     = 'hs_update_article_version';
+	private const DELETE_ACTION     = 'hs_delete_article_version';
+	private const SET_ACTIVE_ACTION = 'hs_set_article_version_active';
+	private const META_KEY          = '_hs_article_versions';
+	private const ACTIVE_META_KEY   = '_hs_article_versions_active';
+	private const REST_NAMESPACE    = 'manacost/v1';
+	private const REST_ROUTE        = '/article-versions/(?P<post_id>\d+)/(?P<version>\d+)';
+	/** Prevents nested switchers while normal content filters render a snapshot.
+	 *
+	 * @var bool
+	 */
+	private static bool $rendering_snapshot = false;
 
 	/** Registers the scoped editor, frontend, and read-only REST entrypoints. */
 	public static function boot(): void {
@@ -33,8 +39,10 @@ final class HS_Article_Versions {
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_create_version' ) );
 		add_action( 'admin_post_' . self::UPDATE_ACTION, array( __CLASS__, 'handle_update_version' ) );
 		add_action( 'admin_post_' . self::DELETE_ACTION, array( __CLASS__, 'handle_delete_version' ) );
+		add_action( 'admin_post_' . self::SET_ACTIVE_ACTION, array( __CLASS__, 'handle_set_active_version' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'render_admin_notice' ) );
 		add_action( 'rest_api_init', array( __CLASS__, 'register_rest_route' ) );
+		add_filter( 'the_title', array( __CLASS__, 'replace_active_title' ), 1, 2 );
 		add_filter( 'the_content', array( __CLASS__, 'prepend_switcher' ), 99 );
 		add_action( 'wp_head', array( __CLASS__, 'render_styles' ), 99 );
 		add_action( 'wp_footer', array( __CLASS__, 'render_script' ), 99 );
@@ -103,22 +111,39 @@ final class HS_Article_Versions {
 			return;
 		}
 
+		$active_number = self::get_active_version_number( $post->ID, $versions );
+
 		echo '<div class="hs-article-versions-admin">';
-		echo '<p class="description">' . esc_html__( 'Снимок можно поправить отдельно от актуального текста или удалить. Удаление необратимо.', 'manacost' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Оригинальная запись WordPress никогда не изменяется и не удаляется этим плагином. Здесь можно редактировать, сделать актуальным или удалить только сохранённый снимок.', 'manacost' ) . '</p>';
 		echo '<ol class="hs-article-versions-admin__list">';
 		foreach ( $versions as $index => $snapshot ) {
-			$number = $index + 1;
-			echo '<li class="hs-article-versions-admin__item">';
+			$number    = $index + 1;
+			$is_active = $number === $active_number;
+			echo '<li class="hs-article-versions-admin__item' . ( $is_active ? ' is-active' : '' ) . '">';
 			echo '<div><strong>' . esc_html( self::version_name( $number ) ) . '</strong>';
+			if ( $is_active ) {
+				echo '<span class="hs-article-versions-admin__active">' . esc_html__( 'Актуальная', 'manacost' ) . '</span>';
+			}
 			echo '<span>' . esc_html( self::snapshot_date_label( $snapshot['created_gmt'] ) ) . '</span></div>';
 			echo '<div class="hs-article-versions-admin__actions">';
 			echo '<a class="button button-secondary" href="' . esc_url( self::edit_version_url( $post->ID, $number ) ) . '">';
 			echo esc_html__( 'Редактировать', 'manacost' );
 			echo '</a>';
+			if ( ! $is_active ) {
+				self::render_set_active_form( $post->ID, $number, __( 'Сделать актуальной', 'manacost' ) );
+			}
 			self::render_delete_form( $post->ID, $number );
 			echo '</div></li>';
 		}
-		echo '</ol></div>';
+		echo '</ol>';
+		if ( 0 === $active_number ) {
+			echo '<p class="description hs-article-versions-admin__original">' . esc_html__( 'Сейчас на исходном URL показана оригинальная статья.', 'manacost' ) . '</p>';
+		} else {
+			echo '<div class="hs-article-versions-admin__restore">';
+			self::render_set_active_form( $post->ID, 0, __( 'Вернуть оригинальную статью', 'manacost' ) );
+			echo '</div>';
+		}
+		echo '</div>';
 		self::render_metabox_styles();
 	}
 
@@ -177,16 +202,29 @@ final class HS_Article_Versions {
 		echo '<input type="hidden" name="post_id" value="' . esc_attr( (string) $post_id ) . '">';
 		echo '<input type="hidden" name="version" value="' . esc_attr( (string) $number ) . '">';
 		wp_nonce_field( self::version_nonce_action( self::DELETE_ACTION, $post_id, $number ) );
-		echo '<button class="button-link-delete" type="submit" onclick="return window.confirm(\'Удалить сохранённую версию? Вернуть её через переключатель уже не получится.\');">';
+		echo '<button class="button-link-delete" type="submit" onclick="return window.confirm(\'Удалить только сохранённую версию? Оригинальная статья останется без изменений.\');">';
 		echo esc_html__( 'Удалить', 'manacost' );
 		echo '</button></form>';
 	}
-
+	/** Renders the protected form that selects a current snapshot.
+	 *
+	 * @param int    $post_id Article ID.
+	 * @param int    $number Snapshot number, or zero for the original article.
+	 * @param string $label Visible action label.
+	 */
+	private static function render_set_active_form( int $post_id, int $number, string $label ): void {
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="hs-article-versions-admin__set-active">';
+		echo '<input type="hidden" name="action" value="' . esc_attr( self::SET_ACTIVE_ACTION ) . '">';
+		echo '<input type="hidden" name="post_id" value="' . esc_attr( (string) $post_id ) . '">';
+		echo '<input type="hidden" name="version" value="' . esc_attr( (string) $number ) . '">';
+		wp_nonce_field( self::version_nonce_action( self::SET_ACTIVE_ACTION, $post_id, $number ) );
+		echo '<button class="button button-secondary" type="submit">' . esc_html( $label ) . '</button>';
+		echo '</form>';
+	}
 	/** Keeps the native metabox compact without leaking styles to other admin screens. */
 	private static function render_metabox_styles(): void {
-		echo '<style>.hs-article-versions-admin__list{margin:12px 0 0}.hs-article-versions-admin__item{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:12px 0;border-top:1px solid #dcdcde}.hs-article-versions-admin__item:first-child{border-top:0}.hs-article-versions-admin__item span{display:block;margin-top:3px;color:#646970;font-size:12px}.hs-article-versions-admin__actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.hs-article-versions-admin__delete{margin:0}.hs-article-versions-admin--editing{max-width:900px}@media(max-width:600px){.hs-article-versions-admin__item{align-items:flex-start;flex-direction:column}.hs-article-versions-admin__actions{width:100%}.hs-article-versions-admin__actions .button{min-height:36px}}</style>';
+		echo '<style>.hs-article-versions-admin__list{margin:12px 0 0}.hs-article-versions-admin__item{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:12px 0;border-top:1px solid #dcdcde}.hs-article-versions-admin__item:first-child{border-top:0}.hs-article-versions-admin__item.is-active{border-inline-start:3px solid #2271b1;padding-inline-start:10px;background:#f0f6fc}.hs-article-versions-admin__item span{display:block;margin-top:3px;color:#646970;font-size:12px}.hs-article-versions-admin__item .hs-article-versions-admin__active{display:inline-block;margin:0 0 0 7px;padding:2px 6px;border-radius:999px;background:#e7f3ff;color:#135e96;font-weight:600}.hs-article-versions-admin__actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.hs-article-versions-admin__delete,.hs-article-versions-admin__set-active{margin:0}.hs-article-versions-admin__restore,.hs-article-versions-admin__original{margin-top:14px}.hs-article-versions-admin--editing{max-width:900px}@media(max-width:600px){.hs-article-versions-admin__item{align-items:flex-start;flex-direction:column}.hs-article-versions-admin__actions{width:100%}.hs-article-versions-admin__actions .button{min-height:36px}}</style>';
 	}
-
 	/** Creates a durable explicit snapshot, then returns the editor to the same post. */
 	public static function handle_create_version(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The object-specific nonce is verified and the scalar is validated below.
@@ -268,7 +306,33 @@ final class HS_Article_Versions {
 		clean_post_cache( $post_id );
 		self::redirect_to_editor( $post_id, 'hs_article_version_updated', (string) $number );
 	}
+	/** Selects a safe snapshot or the original post without mutating wp_posts. */
+	public static function handle_set_active_version(): void {
+		$post_id = self::request_positive_integer_from_post( 'post_id' );
+		$number  = self::request_nonnegative_integer_from_post( 'version' );
+		$post    = get_post( $post_id );
 
+		if ( ! $post instanceof WP_Post || ! self::can_manage_versions( $post ) ) {
+			wp_die( esc_html__( 'Недостаточно прав для выбора актуальной версии статьи.', 'manacost' ), '', array( 'response' => 403 ) );
+		}
+
+		check_admin_referer( self::version_nonce_action( self::SET_ACTIVE_ACTION, $post_id, $number ) );
+		$versions = self::get_versions( $post_id );
+		if ( $number > 0 && ! isset( $versions[ $number - 1 ] ) ) {
+			wp_die( esc_html__( 'Версия статьи не найдена.', 'manacost' ), '', array( 'response' => 404 ) );
+		}
+
+		if ( self::get_active_version_number( $post_id, $versions ) === $number ) {
+			self::redirect_after_active_version_change( $post_id, $number );
+		}
+
+		if ( ! self::store_active_version_number( $post_id, $number ) ) {
+			wp_die( esc_html__( 'Не удалось выбрать актуальную версию статьи. Повторите попытку.', 'manacost' ), '', array( 'response' => 500 ) );
+		}
+
+		clean_post_cache( $post_id );
+		self::redirect_after_active_version_change( $post_id, $number );
+	}
 	/** Removes exactly one explicitly saved snapshot after an explicit confirmation. */
 	public static function handle_delete_version(): void {
 		$post_id = self::request_positive_integer_from_post( 'post_id' );
@@ -280,28 +344,42 @@ final class HS_Article_Versions {
 		}
 
 		check_admin_referer( self::version_nonce_action( self::DELETE_ACTION, $post_id, $number ) );
-		$versions = self::get_versions( $post_id );
-		$index    = $number - 1;
+		$versions      = self::get_versions( $post_id );
+		$previous      = $versions;
+		$active_number = self::get_active_version_number( $post_id, $versions );
+		$next_active   = $active_number;
+		$index         = $number - 1;
 		if ( $index < 0 || ! isset( $versions[ $index ] ) ) {
 			wp_die( esc_html__( 'Версия статьи не найдена.', 'manacost' ), '', array( 'response' => 404 ) );
 		}
 
 		array_splice( $versions, $index, 1 );
+		if ( $number === $active_number ) {
+			$next_active = 0;
+		} elseif ( $number < $active_number ) {
+			$next_active = $active_number - 1;
+		}
+
 		if ( ! self::store_versions( $post_id, $versions ) ) {
+			wp_die( esc_html__( 'Не удалось удалить версию статьи. Повторите попытку.', 'manacost' ), '', array( 'response' => 500 ) );
+		}
+		if ( $next_active !== $active_number && ! self::store_active_version_number( $post_id, $next_active ) ) {
+			self::store_versions( $post_id, $previous );
 			wp_die( esc_html__( 'Не удалось удалить версию статьи. Повторите попытку.', 'manacost' ), '', array( 'response' => 500 ) );
 		}
 
 		clean_post_cache( $post_id );
 		self::redirect_to_editor( $post_id, 'hs_article_version_deleted', (string) $number );
 	}
-
 	/** Shows a concise result after the editor returns to the original article. */
 	public static function render_admin_notice(): void {
-		$created = self::request_positive_integer( 'hs_article_version_created' );
-		$exists  = self::request_positive_integer( 'hs_article_version_exists' );
-		$updated = self::request_positive_integer( 'hs_article_version_updated' );
-		$deleted = self::request_positive_integer( 'hs_article_version_deleted' );
-		$same    = self::request_positive_integer( 'hs_article_version_unchanged' );
+		$created  = self::request_positive_integer( 'hs_article_version_created' );
+		$exists   = self::request_positive_integer( 'hs_article_version_exists' );
+		$updated  = self::request_positive_integer( 'hs_article_version_updated' );
+		$deleted  = self::request_positive_integer( 'hs_article_version_deleted' );
+		$same     = self::request_positive_integer( 'hs_article_version_unchanged' );
+		$active   = self::request_positive_integer( 'hs_article_version_active' );
+		$original = self::request_positive_integer( 'hs_article_version_original' );
 
 		if ( $created > 0 ) {
 			echo '<div class="notice notice-success is-dismissible"><p>';
@@ -337,6 +415,20 @@ final class HS_Article_Versions {
 				)
 			);
 			echo '</p></div>';
+		} elseif ( $active > 0 ) {
+			echo '<div class="notice notice-success is-dismissible"><p>';
+			echo esc_html(
+				sprintf(
+					/* translators: %d: active saved article version number. */
+					__( 'Версия %d теперь отображается как актуальная по исходному адресу статьи.', 'manacost' ),
+					$active
+				)
+			);
+			echo '</p></div>';
+		} elseif ( $original > 0 ) {
+			echo '<div class="notice notice-success is-dismissible"><p>';
+			echo esc_html__( 'Оригинальная статья снова отображается как актуальная по исходному адресу.', 'manacost' );
+			echo '</p></div>';
 		} elseif ( $same > 0 ) {
 			echo '<div class="notice notice-info is-dismissible"><p>';
 			echo esc_html__( 'В этой версии нет новых изменений для сохранения.', 'manacost' );
@@ -354,8 +446,8 @@ final class HS_Article_Versions {
 				'callback'            => array( __CLASS__, 'get_public_version' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'post_id' => self::positive_integer_argument(),
-					'version' => self::positive_integer_argument(),
+					'post_id' => self::nonnegative_integer_argument(),
+					'version' => self::nonnegative_integer_argument(),
 				),
 			)
 		);
@@ -385,6 +477,16 @@ final class HS_Article_Versions {
 			);
 		}
 
+		if ( 0 === $version ) {
+			return rest_ensure_response(
+				array(
+					'version' => 0,
+					'title'   => (string) $post->post_title,
+					'content' => self::render_snapshot_content( $post, (string) $post->post_content ),
+				)
+			);
+		}
+
 		$versions = self::get_versions( $post_id );
 		$index    = $version - 1;
 
@@ -406,6 +508,28 @@ final class HS_Article_Versions {
 			)
 		);
 	}
+	/** Returns the selected snapshot title only in the primary public article loop.
+	 *
+	 * @param string    $title Existing article title.
+	 * @param int|false $post_id Post ID passed by the title filter.
+	 */
+	public static function replace_active_title( string $title, $post_id = false ): string {
+		if ( self::$rendering_snapshot ) {
+			return $title;
+		}
+
+		$context = self::frontend_context( true );
+		if ( null === $context || absint( $post_id ) !== $context['post']->ID ) {
+			return $title;
+		}
+
+		$active_number = $context['active_number'];
+		if ( 0 === $active_number ) {
+			return $title;
+		}
+
+		return $context['versions'][ $active_number - 1 ]['title'];
+	}
 
 	/**
 	 * Adds the small selector immediately before the fully-rendered body content.
@@ -417,20 +541,30 @@ final class HS_Article_Versions {
 	 * @return string
 	 */
 	public static function prepend_switcher( string $content ): string {
+		if ( self::$rendering_snapshot ) {
+			return $content;
+		}
+
 		$context = self::frontend_context( true );
 		if ( null === $context ) {
 			return $content;
 		}
 
-		$post     = $context['post'];
-		$versions = $context['versions'];
-		$options  = '<option value="current">' . esc_html__( 'Актуальная версия', 'manacost' ) . '</option>';
+		$post          = $context['post'];
+		$versions      = $context['versions'];
+		$active_number = $context['active_number'];
+		$options       = '<option value="0" data-hs-article-version-url="' . esc_url( self::version_url( $post->ID, 0 ) ) . '"' . ( 0 === $active_number ? ' selected' : '' ) . '>';
+		$options      .= esc_html__( 'Оригинальная статья', 'manacost' ) . '</option>';
 
 		foreach ( $versions as $index => $snapshot ) {
 			$number   = $index + 1;
 			$url      = self::version_url( $post->ID, $number );
-			$options .= '<option value="' . esc_attr( (string) $number ) . '" data-hs-article-version-url="' . esc_url( $url ) . '">';
-			$options .= esc_html( self::version_name( $number ) . ' · ' . self::snapshot_date_label( $snapshot['created_gmt'] ) );
+			$options .= '<option value="' . esc_attr( (string) $number ) . '" data-hs-article-version-url="' . esc_url( $url ) . '"' . ( $number === $active_number ? ' selected' : '' ) . '>';
+			$label    = self::version_name( $number ) . ' · ' . self::snapshot_date_label( $snapshot['created_gmt'] );
+			if ( $number === $active_number ) {
+				$label .= ' · ' . __( 'Актуальная', 'manacost' );
+			}
+			$options .= esc_html( $label );
 			$options .= '</option>';
 		}
 
@@ -442,7 +576,12 @@ final class HS_Article_Versions {
 		$selector .= '<span id="hs-article-version-status" class="hs-article-versions__status" role="status" aria-live="polite"></span>';
 		$selector .= '</nav>';
 
-		return $selector . '<div id="hs-article-version-content" data-hs-article-version-content="current">' . $content . '</div>';
+		$visible_content = $content;
+		if ( $active_number > 0 ) {
+			$visible_content = self::render_snapshot_content( $post, $versions[ $active_number - 1 ]['content'] );
+		}
+
+		return $selector . '<div id="hs-article-version-content" data-hs-article-version-content="' . esc_attr( (string) $active_number ) . '">' . $visible_content . '</div>';
 	}
 
 	/** Prints presentation scoped to articles with manually saved versions. */
@@ -464,7 +603,7 @@ final class HS_Article_Versions {
 		}
 
 		echo '<script id="hs-article-versions-script">';
-		echo '(function(){var select=document.getElementById("hs-article-version-select"),content=document.getElementById("hs-article-version-content"),status=document.getElementById("hs-article-version-status"),switcher=document.querySelector(".hs-article-versions");if(!select||!content){return;}var title=document.querySelector("article .entry-title"),initial={content:content.innerHTML,title:title?title.textContent:""},previous="current";select.addEventListener("change",function(){var option=select.options[select.selectedIndex],next=option.value;if("current"===next){content.innerHTML=initial.content;if(title){title.textContent=initial.title;}previous=next;if(status){status.textContent="Показана актуальная версия статьи.";}return;}var url=option.getAttribute("data-hs-article-version-url");if(!url){select.value=previous;return;}select.disabled=true;if(switcher){switcher.setAttribute("aria-busy","true");}if(status){status.textContent="Загружается выбранная версия статьи.";}fetch(url,{credentials:"same-origin",headers:{"Accept":"application/json"}}).then(function(response){if(!response.ok){throw new Error("version request failed");}return response.json();}).then(function(payload){if(!payload||"string"!==typeof payload.content){throw new Error("invalid version response");}content.innerHTML=payload.content;if(title&&"string"===typeof payload.title){title.textContent=payload.title;}previous=next;if(status){status.textContent="Показана "+option.text+".";}}).catch(function(){select.value=previous;if(status){status.textContent="Не удалось загрузить выбранную версию статьи.";}}).finally(function(){select.disabled=false;if(switcher){switcher.removeAttribute("aria-busy");}});});}());';
+		echo '(function(){var select=document.getElementById("hs-article-version-select"),content=document.getElementById("hs-article-version-content"),status=document.getElementById("hs-article-version-status"),switcher=document.querySelector(".hs-article-versions");if(!select||!content){return;}var title=document.querySelector("article .entry-title"),previous=select.value;select.addEventListener("change",function(){var option=select.options[select.selectedIndex],next=option.value,url=option.getAttribute("data-hs-article-version-url");if(!url){select.value=previous;return;}select.disabled=true;if(switcher){switcher.setAttribute("aria-busy","true");}if(status){status.textContent="Загружается выбранная версия статьи.";}fetch(url,{credentials:"same-origin",headers:{"Accept":"application/json"}}).then(function(response){if(!response.ok){throw new Error("version request failed");}return response.json();}).then(function(payload){if(!payload||"string"!==typeof payload.content){throw new Error("invalid version response");}content.innerHTML=payload.content;if(title&&"string"===typeof payload.title){title.textContent=payload.title;}previous=next;if(status){status.textContent="Показана "+option.text+".";}}).catch(function(){select.value=previous;if(status){status.textContent="Не удалось загрузить выбранную версию статьи.";}}).finally(function(){select.disabled=false;if(switcher){switcher.removeAttribute("aria-busy");}});});}());';
 		echo '</script>';
 	}
 
@@ -518,6 +657,32 @@ final class HS_Article_Versions {
 		}
 
 		return false !== update_post_meta( $post_id, self::META_KEY, wp_slash( $versions ) );
+	}
+
+	/** Gets a valid snapshot number, or zero for the original post.
+	 *
+	 * @param int                                                                              $post_id Article ID.
+	 * @param array<int, array{title:string,content:string,excerpt:string,created_gmt:string}> $versions Saved snapshots.
+	 */
+	private static function get_active_version_number( int $post_id, array $versions ): int {
+		$active_number = absint( get_post_meta( $post_id, self::ACTIVE_META_KEY, true ) );
+		return $active_number > 0 && isset( $versions[ $active_number - 1 ] ) ? $active_number : 0;
+	}
+	/** Writes only the active-snapshot metadata marker.
+	 *
+	 * @param int $post_id Article ID.
+	 * @param int $number Snapshot number, or zero for the original article.
+	 */
+	private static function store_active_version_number( int $post_id, int $number ): bool {
+		$current_number = absint( get_post_meta( $post_id, self::ACTIVE_META_KEY, true ) );
+		if ( $number === $current_number ) {
+			return true;
+		}
+		if ( 0 === $number ) {
+			return false !== delete_post_meta( $post_id, self::ACTIVE_META_KEY );
+		}
+
+		return false !== update_post_meta( $post_id, self::ACTIVE_META_KEY, $number );
 	}
 
 	/**
@@ -609,6 +774,19 @@ final class HS_Article_Versions {
 		exit;
 	}
 
+	/** Returns to the original editor after selecting a current version.
+	 *
+	 * @param int $post_id Article ID.
+	 * @param int $number Snapshot number, or zero for the original article.
+	 */
+	private static function redirect_after_active_version_change( int $post_id, int $number ): void {
+		if ( 0 === $number ) {
+			self::redirect_to_editor( $post_id, 'hs_article_version_original', '1' );
+		}
+
+		self::redirect_to_editor( $post_id, 'hs_article_version_active', (string) $number );
+	}
+
 	/**
 	 * Returns the canonical native editor URL for a post.
 	 *
@@ -637,7 +815,7 @@ final class HS_Article_Versions {
 	 * Finds the current public article and its saved explicit snapshots.
 	 *
 	 * @param bool $require_loop Whether this call must originate from the main content loop.
-	 * @return array{post:WP_Post,versions:array<int, array{title:string,content:string,excerpt:string,created_gmt:string}>}|null Frontend context.
+	 * @return array{post:WP_Post,versions:array<int, array{title:string,content:string,excerpt:string,created_gmt:string}>,active_number:int}|null Frontend context.
 	 */
 	private static function frontend_context( bool $require_loop = false ): ?array {
 		if (
@@ -662,44 +840,38 @@ final class HS_Article_Versions {
 		if ( array() === $versions ) {
 			return null;
 		}
-
 		return array(
-			'post'     => $post,
-			'versions' => $versions,
+			'post'          => $post,
+			'versions'      => $versions,
+			'active_number' => self::get_active_version_number( $post_id, $versions ),
 		);
 	}
 
 	/**
-	 * Defines one validated positive integer REST argument.
+	 * Defines a nonnegative REST path argument; zero denotes the original post.
 	 *
-	 * @return array<string, mixed> REST argument definition.
+	 * @return array<string, mixed>
 	 */
-	private static function positive_integer_argument(): array {
+	private static function nonnegative_integer_argument(): array {
 		return array(
 			'type'              => 'integer',
 			'required'          => true,
-			'validate_callback' => array( __CLASS__, 'validate_positive_integer' ),
-			'sanitize_callback' => array( __CLASS__, 'sanitize_positive_integer' ),
+			'validate_callback' => array( __CLASS__, 'validate_nonnegative_integer' ),
+			'sanitize_callback' => array( __CLASS__, 'sanitize_nonnegative_integer' ),
 		);
 	}
-
-	/**
-	 * Validates a positive integer path parameter.
+	/** Validates a nonnegative integer REST path parameter.
 	 *
-	 * @param mixed $value Candidate REST value.
-	 * @return bool Whether the value is a positive integer.
+	 * @param mixed $value Candidate value.
 	 */
-	public static function validate_positive_integer( $value ): bool {
-		return is_scalar( $value ) && ctype_digit( (string) $value ) && absint( $value ) > 0;
+	public static function validate_nonnegative_integer( $value ): bool {
+		return is_scalar( $value ) && ctype_digit( (string) $value );
 	}
-
-	/**
-	 * Normalizes an already-validated positive integer path parameter.
+	/** Normalizes an already-validated nonnegative integer path parameter.
 	 *
-	 * @param mixed $value Candidate REST value.
-	 * @return int Normalized positive integer.
+	 * @param mixed $value Candidate value.
 	 */
-	public static function sanitize_positive_integer( $value ): int {
+	public static function sanitize_nonnegative_integer( $value ): int {
 		return absint( $value );
 	}
 
@@ -707,7 +879,7 @@ final class HS_Article_Versions {
 	 * Builds the internal read-only endpoint URL without altering the page URL.
 	 *
 	 * @param int $post_id Article ID.
-	 * @param int $version Saved version number.
+	 * @param int $version Zero for the original article, otherwise a saved version number.
 	 * @return string REST URL.
 	 */
 	private static function version_url( int $post_id, int $version ): string {
@@ -737,9 +909,13 @@ final class HS_Article_Versions {
 		}
 
 		$query->the_post();
-		$rendered = apply_filters( 'the_content', $content );
+		self::$rendering_snapshot = true;
+		try {
+			$rendered = apply_filters( 'the_content', $content );
+		} finally {
+			self::$rendering_snapshot = false;
+		}
 		wp_reset_postdata();
-
 		return wp_kses_post( $rendered );
 	}
 
@@ -767,6 +943,16 @@ final class HS_Article_Versions {
 	 * @param string $key Expected form key.
 	 */
 	private static function request_positive_integer_from_post( string $key ): int {
+		$value = self::request_post_text( $key );
+
+		return is_string( $value ) && ctype_digit( $value ) ? absint( $value ) : 0;
+	}
+
+	/** Reads a nonnegative integer from the protected snapshot-selection form.
+	 *
+	 * @param string $key Expected form key.
+	 */
+	private static function request_nonnegative_integer_from_post( string $key ): int {
 		$value = self::request_post_text( $key );
 
 		return is_string( $value ) && ctype_digit( $value ) ? absint( $value ) : 0;
@@ -811,5 +997,4 @@ final class HS_Article_Versions {
 		return $action . '_' . $post_id . '_' . $number;
 	}
 }
-
 HS_Article_Versions::boot();

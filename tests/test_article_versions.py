@@ -26,6 +26,7 @@ class ArticleVersionsTest(unittest.TestCase):
         post_password: str = "",
         password_required: bool = False,
         selected_version: int = 0,
+        active_version: int = 0,
     ) -> dict:
         if versions is None:
             versions = [
@@ -36,12 +37,16 @@ class ArticleVersionsTest(unittest.TestCase):
                     "created_gmt": "2026-09-09 12:00:00",
                 }
             ]
+        meta: dict[str, object] = {"_hs_article_versions": versions}
+        if active_version > 0:
+            meta["_hs_article_versions_active"] = active_version
+
         script = f"""
         define('ABSPATH', '/fixture/');
         $GLOBALS['actions'] = [];
         $GLOBALS['filters'] = [];
-        $seed_versions = json_decode({json.dumps(json.dumps(versions))}, true);
-        $GLOBALS['meta'] = [77 => ['_hs_article_versions' => $seed_versions]];
+        $seed_meta = json_decode({json.dumps(json.dumps(meta))}, true);
+        $GLOBALS['meta'] = [77 => $seed_meta];
         $GLOBALS['updates'] = [];
         $GLOBALS['redirect'] = '';
         $GLOBALS['can_edit'] = {json.dumps(can_edit)};
@@ -294,6 +299,8 @@ class ArticleVersionsTest(unittest.TestCase):
         versions: list[dict[str, str]] | None = None,
         can_edit: bool = True,
         persist: bool = True,
+        active_version: int = 0,
+        requested_version: int = 1,
     ) -> dict:
         if versions is None:
             versions = [
@@ -311,9 +318,13 @@ class ArticleVersionsTest(unittest.TestCase):
                 },
             ]
 
+        meta: dict[str, object] = {"_hs_article_versions": versions}
+        if active_version > 0:
+            meta["_hs_article_versions_active"] = active_version
+
         request = {
             "post_id": "77",
-            "version": "1",
+            "version": str(requested_version),
             "_wpnonce": "fixture",
         }
         if action == "update":
@@ -325,11 +336,15 @@ class ArticleVersionsTest(unittest.TestCase):
                 }
             )
 
-        handler = "handle_update_version" if action == "update" else "handle_delete_version"
+        handler = {
+            "update": "handle_update_version",
+            "delete": "handle_delete_version",
+            "set_active": "handle_set_active_version",
+        }[action]
         script = f"""
         define('ABSPATH', '/fixture/');
-        $seed_versions = json_decode({json.dumps(json.dumps(versions))}, true);
-        $GLOBALS['meta'] = [77 => ['_hs_article_versions' => $seed_versions]];
+        $seed_meta = json_decode({json.dumps(json.dumps(meta))}, true);
+        $GLOBALS['meta'] = [77 => $seed_meta];
         $GLOBALS['updates'] = [];
         $GLOBALS['redirect'] = '';
         $GLOBALS['can_edit'] = {json.dumps(can_edit)};
@@ -396,6 +411,12 @@ class ArticleVersionsTest(unittest.TestCase):
                 'cache_cleared' => $GLOBALS['cache_cleared'],
                 'redirect' => $GLOBALS['redirect'],
                 'result' => $GLOBALS['result'],
+                'original' => [
+                    'id' => $GLOBALS['post_fixture']->ID,
+                    'title' => $GLOBALS['post_fixture']->post_title,
+                    'content' => $GLOBALS['post_fixture']->post_content,
+                    'status' => $GLOBALS['post_fixture']->post_status,
+                ],
             ]);
         }});
         try {{
@@ -420,19 +441,79 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertIn("admin_post_hs_create_article_version", result["actions"])
         self.assertIn("admin_post_hs_update_article_version", result["actions"])
         self.assertIn("admin_post_hs_delete_article_version", result["actions"])
+        self.assertIn("admin_post_hs_set_article_version_active", result["actions"])
         self.assertIn("add_meta_boxes_post", result["actions"])
         self.assertIn("rest_api_init", result["actions"])
         self.assertIn("the_content", result["filters"])
+        self.assertIn("the_title", result["filters"])
         self.assertIn("Создать новую версию", result["editor_html"])
         self.assertIn("admin-post.php", result["editor_html"])
-        self.assertIn("Актуальная версия", result["frontend_html"])
+        self.assertIn("Оригинальная статья", result["frontend_html"])
         self.assertIn("Версия 1", result["frontend_html"])
         self.assertIn('id="hs-article-version-content"', result["frontend_html"])
         self.assertIn("hs-article-versions", result["styles"])
         self.assertIn("fetch(", result["script"])
         self.assertNotIn("location.href", result["script"])
         self.assertIn("Редактировать", result["admin_html"])
+        self.assertIn("Сделать актуальной", result["admin_html"])
         self.assertIn("Удалить", result["admin_html"])
+
+    def test_only_snapshots_can_be_deleted_and_an_active_snapshot_can_be_changed(self) -> None:
+        activated = self.run_version_management_handler(action="set_active", requested_version=2)
+        missing = self.run_version_management_handler(action="set_active", requested_version=3)
+        denied = self.run_version_management_handler(action="set_active", requested_version=2, can_edit=False)
+        failed = self.run_version_management_handler(action="set_active", requested_version=2, persist=False)
+        removed_active = self.run_version_management_handler(
+            action="delete",
+            active_version=2,
+            requested_version=2,
+        )
+        removed_before_active = self.run_version_management_handler(
+            action="delete",
+            active_version=2,
+            requested_version=1,
+        )
+
+        self.assertEqual("_hs_article_versions_active", activated["updates"][0][1])
+        self.assertEqual(2, activated["updates"][0][2])
+        self.assertIn("hs_article_version_active=2", activated["redirect"])
+        self.assertEqual(
+            {"id": 77, "title": "Актуальная версия", "content": "<p>Текущий текст</p>", "status": "publish"},
+            activated["original"],
+        )
+
+        self.assertEqual("_hs_article_versions", removed_active["updates"][0][1])
+        self.assertEqual("_hs_article_versions_active", removed_active["updates"][1][1])
+        self.assertEqual([], removed_active["updates"][1][2])
+        self.assertEqual(
+            {"id": 77, "title": "Актуальная версия", "content": "<p>Текущий текст</p>", "status": "publish"},
+            removed_active["original"],
+        )
+
+        self.assertEqual("_hs_article_versions_active", removed_before_active["updates"][1][1])
+        self.assertEqual(1, removed_before_active["updates"][1][2])
+
+        for result, status in ((missing, "404"), (denied, "403"), (failed, "500")):
+            self.assertEqual(status, result["result"])
+            self.assertEqual([], result["updates"])
+            self.assertEqual([], result["cache_cleared"])
+
+    def test_active_snapshot_is_rendered_first_without_changing_the_article_url(self) -> None:
+        active = self.run_plugin(active_version=1)
+        original = self.run_plugin(active_version=1, endpoint_version=0)
+
+        self.assertIn('data-hs-article-version-content="1"', active["frontend_html"])
+        self.assertIn('value="1" data-hs-article-version-url=', active["frontend_html"])
+        self.assertIn("selected>Версия 1", active["frontend_html"])
+        self.assertIn("rendered:<p>Архивный текст</p>", active["frontend_html"])
+        self.assertEqual(0, original["response"]["version"])
+        self.assertEqual("Актуальная версия", original["response"]["title"])
+        self.assertEqual("rendered:<p>Текущий текст</p>", original["response"]["content"])
+
+    def test_plugin_has_no_api_path_that_deletes_or_trashes_the_original_post(self) -> None:
+        source = PLUGIN.read_text(encoding="utf-8")
+
+        self.assertNotRegex(source, r"\b(?:wp_delete_post|wp_trash_post|wp_delete_attachment)\s*\(")
 
     def test_editor_can_edit_or_delete_only_the_selected_snapshot(self) -> None:
         updated = self.run_version_management_handler(action="update")

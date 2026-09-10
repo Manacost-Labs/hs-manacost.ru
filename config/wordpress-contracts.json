@@ -735,28 +735,56 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 219
+        "line": 257
       },
       {
         "name": "_hs_article_versions",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 478
+        "line": 617
       },
       {
         "name": "_hs_article_versions",
         "resolved": true,
         "api": "delete_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 517
+        "line": 656
       },
       {
         "name": "_hs_article_versions",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 520
+        "line": 659
+      },
+      {
+        "name": "_hs_article_versions_active",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 668
+      },
+      {
+        "name": "_hs_article_versions_active",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 677
+      },
+      {
+        "name": "_hs_article_versions_active",
+        "resolved": true,
+        "api": "delete_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 682
+      },
+      {
+        "name": "_hs_article_versions_active",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 685
       },
       {
         "name": "_hs_deck_activity_created_logged",
@@ -1374,7 +1402,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 562
+        "line": 727
       },
       {
         "name": "hs_decks_announcement_button_text",
@@ -1843,7 +1871,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 562
+        "line": 727
       },
       {
         "name": "unified_hs_ad_tracker_db_version",
@@ -2318,7 +2346,7 @@
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 349
+        "line": 441
       },
       {
         "name": "manacost/v1/deck-meta/(?P<id>\\d+)",
@@ -2665,21 +2693,21 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 57
+        "line": 65
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 206
+        "line": 244
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 532
+        "line": 697
       },
       {
         "name": "edit_post",
@@ -2994,7 +3022,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 255
+        "line": 293
       }
     ]
   }
