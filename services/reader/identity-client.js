@@ -25,6 +25,7 @@ export function validateIdentityClient(options) {
 export function createIdentityClient(options, transport = fetch) {
   validateIdentityClient(options);
   const { issuer, origin, clientId, clientSecret } = options;
+  const persistentLogin = clientId === 'manacost-reader-staging' && origin === 'https://test.hs-manacost.ru';
   const metadata = { issuer, authorization_endpoint: `${issuer}/auth`, token_endpoint: `${issuer}/token`,
     userinfo_endpoint: `${issuer}/me`, introspection_endpoint: `${issuer}/token/introspection`,
     revocation_endpoint: `${issuer}/token/revocation`, jwks_uri: `${issuer}/jwks`,
@@ -54,7 +55,7 @@ export function createIdentityClient(options, transport = fetch) {
       ? 'https://hearthpulse.net/?login' : null,
     authorizationUrl({ state, nonce, codeChallenge }) {
       return oidc.buildAuthorizationUrl(config(), { redirect_uri: `${origin}/reader-auth/callback`,
-        scope: 'openid profile', response_type: 'code', prompt: 'login consent', state, nonce,
+        scope: persistentLogin ? 'openid profile offline_access' : 'openid profile', response_type: 'code', prompt: 'login consent', state, nonce,
         code_challenge: codeChallenge, code_challenge_method: 'S256' });
     },
     async exchange(url, attempt, signal) {
@@ -70,7 +71,17 @@ export function createIdentityClient(options, transport = fetch) {
       }
       const claims = tokens.claims();
       if (!claims?.sub || !tokens.access_token || !tokens.expires_in) throw new Error('Incomplete identity tokens');
-      return { subject: claims.sub, accessToken: tokens.access_token, expiresIn: tokens.expires_in };
+      return { subject: claims.sub, accessToken: tokens.access_token, expiresIn: tokens.expires_in,
+        ...(persistentLogin && tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}) };
+    },
+    async refresh(refreshToken, subject, signal) {
+      const tokens = await oidc.refreshTokenGrant(config(signal), refreshToken);
+      const claims = tokens.claims();
+      if (claims && claims.sub !== subject || !tokens.refresh_token || !tokens.access_token
+        || !tokens.expires_in || !await verify(tokens.access_token, subject, signal)) {
+        throw new Error('Invalid refreshed identity');
+      }
+      return { subject, accessToken: tokens.access_token, refreshToken: tokens.refresh_token, expiresIn: tokens.expires_in };
     },
     verify,
     async profile(token, subject, signal) {
@@ -80,6 +91,7 @@ export function createIdentityClient(options, transport = fetch) {
       if (typeof profile.name !== 'string' || profile.name.length > 200) throw new Error('Invalid profile');
       return { displayName: profile.name || 'Читатель' };
     },
-    async revoke(token, signal) { await oidc.tokenRevocation(config(signal), token, { token_type_hint: 'access_token' }); },
+    // Omit the optional hint: the durable queue can contain either access or refresh tokens.
+    async revoke(token, signal) { await oidc.tokenRevocation(config(signal), token); },
   };
 }

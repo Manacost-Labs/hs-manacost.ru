@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac } from 'node:crypto';
-import { createEditorialClient, createPaidTitleClient } from '../community-clients.js';
+import { createEditorialClient, createPaidTitleClient, createReaderPermissionsClient } from '../community-clients.js';
 
 const editorial = { key: 'x'.repeat(43), username: 'synthetic-editorial', password: 'y'.repeat(43) };
 test('editorial request is signed, fixed-destination and rejects mismatched metadata', async () => {
@@ -47,4 +47,30 @@ test('paid title is subject-bound, fresh, and fails closed without breaking comm
   ]) assert.notEqual((await client({ entitlements: [item] }).get(['reader-a'])).get('reader-a'), true);
   const unavailable = createPaidTitleClient(options, async () => { throw new Error('private provider information'); });
   assert.equal((await unavailable.get(['reader-a'])).size, 0);
+});
+
+test('permissions use the exact authenticated server bridge and reject stale-shaped or spoofed records', async () => {
+  const options = { clientId: 'manacost-reader-staging', clientSecret: 'z'.repeat(43) };
+  let calls = 0; let allowed = true;
+  const client = createReaderPermissionsClient(options, async (url, request) => {
+    calls++;
+    assert.equal(url, 'https://hearthpulse.net/identity/reader-permissions');
+    assert.equal(request.redirect, 'error');
+    assert.equal(request.headers.authorization, `Basic ${Buffer.from(`${options.clientId}:${options.clientSecret}`).toString('base64')}`);
+    assert.equal(Object.hasOwn(request.headers, 'cookie'), false);
+    return Response.json({ permissions: [{ subject: 'admin', canModerateComments: allowed }] });
+  });
+  assert.equal((await client.get(['admin'])).get('admin'), true);
+  allowed = false;
+  assert.equal((await client.get(['admin'])).get('admin'), false);
+  assert.equal(calls, 2, 'permissions must not be cached');
+  for (const body of [
+    { permissions: [{ subject: 'other', canModerateComments: true }] },
+    { permissions: [{ subject: 'admin', canModerateComments: 'true' }] },
+    { permissions: [{ subject: 'admin', canModerateComments: true, role: 'admin' }] },
+    { permissions: [] }, { permissions: [{ subject: 'admin', canModerateComments: true }], extra: true },
+  ]) await assert.rejects(createReaderPermissionsClient(options, async () => Response.json(body)).get(['admin']));
+  await assert.rejects(client.get(['admin', 'admin']));
+  await assert.rejects(createReaderPermissionsClient(options, async () => new Response('down', { status: 503 })).get(['admin']));
+  await assert.rejects(createReaderPermissionsClient(options, async () => Response.json({ enormous: 'x'.repeat(33000) })).get(['admin']));
 });

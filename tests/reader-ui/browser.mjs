@@ -42,6 +42,7 @@ const server = createServer((request, response) => {
     }
     return;
   }
+  if (request.url === '/reader-api/v1/community/me') { response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify({ canModerateComments: false, commentingBlocked: false })); return; }
   const asset = assets.get(request.url);
   if (asset) { response.writeHead(200, { 'Content-Type': asset[0] }); response.end(asset[1]); return; }
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }

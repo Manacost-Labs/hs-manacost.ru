@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/platform-icons.php';
+
 /**
  * Return a small, decorative UI icon from the account's own asset-free set.
  *
@@ -15,6 +17,9 @@ defined( 'ABSPATH' ) || exit;
  * @param string $name Icon identifier.
  */
 function hs_manacost_reader_account_icon( string $name ): string {
+	if ( in_array( $name, array( 'twitch', 'youtube' ), true ) ) {
+		return hs_reader_platform_icon( $name );
+	}
 	$icons = array(
 		'account' => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="8" r="3.25"></circle><path d="M5.25 20c.72-3.16 3.18-5 6.75-5s6.03 1.84 6.75 5"></path></svg>',
 		'chevron' => '<svg class="mc-reader__chevron" viewBox="0 0 16 16" focusable="false" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg>',
@@ -24,8 +29,6 @@ function hs_manacost_reader_account_icon( string $name ): string {
 		'trash'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4.5 7.5h15M9 7.5v-2h6v2M7 7.5l.75 12h8.5l.75-12M10 11v5M14 11v5"></path></svg>',
 		'check'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="m5 12.5 4.25 4.25L19.5 6.5"></path></svg>',
 		'retry'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M19.5 8.5V4.75L22 7.25A8 8 0 1 0 20 17.5"></path></svg>',
-		'youtube' => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M21.3 7.1a2.77 2.77 0 0 0-1.95-1.96C17.63 4.67 12 4.67 12 4.67s-5.63 0-7.35.47A2.77 2.77 0 0 0 2.7 7.1C2.23 8.82 2.23 12 2.23 12s0 3.18.47 4.9a2.77 2.77 0 0 0 1.95 1.96c1.72.47 7.35.47 7.35.47s5.63 0 7.35-.47a2.77 2.77 0 0 0 1.95-1.96c.47-1.72.47-4.9.47-4.9s0-3.18-.47-4.9Z"></path><path d="m10 15.5 5-3.5-5-3.5v7Z"></path></svg>',
-		'twitch'  => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M5.25 3.5h13.5v12.75H13.5L10 19.75v-3.5H5.25V3.5Z"></path><path d="M10 8v4M14 8v4"></path></svg>',
 		'crown'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="m4 8 4.25 3.25L12 5l3.75 6.25L20 8l-1.7 10H5.7L4 8Z"></path><path d="M6.25 20h11.5"></path></svg>',
 		'back'    => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>',
 	);
@@ -49,7 +52,8 @@ function hs_manacost_reader_author_mark( string $service ): string {
 	if ( ! isset( $labels[ $service ] ) ) {
 		return '';
 	}
-	return '<a class="mc-reader__author-mark mc-reader__author-mark--' . esc_attr( $service ) . '" data-reader-' . esc_attr( $service ) . '-mark href="#" target="_blank" rel="noopener noreferrer" aria-label="' . esc_attr( $labels[ $service ] ) . '" title="' . esc_attr( $labels[ $service ] ) . '" hidden>' . hs_manacost_reader_account_icon( $service ) . '</a>';
+	$title = 'youtube' === $service ? 'YouTube' : 'Twitch';
+	return '<a class="mc-reader__author-mark mc-reader__author-mark--' . esc_attr( $service ) . '" data-reader-' . esc_attr( $service ) . '-mark href="#" target="_blank" rel="noopener noreferrer" aria-label="' . esc_attr( $labels[ $service ] ) . '" title="' . esc_attr( $labels[ $service ] ) . '" hidden>' . hs_manacost_reader_account_icon( $service ) . '<span>' . esc_html( $title ) . '</span></a>';
 }
 
 /**
@@ -98,7 +102,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<p class="mc-reader__profile-kicker">Ваш профиль</p>'
 		. '<div class="mc-reader__identity-wrap"><div class="mc-reader__avatar" role="img" aria-label="Фото профиля">'
 		. '<img data-reader-avatar-image alt="" hidden><span data-reader-avatar-placeholder aria-hidden="true">М</span></div>'
-		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2>' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div>'
+		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2><span class="mc-reader__admin-badge" data-reader-administrator hidden>Администратор</span>' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div>'
 		. '<p class="mc-reader__bio" data-reader-preview-bio></p><div class="mc-reader__profile-controls"><aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="36" height="36" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">' . hs_manacost_reader_account_icon( 'edit' ) . '<span>Изменить профиль</span></button></div><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p></div></div></section>'
 		. '<form class="mc-reader__workspace" data-reader-profile-editor hidden aria-labelledby="mc-reader-editor-title">'
 		. '<div class="mc-reader__editor-head"><div><p class="mc-reader__editor-kicker">Профиль читателя</p><h2 id="mc-reader-editor-title">Настройки профиля</h2><p class="mc-ui-help">Так вас увидят в обсуждениях Манакоста.</p></div><button class="mc-reader__button mc-ui-button mc-ui-button--text" data-reader-cancel-editor type="button">' . hs_manacost_reader_account_icon( 'close' ) . '<span>Закрыть</span></button></div>'

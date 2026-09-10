@@ -42,13 +42,28 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.7', loader)
-        self.assertIn("'0.7.7'", loader)
-        self.assertIn("'0.7.7'", comments_loader)
+        self.assertIn('Version: 0.7.9', loader)
+        self.assertIn("'0.7.9'", loader)
+        self.assertIn("'0.7.9'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
             self.assertNotIn("'0.5.0'", source)
+
+    def test_community_bundle_is_ordered_and_has_no_client_role_claim(self):
+        loader = (PHP.parent / 'comments-loader.php').read_text()
+        community = (PHP.parent / 'community-ui.js').read_text()
+        self.assertIn("'hs-manacost-reader-community-ui'", loader)
+        self.assertIn("$public ? array() : array( 'hs-manacost-reader-community-ui' )", loader)
+        self.assertLess(loader.index("$base . 'community-ui.js'"), loader.index("$base . ( $public ? 'public-profile.js' : 'comments.js' )"))
+        self.assertIn("'/reader-api/v1/community/me'", community)
+        self.assertIn('/reaction', community)
+        self.assertIn("'X-Reader-CSRF'", (PHP.parent / 'comments.js').read_text())
+        self.assertNotIn('actor:', community)
+        self.assertNotIn('role:', community)
+        for label in ('Нравится', 'Спасибо', 'Огонь', 'Удалить комментарий', 'Запретить комментировать', 'Разрешить комментировать'):
+            self.assertIn(label, community)
+        self.assertIn('Администратор', (PHP.parent / 'comments.js').read_text())
 
     @classmethod
     def setUpClass(cls):

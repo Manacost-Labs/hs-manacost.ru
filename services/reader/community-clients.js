@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 
 const EDITORIAL_URL = 'https://test.hs-manacost.ru/wp-json/manacost-reader/v1/threads';
 const ENTITLEMENTS_URL = 'https://hearthpulse.net/identity/reader-entitlements';
+const PERMISSIONS_URL = 'https://hearthpulse.net/identity/reader-permissions';
 const basic = (name, password) => `Basic ${Buffer.from(`${name}:${password}`).toString('base64')}`;
 const exactKeys = (value, keys) => value && Object.getPrototypeOf(value) === Object.prototype
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -55,6 +56,29 @@ export function createEditorialClient({ key, username, password }, transport = f
           || typeof item.path !== 'string' || item.path.length > 2000 || !/^\/(?!\/)/.test(item.path)
           || /[\\\s?#%]/.test(item.path) || /^\/(?:wp-|reader-|account(?:\/|$))/i.test(item.path))) throw new Error('Invalid article location');
         result.set(item.postId, item);
+      }
+      return result;
+    },
+  };
+}
+
+/** Current canonical roles, never a cached token/browser claim. Failure denies privileged operations. */
+export function createReaderPermissionsClient({ clientId, clientSecret }, transport = fetch) {
+  if (clientId !== 'manacost-reader-staging' || typeof clientSecret !== 'string' || clientSecret.length < 43) throw new Error('Permissions configuration invalid');
+  return {
+    async get(subjects, parent = AbortSignal.timeout(2000)) {
+      batch(subjects, subject => typeof subject === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(subject));
+      const signal = AbortSignal.any([parent, AbortSignal.timeout(2000)]);
+      const response = await transport(PERMISSIONS_URL, { method: 'POST', redirect: 'error', signal,
+        headers: { authorization: basic(clientId, clientSecret), 'content-type': 'application/json' }, body: JSON.stringify({ subjects }) });
+      const data = await boundedJSON(response, signal);
+      if (!exactKeys(data, ['permissions']) || !Array.isArray(data.permissions) || data.permissions.length !== subjects.length) throw new Error('Invalid permissions response');
+      const result = new Map();
+      for (let index = 0; index < subjects.length; index++) {
+        const item = data.permissions[index];
+        if (!exactKeys(item, ['subject', 'canModerateComments']) || item.subject !== subjects[index]
+          || typeof item.canModerateComments !== 'boolean') throw new Error('Invalid permissions record');
+        result.set(item.subject, item.canModerateComments);
       }
       return result;
     },

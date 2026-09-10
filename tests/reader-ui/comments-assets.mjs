@@ -46,7 +46,7 @@ $result=array('rules'=>array(),'excluded'=>array(),'perfExcluded'=>array());
 foreach(array('rocket_exclude_js','rocket_exclude_css','rocket_delay_js_exclusions','rocket_rucss_external_exclusions','perfmatters_minify_js_exclusions','perfmatters_minify_css_exclusions','perfmatters_delay_js_exclusions','perfmatters_rucss_excluded_stylesheets') as $hook){
   $result['rules'][$hook]=apply_filters($hook,array('/existing/file.js'));
 }
-foreach(array('ui.css','comments.css','comments.js','public-profile.js','reader.js','profile-editor.js') as $file){
+foreach(array('ui.css','comments.css','comments.js','community-ui.js','public-profile.js','reader.js','profile-editor.js') as $file){
   $matcher=str_ends_with($file,'.css') ? $GLOBALS['css'] : $GLOBALS['js'];
   $result['excluded'][$file]=$matcher->excludes('https://test.hs-manacost.ru/wp-content/mu-plugins/hs-manacost-reader/'.$file.'?ver=0.7.8');
   $result['perfExcluded'][$file]=\Perfmatters\Utilities::match_in_array('https://test.hs-manacost.ru/wp-content/mu-plugins/hs-manacost-reader/'.$file.'?ver=0.7.8',\Perfmatters\Minify::get_exclusions(pathinfo($file,PATHINFO_EXTENSION)));
@@ -80,7 +80,7 @@ for (const [environment, reader, comments, host, enabled] of [
   for (const [hook, patterns] of Object.entries(result.rules)) {
     if (!enabled) { assert.deepEqual(patterns, ['/existing/file.js'], 'inactive adapter does not change optimization'); continue; }
     assert.ok(patterns.includes('/existing/file.js'), `${hook} preserves existing exclusions`);
-    for (const file of ['ui.css', 'comments.css', 'comments.js', 'public-profile.js', 'reader.js', 'profile-editor.js']) {
+    for (const file of ['ui.css', 'comments.css', 'comments.js', 'community-ui.js', 'public-profile.js', 'reader.js', 'profile-editor.js']) {
       const url = `https://test.hs-manacost.ru/wp-content/mu-plugins/hs-manacost-reader/${file}?ver=0.7.8`;
       assert.ok(patterns.some(pattern => new RegExp(pattern).test(url)), `${hook} protects the versioned Reader bundle ${file}`);
     }

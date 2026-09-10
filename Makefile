@@ -32,6 +32,7 @@ reader-browser-test:
 	@node tests/reader-ui/browser.mjs
 	@node tests/reader-ui/comments-browser.mjs
 	@node tests/reader-ui/comments-flows.mjs
+	@node tests/reader-ui/community-browser.mjs
 
 shell-check:
 	@find ops -type f -name '*.sh' -print0 | xargs -0 -n 1 bash -n

@@ -138,6 +138,19 @@
   background: #fbf3e2;
   color: #966b1d;
 }
+.mc-comments .mc-comments__author-badge--administrator,
+.mc-public-profile .mc-public-profile__author-mark--administrator {
+  width: auto;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid #8aa7b7;
+  border-radius: 999px;
+  background: #edf5f8;
+  color: #245970;
+  font: 700 11px/1.2 var(--mc-ui-body);
+}
+.mc-comments .mc-comments__author-badge .mc-platform-icon,
+.mc-public-profile .mc-platform-icon { fill: currentColor; stroke: none; }
 .mc-comments .mc-comments__author-badge--paid svg,
 .mc-public-profile .mc-public-profile__author-mark--paid svg {
   width: 16px;
@@ -270,6 +283,30 @@
 .mc-comments .mc-comments__more {
   margin-top: 12px;
 }
+.mc-comments .mc-comments__reactions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0 44px; }
+.mc-comments .mc-comments__reaction {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 8px 10px;
+  border: 1px solid #e0e5e8; border-radius: 10px; background: transparent; color: #526875;
+  font: 600 13px/1.2 var(--mc-ui-body); cursor: pointer;
+}
+.mc-comments .mc-comments__reaction:hover:not(:disabled) { background: #f4f7f8; border-color: #aebdc6; }
+.mc-comments .mc-comments__reaction:disabled { opacity: .55; cursor: progress; }
+.mc-comments .mc-comments__reaction-count { min-width: 1ch; color: inherit; font-variant-numeric: tabular-nums; }
+.mc-comments .mc-comments__reaction[aria-pressed="true"] { border-color: #d0ad61; background: #fff7e5; color: #604007; }
+.mc-comments .mc-comments__reaction:focus-visible,
+.mc-comments .mc-comments__moderation-actions summary:focus-visible,
+.mc-comments .mc-comments__bans summary:focus-visible,
+.mc-comments .mc-comments__moderation-actions button:focus-visible,
+.mc-comments .mc-comments__bans button:focus-visible { outline: 3px solid var(--mc-ui-focus); outline-offset: 2px; }
+.mc-comments .mc-comments__reaction-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.mc-comments .mc-comments__moderation-actions { margin: 4px 0 0 44px; color: var(--mc-ui-muted); font: 600 13px/1.4 var(--mc-ui-body); }
+.mc-comments .mc-comments__moderation-actions summary { width: fit-content; min-height: 44px; padding: 12px 0; cursor: pointer; }
+.mc-comments .mc-comments__moderation-menu { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 6px 12px; border: 1px solid #e0e5e8; border-radius: 8px; }
+.mc-comments .mc-comments__moderation-actions button { min-height: 44px; }
+.mc-comments .mc-comments__bans { margin-top: 20px; padding: 14px; border: 1px solid var(--mc-comments-divider); border-radius: 8px; }
+.mc-comments .mc-comments__bans summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-weight: 700; }
+.mc-comments .mc-comments__bans ul { padding: 0; margin: 8px 0 0; list-style: none; }
+.mc-comments .mc-comments__bans li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; }
 .mc-comments .mc-comments__login a,
 .mc-public-profile .mc-public-profile__back {
   display: inline-flex;
@@ -346,7 +383,7 @@
 .mc-public-profile .mc-public-profile__socials a {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
+  min-height: 44px;
   padding: 7px 10px;
   border: 1px solid var(--mc-ui-accent);
   border-radius: 6px;
@@ -354,6 +391,10 @@
   font: 700 13px/1.35 var(--mc-ui-body);
   text-decoration: none;
 }
+.mc-public-profile .mc-public-profile__social { gap: 8px; }
+.mc-public-profile .mc-public-profile__social svg { width: 20px; height: 20px; flex: 0 0 auto; fill: currentColor; stroke: none; }
+.mc-public-profile .mc-public-profile__socials .mc-public-profile__social--twitch { border-color: #ddd0ed; background: #f6f1fb; color: #644092; }
+.mc-public-profile .mc-public-profile__socials .mc-public-profile__social--youtube { border-color: #ead6d3; background: #fff5f3; color: #a13f36; }
 .mc-public-profile .mc-public-profile__socials a:hover {
   background: var(--mc-ui-raised);
 }
@@ -369,6 +410,7 @@
   .mc-comments .mc-comments__body, .mc-comments .mc-comments__actions {
     margin-inline-start: 0;
   }
+  .mc-comments .mc-comments__reactions, .mc-comments .mc-comments__moderation-actions { margin-inline-start: 0; }
   .mc-comments .mc-comments__reply {
     margin-inline-start: 12px;
     padding-inline-start: 12px;

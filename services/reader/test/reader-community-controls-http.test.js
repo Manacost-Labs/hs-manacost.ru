@@ -1,0 +1,106 @@
+import assert from 'node:assert/strict';
+import { randomBytes, randomUUID } from 'node:crypto';
+import test from 'node:test';
+import { ReaderStore } from '../core.js';
+import { ReaderProfiles } from '../profiles.js';
+import { ReaderComments } from '../comments-store.js';
+import { createReaderHandler } from '../http.js';
+
+const origin = 'https://test.hs-manacost.ru';
+function fixture(t) {
+  const store = new ReaderStore({ encryptionKey: randomBytes(32) }); t.after(() => store.close());
+  const issuer = 'https://hearthpulse.net/identity';
+  const profiles = new ReaderProfiles({ db: store.db, issuer });
+  const comments = new ReaderComments({ db: store.db, issuer });
+  const identity = { profile: async () => ({ displayName: 'Тестовый читатель' }) };
+  const admins = new Set(['admin']);
+  const permissions = { get: async ids => new Map(ids.map(id => [id, admins.has(id)])) };
+  const editorial = { get: async ids => new Map(ids.map(id => [id, { allowed: id === 17 }])) };
+  const community = { comments, permissions, editorial, entitlements: { get: async () => new Map() } };
+  const handle = createReaderHandler({ origin, store, profiles, identity, community, csrfKey: randomBytes(32) });
+  const call = (path, { method = 'GET', headers = {}, body } = {}) => handle(new Request(origin + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }));
+  async function reader(subject) {
+    const session = store.createSession({ userId: subject, upstreamToken: `synthetic-${subject}`, ttlMs: 300000 });
+    const cookie = `__Host-manacost_reader=${session.id}`;
+    const me = await (await call('/reader-api/v1/me', { headers: { cookie } })).json();
+    return { session, subject, me, headers: { cookie, origin, 'x-reader-csrf': me.csrfToken, 'content-type': 'application/json' } };
+  }
+  const submit = user => call('/reader-api/v1/threads/17/comments', { method: 'POST', headers: user.headers,
+    body: { body: 'Тестовый комментарий', parentId: null, operationId: randomUUID(), profileVersion: user.me.profile.version, publicConsent: true } });
+  return { store, profiles, comments, identity, permissions, editorial, admins, call, reader, submit };
+}
+
+test('reaction HTTP boundary requires canonical reader, origin/CSRF and exact input', async t => {
+  const f = fixture(t); const alice = await f.reader('alice'); const { comment } = await (await f.submit(alice)).json();
+  const path = `/reader-api/v1/comments/${comment.id}/reaction`;
+  assert.equal((await f.call(path, { method: 'PUT', body: { reaction: 'like' } })).status, 401);
+  assert.equal((await f.call(path, { method: 'PUT', headers: { ...alice.headers, origin: 'https://evil.example' }, body: { reaction: 'like' } })).status, 403);
+  assert.equal((await f.call(path, { method: 'PUT', headers: alice.headers, body: { reaction: 'like', actor: 'admin' } })).status, 400);
+  const saved = await f.call(path, { method: 'PUT', headers: alice.headers, body: { reaction: 'like' } });
+  assert.equal(saved.status, 200);
+  assert.equal((await saved.json()).reactions[0].count, 1);
+  assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: alice.headers })).json()).items[0].reactions[0].selected, true);
+  assert.equal((await (await f.call('/reader-api/v1/threads/17/comments')).json()).items[0].reactions[0].selected, false);
+  f.editorial.get = async ids => new Map(ids.map(id => [id, { allowed: false }]));
+  assert.equal((await f.call(path, { method: 'PUT', headers: alice.headers, body: { reaction: 'fire' } })).status, 404);
+});
+
+test('HearthPulse role controls administrator badges, own permissions and moderation, never client flags', async t => {
+  const f = fixture(t); const admin = await f.reader('admin'); const alice = await f.reader('alice');
+  const { comment } = await (await f.submit(admin)).json();
+  const own = await (await f.call('/reader-api/v1/community/me', { headers: admin.headers })).json();
+  assert.deepEqual(own, { canModerateComments: true, commentingBlocked: false });
+  const publicProfile = await (await f.call(`/reader-api/v1/readers/${admin.me.profile.id}`)).json();
+  assert.equal(publicProfile.profile.administrator, true);
+  const list = await (await f.call('/reader-api/v1/threads/17/comments')).json();
+  assert.equal(list.items[0].author.administrator, true);
+  const path = `/reader-api/v1/moderation/comments/${comment.id}`;
+  assert.equal((await f.call(path, { method: 'DELETE', headers: alice.headers, body: { version: 1 } })).status, 403);
+  assert.equal((await f.call(path, { method: 'DELETE', headers: admin.headers, body: { version: 1, role: 'admin' } })).status, 400);
+  f.admins.delete('admin');
+  assert.equal((await f.call(path, { method: 'DELETE', headers: admin.headers, body: { version: 1 } })).status, 403);
+  assert.equal((await (await f.call('/reader-api/v1/threads/17/comments')).json()).items[0].author.administrator, false);
+  f.admins.add('admin');
+  assert.equal((await f.call(path, { method: 'DELETE', headers: admin.headers, body: { version: 1 } })).status, 200);
+});
+
+test('ban/unban HTTP flow denies ordinary readers and survives erasure via bounded admin list', async t => {
+  const f = fixture(t); const admin = await f.reader('admin'); const alice = await f.reader('alice');
+  await f.submit(alice);
+  const path = `/reader-api/v1/moderation/readers/${alice.me.profile.id}/ban`;
+  assert.equal((await f.call(path, { headers: alice.headers })).status, 403);
+  assert.equal((await f.call(path, { method: 'PUT', headers: admin.headers, body: { version: 0 } })).status, 200);
+  assert.equal((await f.submit(alice)).status, 403);
+  assert.equal((await (await f.call('/reader-api/v1/community/me', { headers: alice.headers })).json()).commentingBlocked, true);
+  assert.equal((await f.call('/reader-api/v1/me', { headers: alice.headers })).status, 200);
+  f.comments.erase('alice');
+  const { items } = await (await f.call('/reader-api/v1/moderation/bans', { headers: admin.headers })).json();
+  assert.equal(items.length, 1); assert.equal(items[0].profile, null);
+  assert.equal((await f.call(`/reader-api/v1/moderation/bans/${items[0].id}`, { method: 'PUT', headers: admin.headers, body: { version: items[0].version } })).status, 200);
+  assert.equal((await f.submit(alice)).status, 201);
+});
+
+test('provider failure fails moderation closed but preserves public reading', async t => {
+  const f = fixture(t); const admin = await f.reader('admin'); const { comment } = await (await f.submit(admin)).json();
+  f.permissions.get = async () => { throw new Error('secret detail'); };
+  const blocked = await f.call(`/reader-api/v1/moderation/comments/${comment.id}`, { method: 'DELETE', headers: admin.headers, body: { version: 1 } });
+  assert.equal(blocked.status, 503); assert.ok(!(await blocked.text()).includes('secret detail'));
+  const page = await f.call('/reader-api/v1/threads/17/comments'); assert.equal(page.status, 200);
+  assert.equal((await page.json()).items[0].author.administrator, false);
+});
+
+test('logout or session token replacement while permission work awaits cancels administrator writes', async t => {
+  for (const replace of [false, true]) {
+    const f = fixture(t); const admin = await f.reader('admin'); const { comment } = await (await f.submit(admin)).json();
+    let entered; let release; const waiting = new Promise(resolve => { entered = resolve; });
+    f.permissions.get = async ids => { entered(); await new Promise(resolve => { release = resolve; }); return new Map(ids.map(id => [id, true])); };
+    const pending = f.call(`/reader-api/v1/moderation/comments/${comment.id}`, { method: 'DELETE', headers: admin.headers, body: { version: 1 } });
+    await waiting;
+    if (replace) {
+      const old = f.store.getSession.bind(f.store);
+      f.store.getSession = id => { const result = old(id); return result && { ...result, upstreamToken: 'different-token' }; };
+    } else await f.call('/reader-auth/logout', { method: 'POST', headers: admin.headers });
+    release(); assert.equal((await pending).status, 401);
+    assert.equal(f.comments.get(comment.id).status, 'published');
+  }
+});

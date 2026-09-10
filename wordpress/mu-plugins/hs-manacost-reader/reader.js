@@ -24,6 +24,7 @@
 		const actions = root.querySelector( '[data-reader-actions]' );
 		const accountMenu = root.querySelector( '[data-reader-account-menu]' );
 		const accountActions = root.querySelector( '[data-reader-account-actions]' );
+		const administrator = root.querySelector( '[data-reader-administrator]' );
 		const loginEndpoint = endpoint( root, 'loginEndpoint', '/reader-auth/start?returnTo=%2Faccount%2F' );
 		const logoutEndpoint = endpoint( root, 'logoutEndpoint', '/reader-auth/logout' );
 		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/me' );
@@ -37,8 +38,35 @@
 		let sessionActive = false;
 		let currentCsrfToken = '';
 		let profileEditor = null;
+		let permissionsController = null;
+
+		function clearAdministrator() {
+			permissionsController?.abort();
+			permissionsController = null;
+			if ( administrator ) administrator.hidden = true;
+		}
+
+		async function refreshAdministrator() {
+			clearAdministrator();
+			if ( ! administrator || ! sessionActive ) return;
+			const ticket = generation, token = currentCsrfToken;
+			const permissionRequest = new AbortController();
+			permissionsController = permissionRequest;
+			const deadline = window.setTimeout( () => permissionRequest.abort(), requestTimeoutMs );
+			try {
+				const response = await fetch( '/reader-api/v1/community/me', { credentials: 'same-origin', cache: 'no-store', signal: permissionRequest.signal } );
+				const body = await response.text();
+				if ( permissionRequest.signal.aborted || permissionsController !== permissionRequest || ticket !== generation || token !== currentCsrfToken || ! sessionActive ) return;
+				if ( response.status === 401 ) { guest( 'Сессия завершена. Войдите через HearthPulse снова.' ); return; }
+				if ( ! response.ok || body.length > 1024 ) return;
+				const data = JSON.parse( body );
+				administrator.hidden = data?.canModerateComments !== true;
+			} catch ( error ) { /* An unavailable role lookup never confers administrator UI. */ }
+			finally { window.clearTimeout( deadline ); }
+		}
 
 		function clearPrivate() {
+			clearAdministrator();
 			identity.replaceChildren();
 			identity.hidden = true;
 			actions.replaceChildren();
@@ -116,6 +144,7 @@
 			logout.addEventListener( 'click', () => logoutRequest( currentCsrfToken ) );
 			accountActions.append( logout );
 			sessionActive = true;
+			void refreshAdministrator();
 		}
 
 		function current( requestController, requestGeneration ) {
@@ -150,6 +179,7 @@
 
 		async function refresh( refreshOptions = {} ) {
 			if ( logoutInFlight ) return;
+			clearAdministrator();
 			if ( controller ) controller.abort();
 			const requestController = new AbortController();
 			const requestGeneration = ++generation;
@@ -193,6 +223,7 @@
 			avatarEndpoint,
 			onRefresh: ( options ) => refresh( { ...options, silent: true } ),
 			onMutationStart: () => {
+				permissionsController?.abort();
 				generation += 1;
 				if ( controller ) controller.abort();
 				controller = null;

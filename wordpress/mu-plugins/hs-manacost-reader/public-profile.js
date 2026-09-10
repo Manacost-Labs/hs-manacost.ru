@@ -12,10 +12,6 @@
     { node: $('[data-public-profile-twitch]'), service: 'twitch' },
     { node: $('[data-public-profile-youtube]'), service: 'youtube' },
   ];
-  const authorMarks = [
-    { node: $('[data-public-profile-twitch-mark]'), service: 'twitch' },
-    { node: $('[data-public-profile-youtube-mark]'), service: 'youtube' },
-  ];
   const classes = { 'death-knight': 'Рыцарь смерти', 'demon-hunter': 'Охотник на демонов', druid: 'Друид', hunter: 'Охотник', mage: 'Маг', paladin: 'Паладин', priest: 'Жрец', rogue: 'Разбойник', shaman: 'Шаман', warlock: 'Чернокнижник', warrior: 'Воин' };
   let controller = null, generation = 0;
   function safeSocialUrl(value, service) {
@@ -40,7 +36,7 @@
     placeholder.textContent = 'М'; placeholder.hidden = false;
     for (const selector of ['[data-public-profile-name]', '[data-public-profile-bio]', '[data-public-profile-class]']) $(selector).textContent = '';
     $('[data-public-profile-paid]').hidden = true;
-    for (const mark of authorMarks) mark.node.hidden = true;
+    $('[data-public-profile-administrator]').hidden = true;
     socials.hidden = true;
     for (const social of socialLinks) { social.node.hidden = true; social.node.removeAttribute('href'); }
   }
@@ -56,7 +52,8 @@
       const profile = data?.profile;
       if (!response.ok || profile?.id !== id || profile.profileUrl !== `/account/?reader=${id}`
         || typeof profile.name !== 'string' || profile.name.length > 160 || typeof profile.bio !== 'string'
-        || Array.from(profile.bio).length > 280 || typeof profile.paidSubscriber !== 'boolean') throw new Error('not_found');
+        || Array.from(profile.bio).length > 280 || typeof profile.paidSubscriber !== 'boolean'
+        || (profile.administrator !== undefined && typeof profile.administrator !== 'boolean')) throw new Error('not_found');
       $('[data-public-profile-name]').textContent = profile.name;
       placeholder.textContent = Array.from(profile.name)[0] || 'М';
       $('[data-public-profile-bio]').textContent = profile.bio;
@@ -69,13 +66,13 @@
         if (href) { social.node.href = href; socialCount += 1; }
         else social.node.removeAttribute('href');
       }
-      for (const mark of authorMarks) mark.node.hidden = !safeSocialUrl(profile[`${mark.service}Url`], mark.service);
       socials.hidden = socialCount === 0;
       if (typeof profile.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(profile.avatarVersion)
         && profile.avatarUrl === `/reader-api/v1/readers/${id}/avatar?v=${profile.avatarVersion}`) {
         image.src = profile.avatarUrl; image.hidden = false; placeholder.hidden = true;
       }
       $('[data-public-profile-paid]').hidden = profile.paidSubscriber !== true;
+      $('[data-public-profile-administrator]').hidden = profile.administrator !== true;
       status.textContent = ''; content.hidden = false;
     } catch (error) {
       if (ticket !== generation) return;

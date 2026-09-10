@@ -3,8 +3,9 @@
 Status: core login is activated on test.hs-manacost.ru only, using the production
 HearthPulse issuer. See [editable reader profiles](../reader-profile.md) for the
 next staging extension and [comments design](reader-comments.md) for the proposed
-discussion layer. Sessions still last at most five minutes, without refresh or
-saved articles. Existing WordPress and Cackle comments remain disabled.
+discussion layer. The staging Reader supports remembered login for up to 30 days
+with encrypted server-side refresh tokens. Existing WordPress and Cackle
+comments remain disabled; the separate Reader discussion layer is independent.
 
 ## Boundaries
 
@@ -22,11 +23,42 @@ staging need distinct client registrations, cookies and configuration.
    token, issuer, audience, nonce, state and PKCE exchange. Cancellation returns
    to the stored safe relative page without creating a session.
 4. The browser receives only an opaque `__Host-manacost_reader` cookie:
-   Secure, HttpOnly, SameSite=Lax, Path=/, no Domain, maximum age 300 seconds.
+   Secure, HttpOnly, SameSite=Lax, Path=/, no Domain, maximum age 2,592,000 seconds
+   when the exact staging client receives explicit `offline_access` consent.
+   Login-attempt cookies still expire after 300 seconds; legacy/no-refresh
+   sessions retain their original five-minute limit.
 5. Every private profile read checks token activity and the canonical parent
    session online. No positive authorization cache. Parent logout, reset,
    deletion or block invalidates reader access. A fresh login is required after
-   expiry. Independent long-lived sessions need a later security-epoch design.
+   expiry. Remembered sessions remain bound to that original parent session;
+   they do not survive its expiry or revocation.
+
+### Remembered login
+
+The staging client alone requests `openid profile offline_access` with explicit
+consent. Access tokens still last five minutes. Thirty seconds before expiry,
+the shared read/write verification path rotates credentials server-side and
+introspects the new access token for the exact subject, client and active parent.
+Activity never extends the local session's absolute deadline or resets its cookie.
+
+`reader_session_tokens` is an additive companion table: encrypted refresh token,
+access expiry and a durable one-shot claim. The original session/outbox schemas
+stay compatible with the previous binary. A compare-and-swap transaction commits
+new credentials only for the same active session and claim. Concurrent requests
+share one rotation; a different process sees a temporary unavailable result.
+An abandoned claim, ambiguous token response or rejected refresh ends local login
+and queues family revocation instead of replaying a potentially consumed token.
+Logout wins over in-flight rotation and clears the cookie even during an outage.
+The outbox sends no token-type hint, so both access and refresh tokens are accepted.
+Orphan credentials are removed by the existing bounded cleanup tick.
+
+Deploy the reviewed provider policy before the BFF. Take a consistent private
+SQLite backup first; no existing profiles, sessions or comments are rewritten.
+Rollback preserves the database and keys and selects the previous binary.
+Remembered sessions then fail closed when their short access token expires;
+users can log in again. Never restore an old authentication database snapshot
+over live state: that can undo logout/revocation. New duration requires a fresh
+login; existing five-minute cookies are not silently extended.
 
 State/session keys are hashed; tokens and login payloads use AES-256-GCM with
 deployment-managed keys and record-bound associated data. Callback rotation and
@@ -111,7 +143,7 @@ An optional `READER_TEST_CHROMIUM` selects an already-installed local browser.
 The first-party `reader-identity` boundary is classified high security risk in
 `config/change-impact-map.json`. No verification command uses live accounts.
 
-Next slices are staged end-to-end activation, longer-lived session policy, and
+Next slices are broader end-to-end activation and
 bookmarks with authoritative WordPress article/VIP checks. A stored
 `(site_id, wp_post_id)` is not permission to reveal unpublished or paid content.
 Comments are not part of this activation and must remain disabled.

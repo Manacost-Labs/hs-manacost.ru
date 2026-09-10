@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { lstatSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { ReaderComments } from './comments-store.js';
+import { ReaderReactions } from './comment-reactions.js';
 
 export const STAGING_ORIGIN = 'https://test.hs-manacost.ru';
 export const PRODUCTION_ISSUER = 'https://hearthpulse.net/identity';
@@ -19,13 +20,15 @@ function stagingEnvironment(env) {
 }
 
 function requiredSchema(db) {
-  const names = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reader_profiles','reader_comments','reader_comment_public_profiles','reader_comment_audit')").all().map(row => row.name);
-  if (names.length !== 4) fail('schema_unavailable', 'database has not been initialized by the reader service');
+  const names = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reader_profiles','reader_comments','reader_comment_public_profiles','reader_comment_audit','reader_comment_reactions')").all().map(row => row.name);
+  if (names.length !== 5) fail('schema_unavailable', 'database has not been initialized by the reader service');
 }
 
 function commentsFacade(db, now) {
   // Do not invoke ReaderComments' schema-creating constructor in this operator tool.
-  return Object.assign(Object.create(ReaderComments.prototype), { db, issuer: PRODUCTION_ISSUER, now });
+  const comments = Object.assign(Object.create(ReaderComments.prototype), { db, issuer: PRODUCTION_ISSUER, now });
+  comments.reactions = new ReaderReactions({ db, issuer: PRODUCTION_ISSUER, now, profile: subject => comments.profile(subject) });
+  return comments;
 }
 
 export function openCommentsAdmin({ filename, env = process.env, now = Date.now } = {}) {
