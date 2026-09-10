@@ -931,14 +931,14 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 351
+        "line": 416
       },
       {
         "name": "_hs_local_image_optimizer_pipeline",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 352
+        "line": 417
       },
       {
         "name": "_hs_local_image_optimizer_queued_at",
@@ -952,7 +952,7 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 353
+        "line": 418
       },
       {
         "name": "_hs_manacost_inline_deck_code",
@@ -987,7 +987,7 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 266
+        "line": 280
       },
       {
         "name": "_hs_show_on_homepage",
@@ -1584,49 +1584,49 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 256
+        "line": 265
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "add_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 291
+        "line": 353
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 295
+        "line": 357
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 300
+        "line": 362
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "add_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 301
+        "line": 363
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 310
+        "line": 372
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 312
+        "line": 374
       },
       {
         "name": "hs_tooltip_logs",
@@ -1654,7 +1654,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 201
+        "line": 215
       },
       {
         "name": "manacost_arena_feed_api_url",
@@ -2383,14 +2383,14 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 341
+        "line": 406
       },
       {
         "name": "hs_media_upload_accelerator_generate_subsizes",
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-media-upload-accelerator.php",
-        "line": 239
+        "line": 253
       },
       {
         "name": "manacost_arena_feed_sync",

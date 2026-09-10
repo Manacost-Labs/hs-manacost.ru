@@ -162,7 +162,6 @@ final class HS_Media_Upload_Accelerator {
 			$attachment_id <= 0
 			|| ! function_exists( 'wp_attachment_is_image' )
 			|| ! wp_attachment_is_image( $attachment_id )
-			|| ! function_exists( 'wp_update_image_subsizes' )
 		) {
 			return;
 		}
@@ -170,6 +169,14 @@ final class HS_Media_Upload_Accelerator {
 		self::$deferred_attachments[ $attachment_id ] = true;
 
 		try {
+			if ( ! function_exists( 'wp_update_image_subsizes' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/image.php';
+			}
+			/**
+			 * Metadata may be altered by third-party filters.
+			 *
+			 * @var mixed $result
+			 */
 			$result = wp_update_image_subsizes( $attachment_id );
 		} catch ( Throwable $error ) {
 			self::retry_or_record_error( $attachment_id, $attempt, $error->getMessage() );
@@ -180,6 +187,13 @@ final class HS_Media_Upload_Accelerator {
 
 		if ( is_wp_error( $result ) ) {
 			self::retry_or_record_error( $attachment_id, $attempt, $result->get_error_message() );
+			return;
+		}
+
+		// Core may return metadata even when an individual resize failed.
+		// This helper ignores sizes larger than the source (no upscaling).
+		if ( ! is_array( $result ) || ( function_exists( 'wp_get_missing_image_subsizes' ) && wp_get_missing_image_subsizes( $attachment_id ) ) ) {
+			self::retry_or_record_error( $attachment_id, $attempt, 'Image sub-sizes are still incomplete.' );
 			return;
 		}
 

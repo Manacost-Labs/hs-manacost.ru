@@ -186,14 +186,29 @@ final class HS_Local_Image_Optimizer_WordPress {
 			$parent_post_type = $parent_id > 0 ? (string) get_post_type( $parent_id ) : '';
 			$worker           = new HS_Local_Image_Worker();
 			$results          = array();
+			$files            = HS_Local_Image_Attachment_Files::collect( $attached_file, $metadata );
+			if ( empty( $files ) ) {
+				self::retry( $attachment_id, $attempt, 'no_eligible_source_files' );
+				return;
+			}
 
-			foreach ( HS_Local_Image_Attachment_Files::collect( $attached_file, $metadata ) as $file ) {
+			foreach ( $files as $file ) {
+				$source_file = apply_filters( 'hs_local_image_optimizer_source_file', $file, $attachment_id );
+				if ( ! is_string( $source_file ) || $source_file !== $file ) {
+					$results[ basename( $file ) ] = array( 'status' => 'failed_source_path' );
+					continue;
+				}
+
 				$results[ basename( $file ) ] = $worker->process(
-					$file,
+					$source_file,
 					array(
 						'post_type' => $parent_post_type,
 					)
 				);
+			}
+			if ( self::has_processing_failure( $results ) ) {
+				self::retry( $attachment_id, $attempt, 'processing_failed', $results );
+				return;
 			}
 
 			self::finish(
@@ -205,13 +220,7 @@ final class HS_Local_Image_Optimizer_WordPress {
 				)
 			);
 		} catch ( Throwable $exception ) {
-			self::finish(
-				$attachment_id,
-				array(
-					'status'  => 'failed_exception',
-					'message' => substr( $exception->getMessage(), 0, 500 ),
-				)
-			);
+			self::retry( $attachment_id, $attempt, 'processing_exception' );
 		} finally {
 			self::release_lock( $lock_token );
 		}
@@ -274,7 +283,60 @@ final class HS_Local_Image_Optimizer_WordPress {
 			return false;
 		}
 
-		return in_array( (string) get_post_mime_type( $attachment_id ), array( 'image/jpeg', 'image/png' ), true );
+		$mime_type = (string) get_post_mime_type( $attachment_id );
+		if ( in_array( $mime_type, array( 'image/jpeg', 'image/png' ), true ) ) {
+			return true;
+		}
+		if ( 'image/webp' !== $mime_type ) {
+			return false;
+		}
+
+		/**
+		 * Core adds original_image when converting/scaling; the upstream stub omits it.
+		 *
+		 * @var array<string, mixed>|false $metadata
+		 */
+		$metadata       = wp_get_attachment_metadata( $attachment_id );
+		$original_image = is_array( $metadata ) && isset( $metadata['original_image'] ) ? (string) $metadata['original_image'] : '';
+		$extension      = strtolower( pathinfo( $original_image, PATHINFO_EXTENSION ) );
+
+		return in_array( $extension, array( 'jpg', 'jpeg', 'png' ), true );
+	}
+
+	/**
+	 * A complete attachment is successful only when every source file avoided a
+	 * worker or encoder failure. Individual failure details stay in the worker
+	 * result; retry state is persisted by retry() after its bounded attempts.
+	 *
+	 * @param array<string, array<string, mixed>> $results Per-file worker results.
+	 */
+	private static function has_processing_failure( array $results ): bool {
+		foreach ( $results as $result ) {
+			if ( self::result_contains_failed_status( $result ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Find a failure in a worker result, including individual encoder results.
+	 *
+	 * @param array<string, mixed> $result Worker result or nested encoder result.
+	 */
+	private static function result_contains_failed_status( array $result ): bool {
+		if ( isset( $result['status'] ) && is_string( $result['status'] ) && str_starts_with( $result['status'], 'failed_' ) ) {
+			return true;
+		}
+
+		foreach ( $result as $value ) {
+			if ( is_array( $value ) && self::result_contains_failed_status( $value ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -316,18 +378,21 @@ final class HS_Local_Image_Optimizer_WordPress {
 	/**
 	 * Reschedule work while the optimizer is busy.
 	 *
-	 * @param int    $attachment_id Attachment post ID.
-	 * @param int    $attempt Current retry number.
-	 * @param string $reason Retry reason stored on final failure.
+	 * @param int                  $attachment_id Attachment post ID.
+	 * @param int                  $attempt Current retry number.
+	 * @param string               $reason Retry reason stored on final failure.
+	 * @param array<string, mixed> $files File results retained on exhausted retries.
 	 */
-	private static function retry( int $attachment_id, int $attempt, string $reason ): void {
+	private static function retry( int $attachment_id, int $attempt, string $reason, array $files = array() ): void {
 		$next_attempt = $attempt + 1;
+		self::log( 'retry id=' . $attachment_id . ' attempt=' . $next_attempt . ' reason=' . $reason );
 		if ( $next_attempt >= self::MAX_ATTEMPTS ) {
 			self::finish(
 				$attachment_id,
 				array(
 					'status' => 'failed_retries',
 					'reason' => $reason,
+					'files'  => $files,
 				)
 			);
 			return;
