@@ -12,6 +12,18 @@ The previous media worker correction is committed as fd89f0a in PR64. It is
 already present in the three-file production hotfix; a full runtime release
 must include that commit. This Nginx change does not deploy WordPress/main.
 
+## Next source candidate: new uploads
+
+The next candidate expands only the Nginx match from the synthetic fixture to
+calendar upload paths from 2026 through 2099. It still excludes the pre-2026
+archive, GIF, explicit WebP/AVIF URLs, upload handlers and Koloda. The same
+bounded sidecar fallback remains in place: an unavailable AVIF or WebP returns
+the canonical original instead of an error. This is a held source candidate:
+`deploy-canary.sh` must not be used to widen the active fixture canary. The
+staging virtual host has an independent media route, so a separately reviewed
+staging install/rollback and a real authenticated staging media probe are
+required before an exact commit can be activated there or in production.
+
 ## Delivery contract
 
 1. Explicit AVIF support with positive quality: try the adjacent local sidecar,

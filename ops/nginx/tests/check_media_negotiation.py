@@ -21,6 +21,9 @@ ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "ops/nginx/media-negotiation"
 BUCKET = "https://hs-manacost-media-3az.s3.eu-west-par.io.cloud.ovh.net"
 PREFIX = "/wp-content/uploads/2026/09/hs-media-7716-dfxxbv2-production-jpg/"
+CURRENT_UPLOAD_PREFIX = "/wp-content/uploads/2026/09/real-article/"
+FUTURE_UPLOAD_PREFIX = "/wp-content/uploads/2027/01/real-article/"
+HISTORICAL_UPLOAD_PREFIX = "/wp-content/uploads/2025/12/archive/"
 
 
 class ObjectStorage(http.server.BaseHTTPRequestHandler):
@@ -149,12 +152,15 @@ def main():
                     time.sleep(0.05)
 
             def request(name, accept=None, method="GET", extra=None, target=port):
+                return request_from_prefix(PREFIX, name, accept, method, extra, target)
+
+            def request_from_prefix(prefix, name, accept=None, method="GET", extra=None, target=port):
                 client = http.client.HTTPConnection("127.0.0.1", target, timeout=5)
                 headers = {"Host": "hs-manacost.ru", **(extra or {})}
                 if accept is not None:
                     headers["Accept"] = accept
                 try:
-                    client.request(method, PREFIX + name, headers=headers)
+                    client.request(method, prefix + name, headers=headers)
                     response = client.getresponse()
                     return response.status, dict(response.getheaders()), response.read()
                 finally:
@@ -165,6 +171,61 @@ def main():
             assert headers["Content-Type"] == "image/avif", headers
             assert request("all.jpg.webp")[2] == b"webp"
             assert request("all.jpg.avif")[2] == b"avif"
+
+            # New real article uploads must receive the same safe negotiation
+            # as the synthetic canary; historical uploads remain out of scope.
+            current_image = work / "public" / (CURRENT_UPLOAD_PREFIX + "fresh.jpg").lstrip("/")
+            current_image.parent.mkdir(parents=True)
+            current_image.write_bytes(b"current-original")
+            current_image.with_suffix(".jpg.webp").write_bytes(b"current-webp")
+            status, headers, body = request_from_prefix(
+                CURRENT_UPLOAD_PREFIX,
+                "fresh.jpg",
+                "image/webp",
+            )
+            assert (status, body) == (200, b"current-webp"), (status, headers, body)
+            assert headers["Content-Type"] == "image/webp", headers
+            assert request_from_prefix(CURRENT_UPLOAD_PREFIX, "fresh.jpg")[2] == b"current-original"
+
+            future_image = work / "public" / (FUTURE_UPLOAD_PREFIX + "fresh.jpg").lstrip("/")
+            future_image.parent.mkdir(parents=True)
+            future_image.write_bytes(b"future-original")
+            future_image.with_suffix(".jpg.webp").write_bytes(b"future-webp")
+            assert request_from_prefix(FUTURE_UPLOAD_PREFIX, "fresh.jpg", "image/webp")[2] == b"future-webp"
+
+            historical_image = work / "public" / (HISTORICAL_UPLOAD_PREFIX + "old.jpg").lstrip("/")
+            historical_image.parent.mkdir(parents=True)
+            historical_image.write_bytes(b"historical-original")
+            historical_image.with_suffix(".jpg.webp").write_bytes(b"historical-webp")
+            status, headers, body = request_from_prefix(
+                HISTORICAL_UPLOAD_PREFIX,
+                "old.jpg",
+                "image/webp",
+            )
+            assert (status, body) == (200, b"historical-original"), (status, headers, body)
+            assert headers["Content-Type"] == "image/jpeg", headers
+
+            # Offload removes every local copy. New uploads must still negotiate
+            # sidecars in S3 and always retain a remotely served original.
+            for extension, mime, payload in (
+                ("", "image/jpeg", b"current-remote-original"),
+                (".webp", "image/webp", b"current-remote-webp"),
+                (".avif", "image/avif", b"current-remote-avif"),
+            ):
+                ObjectStorage.objects[CURRENT_UPLOAD_PREFIX + "offloaded.jpg" + extension] = (200, mime, payload)
+            for accept, expected in (("image/avif,image/webp", b"current-remote-avif"),
+                                     ("image/webp", b"current-remote-webp"),
+                                     (None, b"current-remote-original")):
+                status, headers, body = request_from_prefix(CURRENT_UPLOAD_PREFIX, "offloaded.jpg", accept)
+                assert (status, body) == (200, expected), (status, headers, body)
+            for failure in (403, 404, 429, 503):
+                ObjectStorage.objects[CURRENT_UPLOAD_PREFIX + "offloaded.jpg.avif"] = (failure, "text/plain", b"error")
+                assert request_from_prefix(CURRENT_UPLOAD_PREFIX, "offloaded.jpg", "image/avif,image/webp")[2] == b"current-remote-webp", failure
+                ObjectStorage.objects[CURRENT_UPLOAD_PREFIX + "offloaded.jpg.webp"] = (failure, "text/plain", b"error")
+                assert request_from_prefix(CURRENT_UPLOAD_PREFIX, "offloaded.jpg", "image/avif,image/webp")[2] == b"current-remote-original", failure
+                ObjectStorage.objects[CURRENT_UPLOAD_PREFIX + "offloaded.jpg.webp"] = (200, "image/webp", b"current-remote-webp")
+            ObjectStorage.objects[CURRENT_UPLOAD_PREFIX + "offloaded.jpg.avif"] = (200, "image/avif", b"current-remote-avif")
+
             for accept, expected in (
                 (None, b"original"), ("*/*", b"original"), ("image/*", b"original"),
                 ("image/webp", b"webp"), ("image/avif;q=0,image/webp", b"webp"),
