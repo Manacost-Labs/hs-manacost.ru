@@ -54,6 +54,10 @@ class ObjectStorage(http.server.BaseHTTPRequestHandler):
 
 def main():
     nginx = shutil.which("nginx") or "/usr/sbin/nginx"
+    # Verified TLS must not share the legacy implicit upstream peer/session
+    # cache with proxy locations that do not load trusted certificates.
+    assert "upstream hs_media_verified_s3" in (SOURCE / "http.conf").read_text()
+    assert "proxy_pass https://hs_media_verified_s3;" in (SOURCE / "proxy.conf").read_text()
     with tempfile.TemporaryDirectory(prefix="hs-media-negotiation-") as temporary:
         work = Path(temporary)
         upstream = http.server.ThreadingHTTPServer(("127.0.0.1", 0), ObjectStorage)
@@ -70,6 +74,8 @@ def main():
             content = source.read_text().replace(str(SOURCE), str(work))
             content = content.replace("/etc/nginx/hs-media-negotiation", str(work))
             content = content.replace(BUCKET, f"http://127.0.0.1:{upstream.server_port}")
+            content = content.replace("https://hs_media_verified_s3", "http://hs_media_verified_s3")
+            content = content.replace(BUCKET.removeprefix("https://") + ":443", f"127.0.0.1:{upstream.server_port}")
             (work / source.name).write_text(content)
         if (work / "server.conf").exists():
             route = f"include {work}/server.conf;"

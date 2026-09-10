@@ -7,6 +7,7 @@ check: composer-validate php-lint contract-check skill-audit test reader-test sh
 nginx-media-test:
 	@python3 ops/nginx/tests/check_media_negotiation.py
 	@python3 ops/nginx/media-negotiation/test_deploy.py
+	@python3 ops/nginx/media-negotiation/test_tls.py
 
 composer-validate:
 	@composer validate --strict --no-check-publish

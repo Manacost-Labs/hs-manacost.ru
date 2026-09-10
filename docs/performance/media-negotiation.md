@@ -90,3 +90,22 @@ part of activation or rollback.
   alpha and photographic samples; do not use padded synthetic size reductions
   as advertised savings.
 - Only then expand to new uploads and separately inventory older images.
+
+## First production attempts and corrected boundary
+
+The first immediate post-reload request reached an old worker (original MIME,
+year-long cache header). Automatic disable succeeded. Subsequent activation
+waited for an actual new Vary/300-second response before checking the matrix.
+
+The next attempt correctly delivered the selected origin formats and multiple
+regional responses, but one mirror WebP request fell back to JPEG. The image
+remained available and the canary was disabled. The origin recorded S3 TLS
+verification error19; three independent SNI/CA handshakes verified successfully.
+Session reuse from the legacy unverified implicit S3 upstream is a suspected
+cause, not a conclusively traced handshake. The corrected candidate uses a
+dedicated named verified upstream to isolate its peer/session state while
+retaining certificate verification and the same fixed S3 hostname.
+
+No article, image source, object or regional configuration changed. Both failed
+attempts exercised the restore path; their evidence and retained inactive
+configuration are preserved under the named production backup directory.
