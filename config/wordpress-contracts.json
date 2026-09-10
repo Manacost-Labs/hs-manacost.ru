@@ -731,6 +731,20 @@
         "line": 60
       },
       {
+        "name": "_hs_article_versions",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 92
+      },
+      {
+        "name": "_hs_article_versions",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 261
+      },
+      {
         "name": "_hs_deck_activity_created_logged",
         "resolved": true,
         "api": "update_post_meta",
@@ -2272,6 +2286,13 @@
         "line": 110
       },
       {
+        "name": "manacost/v1/article-versions/(?P<post_id>\\d+)/(?P<version>\\d+)",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 126
+      },
+      {
         "name": "manacost/v1/deck-meta/(?P<id>\\d+)",
         "resolved": true,
         "api": "register_rest_route",
@@ -2610,6 +2631,20 @@
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-kolodahearthstone-spoilers/wp-spoilers.php",
         "line": 26
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 49
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 79
       },
       {
         "name": "edit_post",

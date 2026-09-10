@@ -60,6 +60,16 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-article-versions.php", "tests/test_article_versions.py"],
+      "owner": "article-editorial-versions",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["wp-admin", "editor", "frontend", "newspaper", "rest-api", "content-integrity"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-admin-ui", "wordpress-article-editor", "wordpress-content-integrity", "newspaper-tagdiv", "wp-rest-api", "wordpress-accessibility", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-local-image-optimizer.php", "wordpress/mu-plugins/hs-local-image-optimizer/**", "wordpress/mu-plugins/hs-manacost-s3-offload.php", "wordpress/mu-plugins/hs-manacost-s3-offload/**", "wordpress/mu-plugins/manacost-media-unique-filenames.php", "wordpress/mu-plugins/hs-media-upload-accelerator.php"],
       "owner": "media-s3",
       "classified": true,
