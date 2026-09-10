@@ -168,6 +168,15 @@ final class HS_Media_Upload_Accelerator {
 
 		self::$deferred_attachments[ $attachment_id ] = true;
 
+		// Core caches the editor choice across PHP runtimes. A CLI worker may
+		// lack Imagick even when the web upload cached it as the preferred editor.
+		$editor_filter = static function ( array $editors ): array {
+			return extension_loaded( 'imagick' )
+				? $editors
+				: array_values( array_diff( $editors, array( 'WP_Image_Editor_Imagick' ) ) );
+		};
+		add_filter( 'wp_image_editors', $editor_filter, PHP_INT_MAX );
+
 		try {
 			if ( ! function_exists( 'wp_update_image_subsizes' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -182,6 +191,7 @@ final class HS_Media_Upload_Accelerator {
 			self::retry_or_record_error( $attachment_id, $attempt, $error->getMessage() );
 			return;
 		} finally {
+			remove_filter( 'wp_image_editors', $editor_filter, PHP_INT_MAX );
 			unset( self::$deferred_attachments[ $attachment_id ] );
 		}
 
