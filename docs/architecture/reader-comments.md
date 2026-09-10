@@ -29,6 +29,11 @@ consented name, bio, favorite class and avatar, never another reader's editor.
    the list through GET, which verifies the badge without delaying publication.
 3. Private profile edits do not silently update public fields. The next explicitly
    consented comment updates the author's public snapshot for all their comments.
+   The account editor can also explicitly refresh that snapshot without posting:
+   save private edits, check the initially unchecked publication consent, then
+   choose «Обновить в комментариях». Any edit or refreshed session clears consent.
+   This requires an existing published comment in an allowed article; it cannot
+   create a public identity before the first comment or undo community erasure.
    Stale profile versions fail before publication; snapshot and comment commit
    atomically. An identical retry never consents to later private edits.
 4. Replies target a published root in the same article; deeper replies fail.
@@ -58,6 +63,7 @@ inspection output into public issues/logs. Reader input cannot grant moderation.
 | GET `/reader-api/v1/readers/{UUID}/avatar?v={version}` | Exact current 32-character version; consented WebP |
 | GET `/reader-api/v1/community/export` | Online authenticated owner, 100 rows/page |
 | DELETE `/reader-api/v1/community/profile` | Online owner, exact `{profileId,confirm:"erase-community"}` |
+| PUT `/reader-api/v1/community/profile` | Online owner, exact `{profileVersion,publicConsent:true}`; atomically refresh existing public snapshot; returns private `{profile}` |
 | POST WP `/wp-json/manacost-reader/v1/threads` | Private server-only `{ids:[1..20 unique positive integers]}` |
 | POST HP `/identity/reader-entitlements` | Confidential staging client, `{subjects:[1..20 unique opaque subjects]}` |
 

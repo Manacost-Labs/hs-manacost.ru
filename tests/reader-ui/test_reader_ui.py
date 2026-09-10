@@ -42,9 +42,9 @@ class ReaderUiContractTests(unittest.TestCase):
     def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
         loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
         comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.6', loader)
-        self.assertIn("'0.7.6'", loader)
-        self.assertIn("'0.7.5'", comments_loader)
+        self.assertIn('Version: 0.7.7', loader)
+        self.assertIn("'0.7.7'", loader)
+        self.assertIn("'0.7.7'", comments_loader)
         for source in (loader, comments_loader):
             self.assertNotIn("'0.3.0'", source)
             self.assertNotIn("'0.4.0'", source)
@@ -66,6 +66,7 @@ class ReaderUiContractTests(unittest.TestCase):
             html = subprocess.run(['php', '-r', setup, str(PHP)], capture_output=True, text=True, check=True).stdout
             self.assertEqual('Комментарии сейчас недоступны.' in html, not enabled)
             self.assertEqual('Комментарии публикуются сразу после вашего согласия.' in html, enabled)
+            self.assertEqual('aria-labelledby="mc-reader-publication-title" hidden' in html, not enabled)
     def test_account_headings_and_live_status_are_semantic(self):
         self.assertIn('<p class="mc-reader__masthead-kicker">Профиль Манакоста</p>', self.php)
         self.assertIn('<h1 class="mc-reader__eyebrow">Кабинет</h1>', self.php)
@@ -121,8 +122,9 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('Комментарии сейчас недоступны.', self.php)
         self.assertIn('Изменить профиль', self.php)
         self.assertIn('Где меня найти', self.php)
-        self.assertIn('после нового комментария с вашим согласием', self.php)
-        self.assertIn('Twitch или YouTube', self.php)
+        self.assertIn('Обновить в комментариях', self.php)
+        self.assertIn('data-reader-public-consent', self.php)
+        self.assertIn('Twitch / YouTube', self.php)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
             self.assertIn(value, self.js)

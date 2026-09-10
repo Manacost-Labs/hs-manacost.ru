@@ -41,9 +41,29 @@ try {
     await page.getByRole('heading', { name: 'Комментарии' }).waitFor();
     await page.locator('.mc-comments__body').waitFor();
     await page.locator('.mc-comments__avatar').waitFor();
+    await page.waitForFunction(() => {
+      const image = document.querySelector('img.mc-comments__avatar');
+      return image?.complete && image.naturalWidth > 0;
+    });
     assert.equal(await page.locator('.mc-comments__author-badge--twitch').isVisible(), true, 'a Twitch author receives the Twitch mark');
     assert.equal(await page.locator('.mc-comments__author-badge--youtube').isVisible(), true, 'a YouTube author receives the YouTube mark');
     assert.equal(await page.locator('.mc-comments__author-badge--paid').getAttribute('aria-label'), 'Платный подписчик');
+    const crown = await page.locator('.mc-comments__author-badge--paid').evaluate(node => ({
+      width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height,
+      background: getComputedStyle(node).backgroundColor, fill: getComputedStyle(node.querySelector('svg')).fill,
+    }));
+    assert.equal(crown.width, crown.height, 'crown backing must be geometrically square');
+    assert.notEqual(crown.background, 'rgba(0, 0, 0, 0)');
+    assert.notEqual(crown.fill, 'none', 'small crown remains legible as a filled mark');
+    const contrast = await page.locator('textarea').evaluate(node => {
+      const light = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => value / 255)
+        .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+        .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+      const style = getComputedStyle(node);
+      const levels = [light(style.color), light(style.backgroundColor)].sort((a, b) => b - a);
+      return (levels[0] + .05) / (levels[1] + .05);
+    });
+    assert.ok(contrast >= 4.5, 'the light comment composer must not inherit the dark account field background');
     if (process.env.READER_UI_SCREENSHOTS) await page.screenshot({
       path: `${process.env.READER_UI_SCREENSHOTS}/comments-${width}.png`, fullPage: true,
     });
