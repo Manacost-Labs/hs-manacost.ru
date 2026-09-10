@@ -66,3 +66,24 @@ Profile/skills: WordPress; privacy, bounded Reader UI/accessibility, runtime cac
 ownership and staging release. The project-mandated specialization/baseline chain
 exceeds the general skill budget because this crosses UI, public identity and cache
 delivery; no unrelated design system or optimizer settings are changed.
+
+## Post-deployment optimizer correction
+
+PR #66 deployed as `fe2bb89eb65657a0a0d926cabc4c27cf9fef2c17`; the pilot returned
+200 with comments, no page errors, noindex and zero overflow at 390/1440. However,
+its CSS still used Rocket minify URLs and its script used a Perfmatters minify URL.
+Therefore the intended stable-source-URL release criterion was not yet met.
+
+The generic regex fixture had missed two actual vendor contracts: Rocket CSS
+anchors the complete pathname, and Perfmatters independently rewrites script URLs.
+The follow-up uses a dedicated full-path Rocket CSS pattern and Reader-directory
+exclusions for Perfmatters minify/delay/RUCSS. Other hooks keep literal substrings;
+RUCSS/Perfmatters must not receive the regex wildcard. No bootstrap timing change
+is needed: the actual Rocket minifiers are constructed during buffer processing.
+
+The replacement regression fixture loads the real vendored Rocket matchers and
+Perfmatters exclusion matching after WordPress init. It covers five host/environment/
+feature boundaries, retained existing rules and non-Reader theme assets. This
+fixture fails against the original exclusion and is required to pass for the
+follow-up. Browser release checks now inspect Reader element IDs, not just URLs
+containing the original directory, and reject rewritten asset URLs explicitly.

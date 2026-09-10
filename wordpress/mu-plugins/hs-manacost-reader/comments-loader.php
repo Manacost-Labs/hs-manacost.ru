@@ -21,9 +21,13 @@ function hs_reader_comments_bootstrap(): void {
 	add_action( 'wp_enqueue_scripts', 'hs_reader_comments_assets', 20 );
 	// These small dynamic bundles must survive minify cache cleanup and RUCSS.
 	add_filter( 'rocket_exclude_js', 'hs_reader_comments_asset_exclusions' );
-	add_filter( 'rocket_exclude_css', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'rocket_exclude_css', 'hs_reader_comments_css_asset_exclusions' );
 	add_filter( 'rocket_delay_js_exclusions', 'hs_reader_comments_asset_exclusions' );
 	add_filter( 'rocket_rucss_external_exclusions', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'perfmatters_minify_js_exclusions', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'perfmatters_minify_css_exclusions', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'perfmatters_delay_js_exclusions', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'perfmatters_rucss_excluded_stylesheets', 'hs_reader_comments_asset_exclusions' );
 }
 
 /**
@@ -34,6 +38,16 @@ function hs_reader_comments_bootstrap(): void {
  */
 function hs_reader_comments_asset_exclusions( array $exclusions ): array {
 	return array_values( array_unique( array_merge( $exclusions, array( '/wp-content/mu-plugins/hs-manacost-reader/' ) ) ) );
+}
+
+/**
+ * Rocket CSS anchors the complete pathname, unlike its JS and literal exclusions.
+ *
+ * @param string[] $exclusions Existing CSS exclusion patterns.
+ * @return string[]
+ */
+function hs_reader_comments_css_asset_exclusions( array $exclusions ): array {
+	return array_values( array_unique( array_merge( $exclusions, array( '/wp-content/mu-plugins/hs-manacost-reader/(.*)' ) ) ) );
 }
 
 /** Whether this is a public-profile request, including malformed IDs. */
