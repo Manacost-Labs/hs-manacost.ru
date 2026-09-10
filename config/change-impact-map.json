@@ -60,7 +60,7 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/hs-article-versions.php", "tests/test_article_versions.py"],
+      "patterns": ["wordpress/mu-plugins/hs-article-versions.php", "wordpress/mu-plugins/hs-guide-export-policy.php", "tests/test_article_versions.py", "tests/test_guide_exports.py"],
       "owner": "article-editorial-versions",
       "classified": true,
       "risk": "high",

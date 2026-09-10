@@ -735,14 +735,28 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 92
+        "line": 219
       },
       {
         "name": "_hs_article_versions",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 261
+        "line": 478
+      },
+      {
+        "name": "_hs_article_versions",
+        "resolved": true,
+        "api": "delete_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 517
+      },
+      {
+        "name": "_hs_article_versions",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 520
       },
       {
         "name": "_hs_deck_activity_created_logged",
@@ -1356,6 +1370,13 @@
         "line": 1064
       },
       {
+        "name": "date_format",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 562
+      },
+      {
         "name": "hs_decks_announcement_button_text",
         "resolved": true,
         "api": "get_option",
@@ -1816,6 +1837,13 @@
         "api": "update_option",
         "file": "wordpress/plugins/separator-placeholder-quick-insert/includes/class-spqi-store.php",
         "line": 50
+      },
+      {
+        "name": "time_format",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 562
       },
       {
         "name": "unified_hs_ad_tracker_db_version",
@@ -2290,7 +2318,7 @@
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 126
+        "line": 349
       },
       {
         "name": "manacost/v1/deck-meta/(?P<id>\\d+)",
@@ -2637,14 +2665,21 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 49
+        "line": 57
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 79
+        "line": 206
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 532
       },
       {
         "name": "edit_post",
@@ -2953,6 +2988,13 @@
         "api": "current_user_can",
         "file": "wordpress/plugins/separator-placeholder-quick-insert/includes/class-spqi-admin.php",
         "line": 152
+      },
+      {
+        "name": "unfiltered_html",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 255
       }
     ]
   }
