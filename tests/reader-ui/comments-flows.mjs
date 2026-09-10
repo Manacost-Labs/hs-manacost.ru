@@ -36,7 +36,8 @@ const author = (overrides = {}) => ({
   avatarVersion, avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${avatarVersion}`,
   profileUrl: `/account/?reader=${id}`, paidSubscriber: true, hasTwitch: false, hasYoutube: false, twitchUrl: null, youtubeUrl: null, ...overrides,
 });
-const me = (version = 1) => ({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version, avatarUrl: null }, csrfToken: `csrf-${version}` });
+let meFields = {};
+const me = (version = 1) => ({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version, avatarUrl: null, ...meFields }, csrfToken: `csrf-${version}` });
 const row = (overrides = {}) => ({ id: commentId, postId: 7, parentId: null, status: 'published', version: 1, createdAt: 1700000000000, body: 'Серверный текст', author: author(), ...overrides });
 
 let meVersion = 1;
@@ -53,6 +54,7 @@ let held = { me: [], comments: [], profile: [], post: [] };
 let hold = { me: false, comments: false, profile: false };
 let publicStatus = 200;
 let publicProfile = author();
+let refreshCalls = [], refreshStatus = 200;
 const release = (kind, status, value) => {
   const request = held[kind].shift();
   assert.ok(request, `expected delayed ${kind} request`);
@@ -101,6 +103,17 @@ const server = createServer(async (request, response) => {
     eraseCalls.push({ body: JSON.parse(text), headers: request.headers });
     if (eraseStatus !== 200) { json(response, eraseStatus, { error: 'erase_failed' }); return; }
     comments = []; json(response, 200, { erased: true }); return;
+  }
+  if (request.url === '/reader-api/v1/community/profile' && request.method === 'PUT') {
+    let text = ''; for await (const chunk of request) text += chunk;
+    refreshCalls.push({ body: JSON.parse(text), headers: request.headers });
+    if (refreshStatus !== 200) { json(response, refreshStatus, { error: 'refresh_failed' }); return; }
+    comments = comments.map(item => ({ ...item, author: author({ name: meFields.displayName, hasTwitch: true }) }));
+    json(response, 200, { profile: me(meVersion).profile }); return;
+  }
+  if (request.url.startsWith('/reader-api/v1/profile/avatar?')) {
+    response.writeHead(200, { 'content-type': 'image/svg+xml' });
+    response.end('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="20" fill="#766"/></svg>'); return;
   }
   if (request.url === `/reader-api/v1/readers/${id}`) {
     if (hold.profile) { request.resume(); held.profile.push({ response }); return; }
@@ -286,7 +299,56 @@ try {
   await page.getByText('Комментарий опубликован.').waitFor();
   assert.deepEqual(writes.at(-1), unknown);
   assert.equal(writes.filter(payload => payload.operationId === unknown.operationId).length, 2);
-  console.log('comments-flows: pass (8 focused flows)');
+  // 9. A private avatar is previewed, never silently published. Explicit refresh updates old comments in-place.
+  meVersion = 9;
+  meFields = { displayName: 'Зулут', avatarUrl: `/reader-api/v1/profile/avatar?v=${avatarVersion}`, twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: null };
+  const oldRow = row({ author: author({ name: 'Зулут', avatarVersion: null, avatarUrl: null, hasTwitch: false }) });
+  comments = [oldRow];
+  await loadComments();
+  const refresh = page.getByRole('button', { name: 'Обновить профиль в комментариях', exact: true });
+  await refresh.waitFor();
+  await expect(page.locator('[data-comments-me] img')).toBeVisible();
+  await expect(page.locator('[data-comments-me] img')).toHaveAttribute('src', meFields.avatarUrl);
+  assert.equal(await refresh.isDisabled(), true, 'publishing needs explicit unchecked consent');
+  assert.equal(refreshCalls.length, 0, 'reading must not publish private profile data');
+  assert.equal(await page.locator('[data-comments-list] img').count(), 0, 'private preview is not an optimistic public avatar');
+  await page.getByLabel('Комментарий', { exact: true }).fill('Черновик останется здесь');
+  await expect(page.locator('[data-comments-count]')).toHaveText('24 / 1000');
+  await page.getByRole('checkbox', { name: /Согласен/ }).check();
+  await refresh.click();
+  await page.getByText('Фото и значки в комментариях обновлены.', { exact: true }).waitFor();
+  assert.deepEqual(refreshCalls.at(-1).body, { profileVersion: 9, publicConsent: true });
+  assert.equal(refreshCalls.at(-1).headers['x-reader-csrf'], 'csrf-9');
+  await expect(page.locator('[data-comments-list] img.mc-comments__avatar')).toHaveAttribute('src', author().avatarUrl);
+  await expect(page.locator('[data-comments-list] .mc-comments__author-badge--twitch')).toBeVisible();
+  assert.equal(comments.length, 1, 'refresh never creates an extra comment');
+  assert.equal(await page.getByLabel('Комментарий', { exact: true }).inputValue(), 'Черновик останется здесь');
+  assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isChecked(), false);
+  await expect(refresh).toBeHidden();
+
+  // A changed profile needs a fresh confirmation; failures leave public identity and draft intact.
+  comments = [oldRow]; refreshStatus = 409;
+  await loadComments(); meVersion = 10;
+  await page.getByLabel('Комментарий', { exact: true }).fill('Не потерять текст');
+  await page.getByRole('checkbox', { name: /Согласен/ }).check(); await refresh.click();
+  await page.getByText('Профиль изменился. Проверьте его и подтвердите публикацию ещё раз.').waitFor();
+  assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isChecked(), false);
+  assert.equal(await page.getByLabel('Комментарий', { exact: true }).inputValue(), 'Не потерять текст');
+  refreshStatus = 503;
+  await page.getByRole('checkbox', { name: /Согласен/ }).check(); await refresh.click();
+  await page.getByText('Не удалось обновить профиль в комментариях. Повторите попытку.').waitFor();
+  assert.equal(refreshCalls.at(-1).body.profileVersion, 10);
+  assert.equal(await page.locator('[data-comments-list] img').count(), 0);
+  refreshStatus = 401;
+  await page.getByRole('checkbox', { name: /Согласен/ }).check(); await refresh.click();
+  await page.getByRole('link', { name: 'Войти через HearthPulse', exact: true }).waitFor();
+  assert.equal(await page.locator('[data-comments-me] img').count(), 0, 'expired identity removes private avatar URL from DOM');
+  assert.equal(await page.locator('[data-comments-body]').inputValue(), '');
+  meFields.avatarUrl = 'https://evil.test/photo.png';
+  await loadComments();
+  await expect(page.locator('[data-comments-me]')).toContainText('Зулут');
+  assert.equal(await page.locator('[data-comments-me] img').count(), 0, 'composer rejects arbitrary private avatar URLs');
+  console.log('comments-flows: pass (9 focused flows)');
 } finally {
   for (const values of Object.values(held)) for (const request of values) request.response.destroy();
   await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));

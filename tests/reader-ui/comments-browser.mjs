@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
+import './comments-assets.mjs';
 
 // A local, synthetic boundary test: no WordPress runtime or reader data.
 const root = new URL('../../', import.meta.url).pathname;
@@ -40,9 +41,9 @@ try {
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.getByRole('heading', { name: 'Комментарии' }).waitFor();
     await page.locator('.mc-comments__body').waitFor();
-    await page.locator('.mc-comments__avatar').waitFor();
+    await page.locator('[data-comments-list] .mc-comments__avatar').waitFor();
     await page.waitForFunction(() => {
-      const image = document.querySelector('img.mc-comments__avatar');
+      const image = document.querySelector('[data-comments-list] img.mc-comments__avatar');
       return image?.complete && image.naturalWidth > 0;
     });
     assert.equal(await page.locator('.mc-comments__author-badge--twitch').isVisible(), true, 'a Twitch author receives the Twitch mark');

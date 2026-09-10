@@ -19,6 +19,21 @@ function hs_reader_comments_bootstrap(): void {
 	add_action( 'rest_api_init', 'hs_reader_editorial_routes' );
 	add_filter( 'comments_template', 'hs_reader_comments_template', 100 );
 	add_action( 'wp_enqueue_scripts', 'hs_reader_comments_assets', 20 );
+	// These small dynamic bundles must survive minify cache cleanup and RUCSS.
+	add_filter( 'rocket_exclude_js', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'rocket_exclude_css', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'rocket_delay_js_exclusions', 'hs_reader_comments_asset_exclusions' );
+	add_filter( 'rocket_rucss_external_exclusions', 'hs_reader_comments_asset_exclusions' );
+}
+
+/**
+ * Preserve source URLs and styles for Reader without disabling site optimization.
+ *
+ * @param string[] $exclusions Existing optimizer exclusions.
+ * @return string[]
+ */
+function hs_reader_comments_asset_exclusions( array $exclusions ): array {
+	return array_values( array_unique( array_merge( $exclusions, array( '/wp-content/mu-plugins/hs-manacost-reader/' ) ) ) );
 }
 
 /** Whether this is a public-profile request, including malformed IDs. */
@@ -54,12 +69,12 @@ function hs_reader_comments_assets(): void {
 	}
 	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
 	wp_enqueue_style( 'hs-manacost-reader-ui', $base . 'ui.css', array(), '0.7.7' );
-	wp_enqueue_style( 'hs-manacost-reader-comments', $base . 'comments.css', array( 'hs-manacost-reader-ui' ), '0.7.7' );
+	wp_enqueue_style( 'hs-manacost-reader-comments', $base . 'comments.css', array( 'hs-manacost-reader-ui' ), '0.7.8' );
 	wp_enqueue_script(
 		$public ? 'hs-manacost-reader-public-profile' : 'hs-manacost-reader-comments',
 		$base . ( $public ? 'public-profile.js' : 'comments.js' ),
 		array(),
-		'0.7.7',
+		'0.7.8',
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,

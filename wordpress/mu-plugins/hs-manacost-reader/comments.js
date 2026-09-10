@@ -14,6 +14,8 @@
   const reply = $('[data-comments-reply]'), cancel = $('[data-comments-cancel]');
   const dataTools = $('[data-comments-data]'), exportButton = $('[data-comments-export]');
   const eraseButton = $('[data-comments-erase]');
+  const composerIdentity = $('[data-comments-me]'), count = $('[data-comments-count]');
+  const profileNotice = $('[data-comments-profile-notice]'), refreshProfile = $('[data-comments-refresh-profile]');
   const more = document.createElement('button');
   more.type = 'button'; more.textContent = 'Показать ещё'; more.hidden = true;
   more.className = 'mc-comments__more mc-ui-button mc-ui-button--secondary'; list.after(more);
@@ -30,6 +32,12 @@
     submit.hidden = Boolean(retryPayload); retry.hidden = !retryPayload;
     root.querySelectorAll('[data-comment-action]').forEach(button => { button.disabled = busy || Boolean(retryPayload); });
     cancel.disabled = busy || Boolean(retryPayload);
+    form.setAttribute('aria-busy', String(busy));
+    if (refreshProfile && profileNotice) {
+      refreshProfile.hidden = profileNotice.hidden = !hasOlderIdentity();
+      refreshProfile.disabled = busy || Boolean(retryPayload) || !consent.checked;
+    }
+    if (count) count.textContent = `${Array.from(body.value).length} / 1000`;
   }
   function clearDraft() {
     body.value = ''; consent.checked = false; parentId = null; retryPayload = null;
@@ -37,6 +45,7 @@
   }
   function resetPrivate() {
     me = null; csrf = ''; busy = false; clearDraft();
+    composerIdentity?.replaceChildren();
     form.hidden = dataTools.hidden = true; login.hidden = false;
     rows = rows.filter(item => item.status !== 'pending'); render();
   }
@@ -97,6 +106,33 @@
     if (text !== undefined) node.textContent = text;
     return node;
   }
+  function privateAvatar() {
+    return typeof me?.avatarUrl === 'string' && /^\/reader-api\/v1\/profile\/avatar\?v=[A-Za-z0-9_-]{32}$/.test(me.avatarUrl) ? me.avatarUrl : null;
+  }
+  function hasOlderIdentity() {
+    if (!me) return false;
+    const own = rows.find(item => item.status === 'published' && item.author?.id === me.id)?.author;
+    return Boolean(own && (own.name !== me.displayName || (own.avatarVersion || null) !== (privateAvatar()?.split('=')[1] || null)
+      || own.hasTwitch !== (typeof me.twitchUrl === 'string') || own.hasYoutube !== (typeof me.youtubeUrl === 'string')));
+  }
+  function avatarNode(name, photo) {
+    const placeholder = element('span', 'mc-comments__avatar mc-comments__avatar--placeholder', Array.from(name)[0] || 'М');
+    placeholder.setAttribute('aria-hidden', 'true');
+    if (!photo) return placeholder;
+    const image = element('img', 'mc-comments__avatar'); image.src = photo; image.alt = ''; image.width = image.height = 40;
+    image.decoding = 'async';
+    image.addEventListener('error', () => image.replaceWith(placeholder), { once: true });
+    return image;
+  }
+  function renderComposer() {
+    if (!composerIdentity || !me) return;
+    const name = typeof me.displayName === 'string' ? me.displayName : 'Читатель';
+    const text = element('div', 'mc-comments__identity-text');
+    text.append(element('span', 'mc-comments__name', name));
+    if (typeof me.twitchUrl === 'string') text.append(authorBadge('twitch', 'Ваш Twitch'));
+    if (typeof me.youtubeUrl === 'string') text.append(authorBadge('youtube', 'Ваш YouTube'));
+    composerIdentity.replaceChildren(avatarNode(name, privateAvatar()), text);
+  }
   function authorBadge(service, label) {
     const badge = element('span', `mc-comments__author-badge mc-comments__author-badge--${service}`);
     badge.setAttribute('role', 'img'); badge.setAttribute('aria-label', label); badge.title = label;
@@ -116,13 +152,7 @@
     else {
       const header = element('header', 'mc-comments__identity');
       const author = element('a', 'mc-comments__author'); author.href = item.author.profileUrl;
-      const photo = avatar(item.author);
-      const placeholder = element('span', 'mc-comments__avatar mc-comments__avatar--placeholder', Array.from(item.author.name)[0] || 'М');
-      placeholder.setAttribute('aria-hidden', 'true');
-      if (photo) {
-        const image = element('img', 'mc-comments__avatar'); image.src = photo; image.alt = ''; image.width = image.height = 40;
-        image.addEventListener('error', () => image.replaceWith(placeholder), { once: true }); author.append(image);
-      } else author.append(placeholder);
+      author.append(avatarNode(item.author.name, avatar(item.author)));
       const identityText = element('span', 'mc-comments__identity-text');
       identityText.append(element('span', 'mc-comments__name', item.author.name));
       if (item.author.hasTwitch) identityText.append(authorBadge('twitch', 'Автор ведёт Twitch'));
@@ -163,6 +193,7 @@
     if (!response.ok || !uuid.test(data?.profile?.id) || !Number.isSafeInteger(data.profile.version)
       || data.profile.version < 1 || typeof data.csrfToken !== 'string' || !data.csrfToken) throw new Error('profile_unavailable');
     me = data.profile; csrf = data.csrfToken;
+    renderComposer();
     form.hidden = dataTools.hidden = false; login.hidden = true;
   }
   async function loadComments(append = false, prefetched = null) {
@@ -179,10 +210,32 @@
       rows = append ? [...rows, ...page.filter(item => !rows.some(old => old.id === item.id))] : page;
       cursor = data.nextCursor; render();
       say(rows.length ? '' : 'Комментариев пока нет. Начните обсуждение.');
+      return true;
     } catch (error) {
       if (error === stale || !current(ticket)) return;
       rows = []; cursor = null; render(); say('Не удалось загрузить комментарии. Повторите попытку позже.');
+      return false;
     } finally { if (current(ticket)) more.disabled = false; }
+  }
+  async function publishIdentity() {
+    if (!me || busy || retryPayload || !consent.checked || !hasOlderIdentity()) return;
+    const ticket = generation, profileVersion = me.version, profileId = me.id;
+    busy = true; controls(); say('Обновляем профиль в комментариях…');
+    try {
+      const { response, data } = await request('/reader-api/v1/community/profile', {
+        method: 'PUT', headers: write(), body: JSON.stringify({ profileVersion, publicConsent: true }),
+      });
+      if (response.status === 401) { expired(); return; }
+      if (response.status === 409) {
+        await loadMe(); say('Профиль изменился. Проверьте его и подтвердите публикацию ещё раз.'); return;
+      }
+      if (!response.ok || data?.profile?.id !== profileId || data.profile.version !== profileVersion) throw new Error('profile_refresh_failed');
+      if (await loadComments()) say('Фото и значки в комментариях обновлены.');
+    } catch (error) {
+      if (error !== stale && current(ticket)) say('Не удалось обновить профиль в комментариях. Повторите попытку.');
+    } finally {
+      if (current(ticket)) { busy = false; consent.checked = false; controls(); }
+    }
   }
   async function erase(item) {
     if (!me || busy || retryPayload || !valid(item) || item.author?.id !== me.id || !confirm('Удалить комментарий?')) return;
@@ -228,6 +281,9 @@
     void send(payload);
   });
   retry.addEventListener('click', () => { if (retryPayload) void send(retryPayload); });
+  refreshProfile?.addEventListener('click', () => { void publishIdentity(); });
+  consent.addEventListener('change', controls);
+  body.addEventListener('input', controls);
   cancel.addEventListener('click', () => { if (!busy && !retryPayload) { parentId = null; reply.hidden = cancel.hidden = true; body.focus(); } });
   more.addEventListener('click', () => { void loadComments(true); });
 
