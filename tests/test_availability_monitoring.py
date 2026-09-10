@@ -124,8 +124,72 @@ class NginxRecentTests(unittest.TestCase):
         self.assertIn("UNKNOWN", result.stdout)
         self.assertNotIn("count=0", result.stdout)
 
+    def test_proxy_denial_is_not_a_homepage_denial(self):
+        self.access.write_text(access(status=403, uri="/?hs_tooltip_img=https%3A%2F%2Fexample.invalid%2Fimage.png")
+                               + access(status=403, uri="/?utm_source=test")
+                               + access(status=403, uri="/?hs_tooltip_img=")
+                               + access(status=403, uri="/?hs_tooltip_img[]=image"))
+        result = self.collect()
+        self.assertEqual(result["image_proxy403"], 1)
+        self.assertEqual(result["root403"], 3)
+        self.assertEqual(result["requests"], 4)
+
+    def test_encoded_and_repeated_proxy_parameters_match_php_last_value(self):
+        self.access.write_text(access(status=403, uri="/?hs_tooltip_%69mg=image")
+                               + access(status=403, uri="/?hs_tooltip_img=image&hs_tooltip_img=")
+                               + access(status=403, uri="/?hs_tooltip_img=image&hs_tooltip_img[]=array")
+                               + access(status=403, uri="/?hs_tooltip_img[]=array&hs_tooltip_img=image"))
+        result = self.collect()
+        self.assertEqual((result["image_proxy403"], result["root403"]), (2, 2))
+
+    def test_proxy_5xx_is_counted_as_media_and_not_hidden(self):
+        self.access.write_text(access(uri="/?hs_tooltip_img=image")
+                               + access(uri="/wp-admin/post.php?hs_tooltip_img=image"))
+        result = self.collect()
+        self.assertEqual((result["fivexx"], result["media_5xx"], result["admin_5xx"]), (2, 1, 1))
+
+    def test_php_normalized_keys_and_malformed_array_keys(self):
+        for query in ("hs_tooltip_img%00=x", "hs.tooltip.img=x", "hs+tooltip+img=x",
+                      "+hs_tooltip_img=x", "hs_tooltip_img=x&hs_tooltip_img%5B=x"):
+            with self.subTest(query=query):
+                self.assertTrue(self.monitor.is_root_image_proxy("/?" + query))
+        for query in ("%09hs_tooltip_img=x", "hs_tooltip_img%5B=x",
+                      "hs_tooltip_img=x&hs.tooltip.img%5B%5D=z"):
+            with self.subTest(query=query):
+                self.assertFalse(self.monitor.is_root_image_proxy("/?" + query))
+
 
 class ShellHealthcheckTests(unittest.TestCase):
+
+    def test_koloda_status_contracts_and_transport_failures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            fake = directory / "curl"
+            fake.write_text('''#!/bin/bash
+while [[ $# -gt 0 ]]; do
+  if [[ "$1" == "-D" ]]; then printf 'HTTP/2 %s\\r\\n' "$CURL_STATUS" > "$2"; shift; fi
+  shift
+done
+printf 'code=%s ttfb=0.1 total=0.2' "$CURL_STATUS"
+exit "$CURL_EXIT"
+''')
+            fake.chmod(0o700)
+            for expected, actual, curl_exit, success in (
+                    (200, 200, 0, True), (200, 403, 0, False),
+                    (403, 403, 0, True), (403, 200, 0, False),
+                    (403, 403, 28, False), (200, 200, 28, False)):
+                with self.subTest(expected=expected, actual=actual, curl_exit=curl_exit):
+                    log = directory / "probe.log"
+                    log.write_text("")
+                    result = subprocess.run([
+                        "bash", "-c", 'source "$1"; check_url fixture https://example.invalid/ dns "$2"; exit "$STATUS"',
+                        "test", str(ROOT / "ops/monitoring/koloda-healthcheck.sh"), str(expected)],
+                        env=dict(os.environ, PATH=str(directory) + ":" + os.environ["PATH"],
+                                 HEALTHCHECK_LOG=str(log), CURL_STATUS=str(actual), CURL_EXIT=str(curl_exit)),
+                        capture_output=True, text=True, timeout=5)
+                    self.assertEqual(result.returncode, 0 if success else 1)
+                    self.assertIn("OK url" if success else "FAIL url", log.read_text())
+
     def check_function(self, site, function, *, helper_output="UNKNOWN fixture", helper_rc=2, inactive=""):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
@@ -202,6 +266,30 @@ raise SystemExit(28)
             self.assertEqual(len(budgets), 18, "All routes on both edges must be attempted")
             # 3 DNS lookups x3s +20s parser +30s headroom for local checks.
             self.assertLessEqual(sum(budgets) + 9 + 20 + 30, 240)
+
+    def test_koloda_full_run_keeps_positive_and_negative_media_contracts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            trace = directory / "trace"
+            local_checks = ("check_dns", "check_services", "check_php_sockets", "check_recent_nginx_incidents",
+                            "check_legacy_redirect", "check_redis", "check_ru_proxy")
+            overrides = " ".join(f"{name}() {{ :; }};" for name in local_checks)
+            result = subprocess.run([
+                "bash", "-c", 'source "$1"; ' + overrides
+                + ' check_url() { printf "%s %s %s\\n" "$1" "$2" "${4:-200}" >> "$TRACE"; }; main',
+                "test", str(ROOT / "ops/monitoring/koloda-healthcheck.sh")],
+                env=dict(os.environ, HEALTHCHECK_LOG=str(directory / "log"), TRACE=str(trace)),
+                capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 0)
+            calls = [line.split() for line in trace.read_text().splitlines()]
+            by_name = {name: (url, status) for name, url, status in calls}
+            self.assertEqual(by_name["manacost_source"], (
+                "https://hs-manacost.ru/wp-content/uploads/2026/03/bg-separator-2-optimized.png", "200"))
+            self.assertEqual(by_name["bg_proxy"][1], "200")
+            self.assertEqual(by_name["proxy_rejects_unlisted_host"][1], "403")
+            # 8 HTTP x20s, DNS x3s, legacy 10s, SSH 15s, parser 20s, local 20s.
+            self.assertEqual(len(calls), 8)
+            self.assertLessEqual(len(calls) * 20 + 9 + 10 + 15 + 20 + 20, 240)
 
 
 class CronRunnerTests(unittest.TestCase):

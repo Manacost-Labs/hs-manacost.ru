@@ -86,6 +86,7 @@ check_url() {
   local name="$1"
   local url="$2"
   local ip="${3:-dns}" route_args=()
+  local expected_code="${4:-200}"
   local headers="$TMP_DIR/${name}_${ip}.headers"
   local metrics code ttfb total proxy_cache hs_cache
   [[ "$ip" != "dns" ]] && route_args=(--resolve "$DOMAIN:443:$ip")
@@ -102,11 +103,11 @@ check_url() {
   proxy_cache="$(tr -d '\r' < "$headers" | awk 'tolower($1)=="x-proxy-cache:" {print $2}' | tail -n 1)"
   hs_cache="$(tr -d '\r' < "$headers" | awk 'tolower($1)=="x-hs-tooltip-cache:" {print $2}' | tail -n 1)"
 
-  if [[ "$code" != "200" ]]; then
-    fail "url name=$name ip=$ip code=${code:-empty} url=$url"
+  if [[ "$code" != "$expected_code" ]]; then
+    fail "url name=$name ip=$ip expected=$expected_code code=${code:-empty} url=$url"
     return
   fi
-  ok "url name=$name ip=$ip code=$code ttfb=${ttfb:-na} total=${total:-na} proxy_cache=${proxy_cache:-na} hs_cache=${hs_cache:-na}"
+  ok "url name=$name ip=$ip expected=$expected_code code=$code ttfb=${ttfb:-na} total=${total:-na} proxy_cache=${proxy_cache:-na} hs_cache=${hs_cache:-na}"
 
   if awk "BEGIN {exit !(${ttfb:-0} > 2.0)}"; then
     warn "url_slow_ttfb name=$name ttfb=$ttfb url=$url"
@@ -226,7 +227,10 @@ main() {
   done
   check_url "article" "https://$DOMAIN/nezhit-snova-vosstala-iz-mertvyh-meta-otchet-polej-srazhenij-6/"
   check_url "bg_proxy" "https://$DOMAIN/?hs_tooltip_img=https%3A%2F%2Fart.hearthstonejson.com%2Fv1%2Fbgs%2Flatest%2FruRU%2F256x%2FBG34_690.png"
-  check_url "manacost_proxy" "https://$DOMAIN/?hs_tooltip_img=https%3A%2F%2Fhs-manacost.ru%2Fwp-content%2Fuploads%2F2026%2F03%2Fbg-separator-2-optimized.png"
+  check_url "manacost_source" "https://hs-manacost.ru/wp-content/uploads/2026/03/bg-separator-2-optimized.png"
+  # hs-manacost.ru is deliberately outside the image proxy's host allowlist.
+  # Test that denial explicitly; do not weaken the plugin's fetch restrictions.
+  check_url "proxy_rejects_unlisted_host" "https://$DOMAIN/?hs_tooltip_img=https%3A%2F%2Fhs-manacost.ru%2Fwp-content%2Fuploads%2F2026%2F03%2Fbg-separator-2-optimized.png" dns 403
 
   if [[ $STATUS -eq 0 ]]; then
     log "END status=ok"
