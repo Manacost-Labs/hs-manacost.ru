@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { SessionTokens } from './session-tokens.js';
 
 export class ReaderValidationError extends Error {}
 export class ReaderAuthorizationDenied extends Error {}
@@ -39,6 +40,9 @@ export class ReaderStore {
     ); CREATE TABLE IF NOT EXISTS reader_revocations (
       id_hash TEXT PRIMARY KEY, token_ciphertext TEXT NOT NULL, expires_at INTEGER NOT NULL
     );`);
+    this.tokens = new SessionTokens(this, {
+      seal: (value, aad) => seal(value, this.key, aad), open: (value, aad) => open(value, this.key, aad),
+    });
   }
   validateReturnTo(returnTo) {
     const unsafeSyntax = typeof returnTo !== 'string'
@@ -70,15 +74,23 @@ export class ReaderStore {
     const changed = this.db.prepare('UPDATE login_attempts SET consumed_at = ? WHERE state_hash = ? AND consumed_at IS NULL').run(this.now(), hash(state));
     if (changed.changes !== 1) throw new ReaderValidationError('single-use state'); return payload;
   }
-  createSession({ userId, upstreamToken, ttlMs = MAX_SESSION_TTL } = {}) {
+  createSession({ userId, upstreamToken, refreshToken, accessTtlMs, ttlMs = MAX_SESSION_TTL } = {}) {
     ttl(ttlMs, MAX_SESSION_TTL); if (!userId || typeof upstreamToken !== 'string') throw new ReaderValidationError('session fields required');
+    this.tokens.validate(refreshToken, accessTtlMs);
     const id = b64(randomBytes(32)); const idHash = hash(id);
-    this.db.prepare('INSERT INTO reader_sessions VALUES (?, ?, ?, ?, NULL)').run(idHash, String(userId), seal(upstreamToken, this.key, `${idHash}:${userId}`), this.now() + ttlMs);
-    return { id, expiresAt: this.now() + ttlMs };
+    const expiresAt = this.now() + ttlMs;
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      this.db.prepare('INSERT INTO reader_sessions VALUES (?, ?, ?, ?, NULL)').run(idHash, String(userId), seal(upstreamToken, this.key, `${idHash}:${userId}`), expiresAt);
+      this.tokens.insert(id, refreshToken, accessTtlMs);
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+    return { id, expiresAt };
   }
-  rotateSession(id, { userId, upstreamToken, ttlMs = MAX_SESSION_TTL } = {}) {
+  rotateSession(id, { userId, upstreamToken, refreshToken, accessTtlMs, ttlMs = MAX_SESSION_TTL } = {}) {
     ttl(ttlMs, MAX_SESSION_TTL);
     if (!userId || typeof upstreamToken !== 'string') throw new ReaderValidationError('session fields required');
+    this.tokens.validate(refreshToken, accessTtlMs);
     const nextId = b64(randomBytes(32)); const nextHash = hash(nextId); const expiresAt = this.now() + ttlMs;
     this.db.exec('BEGIN IMMEDIATE');
     try {
@@ -87,6 +99,10 @@ export class ReaderStore {
       const changed = this.db.prepare('UPDATE reader_sessions SET revoked_at = ? WHERE id_hash = ? AND revoked_at IS NULL AND expires_at > ?').run(this.now(), hash(id), this.now());
       if (changed.changes !== 1) throw new ReaderValidationError('session rotation conflict');
       this.db.prepare('INSERT INTO reader_sessions VALUES (?, ?, ?, ?, NULL)').run(nextHash, String(userId), seal(upstreamToken, this.key, `${nextHash}:${userId}`), expiresAt);
+      this.tokens.insert(nextId, refreshToken, accessTtlMs);
+      const credentials = this.tokens.get(id);
+      if (credentials) this.queueRevocation(credentials.refreshToken, current.expires_at);
+      this.tokens.remove(id);
       this.queueRevocation(open(current.token_ciphertext, this.key, `${current.id_hash}:${current.user_id}`), current.expires_at);
       this.db.exec('COMMIT');
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
@@ -109,8 +125,11 @@ export class ReaderStore {
     try {
       const session = this.getSession(id);
       if (session) {
+        const credentials = this.tokens.get(id);
+        if (credentials) this.queueRevocation(credentials.refreshToken, session.expiresAt);
         this.queueRevocation(session.upstreamToken, session.expiresAt);
         this.revokeSession(id);
+        this.tokens.remove(id);
       }
       this.db.exec('COMMIT');
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
@@ -126,6 +145,7 @@ export class ReaderStore {
       this.db.prepare(`DELETE FROM ${table} WHERE expires_at <= ?`).run(this.now());
     }
     this.db.prepare('DELETE FROM reader_sessions WHERE revoked_at IS NOT NULL').run();
+    this.tokens.cleanup();
   }
   cookieDescriptor() { return { name: '__Host-manacost_reader', secure: true, httpOnly: true, sameSite: 'Lax', path: '/', domain: undefined }; }
   serializeCookie(value, maxAge = MAX_SESSION_TTL) {
