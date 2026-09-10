@@ -1,0 +1,5 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Quick checks yield to a full run at minutes divisible by five.
+1-4,6-9,11-14,16-19,21-24,26-29,31-34,36-39,41-44,46-49,51-54,56-59 * * * * root /usr/local/libexec/manacost-monitoring/run-healthcheck.sh hs quick >/dev/null 2>&1
+*/5 * * * * root /usr/local/libexec/manacost-monitoring/run-healthcheck.sh hs full >/dev/null 2>&1
