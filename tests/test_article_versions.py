@@ -465,6 +465,7 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertIn("Удалить", result["admin_html"])
         self.assertNotIn("<form", result["admin_html"])
         self.assertIn('document.createElement("form")', result["admin_html"])
+        self.assertIn("!editor.isHidden()", result["admin_html"])
 
     def test_only_snapshots_can_be_deleted_and_an_active_snapshot_can_be_changed(self) -> None:
         activated = self.run_version_management_handler(action="set_active", requested_version=2)
