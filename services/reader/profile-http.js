@@ -1,20 +1,22 @@
 import { normalizeAvatar, AvatarBusyError, AvatarValidationError } from './avatars.js';
 import { ProfileConflictError, ProfileValidationError } from './profiles.js';
+import { activeReaderSession } from './session-tokens.js';
 
 export async function verifiedReader(store, identity, id, signal) {
-  const session = store.getSession(id);
+  const session = await activeReaderSession(store, identity, id, signal);
   if (!session) return null;
   const profile = await identity.profile(session.upstreamToken, session.userId, signal);
   signal.throwIfAborted();
   if (!profile) { store.revokeAndQueue(id); return null; }
   // Logout/expiry while the upstream request was pending must win.
-  if (!store.getSession(id)) return null;
+  const current = store.getSession(id);
+  if (!current || current.userId !== session.userId || current.upstreamToken !== session.upstreamToken) return null;
   return { session, profile };
 }
 
 /** A profile write needs an active subject, not a display-name round trip. */
 export async function verifiedWriter(store, identity, id, signal) {
-  const session = store.getSession(id);
+  const session = await activeReaderSession(store, identity, id, signal);
   if (!session) return null;
   const active = await identity.verify(session.upstreamToken, session.userId, signal);
   signal.throwIfAborted();

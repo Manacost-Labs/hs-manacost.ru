@@ -3,6 +3,7 @@ import { ReaderAuthorizationDenied, ReaderValidationError } from './core.js';
 import { createProfileRoutes, verifiedReader } from './profile-http.js';
 import { createCommentRoutes } from './comments-http.js';
 import { createCommunityControlRoutes } from './community-controls-http.js';
+import { ReaderSessionEnded, SESSION_TTL } from './session-tokens.js';
 
 const SESSION_COOKIE = '__Host-manacost_reader';
 const ATTEMPT_COOKIE = '__Host-manacost_reader_login';
@@ -21,8 +22,14 @@ function readCookie(request, name) {
 }
 const matches = (left, right) => typeof left === 'string' && Buffer.byteLength(left) === Buffer.byteLength(right)
   && timingSafeEqual(Buffer.from(left), Buffer.from(right));
+const boundedText = (value, limit) => typeof value === 'string' && value.length > 0 && value.length <= limit;
+function queueUnusedTokens(store, result, ttlMs) {
+  for (const token of [result?.refreshToken, result?.accessToken]) {
+    if (boundedText(token, 16384)) store.queueRevocation(token, store.now() + ttlMs);
+  }
+}
 
-/** Same-origin HTTP boundary. The first slice deliberately uses five-minute sessions without offline access. */
+/** Same-origin HTTP boundary; refresh credentials stay encrypted on the server. */
 export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community }) {
   if (new URL(origin).origin !== origin || !origin.startsWith('https://') || csrfKey?.length !== 32) throw new Error('Invalid reader HTTP configuration');
   const csrf = id => createHmac('sha256', csrfKey).update(id).digest('base64url');
@@ -69,18 +76,28 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
         if (!(error instanceof ReaderAuthorizationDenied)) throw error;
         const response = redirect(attempt.returnTo); response.headers.append('Set-Cookie', loginCookie('', 0)); return response;
       }
-      if (!result.subject || !result.accessToken || !Number.isFinite(result.expiresIn) || result.expiresIn <= 0) throw new Error('Invalid identity response');
-      const ttlMs = Math.min(TTL, Math.floor(result.expiresIn * 1000));
+      if (!boundedText(result?.subject, 255) || !boundedText(result?.accessToken, 16384)
+        || result.refreshToken !== undefined && !boundedText(result.refreshToken, 16384)
+        || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > 300) {
+        queueUnusedTokens(store, result, SESSION_TTL); throw new Error('Invalid identity response');
+      }
+      const accessTtlMs = Math.min(TTL, Math.floor(result.expiresIn * 1000));
+      const ttlMs = result.refreshToken ? SESSION_TTL : accessTtlMs;
+      const fields = { userId: result.subject, upstreamToken: result.accessToken, refreshToken: result.refreshToken, accessTtlMs, ttlMs };
       let session;
       try {
+        signal.throwIfAborted();
         if (attempt.parentSessionId) {
           if (id !== attempt.parentSessionId) throw new ReaderValidationError('session changed during login');
-          session = store.rotateSession(attempt.parentSessionId, { userId: result.subject, upstreamToken: result.accessToken, ttlMs });
+          session = store.rotateSession(attempt.parentSessionId, fields);
         } else {
           if (localSession) throw new ReaderValidationError('session changed during login');
-          session = store.createSession({ userId: result.subject, upstreamToken: result.accessToken, ttlMs });
+          session = store.createSession(fields);
         }
-      } catch (error) { store.queueRevocation(result.accessToken, Date.now() + ttlMs); throw error; }
+      } catch (error) {
+        queueUnusedTokens(store, result, ttlMs);
+        throw error;
+      }
       const response = redirect(attempt.returnTo);
       response.headers.append('Set-Cookie', store.serializeCookie(session.id, ttlMs));
       response.headers.append('Set-Cookie', loginCookie('', 0));
@@ -105,8 +122,17 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       ?? await commentRoutes(request, url, id, signal) ?? json(404, { error: 'not_found' });
   }
   return async request => {
-    try { return await dispatch(request); }
-    catch (error) { return json(error instanceof ReaderValidationError ? 400 : 503,
+    try {
+      const response = await dispatch(request);
+      if (response.status === 401 && readCookie(request, SESSION_COOKIE)) response.headers.append('Set-Cookie', store.serializeCookie('', 0));
+      return response;
+    }
+    catch (error) {
+      if (error instanceof ReaderSessionEnded) {
+        const response = json(401, { error: 'not_authenticated' });
+        response.headers.append('Set-Cookie', store.serializeCookie('', 0)); return response;
+      }
+      return json(error instanceof ReaderValidationError ? 400 : 503,
       { error: error instanceof ReaderValidationError ? 'invalid_request' : 'identity_unavailable' }); }
   };
 }
