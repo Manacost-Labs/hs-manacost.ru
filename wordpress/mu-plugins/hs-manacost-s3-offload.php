@@ -29,6 +29,20 @@ function hs_manacost_s3_restore_context(): bool
         return true;
     }
 
+	// Only actual, dedicated processing callbacks may hydrate during cron.
+	// DOING_CRON and request action strings alone are deliberately insufficient.
+	if ( function_exists( 'doing_action' ) ) {
+		foreach ( array(
+			'hs_media_upload_accelerator_generate_subsizes',
+			'manacost_media_upload_accelerator_generate_subsizes',
+			'hs_local_image_optimizer_process_attachment',
+		) as $hook ) {
+			if ( doing_action( $hook ) ) {
+				return true;
+			}
+		}
+	}
+
     if (!is_admin()) {
         return false;
     }
@@ -91,6 +105,16 @@ function hs_manacost_s3_restore_file(string|false $file): string|false
 
     return $file;
 }
+
+add_filter(
+	'hs_local_image_optimizer_source_file',
+	static function ( string $file, int $attachment_id ): string {
+		unset( $attachment_id );
+		return hs_manacost_s3_restore_file( $file );
+	},
+	20,
+	2
+);
 
 add_filter(
     'get_attached_file',
