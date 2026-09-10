@@ -109,3 +109,56 @@ retaining certificate verification and the same fixed S3 hostname.
 No article, image source, object or regional configuration changed. Both failed
 attempts exercised the restore path; their evidence and retained inactive
 configuration are preserved under the named production backup directory.
+
+## Completed production canary, 2026-09-10
+
+Runtime configuration revision: `e0a8833` (PR69). The worker hotfix PR64 was
+merged as `a1eb727`; its main Quality and staging deployment passed. No full
+WordPress production deployment was performed during this phase.
+
+The TLS mechanism was independently reproduced with a disposable CA and real
+loopback Nginx: unverified legacy request200, verified shared upstream502 with
+exact certificate error19, dedicated verified upstream200 twice. This is now a
+durable `make nginx-media-test` regression using the actual source proxy/maps.
+
+| Final v2 operation | Real HTTP checks | Result |
+| --- | ---: | --- |
+| Enable verified upstream | 84 | Expected bytes, MIME, Vary and five-minute TTL |
+| Disable / rollback | 12 | Original formats and exact original fixture bytes |
+| Re-enable same artifacts | 84 | Expected formats and bytes on all seven routes |
+
+Each enabled matrix covered PNG/JPEG, modern/WebP/legacy Accept, first/repeat,
+origin, public DNS, mirror DNS and both regional nodes for both hosts. Direct
+edge responses included verified cache HITs without changing representation.
+Queries were unique per operation/node and retained by the configured cache
+key; this avoids confusing an old original-only cache entry with new behavior.
+Existing no-query image cache entries were not purged. No TLS error recurred
+during the two final matrices; this is a bounded observation, not a lifetime
+availability guarantee.
+
+The synthetic696px PNG was4762bytes original /842WebP; JPEG14623original /
+4074WebP /961AVIF. These prove delivery, not representative compression savings
+or an authenticated editor/page-speed improvement.
+
+Final configuration files live under `/etc/nginx/hs-media-negotiation/`; only
+two new autoload includes were added. All29 pre-existing production resource
+files and allthree existing vhost files matched their before-hashes afterward.
+Nginx, PHP84 and the S3 timer remained active. No database, image, S3 object,
+article, credential, regional configuration or existing WordPress runtime file
+was edited.
+
+- Current exact artifacts and reversible operation state:
+  `/var/backups/hs-manacost-deploy/20260910-media-negotiation.3oJvCT`.
+- Superseded inactive artifacts remain recoverable in
+  `/var/backups/hs-manacost-deploy/20260910-media-negotiation.KauCFD/inactive-v1`.
+- HTTP evidence: `/tmp/hs-media-negotiation-live.rvAQoC`.
+- Executable rollback: run the committed `deploy-canary.sh disable` with the
+  current backup path, wait for an actual original-only response, then verify.
+  `systemctl reload` alone is not proof that new workers are answering yet.
+
+Current activation is still **only the four synthetic prefixes**, not all new
+uploads or the whole library. Broadening requires the availability/cache work
+listed above, real-content quality sampling, public cache Range/If-Range checks,
+and an upload/editor benchmark. Persisted local cleanup, independent restore,
+old-media backfill and the50MiB authenticated HTTP/editor flow remain separate
+unfinished plan items. No production optimization of Koloda was included here.
