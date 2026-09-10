@@ -131,6 +131,21 @@ run_wp core is-installed
 run_wp theme is-active Newspaper_new
 run_wp cache flush
 
+if [[ "$environment" == staging ]]; then
+  # shellcheck disable=SC2016 # Keep PHP variables literal for WP-CLI.
+  run_wp eval '
+    if ( ! function_exists( "rocket_clean_files" ) || ! function_exists( "rocket_clean_minify" ) ) {
+      WP_CLI::error( "WP Rocket cache APIs are unavailable." );
+    }
+    $account_url = "https://test.hs-manacost.ru/account/";
+    if ( wp_parse_url( home_url(), PHP_URL_HOST ) !== "test.hs-manacost.ru" ) {
+      WP_CLI::error( "Refusing to purge: staging home URL host does not match." );
+    }
+    rocket_clean_minify();
+    rocket_clean_files( array( $account_url ), null, false );
+  '
+fi
+
 if [[ "$environment" == production ]]; then
   run_wp eval 'Manacost_Cache_Purge::run_async_purge("ci_deploy");'
   purge_failures="$(run_wp option pluck manacost_cache_purge_last_results failed 2>/dev/null || printf '1')"
