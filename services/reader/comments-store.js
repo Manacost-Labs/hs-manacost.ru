@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
-
-export class ReaderCommentError extends Error {
-  constructor(status, code, message = code) { super(message); this.name = 'ReaderCommentError'; this.status = status; this.code = code; }
-}
+import { ReaderCommentError } from './community-errors.js';
+import { migrateCommunityControls } from './community-schema.js';
+import { ReaderReactions } from './comment-reactions.js';
+import { ReaderCommentBans } from './comment-bans.js';
+export { ReaderCommentError } from './community-errors.js';
 
 const CONTROL = /[\p{Cc}\u202a-\u202e\u2066-\u2069]/u;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,7 +21,7 @@ const safeText = (value, field, min, max) => {
 };
 
 export class ReaderComments {
-  constructor({ db, issuer, now = Date.now } = {}) {
+  constructor({ db, issuer, origin = 'https://test.hs-manacost.ru', now = Date.now } = {}) {
     if (!db?.exec || !db?.prepare || typeof issuer !== 'string' || !issuer || typeof now !== 'function') fail(500, 'configuration_error');
     this.db = db; this.issuer = issuer; this.now = now;
     db.exec('BEGIN IMMEDIATE');
@@ -47,7 +48,10 @@ export class ReaderComments {
       const columns = new Set(db.prepare('PRAGMA table_info(reader_comment_public_profiles)').all().map(row => row.name));
       if (!columns.has('twitch_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN twitch_url TEXT');
       if (!columns.has('youtube_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN youtube_url TEXT');
+      migrateCommunityControls(db);
       db.exec('COMMIT'); } catch (error) { try { db.exec('ROLLBACK'); } catch {} throw error; }
+    this.reactions = new ReaderReactions({ db, issuer, now, profile: subject => this.profile(subject) });
+    this.bans = new ReaderCommentBans({ db, issuer, origin, now });
   }
 
   profile(subject) {
@@ -79,6 +83,7 @@ export class ReaderComments {
     try {
       // Read the consented version under the same write lock as publication.
       const profile = this.profile(subject);
+      if (this.bans.isBlocked(subject)) fail(403, 'commenting_blocked');
       const retry = this.db.prepare('SELECT * FROM reader_comments WHERE issuer = ? AND author_profile_id = ? AND operation_id = ?').get(this.issuer, profile.id, data.operationId);
       if (retry) {
         if (retry.request_digest !== requestDigest) fail(409, 'idempotency_conflict');
@@ -193,6 +198,7 @@ export class ReaderComments {
       const status = row.status === 'published' ? 'deleted' : 'rejected';
       const changed = this.db.prepare("UPDATE reader_comments SET status=?,body=NULL,version=version+1,updated_at=? WHERE id=? AND issuer=? AND author_profile_id=? AND version=? AND status IN ('pending','published')").run(status, now, id, this.issuer, profile.id, version);
       if (changed.changes !== 1) fail(409, 'comment_version_conflict');
+      this.reactions.removeForComment(id);
       this.db.exec('COMMIT'); return { id, status, version: version + 1 };
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
   }
@@ -211,10 +217,18 @@ export class ReaderComments {
     if (typeof id !== 'string' || !UUID.test(id) || !Number.isSafeInteger(version) || version < 1 || typeof actor !== 'string' || !actor.trim() || actor.length > 256) fail(400, 'invalid_input');
     const now = this.now(); this.db.exec('BEGIN IMMEDIATE');
     try {
-      const changed = this.db.prepare("UPDATE reader_comments SET status='deleted',body=NULL,version=version+1,updated_at=? WHERE id=? AND issuer=? AND status='published' AND version=?").run(now, id, this.issuer, version);
+      const row = this.db.prepare('SELECT status,body,version FROM reader_comments WHERE id=? AND issuer=?').get(id, this.issuer);
+      if (!row) fail(409, 'review_conflict');
+      if (['deleted', 'rejected'].includes(row.status) && row.body === null && [version, version + 1].includes(row.version)) {
+        this.db.exec('COMMIT'); return { id, status: row.status, version: row.version };
+      }
+      if (row.version !== version) fail(409, 'review_conflict');
+      const status = ['published', 'deleted'].includes(row.status) ? 'deleted' : 'rejected';
+      const changed = this.db.prepare('UPDATE reader_comments SET status=?,body=NULL,version=version+1,updated_at=? WHERE id=? AND issuer=? AND version=?').run(status, now, id, this.issuer, version);
       if (changed.changes !== 1) fail(409, 'review_conflict');
+      this.reactions.removeForComment(id);
       this.db.prepare('INSERT INTO reader_comment_audit VALUES (?, ?, ?, ?, ?)').run(randomUUID(), id, actor.trim(), 'takedown', now);
-      this.db.exec('COMMIT'); return { id, status: 'deleted', version: version + 1 };
+      this.db.exec('COMMIT'); return { id, status, version: version + 1 };
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
   }
   erase(subject) {
@@ -222,6 +236,7 @@ export class ReaderComments {
     try {
       const count = this.db.prepare('SELECT count(*) count FROM reader_comments WHERE issuer=? AND author_profile_id=?').get(this.issuer, profile.id).count;
       if (count > 5000) fail(409, 'erasure_needs_operator');
+      this.reactions.erase(profile.id);
       const operations = this.db.prepare('SELECT operation_id,request_digest FROM reader_comments WHERE issuer=? AND author_profile_id=? AND operation_id IS NOT NULL').all(this.issuer, profile.id);
       for (const item of operations) this.db.prepare('INSERT OR REPLACE INTO reader_comment_erased_operations VALUES (?, ?, ?)').run(operationKey(this.issuer, profile.id, item.operation_id), item.request_digest, now + 86_400_000);
       this.db.prepare("UPDATE reader_comments SET author_profile_id=NULL,subject=NULL,operation_id=NULL,request_digest=NULL,body=NULL,status=CASE WHEN status='published' THEN 'deleted' ELSE status END,version=version+1,updated_at=? WHERE issuer=? AND author_profile_id=?").run(now, this.issuer, profile.id);
@@ -233,6 +248,8 @@ export class ReaderComments {
     const audit = this.db.prepare('DELETE FROM reader_comment_audit WHERE created_at <= ?').run(now - 90 * 86_400_000).changes;
     this.db.prepare('DELETE FROM reader_comment_erased_operations WHERE expires_at <= ?').run(now);
     this.db.prepare('DELETE FROM reader_comment_rate_events WHERE expires_at <= ?').run(now);
+    this.db.prepare('DELETE FROM reader_reaction_events WHERE issuer=? AND created_at<=?').run(this.issuer, now - 86_400_000);
+    this.db.prepare('DELETE FROM reader_community_audit WHERE issuer=? AND created_at<=?').run(this.issuer, now - 90 * 86_400_000);
     return { comments, audit };
   }
 }

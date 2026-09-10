@@ -1,5 +1,6 @@
 import { ReaderCommentError } from './comments-store.js';
 import { verifiedReader } from './profile-http.js';
+import { requireSameSession } from './community-session.js';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 const publicRoute = new RegExp(`^/reader-api/v1/readers/(${UUID})(/avatar)?$`, 'i');
@@ -17,14 +18,14 @@ async function input(request, keys) {
 }
 
 /** Public DTO decoration never changes authorization and never exposes upstream subjects. */
-function authorDTO(author, paid, pending = false, includeSocials = false) {
+function authorDTO(author, paid, pending = false, includeSocials = false, administrator = false) {
   if (!author) return null;
   const dto = { id: author.id, name: author.name, bio: author.bio, favoriteClass: author.favoriteClass,
     avatarVersion: pending ? null : author.avatarVersion,
     avatarUrl: !pending && author.avatarVersion ? `/reader-api/v1/readers/${author.id}/avatar?v=${author.avatarVersion}` : null,
     profileUrl: pending ? null : `/account/?reader=${author.id}`, paidSubscriber: !pending && paid === true,
     hasTwitch: !pending && typeof author.twitchUrl === 'string',
-    hasYoutube: !pending && typeof author.youtubeUrl === 'string' };
+    hasYoutube: !pending && typeof author.youtubeUrl === 'string', administrator: !pending && administrator === true };
   // Social links are consented profile data. They belong on the public profile,
   // never on every thread response.
   if (includeSocials) {
@@ -36,7 +37,7 @@ function authorDTO(author, paid, pending = false, includeSocials = false) {
 
 export function createCommentRoutes({ community, store, profiles, identity, validWrite, json, securityHeaders }) {
   if (!community) return async () => null;
-  const { comments, editorial, entitlements } = community;
+  const { comments, editorial, entitlements, permissions } = community;
 
   async function allowed(postId, signal) {
     const result = await editorial.get([postId], signal);
@@ -53,9 +54,19 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     } catch { return new Map(); }
   }
 
+  async function adminsFor(ids, signal) {
+    if (!ids.length || !permissions) return new Map();
+    const subjects = comments.subjectsForProfiles([...new Set(ids)]);
+    try {
+      const result = await permissions.get([...new Set(subjects.values())], signal);
+      return new Map([...subjects].map(([id, subject]) => [id, result.get(subject) === true]));
+    } catch { return new Map(); }
+  }
+
   async function reader(id, signal) {
     const verified = await verifiedReader(store, identity, id, signal);
     if (!verified) fail(401, 'not_authenticated');
+    requireSameSession(store, id, verified.session, signal);
     profiles.getOrCreate(verified.session.userId, verified.profile.displayName);
     return verified.session;
   }
@@ -68,16 +79,17 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     if (!profile) fail(404, 'not_found');
     const ids = comments.postIdsForProfile(profileId);
     if (!ids.length) fail(404, 'not_found');
-    const [paid, articles] = await Promise.all([
+    const [paid, articles, admins] = await Promise.all([
       avatar ? new Map() : paidFor([profileId], signal),
       editorial.get(ids, signal),
+      avatar ? new Map() : adminsFor([profileId], signal),
     ]);
     signal.throwIfAborted();
     if (!ids.some(id => articles.get(id)?.allowed === true)) fail(404, 'not_found');
     // Re-read after awaits: erasure/takedown must win over an in-flight public response.
     const current = comments.publicProfile(profileId);
     if (!current || !comments.postIdsForProfile(profileId).some(id => articles.get(id)?.allowed === true)) fail(404, 'not_found');
-    if (!avatar) return json(200, { profile: authorDTO(current, paid.get(profileId), false, true) });
+    if (!avatar) return json(200, { profile: authorDTO(current, paid.get(profileId), false, true, admins.get(profileId)) });
     const version = url.searchParams.get('v');
     if (typeof version !== 'string' || !/^[A-Za-z0-9_-]{32}$/.test(version)) fail(404, 'not_found');
     const bytes = comments.publicAvatar(profileId, version);
@@ -99,18 +111,24 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     if (request.method !== 'GET') return null;
     if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1) fail(400, 'invalid_input');
     const options = { cursor: url.searchParams.get('cursor'), viewerSubject: null };
+    let viewerSession = null;
     if (store.getSession(id)) {
-      try { options.viewerSubject = (await reader(id, signal)).userId; } catch { /* Public reading survives an unavailable identity provider. */ }
+      try { viewerSession = await reader(id, signal); options.viewerSubject = viewerSession.userId; } catch { /* Public reading survives an unavailable identity provider. */ }
     }
     const initial = comments.list(postId, options);
-    const [paid] = await Promise.all([
-      paidFor(initial.items.filter(item => item.status === 'published').map(item => item.author?.id).filter(Boolean), signal),
+    const authorIds = initial.items.filter(item => item.status === 'published').map(item => item.author?.id).filter(Boolean);
+    const [paid, admins] = await Promise.all([
+      paidFor(authorIds, signal), adminsFor(authorIds, signal),
       allowed(postId, signal),
     ]);
-    if (!store.getSession(id)) options.viewerSubject = null;
+    if (viewerSession) {
+      try { requireSameSession(store, id, viewerSession, signal); } catch { options.viewerSubject = null; }
+    }
     const result = comments.list(postId, options);
+    const reactions = comments.reactions.summaries(result.items.map(item => item.id), options.viewerSubject);
     return json(200, { ...result, items: result.items.map(item => ({ ...item,
-      author: authorDTO(item.author, paid.get(item.author?.id), item.status === 'pending') })) });
+      reactions: reactions.get(item.id),
+      author: authorDTO(item.author, paid.get(item.author?.id), item.status === 'pending', false, admins.get(item.author?.id)) })) });
   }
 
   return async (request, url, id, signal) => {
@@ -146,7 +164,7 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
       if (exportRoute) {
         if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1) fail(400, 'invalid_input');
         const session = await reader(id, signal);
-        return json(200, comments.ownExport(session.userId, { cursor: url.searchParams.get('cursor'), limit: 100 }));
+        return json(200, { ...comments.ownExport(session.userId, { cursor: url.searchParams.get('cursor'), limit: 100 }), reactions: comments.reactions.ownExport(session.userId).items });
       }
       const body = await input(request, eraseRoute ? ['profileId', 'confirm'] : ['version']);
       const session = await reader(id, signal);
