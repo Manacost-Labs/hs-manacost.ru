@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import stat
 import time
+from urllib.parse import parse_qsl
 import zlib
 
 UTC = dt.timezone.utc
@@ -92,7 +93,25 @@ def records(path, kind, since, now, byte_limit):
             raise Unknown("window_exceeds_read_budget")
 
 
+def is_root_image_proxy(uri):
+    path, _, query = uri.partition("?")
+    # The plugin routes a nonempty scalar parameter before the home template.
+    # Limit this distinction to its monitored root route; admin URLs are not
+    # image endpoints. Empty/array-only parameters must not hide home denials.
+    value = ""
+    for key, item in parse_qsl(query, keep_blank_values=True):
+        # PHP normalizes GET variable names, not only percent-encoding.
+        key = key.split("\x00", 1)[0].lstrip(" ").replace(" ", "_").replace(".", "_")
+        if key == "hs_tooltip_img":
+            value = item
+        elif key.startswith("hs_tooltip_img[") and "]" in key:
+            value = ""  # PHP replaces the scalar with an array.
+    return path == "/" and bool(value)
+
+
 def category(uri):
+    if is_root_image_proxy(uri):
+        return "media_5xx"
     uri, _, query = uri.partition("?")
     keys = {item.partition("=")[0] for item in query.split("&")}
     if "view_counter" in keys or uri.startswith(("/api/event", "/views/hit", "/view-counter", "/views-counter", "/wp-json/hs-views")):
@@ -108,18 +127,19 @@ def collect(access_log, error_log, *, now=None, window=300, byte_limit=4 * 1024 
     now = time.time() if now is None else now
     since = now - window
     counts = dict.fromkeys(("requests", "fivexx", "page_5xx", "admin_5xx", "media_5xx",
-                            "analytics_5xx", "root403", "admin403", "upstream_errors"), 0)
+                            "analytics_5xx", "root403", "image_proxy403", "admin403", "upstream_errors"), 0)
     try:
         for match, _line in records(Path(access_log), "access", since, now, byte_limit):
             fields = match[2].split()
-            uri = fields[1].split("?", 1)[0] if len(fields) >= 2 else ""
+            target = fields[1] if len(fields) >= 2 else ""
+            uri = target.split("?", 1)[0]
             code = int(match[3])
             counts["requests"] += 1
             if 500 <= code <= 599:
                 counts["fivexx"] += 1
-                counts[category(fields[1] if len(fields) >= 2 else "")] += 1
+                counts[category(target)] += 1
             if code == 403 and uri == "/":
-                counts["root403"] += 1
+                counts["image_proxy403" if is_root_image_proxy(target) else "root403"] += 1
             if code == 403 and uri.startswith("/wp-admin/") and uri not in {"/wp-admin/admin-ajax.php", "/wp-admin/css/"}:
                 counts["admin403"] += 1
         for _match, line in records(Path(error_log), "error", since, now, byte_limit):
