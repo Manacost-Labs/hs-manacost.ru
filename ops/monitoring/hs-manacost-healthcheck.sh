@@ -8,6 +8,13 @@ EXPECTED_A=("194.67.92.242" "186.246.28.244")
 RESOLVERS=("1.1.1.1" "77.88.8.8")
 LOG="${HEALTHCHECK_LOG:-/var/log/hs-manacost-healthcheck.log}"
 NGINX_HELPER="${HEALTHCHECK_NGINX_HELPER:-/usr/local/libexec/manacost-monitoring/nginx_recent.py}"
+ATTRIBUTION_LOG="${HEALTHCHECK_ATTRIBUTION_LOG:-/var/www/httpd-logs/hs-manacost.ru.5xx-attribution.log}"
+PLAUSIBLE_ACCESS_LOG="${HEALTHCHECK_PLAUSIBLE_ACCESS_LOG:-/var/www/httpd-logs/hs-manacost.ru.plausible.access.log}"
+FPM_HELPER="${HEALTHCHECK_FPM_HELPER:-/usr/local/libexec/manacost-monitoring/fpm_status.py}"
+FCGI_CLIENT="${HEALTHCHECK_FCGI_CLIENT:-/usr/bin/cgi-fcgi}"
+FPM_STATE_DIR="${HEALTHCHECK_FPM_STATE_DIR:-/run/lock/manacost-monitoring}"
+PHP84_MAX_CHILDREN="${HEALTHCHECK_PHP84_MAX_CHILDREN:-32}"
+PHP81_MAX_CHILDREN="${HEALTHCHECK_PHP81_MAX_CHILDREN:-48}"
 TMP_DIR="$(mktemp -d /tmp/hs-manacost-healthcheck.XXXXXX)" || exit 2
 STATUS=0
 
@@ -196,11 +203,53 @@ check_php_sockets() {
     done
 }
 
+check_one_php_fpm_status() {
+    local label="$1"
+    local socket="$2"
+    local max_children="$3"
+    local output rc
+
+    output="$(
+        timeout --kill-after=1s 4s env \
+            SCRIPT_NAME=/fpm-status-hs-manacost \
+            SCRIPT_FILENAME=/fpm-status-hs-manacost \
+            REQUEST_METHOD=GET \
+            QUERY_STRING=json \
+            "$FCGI_CLIENT" -bind -connect "$socket" 2>/dev/null \
+        | timeout --kill-after=1s 4s python3 "$FPM_HELPER" \
+            --pool "$label" \
+            --max-children "$max_children" \
+            --state-file "$FPM_STATE_DIR/hs-${label}-fpm.state" 2>/dev/null
+    )"
+    rc=$?
+    local expected_level=""
+    case "$rc" in
+        0) expected_level="OK" ;;
+        1) expected_level="FAIL" ;;
+        2) expected_level="UNKNOWN" ;;
+    esac
+    if [[ -z "$expected_level" || ! "$output" =~ ^(OK|FAIL|UNKNOWN)\ fpm_status\ pool=$label\  \
+          || "$output" == *$'\n'* || "$output" != "$expected_level fpm_status "* ]]; then
+        STATUS=1
+        log "UNKNOWN fpm_status pool=$label helper_exit=$rc"
+    else
+        [[ "$rc" -ne 0 ]] && STATUS=1
+        log "$output"
+    fi
+}
+
+check_php_fpm_status() {
+    check_one_php_fpm_status "php84" "/var/www/php-fpm/hs-manacost-php84.sock" "$PHP84_MAX_CHILDREN"
+    check_one_php_fpm_status "php81" "/var/www/php-fpm/6.sock" "$PHP81_MAX_CHILDREN"
+}
+
 check_recent_nginx_incidents() {
     local output rc
     output="$(timeout --kill-after=2s 20s python3 "$NGINX_HELPER" \
         --access-log "/var/www/httpd-logs/hs-manacost.ru.access.log" \
-        --error-log "/var/www/httpd-logs/hs-manacost.ru.error.log" 2>/dev/null)"
+        --error-log "/var/www/httpd-logs/hs-manacost.ru.error.log" \
+        --attribution-log "$ATTRIBUTION_LOG" \
+        --additional-access-log "$PLAUSIBLE_ACCESS_LOG" 2>/dev/null)"
     rc=$?
     if [[ "$rc" -gt 2 || ! "$output" =~ ^(OK|FAIL|UNKNOWN)\ nginx_recent\  || "$output" == *$'\n'* || ( "$rc" -eq 0 && "$output" != "OK nginx_recent "* ) ]]; then
         STATUS=1
@@ -327,6 +376,7 @@ main() {
         log "START mode=quick"
         check_origin_services
         check_php_sockets
+        check_php_fpm_status
         check_swap_pressure
         check_recent_nginx_incidents
         log "END mode=quick status=$STATUS"
@@ -336,6 +386,7 @@ main() {
     check_dns
     check_origin_services
     check_php_sockets
+    check_php_fpm_status
     check_swap_pressure
     check_origin_firewall
     check_admin_monitor_freshness
