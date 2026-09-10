@@ -22,13 +22,31 @@
   const requests = new Set();
   const stale = new Error('stale');
   let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null;
-  let parentId = null, retryPayload = null, busy = false;
+  let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
   const say = message => { status.textContent = message; };
   const current = ticket => visible && ticket === generation;
+  const community = window.hsManacostReaderCommunity?.create({
+    root, request, write: () => write(), getMe: () => me, getRows: () => rows.filter(valid),
+    sessionKey: () => `${generation}:${csrf}`, expired, say, reload: () => loadComments(),
+    updateReactions(id, reactions) {
+      const item = rows.find(row => row.id === id);
+      if (item) { item.reactions = reactions; render(); }
+    },
+    replaceComment(id, replacement) {
+      const index = rows.findIndex(row => row.id === id);
+      if (index >= 0) { rows[index] = { ...rows[index], ...replacement }; render(); }
+    },
+    setCommentingBlocked(blocked) {
+      commentingBlocked = blocked === true; controls();
+      if (commentingBlocked) say('Вам запрещено комментировать. Черновик сохранён.');
+    },
+    offerLogin() { login.hidden = false; say('Войдите через HearthPulse, чтобы поставить реакцию.'); login.querySelector('a')?.focus(); },
+  });
 
   function controls() {
     body.disabled = consent.disabled = busy || Boolean(retryPayload);
-    submit.disabled = retry.disabled = exportButton.disabled = eraseButton.disabled = busy;
+    submit.disabled = retry.disabled = busy || commentingBlocked;
+    exportButton.disabled = eraseButton.disabled = busy;
     submit.hidden = Boolean(retryPayload); retry.hidden = !retryPayload;
     root.querySelectorAll('[data-comment-action]').forEach(button => { button.disabled = busy || Boolean(retryPayload); });
     cancel.disabled = busy || Boolean(retryPayload);
@@ -44,7 +62,7 @@
     reply.textContent = ''; reply.hidden = cancel.hidden = true; controls();
   }
   function resetPrivate() {
-    me = null; csrf = ''; busy = false; clearDraft();
+    me = null; csrf = ''; busy = false; commentingBlocked = false; community?.reset(); clearDraft();
     composerIdentity?.replaceChildren();
     form.hidden = dataTools.hidden = true; login.hidden = false;
     rows = rows.filter(item => item.status !== 'pending'); render();
@@ -81,7 +99,8 @@
   }
   const write = () => ({ 'Content-Type': 'application/json', 'X-Reader-CSRF': csrf });
   function validAuthor(author, pending) {
-    if (!author || !uuid.test(author.id) || typeof author.name !== 'string' || author.name.length > 160) return false;
+    if (!author || !uuid.test(author.id) || typeof author.name !== 'string' || author.name.length > 160
+      || (author.administrator !== undefined && typeof author.administrator !== 'boolean')) return false;
     const platformFlags = (author.hasTwitch === undefined && author.hasYoutube === undefined)
       || (typeof author.hasTwitch === 'boolean' && typeof author.hasYoutube === 'boolean');
     return pending ? author.profileUrl === null && author.avatarUrl === null && author.paidSubscriber === false && platformFlags
@@ -135,18 +154,22 @@
   }
   function authorBadge(service, label) {
     const badge = element('span', `mc-comments__author-badge mc-comments__author-badge--${service}`);
+    if (service === 'administrator') { badge.textContent = label; return badge; }
     badge.setAttribute('role', 'img'); badge.setAttribute('aria-label', label); badge.title = label;
+    if (service === 'twitch' || service === 'youtube') {
+      const template = $('[data-comments-' + service + '-icon]');
+      if (template?.content.firstElementChild) badge.append(template.content.firstElementChild.cloneNode(true));
+      return badge;
+    }
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    if (service === 'twitch') path.setAttribute('d', 'M5.25 3.5h13.5v12.75H13.5L10 19.75v-3.5H5.25V3.5Z M10 8v4M14 8v4');
-    else if (service === 'youtube') path.setAttribute('d', 'M21.3 7.1a2.77 2.77 0 0 0-1.95-1.96C17.63 4.67 12 4.67 12 4.67s-5.63 0-7.35.47A2.77 2.77 0 0 0 2.7 7.1C2.23 8.82 2.23 12 2.23 12s0 3.18.47 4.9a2.77 2.77 0 0 0 1.95 1.96c1.72.47 7.35.47 7.35.47s5.63 0 7.35-.47a2.77 2.77 0 0 0 1.95-1.96c.47-1.72.47-4.9.47-4.9s0-3.18-.47-4.9Z M10 15.5l5-3.5-5-3.5v7Z');
-    else path.setAttribute('d', 'm4 8 4.25 3.25L12 5l3.75 6.25L20 8l-1.7 10H5.7L4 8Z M6.25 20h11.5');
+    path.setAttribute('d', 'm4 8 4.25 3.25L12 5l3.75 6.25L20 8l-1.7 10H5.7L4 8Z M6.25 20h11.5');
     svg.append(path); badge.append(svg); return badge;
   }
   function commentNode(item) {
     const node = element('article', `mc-comments__comment${item.parentId ? ' mc-comments__reply' : ''}`);
-    node.dataset.pending = String(item.status === 'pending');
+    node.dataset.pending = String(item.status === 'pending'); node.dataset.commentId = item.id;
     if (item.status === 'deleted') { node.textContent = 'Комментарий удалён.'; return node; }
     if (item.status === 'pending') node.append(element('strong', 'mc-comments__pending', 'Ваш комментарий · На проверке'));
     else {
@@ -157,6 +180,7 @@
       identityText.append(element('span', 'mc-comments__name', item.author.name));
       if (item.author.hasTwitch) identityText.append(authorBadge('twitch', 'Автор ведёт Twitch'));
       if (item.author.hasYoutube) identityText.append(authorBadge('youtube', 'Автор ведёт YouTube'));
+      if (item.author.administrator === true) identityText.append(authorBadge('administrator', 'Администратор'));
       if (item.author.paidSubscriber === true) identityText.append(authorBadge('paid', 'Платный подписчик'));
       author.append(identityText); header.append(author);
       const time = element('time', 'mc-comments__meta', new Date(item.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
@@ -173,7 +197,8 @@
       button.addEventListener('click', callback); actions.append(button);
     }
     if (item.status === 'published' && !item.parentId) action('Ответить', () => {
-      if (!me) { login.querySelector('a')?.focus(); return; }
+      if (!me) { login.hidden = false; say('Войдите через HearthPulse, чтобы ответить.'); login.querySelector('a')?.focus(); return; }
+      if (commentingBlocked) { say('Вам запрещено комментировать. Черновик сохранён.'); return; }
       parentId = item.id; reply.textContent = `Ответ для ${item.author.name}`;
       reply.hidden = cancel.hidden = false; body.focus();
     });
@@ -184,6 +209,7 @@
   function render() {
     list.replaceChildren(...rows.filter(valid).map(commentNode));
     more.hidden = !cursor; controls();
+    community?.render();
   }
   async function loadMe(initial = false) {
     const { response, data } = await request('/reader-api/v1/me');
@@ -195,6 +221,7 @@
     me = data.profile; csrf = data.csrfToken;
     renderComposer();
     form.hidden = dataTools.hidden = false; login.hidden = true;
+    community?.render();
   }
   async function loadComments(append = false, prefetched = null) {
     const ticket = generation;
@@ -209,7 +236,7 @@
       const page = data.items.filter(valid);
       rows = append ? [...rows, ...page.filter(item => !rows.some(old => old.id === item.id))] : page;
       cursor = data.nextCursor; render();
-      say(rows.length ? '' : 'Комментариев пока нет. Начните обсуждение.');
+      say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.length ? '' : 'Комментариев пока нет. Начните обсуждение.');
       return true;
     } catch (error) {
       if (error === stale || !current(ticket)) return;
@@ -249,11 +276,15 @@
     finally { if (current(ticket)) { busy = false; controls(); } }
   }
   async function send(payload) {
-    if (!me || busy) return;
+    if (!me || busy || commentingBlocked) return;
     const ticket = generation; busy = true; controls();
     try {
       const { response, data } = await request(endpoint, { method: 'POST', headers: write(), body: JSON.stringify(payload) });
       if (response.status === 401) { expired(); return; }
+      if (response.status === 403 && data?.error === 'commenting_blocked') {
+        commentingBlocked = true; retryPayload = null;
+        say('Вам запрещено комментировать. Черновик сохранён.'); return;
+      }
       if (response.status === 409) {
         retryPayload = null; consent.checked = false;
         await loadMe(); say('Профиль или обсуждение изменились. Проверьте текст и подтвердите согласие ещё раз.'); return;
@@ -273,6 +304,7 @@
   }
   form.addEventListener('submit', event => {
     event.preventDefault(); if (!me || busy || retryPayload) return;
+    if (commentingBlocked) { say('Вам запрещено комментировать. Черновик сохранён.'); return; }
     const payload = { body: body.value.trim(), parentId, operationId: crypto.randomUUID(), profileVersion: me.version, publicConsent: true };
     if (Array.from(payload.body).length < 2 || Array.from(payload.body).length > 1000 || new TextEncoder().encode(JSON.stringify(payload)).length > 4096) {
       say('Комментарий должен содержать от 2 до 1000 символов и помещаться в 4 КБ.'); return;
@@ -289,20 +321,24 @@
 
   exportButton.addEventListener('click', async () => {
     if (!me || busy) return;
-    const ticket = generation, items = [], seen = new Set(); let next = null, complete = false;
+    const ticket = generation, items = [], seen = new Set(); let next = null, complete = false, reactions = [];
     busy = true; controls();
     try {
       for (let page = 0; page < 50; page++) {
         const { response, data } = await request(`/reader-api/v1/community/export${next ? `?cursor=${next}` : ''}`);
         if (response.status === 401) { expired(); return; }
         if (!response.ok || !Array.isArray(data?.items) || data.items.length > 100) throw new Error('export_failed');
+        if (page === 0 && data.reactions !== undefined) {
+          if (!Array.isArray(data.reactions) || data.reactions.length > 1000) throw new Error('export_failed');
+          reactions = data.reactions;
+        }
         items.push(...data.items);
         if (data.nextCursor === null) { complete = true; break; }
         if (!uuid.test(data.nextCursor) || seen.has(data.nextCursor)) throw new Error('export_cursor');
         next = data.nextCursor; seen.add(next);
       }
       if (!complete || !current(ticket)) throw new Error('export_incomplete');
-      const url = URL.createObjectURL(new Blob([JSON.stringify({ items }, null, 2)], { type: 'application/json' }));
+      const url = URL.createObjectURL(new Blob([JSON.stringify({ items, reactions }, null, 2)], { type: 'application/json' }));
       const link = element('a'); link.href = url; link.download = 'manacost-comments.json'; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000); say('Выгрузка подготовлена.');
     } catch (error) { if (error !== stale && current(ticket)) say('Не удалось подготовить полную выгрузку. Ничего не скачано.'); }

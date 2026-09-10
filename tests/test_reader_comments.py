@@ -101,7 +101,7 @@ echo json_encode(array($pilot, $pilot_assets, $outside, $outside_assets, $public
 '''
         pilot, assets, outside, outside_assets, public_assets, requested, invalid_id = self.evaluate(code)
         self.assertTrue(pilot.endswith('/reader-comments-page.php'))
-        self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-comments'])
+        self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
         self.assertEqual(outside, '/native.php')
         self.assertEqual(outside_assets, [])
         self.assertEqual(public_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader', 'hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-public-profile'])

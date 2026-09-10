@@ -21,10 +21,11 @@ const json = (response, status, value) => {
   response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
   response.end(JSON.stringify(value));
 };
-const shell = (file, call, extra = '') => execFileSync('php', ['-r', `define('ABSPATH','/fixture/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$p){return '/article/';} require $argv[1]; ${extra} echo ${call};`, file], { encoding: 'utf8' });
+const shell = (file, call, extra = '') => execFileSync('php', ['-r', `define('ABSPATH','/fixture/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function esc_html($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$p){return '/article/';} require $argv[1]; ${extra} echo ${call};`, file], { encoding: 'utf8' });
 const commentShell = shell(`${plugin}/comments.php`, 'hs_reader_comments_shell()');
 const profileShell = shell(`${plugin}/public-profile.php`, `hs_reader_public_profile_shell('${id}')`);
 const assets = new Map([
+  ['/community-ui.js', ['text/javascript', readFileSync(`${plugin}/community-ui.js`)]],
   ['/comments.js', ['text/javascript', readFileSync(`${plugin}/comments.js`)]],
   ['/public-profile.js', ['text/javascript', readFileSync(`${plugin}/public-profile.js`)]],
   ['/comments.css', ['text/css', readFileSync(`${plugin}/comments.css`)]],
@@ -65,12 +66,13 @@ const server = createServer(async (request, response) => {
   if (asset) { response.writeHead(200, { 'content-type': asset[0] }); response.end(asset[1]); return; }
   if (request.url === '/') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${commentShell}<script src=/comments.js></script>`); return;
+    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${commentShell}<script src=/community-ui.js></script><script src=/comments.js></script>`); return;
   }
   if (request.url === '/profile') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(`<!doctype html><meta charset=utf-8><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${profileShell}<script src=/public-profile.js></script>`); return;
   }
+  if (request.url === '/reader-api/v1/community/me') { json(response, 200, { canModerateComments: false, commentingBlocked: false }); return; }
   if (request.url === '/reader-api/v1/me') {
     if (hold.me) { request.resume(); held.me.push({ response }); return; }
     json(response, 200, me(meVersion)); return;
@@ -209,8 +211,8 @@ try {
   assert.equal(await page.locator('[data-public-profile-avatar]').getAttribute('src'), publicProfile.avatarUrl);
   assert.equal(await page.locator('[data-public-profile-twitch]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
   assert.equal(await page.locator('[data-public-profile-youtube]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
-  assert.equal(await page.locator('[data-public-profile-twitch-mark]').isVisible(), true);
-  assert.equal(await page.locator('[data-public-profile-youtube-mark]').isVisible(), true);
+  assert.equal(await page.locator('[data-public-profile-twitch] svg').isVisible(), true);
+  assert.equal(await page.locator('[data-public-profile-youtube] svg').isVisible(), true);
   assert.equal(await page.locator('[data-public-profile-paid]').getAttribute('aria-label'), 'Платный подписчик');
   publicProfile = author({ twitchUrl: 'https://evil.test/channel', youtubeUrl: 'https://youtube.com/watch?v=not-a-channel' });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();

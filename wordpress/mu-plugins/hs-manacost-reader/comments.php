@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/platform-icons.php';
+
 /** Render a cache-safe shell; profile data arrives only from the independent BFF. */
 function hs_reader_comments_shell(): string {
 	$post_id   = (int) get_the_ID();
@@ -15,6 +17,7 @@ function hs_reader_comments_shell(): string {
 	$path      = is_string( $path ) && str_starts_with( $path, '/' ) && ! str_starts_with( $path, '//' ) ? $path : '/';
 	$login     = '/reader-auth/start?returnTo=' . rawurlencode( $path . '#reader-comments' );
 	return '<section id="reader-comments" class="mc-reader-ui mc-comments" data-mc-comments data-post-id="' . esc_attr( (string) $post_id ) . '" aria-labelledby="reader-comments-title">'
+		. '<template data-comments-twitch-icon>' . hs_reader_platform_icon( 'twitch' ) . '</template><template data-comments-youtube-icon>' . hs_reader_platform_icon( 'youtube' ) . '</template>'
 		. '<header class="mc-comments__header"><p class="mc-comments__eyebrow">Обсуждение</p><h2 id="reader-comments-title">' . esc_html__( 'Комментарии', 'hs-manacost-reader' ) . '</h2></header>'
 		. '<p class="mc-comments__status" data-comments-status role="status" aria-live="polite">' . esc_html__( 'Загружаем комментарии…', 'hs-manacost-reader' ) . '</p>'
 		. '<div class="mc-comments__list" data-comments-list></div><form class="mc-comments__composer" data-comments-form hidden>'
