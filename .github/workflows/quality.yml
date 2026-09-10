@@ -37,6 +37,8 @@ jobs:
           node-version: '22.22.2'
       - name: Install reader test dependencies
         run: npm ci --prefix services/reader --ignore-scripts
+      - name: Install isolated media routing test dependency
+        run: sudo apt-get update && sudo apt-get install -y nginx
       - name: Check repository
         run: make check
 

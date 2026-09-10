@@ -1,6 +1,12 @@
 .PHONY: check composer-validate code-quality php-lint test reader-test reader-browser-test shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
 
-check: composer-validate php-lint contract-check skill-audit test reader-test shell-check
+.PHONY: nginx-media-test
+
+check: composer-validate php-lint contract-check skill-audit test reader-test shell-check nginx-media-test
+
+nginx-media-test:
+	@python3 ops/nginx/tests/check_media_negotiation.py
+	@python3 ops/nginx/media-negotiation/test_deploy.py
 
 composer-validate:
 	@composer validate --strict --no-check-publish
