@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,6 +19,23 @@ function sanitize_key($value) { return preg_replace('/[^a-z0-9_\\-]/', '', strto
 
 
 class MediaUploadAcceleratorTest(unittest.TestCase):
+    def test_silent_partial_size_failure_is_retried_without_optimizer_handoff(self) -> None:
+        result = self.run_php(f"""
+        define('ABSPATH', '/');
+        function add_filter(...$args) {{}}
+        function add_action(...$args) {{}}
+        function wp_attachment_is_image($id) {{ return true; }}
+        function wp_update_image_subsizes($id) {{ return ['sizes' => []]; }}
+        function wp_get_missing_image_subsizes($id) {{ return ['large' => []]; }}
+        function is_wp_error($value) {{ return false; }}
+        function as_schedule_single_action($time, $hook, $args, $group, $unique) {{ $GLOBALS['retry'] = $args; }}
+        class HS_Local_Image_Optimizer_WordPress {{ public static function queue_attachment($id) {{ $GLOBALS['optimized'] = true; }} }}
+        require {json.dumps(str(PLUGIN))};
+        HS_Media_Upload_Accelerator::generate_deferred_subsizes(42);
+        echo json_encode(['retry' => $GLOBALS['retry'] ?? null, 'optimized' => $GLOBALS['optimized'] ?? false]);
+        """)
+        self.assertEqual(result, {'retry': [42, 1], 'optimized': False})
+
     def run_php(self, script: str) -> dict | list[str] | bool:
         completed = subprocess.run(
             [PHP_BINARY, "-r", script],
@@ -132,6 +150,39 @@ class MediaUploadAcceleratorTest(unittest.TestCase):
             {"optimizer_decision_during_subsizes": False, "optimized": [42]},
         )
 
+    def test_deferred_worker_loads_core_image_helper_before_optimizer_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            helper = Path(temp_dir) / "wp-admin/includes/image.php"
+            helper.parent.mkdir(parents=True)
+            helper.write_text(
+                "<?php\n"
+                "$GLOBALS['image_helper_loaded'] = true;\n"
+                "function wp_update_image_subsizes($id) { return ['sizes' => ['td_218x150' => []]]; }\n",
+                encoding="utf-8",
+            )
+            script = f"""
+            define('ABSPATH', {json.dumps(str(Path(temp_dir)) + '/')});
+            {REQUEST_HELPERS}
+            function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+            function add_action($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+            function wp_doing_ajax() {{ return false; }}
+            function wp_attachment_is_image($id) {{ return true; }}
+            function is_wp_error($value) {{ return false; }}
+            final class HS_Local_Image_Optimizer_WordPress {{
+                public static function queue_attachment($id) {{ $GLOBALS['optimized'][] = $id; }}
+            }}
+            require {json.dumps(str(PLUGIN))};
+            HS_Media_Upload_Accelerator::generate_deferred_subsizes(42);
+            echo json_encode([
+                'helper_loaded' => $GLOBALS['image_helper_loaded'] ?? false,
+                'optimized' => $GLOBALS['optimized'] ?? [],
+            ]);
+            """
+            self.assertEqual(
+                self.run_php(script),
+                {"helper_loaded": True, "optimized": [42]},
+            )
+
     def test_deferred_worker_retries_when_image_editor_throws(self) -> None:
         script = f"""
         define('ABSPATH', '/');
@@ -171,6 +222,25 @@ class MediaUploadAcceleratorTest(unittest.TestCase):
                 ],
                 "optimizer_is_reenabled": True,
             },
+        )
+
+    def test_deferred_worker_records_final_image_editor_failure(self) -> None:
+        script = f"""
+        define('ABSPATH', '/');
+        {REQUEST_HELPERS}
+        function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+        function add_action($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+        function wp_doing_ajax() {{ return false; }}
+        function wp_attachment_is_image($id) {{ return true; }}
+        function wp_update_image_subsizes($id) {{ throw new RuntimeException('image editor unavailable'); }}
+        function update_post_meta($id, $key, $message) {{ $GLOBALS['recorded'] = [$id, $key, $message]; }}
+        require {json.dumps(str(PLUGIN))};
+        HS_Media_Upload_Accelerator::generate_deferred_subsizes(42, 2);
+        echo json_encode($GLOBALS['recorded'] ?? null);
+        """
+        self.assertEqual(
+            self.run_php(script),
+            [42, "_hs_media_upload_accelerator_error", "image editor unavailable"],
         )
 
 
