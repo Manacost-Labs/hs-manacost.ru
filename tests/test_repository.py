@@ -91,6 +91,27 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("successful staging deployment", production)
         self.assertIn("smoke-check.sh production", production)
 
+    def test_staging_release_purges_only_the_reader_account_page_cache(self) -> None:
+        staging = (ROOT / ".github/workflows/deploy-staging.yml").read_text(encoding="utf-8")
+        purge_script = ROOT / "ops/purge-reader-page-cache.sh"
+
+        self.assertTrue(purge_script.is_file())
+        script = purge_script.read_text(encoding="utf-8")
+        self.assertIn("test-hs-manacost-wordpress", script)
+        self.assertIn("test.hs-manacost.ru", script)
+        self.assertIn("rocket_clean_files", script)
+        self.assertIn("rocket_clean_minify", script)
+        self.assertIn("https://test.hs-manacost.ru/account/", script)
+        self.assertIn("wp_parse_url", script)
+        self.assertIn('rocket_clean_files( array( $account_url ), null, false )', script)
+        self.assertNotIn("production", script)
+        self.assertIn("Purge reader account page cache", staging)
+        self.assertIn("./ops/purge-reader-page-cache.sh staging", staging)
+        self.assertLess(
+            staging.index("Deploy isolated staging"),
+            staging.index("Purge reader account page cache"),
+        )
+
     def test_required_ai_skills_are_pinned(self) -> None:
         registry = json.loads((ROOT / "config/ai-skills.json").read_text(encoding="utf-8"))
         baseline = set(registry["baseline_for_code_changes"])
