@@ -9,6 +9,8 @@
   --mc-ui-focus: #9ccbd3;
   --mc-ui-danger: #ffb4ab;
   --mc-ui-on-accent: #152d3a;
+  --mc-ui-field: #102a35;
+  --mc-ui-accent-hover: #e3c38f;
   --mc-ui-radius: 8px;
   --mc-ui-body: Roboto, Arial, sans-serif;
   --mc-ui-display: "Roboto Condensed", Arial, sans-serif;
@@ -55,8 +57,8 @@
   padding-inline: 8px;
 }
 .mc-reader-ui .mc-ui-button:hover:not(:disabled) {
-  background: #e3c38f;
-  border-color: #e3c38f;
+  background: var(--mc-ui-accent-hover);
+  border-color: var(--mc-ui-accent-hover);
 }
 .mc-reader-ui .mc-ui-button--secondary:hover:not(:disabled) {
   background: rgb(242 244 239 / 7%);
@@ -82,7 +84,7 @@
   padding: 12px 14px;
   border: 1px solid var(--mc-ui-border);
   border-radius: var(--mc-ui-radius);
-  background: #102a35;
+  background: var(--mc-ui-field);
   color: var(--mc-ui-text);
   font: 400 16px/1.5 var(--mc-ui-body);
   box-shadow: none;

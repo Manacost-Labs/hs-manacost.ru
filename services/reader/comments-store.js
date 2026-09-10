@@ -104,7 +104,19 @@ export class ReaderComments {
       return this.dto({ ...row, public_name: profile.display_name, public_bio: profile.bio, public_class: profile.favorite_class, public_avatar_version: profile.avatar_version, public_twitch_url: profile.twitch_url, public_youtube_url: profile.youtube_url }, profile.id);
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
   }
-  /** Caller holds the comment transaction and has verified explicit versioned consent. */
+  /** Refresh an existing public identity, never publish private edits implicitly. */
+  refreshProfile(subject, { profileVersion, publicConsent } = {}) {
+    if (!Number.isSafeInteger(profileVersion) || profileVersion < 1 || publicConsent !== true) fail(400, 'invalid_input');
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const profile = this.profile(subject);
+      if (profile.version !== profileVersion) fail(409, 'profile_version_conflict');
+      if (!this.publicProfile(profile.id)) fail(404, 'public_profile_not_found');
+      this.publishProfile(profile, this.now());
+      this.db.exec('COMMIT');
+    } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
+  }
+  /** Caller holds a transaction and has verified explicit versioned consent. */
   publishProfile(profile, now) {
     this.db.prepare(`INSERT INTO reader_comment_public_profiles (profile_id,issuer,name,bio,favorite_class,avatar,avatar_version,twitch_url,youtube_url,profile_version,consent_revision,approved_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)

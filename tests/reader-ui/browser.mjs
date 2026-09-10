@@ -8,9 +8,10 @@ import { chromium } from 'playwright';
 // Self-contained anonymous shell and synthetic API only; never use a live site.
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const plugin = `${root}wordpress/mu-plugins/hs-manacost-reader/`;
-const shell = execFileSync('php', ['-r',
-  "define('ABSPATH','/fixture/'); function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
-  `${plugin}account.php`], { encoding: 'utf8' });
+const renderShell = enabled => execFileSync('php', ['-r',
+  "define('ABSPATH','/fixture/'); function hs_reader_comments_enabled(){return $GLOBALS['argv'][2] === '1';} function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
+  `${plugin}account.php`, enabled ? '1' : '0'], { encoding: 'utf8' });
+let shell = renderShell(true);
 const assets = new Map([
   ['/ui.css', ['text/css', readFileSync(`${plugin}ui.css`)]],
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
@@ -79,6 +80,8 @@ try {
   let avatarDelay = 0;
   const profileWrites = [];
   const avatarWrites = [];
+  const publicationWrites = [];
+  let publicationStatus = 200;
   const fulfillMe = async route => {
     meCalls += 1;
     return route.fulfill({ status: profileStatus, json: profile }).catch(() => {});
@@ -98,6 +101,10 @@ try {
     avatarWrites.push({ method: request.method(), headers: request.headers(), size: request.postDataBuffer()?.length || 0 });
     if (avatarDelay) await new Promise(resolve => setTimeout(resolve, avatarDelay));
     return route.fulfill({ status: avatarWriteStatus, json: avatarWriteStatus === 200 ? { profile: avatarWriteResponse } : { code: 'invalid_avatar' } });
+  });
+  await page.route('**/reader-api/v1/community/profile', route => {
+    publicationWrites.push({ headers: route.request().headers(), body: route.request().postDataJSON() });
+    return route.fulfill({ status: publicationStatus, json: publicationStatus === 200 ? { profile: profileWriteResponse } : { error: 'public_profile_not_found' } });
   });
   await page.route('**/reader-auth/logout', async route => {
     logoutCalls += 1;
@@ -198,14 +205,40 @@ try {
       youtubeUrl: 'https://youtube.com/@Manacost',
     }),
   });
-  for (const width of [1440, 320, 390]) {
+  for (const width of [1440, 1024, 768, 560, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
     assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Читатель Манакоста');
     await assertFits();
+    const geometry = await page.evaluate(() => {
+      const rect = selector => { const { x, y, width, height, bottom, right } = document.querySelector(selector).getBoundingClientRect(); return { x, y, width, height, bottom, right }; };
+      return { favorite: rect('.mc-reader__class-mark'), edit: rect('[data-reader-open-editor]') };
+    });
+    const { favorite, edit } = geometry;
+    assert.ok(edit.y >= favorite.bottom + 12 || edit.x >= favorite.right + 12,
+      `class and edit action need a deliberate gap at ${width}px: ${JSON.stringify(geometry)}`);
+    if (edit.y < favorite.bottom) assert.ok(Math.abs(edit.height - favorite.height) <= 1,
+      'adjacent class and edit controls must have equal heights');
     await capture(`authenticated-${width}`);
   }
+  shell = renderShell(false);
+  await ready();
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
+  assert.equal(await page.locator('.mc-reader__publication').isVisible(), false, 'comments-off hosts do not advertise publication');
+  assert.equal(await page.locator('[data-reader-publish-profile]').isDisabled(), true);
+  assert.equal(await page.locator('[data-reader-save-profile]').isEnabled(), true, 'private editing remains available when comments are disabled');
+  assert.match(await page.locator('[data-reader-social-help]').textContent(), /не публикует ссылки/);
+  assert.equal(publicationWrites.length, 0);
+  // Reproduce an older cached shell receiving the new script during deployment.
+  shell = renderShell(true).replace(/<section class="mc-reader__publication"[\s\S]*?<\/section>/u, '');
+  await ready();
+  await page.getByRole('button', { name: 'Изменить профиль' }).click();
+  assert.equal(await page.locator('.mc-reader__publication').count(), 0);
+  assert.equal(await page.locator('[data-reader-save-profile]').isEnabled(), true, 'legacy cached markup still supports private editing');
+  assert.equal(await page.locator('[data-reader-display-name]').inputValue(), 'Читатель Манакоста');
+  shell = renderShell(true);
+  await ready();
   const twitchMark = page.getByRole('link', { name: 'Открыть Twitch-канал', exact: true });
   const youtubeMark = page.getByRole('link', { name: 'Открыть YouTube-канал', exact: true });
   assert.equal(await twitchMark.isVisible(), true, 'a saved Twitch channel must be a compact link immediately after the name');
@@ -253,13 +286,13 @@ try {
       kickerRect: kicker ? rect(kicker) : null,
       identityRect: identity ? rect(identity) : null,
       classRect: classMark ? rect(classMark) : null,
-      classParent: classMark?.parentElement?.className || '',
+      classWithinIdentity: Boolean(classMark?.closest('.mc-reader__identity-copy')),
     };
   });
   assert.equal(profileHierarchy.kicker, 'Ваш профиль', 'the profile overview must identify itself as a reader profile');
   assert.ok(profileHierarchy.kickerRect && profileHierarchy.identityRect && profileHierarchy.kickerRect.bottom <= profileHierarchy.identityRect.bottom, 'profile label must stay within the identity composition');
   assert.ok(profileHierarchy.classRect && profileHierarchy.classRect.width > 0, 'favorite class remains part of the visible profile passport');
-  assert.equal(profileHierarchy.classParent, 'mc-reader__identity-copy', 'favorite class must stay with the identity rather than occupying a detached profile column');
+  assert.equal(profileHierarchy.classWithinIdentity, true, 'favorite class must stay with the identity rather than occupying a detached profile column');
   assert.ok(profileHierarchy.classRect.width < 260, 'favorite class must remain a compact token, not a wide secondary panel');
   const accountMenu = page.locator('[data-reader-account-menu]');
   const accountSummary = page.getByText('Аккаунт', { exact: true });
@@ -342,13 +375,15 @@ try {
       const rect = node => { const r = node.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width, height: r.height }; };
       return {
         preview: Boolean(form.querySelector('[data-reader-editor-avatar]')),
-        controls: [...form.querySelectorAll('input:not([type=file]), textarea, select')].map(element => ({ ...rect(element), social: Object.hasOwn(element.dataset, 'readerTwitch') || Object.hasOwn(element.dataset, 'readerYoutube') })),
+        controls: [...form.querySelectorAll('input:not([type=file]):not([type=checkbox]), textarea, select')].map(element => ({ ...rect(element), social: Object.hasOwn(element.dataset, 'readerTwitch') || Object.hasOwn(element.dataset, 'readerYoutube') })),
+        consent: rect(form.querySelector('.mc-reader__publication-consent')),
         photo: rect(form.querySelector('.mc-reader__preview')),
         upload: rect(form.querySelector('[data-reader-avatar-input]')),
       };
     });
     assert.equal(editorGeometry.preview, true, 'the photo must be visible next to its upload control inside the editor');
     assert.ok(editorGeometry.controls.every(r => r.height >= 44 && r.width > 0), 'all fields keep usable targets');
+    assert.ok(editorGeometry.consent.height >= 44 && editorGeometry.consent.width > 0, 'publication consent has a full clickable label');
     const primaryControls = editorGeometry.controls.filter(control => !control.social);
     assert.ok(primaryControls.every(r => Math.abs(r.left - primaryControls[0].left) < 1 && Math.abs(r.right - primaryControls[0].right) < 1), 'name, bio and class share one field alignment');
     assert.ok(editorGeometry.upload.left >= editorGeometry.photo.left && editorGeometry.upload.right <= editorGeometry.photo.right, 'upload control stays in the photo component');
@@ -426,6 +461,33 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
   assert.equal(profileWrites.at(-1).body.version, 2, 'retry after conflict must use the reloaded version');
 
+  const publicationConsent = page.locator('[data-reader-public-consent]');
+  const publicationButton = page.locator('[data-reader-publish-profile]');
+  assert.equal(publicationWrites.length, 0, 'saving private fields never silently publishes');
+  assert.equal(await publicationConsent.isChecked(), false);
+  assert.equal(await publicationButton.isDisabled(), true);
+  await publicationConsent.check();
+  await bioField.fill('Ещё не сохранено');
+  assert.equal(await publicationConsent.isChecked(), false, 'editing invalidates previous publication consent');
+  await publicationConsent.check();
+  assert.equal(await publicationButton.isDisabled(), true, 'unsaved fields cannot be mistaken for the published snapshot');
+  await bioField.fill(profileWriteResponse.bio);
+  await publicationConsent.check();
+  publicationStatus = 404;
+  await publicationButton.click();
+  await editorStatus.filter({ hasText: 'Публичный профиль появится после первого комментария' }).waitFor();
+  publicationStatus = 200;
+  await publicationButton.click();
+  await editorStatus.filter({ hasText: 'Профиль в комментариях обновлён' }).waitFor();
+  assert.deepEqual(publicationWrites.at(-1).body, { profileVersion: 3, publicConsent: true });
+  assert.equal(publicationWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
+  assert.equal(await publicationConsent.isChecked(), false, 'consent is not carried to future versions');
+  assert.equal(await publicationButton.isDisabled(), true);
+
+  await publicationConsent.check();
+  await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') });
+  assert.equal(await publicationConsent.isChecked(), false, 'even an invalid avatar edit clears prior publication consent');
+  assert.equal(await publicationButton.isDisabled(), true);
   await bioField.fill('Этот текст нельзя потерять при загрузке фото.');
   avatarWriteResponse = profileDto({ version: 4, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost', avatarUrl: '/reader-api/v1/profile/avatar?v=avatar4' });
   avatarDelay = 250;

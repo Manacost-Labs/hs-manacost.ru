@@ -123,6 +123,23 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     try {
       if (publicMatch) return await publicProfile(request, url, publicMatch, signal);
       if (threadMatch) return await thread(request, url, Number(threadMatch[1]), id, signal);
+      if (eraseRoute && request.method === 'PUT') {
+        if (!store.getSession(id)) fail(401, 'not_authenticated');
+        if (!validWrite(request, id)) fail(403, 'invalid_request');
+        if (url.search) fail(400, 'invalid_input');
+        const body = await input(request, ['profileVersion', 'publicConsent']);
+        const subject = store.getSession(id).userId;
+        const profile = profiles.getOrCreate(subject);
+        const ids = comments.postIdsForProfile(profile.id);
+        if (!ids.length) fail(404, 'public_profile_not_found');
+        const articles = await editorial.get(ids, signal);
+        const session = await reader(id, signal);
+        signal.throwIfAborted();
+        if (session.userId !== subject) fail(401, 'not_authenticated');
+        if (!comments.postIdsForProfile(profile.id).some(postId => articles.get(postId)?.allowed === true)) fail(404, 'public_profile_not_found');
+        comments.refreshProfile(subject, body);
+        return json(200, { profile: profiles.getOrCreate(subject) });
+      }
       if (request.method !== (exportRoute ? 'GET' : 'DELETE')) return null;
       if (!store.getSession(id)) fail(401, 'not_authenticated');
       if (!exportRoute && !validWrite(request, id)) fail(403, 'invalid_request');

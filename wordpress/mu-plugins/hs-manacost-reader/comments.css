@@ -6,6 +6,8 @@
   --mc-ui-muted: #566c78;
   --mc-ui-accent: #78530e;
   --mc-ui-on-accent: #ffffff;
+  --mc-ui-field: #ffffff;
+  --mc-ui-accent-hover: #61410a;
   --mc-ui-border: #6f8791;
   --mc-ui-focus: #25759f;
   --mc-ui-danger: #b3261e;
@@ -126,7 +128,22 @@
 .mc-comments .mc-comments__author-badge--youtube,
 .mc-public-profile .mc-public-profile__author-mark--youtube { color: #a33a34; }
 .mc-comments .mc-comments__author-badge--paid,
-.mc-public-profile .mc-public-profile__author-mark--paid { color: #936715; }
+.mc-public-profile .mc-public-profile__author-mark--paid {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #ead6aa;
+  border-radius: 8px;
+  background: #fbf3e2;
+  color: #966b1d;
+}
+.mc-comments .mc-comments__author-badge--paid svg,
+.mc-public-profile .mc-public-profile__author-mark--paid svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke-width: 1.2;
+}
 .mc-comments .mc-comments__meta {
   padding-top: 4px;
   color: var(--mc-ui-muted);
