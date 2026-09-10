@@ -45,8 +45,10 @@ yet verified. No StartLimitAction reboot or unbounded restart loop is added.
 The full production check proved that both `HS_MANACOST_WEB` jumps were absent
 while `hs-manacost-origin-firewall.service` remained active. The boot journal
 showed the guard and ISPmanager `iptables-restore.service` running in parallel;
-the ISPmanager restore finished after the guard. Docker initialized its firewall
-state after both. This is a boot-order defect, not a reason to weaken the check.
+the ISPmanager restore finished after the guard. This is a boot-order defect,
+not a reason to weaken the check. The fix does not order the guard after Docker:
+Docker has an unbounded startup timeout, so that dependency could leave the
+origin fail-open indefinitely if Docker never reports readiness.
 
 An inventory of active Nginx server names found that names reaching this origin
 resolve through Cloudflare or the three regional/origin proxy addresses already
