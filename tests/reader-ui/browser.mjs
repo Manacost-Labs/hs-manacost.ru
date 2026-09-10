@@ -192,14 +192,53 @@ try {
   }
 
   profileStatus = 200;
-  profile = sessionDto();
-  for (const width of [1440, 390]) {
+  profile = sessionDto({
+    profile: profileDto({
+      twitchUrl: 'https://twitch.tv/Mana_Cost',
+      youtubeUrl: 'https://youtube.com/@Manacost',
+    }),
+  });
+  for (const width of [1440, 320, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
     assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Читатель Манакоста');
     await assertFits();
     await capture(`authenticated-${width}`);
+  }
+  const twitchMark = page.getByRole('link', { name: 'Открыть Twitch-канал', exact: true });
+  const youtubeMark = page.getByRole('link', { name: 'Открыть YouTube-канал', exact: true });
+  assert.equal(await twitchMark.isVisible(), true, 'a saved Twitch channel must be a compact link immediately after the name');
+  assert.equal(await youtubeMark.isVisible(), true, 'a saved YouTube channel must be a compact link immediately after the name');
+  assert.equal(await twitchMark.getAttribute('href'), 'https://www.twitch.tv/mana_cost');
+  assert.equal(await youtubeMark.getAttribute('href'), 'https://www.youtube.com/@Manacost');
+  assert.equal(await page.locator('[data-reader-socials]').count(), 0, 'the account overview must not duplicate social links as large profile chips');
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await ready();
+    await assertFits();
+    for (const link of [twitchMark, youtubeMark]) {
+      await page.keyboard.press('Tab');
+      await link.focus();
+      const mark = await link.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          active: document.activeElement === element,
+          focusVisible: element.matches(':focus-visible'),
+          height: rect.height,
+          parentClass: element.parentElement?.className || '',
+          width: rect.width,
+          outlineStyle: style.outlineStyle,
+          outlineWidth: parseFloat(style.outlineWidth),
+        };
+      });
+      assert.equal(mark.active, true, `author mark must be keyboard reachable at ${width}px`);
+      assert.equal(mark.parentClass, 'mc-reader__identity-line', `author mark must remain beside the name at ${width}px`);
+      assert.ok(mark.width >= 44 && mark.height >= 44, `author mark must keep a 44px touch target at ${width}px`);
+      assert.equal(mark.focusVisible, true, `author mark must expose keyboard focus at ${width}px`);
+      assert.ok(mark.outlineStyle !== 'none' && mark.outlineWidth > 0, `author mark focus must be visible at ${width}px`);
+    }
   }
   const profileHierarchy = await page.locator('[data-reader-profile-overview]').evaluate(profile => {
     const rect = element => {
@@ -214,11 +253,14 @@ try {
       kickerRect: kicker ? rect(kicker) : null,
       identityRect: identity ? rect(identity) : null,
       classRect: classMark ? rect(classMark) : null,
+      classParent: classMark?.parentElement?.className || '',
     };
   });
   assert.equal(profileHierarchy.kicker, 'Ваш профиль', 'the profile overview must identify itself as a reader profile');
   assert.ok(profileHierarchy.kickerRect && profileHierarchy.identityRect && profileHierarchy.kickerRect.bottom <= profileHierarchy.identityRect.bottom, 'profile label must stay within the identity composition');
   assert.ok(profileHierarchy.classRect && profileHierarchy.classRect.width > 0, 'favorite class remains part of the visible profile passport');
+  assert.equal(profileHierarchy.classParent, 'mc-reader__identity-copy', 'favorite class must stay with the identity rather than occupying a detached profile column');
+  assert.ok(profileHierarchy.classRect.width < 260, 'favorite class must remain a compact token, not a wide secondary panel');
   const accountMenu = page.locator('[data-reader-account-menu]');
   const accountSummary = page.getByText('Аккаунт', { exact: true });
   const assertAccountMenuFits = async width => {
@@ -332,7 +374,7 @@ try {
   assert.equal(await nameField.evaluate(element => element.validationMessage), '', 'correcting a name must clear stale custom validity');
   await bioField.fill('Черновик с кириллицей и эмодзи 🃏');
   await twitchField.fill('https://evil.test/not-a-channel');
-  assert.equal(await page.locator('[data-reader-twitch-link]').isHidden(), true, 'unfinished or untrusted social input must never become an overview link');
+  assert.equal(await page.locator('[data-reader-twitch-mark]').isHidden(), true, 'unfinished or untrusted social input must never become a public profile link');
   await twitchField.fill('https://twitch.tv/Mana_Cost');
   await youtubeField.fill('https://youtube.com/@Manacost');
   await classField.selectOption('priest');
@@ -345,8 +387,8 @@ try {
   assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
   assert.match(await page.locator('[data-reader-preview-label]').textContent(), /несохранённые/);
   assert.equal(await page.locator('[data-reader-open-editor]').evaluate(element => element === document.activeElement), true);
-  assert.equal(await page.locator('[data-reader-twitch-link]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
-  assert.equal(await page.locator('[data-reader-youtube-link]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
+  assert.equal(await page.locator('[data-reader-twitch-mark]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
+  assert.equal(await page.locator('[data-reader-youtube-mark]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
   assert.equal(await nameField.inputValue(), 'Исправленное имя');
 
