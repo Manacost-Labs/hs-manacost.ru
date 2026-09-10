@@ -27,6 +27,7 @@ class ArticleVersionsTest(unittest.TestCase):
         password_required: bool = False,
         selected_version: int = 0,
         active_version: int = 0,
+        atomic_state: bool = False,
     ) -> dict:
         if versions is None:
             versions = [
@@ -38,7 +39,9 @@ class ArticleVersionsTest(unittest.TestCase):
                 }
             ]
         meta: dict[str, object] = {"_hs_article_versions": versions}
-        if active_version > 0:
+        if atomic_state:
+            meta["_hs_article_versions_state"] = {"versions": versions, "active": active_version}
+        elif active_version > 0:
             meta["_hs_article_versions_active"] = active_version
 
         script = f"""
@@ -141,11 +144,13 @@ class ArticleVersionsTest(unittest.TestCase):
         function admin_url($path = '') {{ return 'https://example.test/wp-admin/' . ltrim($path, '/'); }}
         function wp_nonce_url($url, $action = -1, $name = '_wpnonce') {{ return $url . '&' . $name . '=fixture'; }}
         function wp_nonce_field($action = -1, $name = '_wpnonce') {{ echo '<input name="' . $name . '" value="fixture">'; }}
+        function wp_create_nonce($action = -1) {{ return 'fixture'; }}
         function wp_editor($content, $editor_id, $settings = []) {{ echo '<textarea id="' . $editor_id . '">' . $content . '</textarea>'; }}
         function get_option($name, $default = false) {{ return 'date_format' === $name ? 'd.m.Y' : ('time_format' === $name ? 'H:i' : $default); }}
         function wp_date($format, $timestamp = null) {{ return gmdate($format, $timestamp ?: time()); }}
         function esc_html($value) {{ return (string) $value; }}
         function esc_attr($value) {{ return (string) $value; }}
+        function esc_js($value) {{ return (string) $value; }}
         function esc_textarea($value) {{ return (string) $value; }}
         function esc_url($value) {{ return (string) $value; }}
         function __($value, $domain = null) {{ return $value; }}
@@ -411,6 +416,7 @@ class ArticleVersionsTest(unittest.TestCase):
                 'cache_cleared' => $GLOBALS['cache_cleared'],
                 'redirect' => $GLOBALS['redirect'],
                 'result' => $GLOBALS['result'],
+                'meta' => $GLOBALS['meta'][77],
                 'original' => [
                     'id' => $GLOBALS['post_fixture']->ID,
                     'title' => $GLOBALS['post_fixture']->post_title,
@@ -457,6 +463,8 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertIn("Редактировать", result["admin_html"])
         self.assertIn("Сделать актуальной", result["admin_html"])
         self.assertIn("Удалить", result["admin_html"])
+        self.assertNotIn("<form", result["admin_html"])
+        self.assertIn('document.createElement("form")', result["admin_html"])
 
     def test_only_snapshots_can_be_deleted_and_an_active_snapshot_can_be_changed(self) -> None:
         activated = self.run_version_management_handler(action="set_active", requested_version=2)
@@ -473,25 +481,36 @@ class ArticleVersionsTest(unittest.TestCase):
             active_version=2,
             requested_version=1,
         )
+        failed_delete = self.run_version_management_handler(
+            action="delete",
+            active_version=2,
+            requested_version=1,
+            persist=False,
+        )
 
-        self.assertEqual("_hs_article_versions_active", activated["updates"][0][1])
-        self.assertEqual(2, activated["updates"][0][2])
+        self.assertEqual("_hs_article_versions_state", activated["updates"][0][1])
+        self.assertEqual(2, activated["updates"][0][2]["active"])
         self.assertIn("hs_article_version_active=2", activated["redirect"])
         self.assertEqual(
             {"id": 77, "title": "Актуальная версия", "content": "<p>Текущий текст</p>", "status": "publish"},
             activated["original"],
         )
 
-        self.assertEqual("_hs_article_versions", removed_active["updates"][0][1])
-        self.assertEqual("_hs_article_versions_active", removed_active["updates"][1][1])
-        self.assertEqual([], removed_active["updates"][1][2])
+        self.assertEqual(1, len(removed_active["updates"]))
+        self.assertEqual("_hs_article_versions_state", removed_active["updates"][0][1])
+        self.assertEqual(0, removed_active["updates"][0][2]["active"])
         self.assertEqual(
             {"id": 77, "title": "Актуальная версия", "content": "<p>Текущий текст</p>", "status": "publish"},
             removed_active["original"],
         )
 
-        self.assertEqual("_hs_article_versions_active", removed_before_active["updates"][1][1])
-        self.assertEqual(1, removed_before_active["updates"][1][2])
+        self.assertEqual(1, len(removed_before_active["updates"]))
+        self.assertEqual(1, removed_before_active["updates"][0][2]["active"])
+
+        self.assertEqual("500", failed_delete["result"])
+        self.assertEqual([], failed_delete["updates"])
+        self.assertNotIn("_hs_article_versions_state", failed_delete["meta"])
+        self.assertEqual(2, len(failed_delete["meta"]["_hs_article_versions"]))
 
         for result, status in ((missing, "404"), (denied, "403"), (failed, "500")):
             self.assertEqual(status, result["result"])
@@ -499,8 +518,8 @@ class ArticleVersionsTest(unittest.TestCase):
             self.assertEqual([], result["cache_cleared"])
 
     def test_active_snapshot_is_rendered_first_without_changing_the_article_url(self) -> None:
-        active = self.run_plugin(active_version=1)
-        original = self.run_plugin(active_version=1, endpoint_version=0)
+        active = self.run_plugin(active_version=1, atomic_state=True)
+        original = self.run_plugin(active_version=1, endpoint_version=0, atomic_state=True)
 
         self.assertIn('data-hs-article-version-content="1"', active["frontend_html"])
         self.assertIn('value="1" data-hs-article-version-url=', active["frontend_html"])
@@ -522,7 +541,8 @@ class ArticleVersionsTest(unittest.TestCase):
         failed = self.run_version_management_handler(action="delete", persist=False)
 
         self.assertEqual(1, len(updated["updates"]))
-        _, _, updated_versions = updated["updates"][0]
+        _, _, updated_state = updated["updates"][0]
+        updated_versions = updated_state["versions"]
         self.assertEqual("Исправленная версия", updated_versions[0]["title"])
         self.assertEqual('<p data-payload=\'{"deck":"C:\\\\Decks"}\'>Исправленный текст</p>', updated_versions[0]["content"])
         self.assertEqual("Вторая версия", updated_versions[1]["title"])
@@ -530,7 +550,8 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertIn("hs_article_version_updated=1", updated["redirect"])
 
         self.assertEqual(1, len(deleted["updates"]))
-        _, _, remaining_versions = deleted["updates"][0]
+        _, _, deleted_state = deleted["updates"][0]
+        remaining_versions = deleted_state["versions"]
         self.assertEqual(["Вторая версия"], [version["title"] for version in remaining_versions])
         self.assertEqual([77], deleted["cache_cleared"])
         self.assertIn("hs_article_version_deleted=1", deleted["redirect"])
@@ -587,9 +608,9 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertEqual(1, len(result["updates"]))
         post_id, key, snapshots = result["updates"][0]
         self.assertEqual(77, post_id)
-        self.assertEqual("_hs_article_versions", key)
-        self.assertEqual("Снимок", snapshots[0]["title"])
-        self.assertEqual(content, snapshots[0]["content"])
+        self.assertEqual("_hs_article_versions_state", key)
+        self.assertEqual("Снимок", snapshots["versions"][0]["title"])
+        self.assertEqual(content, snapshots["versions"][0]["content"])
         self.assertEqual([77], result["cache_cleared"])
         self.assertIn("hs_article_version_created=1", result["redirect"])
 
