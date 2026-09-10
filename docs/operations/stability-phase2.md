@@ -40,6 +40,43 @@ the cause, correct it, then reset-failed/start the affected service deliberately
 Existing minute checks report the failed service; remote alert delivery is not
 yet verified. No StartLimitAction reboot or unbounded restart loop is added.
 
+## Origin firewall boot-order follow-up (2026-09-10)
+
+The full production check proved that both `HS_MANACOST_WEB` jumps were absent
+while `hs-manacost-origin-firewall.service` remained active. The boot journal
+showed the guard and ISPmanager `iptables-restore.service` running in parallel;
+the ISPmanager restore finished after the guard. Docker initialized its firewall
+state after both. This is a boot-order defect, not a reason to weaken the check.
+
+An inventory of active Nginx server names found that names reaching this origin
+resolve through Cloudflare or the three regional/origin proxy addresses already
+allowed by the existing guard. The legacy `cms.kolodahearthstone.cloud` address
+resolves to another host. The repair changes only unit ordering; it does not add
+ports, source networks, or a new firewall policy.
+
+Install `ops/monitoring/hs-manacost-origin-firewall-ordering.conf` as
+`/etc/systemd/system/hs-manacost-origin-firewall.service.d/20-ordering.conf`.
+Before activation, capture root-only `iptables-save` and `ip6tables-save`
+backups plus the previous drop-in state. Then:
+
+1. Run `systemd-analyze verify hs-manacost-origin-firewall.service` and
+   `systemctl daemon-reload`.
+2. Record public route results through each regional proxy and Cloudflare-backed
+   host, then run `systemctl restart hs-manacost-origin-firewall.service`. This
+   restart actively reapplies the existing shared-host TCP 80/443 policy.
+3. Verify `/usr/sbin/iptables -C INPUT -p tcp -m multiport --dports 80,443 -j HS_MANACOST_WEB`
+   and `/usr/sbin/ip6tables -C INPUT -p tcp -m multiport --dports 80,443 -j HS_MANACOST_WEB6`.
+4. Repeat the same public route matrix, the HS and Koloda full checks, and confirm
+   that unrelated Nginx, PHP, database, Redis, tunnel and Docker services did not
+   restart.
+
+Rollback only this change. Restore the backed-up `20-ordering.conf` if it
+existed; otherwise move the newly installed file into the release backup, then
+run `systemctl daemon-reload`. If policy activation caused a route regression,
+restore the captured IPv4 and IPv6 rule sets before investigating. Do not use
+`systemctl revert hs-manacost-origin-firewall.service`: it can remove unrelated
+administrator-owned drop-ins.
+
 ## Verification, deployment and rollback
 
 1. Offline regression tests: `test_availability_monitoring.py` and
@@ -79,9 +116,9 @@ accurate failure signals merely to make a dashboard green.
    jobs before choosing limits. At ~13:07 UTC worker anonymous memory was ~3.56
    GiB, current ~3.61 GiB, peak ~3.70 GiB; cgroup OOM events zero since boot.
    A single snapshot does not establish a leak or justify a memory cap.
-3. Reconcile shared-host firewall ownership with ISPmanager/Docker and inventory
-   dependent services before any networking change; test allowed/denied paths
-   from an independent external location, with a timed rollback ready.
+3. Keep the shared-host firewall source allowlist under review when a frontend,
+   Cloudflare range, or directly exposed vhost changes. A future policy change
+   still requires an independent external allowed/denied test and timed rollback.
 4. Test independent external alert delivery; retain daily reboot until its
    replacement safeguards and recovery are verified. Observe 24h then seven
    days before claiming a lower incident rate.
