@@ -25,6 +25,7 @@ class ArticleVersionsTest(unittest.TestCase):
         post_status: str = "publish",
         post_password: str = "",
         password_required: bool = False,
+        selected_version: int = 0,
     ) -> dict:
         if versions is None:
             versions = [
@@ -48,6 +49,8 @@ class ArticleVersionsTest(unittest.TestCase):
         $GLOBALS['in_loop'] = {json.dumps(in_loop)};
         $GLOBALS['password_required'] = {json.dumps(password_required)};
         $GLOBALS['post'] = null;
+        $GLOBALS['meta_boxes'] = [];
+        $_GET = json_decode({json.dumps(json.dumps({'hs_article_version_edit': selected_version} if selected_version else {}))}, true);
 
         class WP_Post {{
             public int $ID;
@@ -106,6 +109,9 @@ class ArticleVersionsTest(unittest.TestCase):
         function add_filter($hook, $callback, $priority = 10, $accepted_args = 1) {{
             $GLOBALS['filters'][$hook][] = [$callback, $priority, $accepted_args];
         }}
+        function add_meta_box($id, $title, $callback, $screen, $context = 'advanced', $priority = 'default') {{
+            $GLOBALS['meta_boxes'][] = [$id, $title, $screen, $context, $priority];
+        }}
         function register_rest_route($namespace, $route, $args) {{
             $GLOBALS['rest_route'] = [$namespace, $route, $args];
         }}
@@ -129,8 +135,13 @@ class ArticleVersionsTest(unittest.TestCase):
         function wp_die($message = '', $status = 0) {{ throw new RuntimeException((string) $message . ':' . (string) $status); }}
         function admin_url($path = '') {{ return 'https://example.test/wp-admin/' . ltrim($path, '/'); }}
         function wp_nonce_url($url, $action = -1, $name = '_wpnonce') {{ return $url . '&' . $name . '=fixture'; }}
+        function wp_nonce_field($action = -1, $name = '_wpnonce') {{ echo '<input name="' . $name . '" value="fixture">'; }}
+        function wp_editor($content, $editor_id, $settings = []) {{ echo '<textarea id="' . $editor_id . '">' . $content . '</textarea>'; }}
+        function get_option($name, $default = false) {{ return 'date_format' === $name ? 'd.m.Y' : ('time_format' === $name ? 'H:i' : $default); }}
+        function wp_date($format, $timestamp = null) {{ return gmdate($format, $timestamp ?: time()); }}
         function esc_html($value) {{ return (string) $value; }}
         function esc_attr($value) {{ return (string) $value; }}
+        function esc_textarea($value) {{ return (string) $value; }}
         function esc_url($value) {{ return (string) $value; }}
         function __($value, $domain = null) {{ return $value; }}
         function esc_html__($value, $domain = null) {{ return (string) $value; }}
@@ -153,6 +164,9 @@ class ArticleVersionsTest(unittest.TestCase):
         ob_start();
         HS_Article_Versions::render_media_button('content');
         $editor_html = ob_get_clean();
+        ob_start();
+        HS_Article_Versions::render_versions_metabox($GLOBALS['posts'][77]);
+        $admin_html = ob_get_clean();
         $frontend_html = HS_Article_Versions::prepend_switcher('<p>Текущий текст</p>');
         ob_start();
         HS_Article_Versions::render_styles();
@@ -170,6 +184,8 @@ class ArticleVersionsTest(unittest.TestCase):
             'actions' => array_keys($GLOBALS['actions']),
             'filters' => array_keys($GLOBALS['filters']),
             'editor_html' => $editor_html,
+            'admin_html' => $admin_html,
+            'meta_boxes' => $GLOBALS['meta_boxes'],
             'frontend_html' => $frontend_html,
             'styles' => $styles,
             'script' => $script,
@@ -271,11 +287,140 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
+    def run_version_management_handler(
+        self,
+        *,
+        action: str,
+        versions: list[dict[str, str]] | None = None,
+        can_edit: bool = True,
+        persist: bool = True,
+    ) -> dict:
+        if versions is None:
+            versions = [
+                {
+                    "title": "Первая версия",
+                    "content": "<p>Первый текст</p>",
+                    "excerpt": "",
+                    "created_gmt": "2026-09-09 12:00:00",
+                },
+                {
+                    "title": "Вторая версия",
+                    "content": "<p>Второй текст</p>",
+                    "excerpt": "",
+                    "created_gmt": "2026-09-10 12:00:00",
+                },
+            ]
+
+        request = {
+            "post_id": "77",
+            "version": "1",
+            "_wpnonce": "fixture",
+        }
+        if action == "update":
+            request.update(
+                {
+                    "title": "Исправленная версия",
+                    "content": '<p data-payload=\'{"deck":"C:\\\\Decks"}\'>Исправленный текст</p>',
+                    "excerpt": "Кратко",
+                }
+            )
+
+        handler = "handle_update_version" if action == "update" else "handle_delete_version"
+        script = f"""
+        define('ABSPATH', '/fixture/');
+        $seed_versions = json_decode({json.dumps(json.dumps(versions))}, true);
+        $GLOBALS['meta'] = [77 => ['_hs_article_versions' => $seed_versions]];
+        $GLOBALS['updates'] = [];
+        $GLOBALS['redirect'] = '';
+        $GLOBALS['can_edit'] = {json.dumps(can_edit)};
+        $GLOBALS['persist'] = {json.dumps(persist)};
+        $GLOBALS['cache_cleared'] = [];
+        $GLOBALS['result'] = 'completed';
+        class WP_Post {{
+            public int $ID = 77;
+            public string $post_type = 'post';
+            public string $post_status = 'publish';
+            public string $post_title = 'Актуальная версия';
+            public string $post_content = '<p>Текущий текст</p>';
+            public string $post_excerpt = '';
+            public string $post_password = '';
+        }}
+        $GLOBALS['post_fixture'] = new WP_Post();
+        function add_action(...$args) {{}}
+        function add_filter(...$args) {{}}
+        function get_post($id) {{ return 77 === (int) $id ? $GLOBALS['post_fixture'] : null; }}
+        function get_post_meta($post_id, $key, $single = true) {{ return $GLOBALS['meta'][(int) $post_id][$key] ?? ''; }}
+        function fixture_unslash_deep($value) {{
+            if (is_array($value)) {{ return array_map('fixture_unslash_deep', $value); }}
+            return is_string($value) ? stripslashes($value) : $value;
+        }}
+        function update_post_meta($post_id, $key, $value) {{
+            if (! $GLOBALS['persist']) {{ return false; }}
+            $stored = fixture_unslash_deep($value);
+            $GLOBALS['meta'][(int) $post_id][$key] = $stored;
+            $GLOBALS['updates'][] = [(int) $post_id, $key, $stored];
+            return 1;
+        }}
+        function delete_post_meta($post_id, $key) {{
+            if (! $GLOBALS['persist']) {{ return false; }}
+            unset($GLOBALS['meta'][(int) $post_id][$key]);
+            $GLOBALS['updates'][] = [(int) $post_id, $key, []];
+            return true;
+        }}
+        function current_user_can($capability, $post_id = 0) {{ return $GLOBALS['can_edit']; }}
+        function check_admin_referer($action, $name = '_wpnonce') {{ return true; }}
+        function wp_unslash($value) {{ return $value; }}
+        function wp_slash($value) {{
+            if (is_array($value)) {{ return array_map('wp_slash', $value); }}
+            return is_string($value) ? addslashes($value) : $value;
+        }}
+        function sanitize_text_field($value) {{ return trim((string) $value); }}
+        function sanitize_textarea_field($value) {{ return trim((string) $value); }}
+        function wp_kses_post($value) {{ return (string) $value; }}
+        function absint($value) {{ return abs((int) $value); }}
+        function get_edit_post_link($post_id, $context = 'display') {{ return 'https://example.test/wp-admin/post.php?post=' . (int) $post_id; }}
+        function add_query_arg($key, $value, $url) {{ return $url . '&' . $key . '=' . $value; }}
+        function wp_safe_redirect($url) {{ $GLOBALS['redirect'] = $url; return true; }}
+        function clean_post_cache($post_id) {{ $GLOBALS['cache_cleared'][] = (int) $post_id; }}
+        function esc_html__($value, $domain = null) {{ return (string) $value; }}
+        function wp_die($message = '', $title = '', $args = []) {{
+            $status = is_array($args) ? ($args['response'] ?? 0) : 0;
+            throw new RuntimeException((string) $status);
+        }}
+        $_POST = json_decode({json.dumps(json.dumps(request))}, true);
+        $_REQUEST = $_POST;
+        require {json.dumps(str(PLUGIN))};
+        register_shutdown_function(function () {{
+            echo json_encode([
+                'updates' => $GLOBALS['updates'],
+                'cache_cleared' => $GLOBALS['cache_cleared'],
+                'redirect' => $GLOBALS['redirect'],
+                'result' => $GLOBALS['result'],
+            ]);
+        }});
+        try {{
+            HS_Article_Versions::{handler}();
+        }} catch (RuntimeException $error) {{
+            $GLOBALS['result'] = $error->getMessage();
+        }}
+        """
+        completed = subprocess.run(
+            [PHP_BINARY, "-r", textwrap.dedent(script)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout)
+
     def test_editor_entrypoint_and_frontend_switcher_are_registered(self) -> None:
         result = self.run_plugin()
 
         self.assertIn("media_buttons", result["actions"])
         self.assertIn("admin_post_hs_create_article_version", result["actions"])
+        self.assertIn("admin_post_hs_update_article_version", result["actions"])
+        self.assertIn("admin_post_hs_delete_article_version", result["actions"])
+        self.assertIn("add_meta_boxes_post", result["actions"])
         self.assertIn("rest_api_init", result["actions"])
         self.assertIn("the_content", result["filters"])
         self.assertIn("Создать новую версию", result["editor_html"])
@@ -286,6 +431,42 @@ class ArticleVersionsTest(unittest.TestCase):
         self.assertIn("hs-article-versions", result["styles"])
         self.assertIn("fetch(", result["script"])
         self.assertNotIn("location.href", result["script"])
+        self.assertIn("Редактировать", result["admin_html"])
+        self.assertIn("Удалить", result["admin_html"])
+
+    def test_editor_can_edit_or_delete_only_the_selected_snapshot(self) -> None:
+        updated = self.run_version_management_handler(action="update")
+        deleted = self.run_version_management_handler(action="delete")
+        denied = self.run_version_management_handler(action="update", can_edit=False)
+        failed = self.run_version_management_handler(action="delete", persist=False)
+
+        self.assertEqual(1, len(updated["updates"]))
+        _, _, updated_versions = updated["updates"][0]
+        self.assertEqual("Исправленная версия", updated_versions[0]["title"])
+        self.assertEqual('<p data-payload=\'{"deck":"C:\\\\Decks"}\'>Исправленный текст</p>', updated_versions[0]["content"])
+        self.assertEqual("Вторая версия", updated_versions[1]["title"])
+        self.assertEqual([77], updated["cache_cleared"])
+        self.assertIn("hs_article_version_updated=1", updated["redirect"])
+
+        self.assertEqual(1, len(deleted["updates"]))
+        _, _, remaining_versions = deleted["updates"][0]
+        self.assertEqual(["Вторая версия"], [version["title"] for version in remaining_versions])
+        self.assertEqual([77], deleted["cache_cleared"])
+        self.assertIn("hs_article_version_deleted=1", deleted["redirect"])
+
+        for result, status in ((denied, "403"), (failed, "500")):
+            self.assertEqual(status, result["result"])
+            self.assertEqual([], result["updates"])
+            self.assertEqual([], result["cache_cleared"])
+
+    def test_editor_opens_a_scoped_form_for_the_selected_snapshot_only(self) -> None:
+        selected = self.run_plugin(selected_version=1)
+        blocked = self.run_plugin(can_edit=False)
+
+        self.assertIn("Редактирование: Версия 1", selected["admin_html"])
+        self.assertIn("Сохранить версию", selected["admin_html"])
+        self.assertNotIn("Вторая версия", selected["admin_html"])
+        self.assertNotIn("Редактировать", blocked["admin_html"])
 
     def test_frontend_is_absent_until_an_editor_creates_a_snapshot(self) -> None:
         result = self.run_plugin(versions=[])
