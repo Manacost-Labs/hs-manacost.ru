@@ -1,6 +1,9 @@
 import pathlib
+import hashlib
+import json
 import subprocess
 import unittest
+from urllib.parse import urlparse
 
 ROOT = pathlib.Path(__file__).parents[2]
 PHP = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/account.php'
@@ -39,16 +42,55 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('.mc-ui-control', shared)
         self.assertIn('.mc-ui-button:disabled', shared)
 
-    def test_compact_account_and_comments_invalidate_old_browser_bundles(self):
-        loader = (ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php').read_text()
-        comments_loader = (PHP.parent / 'comments-loader.php').read_text()
-        self.assertIn('Version: 0.7.9', loader)
-        self.assertIn("'0.7.9'", loader)
-        self.assertIn("'0.7.9'", comments_loader)
-        for source in (loader, comments_loader):
-            self.assertNotIn("'0.3.0'", source)
-            self.assertNotIn("'0.4.0'", source)
-            self.assertNotIn("'0.5.0'", source)
+    def test_reader_assets_use_their_content_version_to_invalidate_stale_browser_bundles(self):
+        loader = ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php'
+        comments_loader = PHP.parent / 'comments-loader.php'
+        fixture = r'''define('ABSPATH', '/fixture/');
+define('HS_MANACOST_READER_COMMENTS_ENABLED', true);
+define('HS_MANACOST_READER_COMMENT_POSTS', array(17));
+define('HS_MANACOST_READER_EDITORIAL_KEY', str_repeat('x', 43));
+function add_action(...$args) {} function add_filter(...$args) {}
+function wp_get_environment_type() { return 'staging'; }
+function home_url($path = '') { return 'https://test.hs-manacost.ru' . $path; }
+function get_page_by_path($path) { $page = new WP_Post(); $page->ID = 22; $page->post_status = 'publish'; $page->post_content = '[hs_manacost_reader_account]'; return $page; }
+function has_shortcode(...$args) { return true; }
+function is_page($id) { return $GLOBALS['account']; }
+function is_singular($type) { return ! $GLOBALS['account']; }
+function get_the_ID() { return 17; }
+function content_url($path) { return '/wp-content/' . $path; }
+function wp_enqueue_style($handle, $source = '', $dependencies = array(), $version = false) { $GLOBALS['assets'][] = array($source, $version); }
+function wp_enqueue_script($handle, $source = '', $dependencies = array(), $version = false) { $GLOBALS['assets'][] = array($source, $version); }
+class WP_Post { public $ID; public $post_status; public $post_content; public $post_type = 'post'; public $post_password = ''; public $post_title = 'Тест'; }
+function get_post($id) { $post = new WP_Post(); $post->ID = $id; $post->post_status = 'publish'; $post->post_content = 'Открытая статья'; return $post; }
+function get_permalink($post) { return 'https://test.hs-manacost.ru/test-article/'; }
+function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
+function wp_strip_all_tags($text) { return strip_tags($text); }
+function __($text, $domain = '') { return $text; }
+function wp_unslash($value) { return $value; }
+function sanitize_text_field($value) { return strip_tags($value); }
+$GLOBALS['assets'] = array(); $GLOBALS['account'] = true;
+require $argv[1]; require $argv[2];
+hs_manacost_reader_assets();
+$GLOBALS['account'] = false; hs_reader_comments_assets();
+echo json_encode($GLOBALS['assets']);'''
+        result = subprocess.run(
+            ['php', '-r', fixture, str(loader), str(comments_loader)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assets = json.loads(result.stdout)
+        expected = {
+            file.name: hashlib.sha256(file.read_bytes()).hexdigest()[:12]
+            for file in (PHP.parent / name for name in (
+                'ui.css', 'reader.css', 'comments.css', 'profile-editor.js',
+                'reader.js', 'community-ui.js', 'comments.js',
+            ))
+        }
+        self.assertEqual(len(assets), 8)
+        for source, version in assets:
+            filename = pathlib.Path(urlparse(source).path).name
+            self.assertEqual(version, expected[filename], filename)
 
     def test_community_bundle_is_ordered_and_has_no_client_role_claim(self):
         loader = (PHP.parent / 'comments-loader.php').read_text()
