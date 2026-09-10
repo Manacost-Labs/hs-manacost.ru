@@ -24,3 +24,14 @@ views_json=$(curl --fail --silent \
 # shellcheck disable=SC2016
 php -r '$d=json_decode($argv[1], true); $id=(string)$argv[2]; if (!is_array($d) || (int)($d[$id] ?? -1) !== 41) { fwrite(STDERR, "views endpoint contract failed\n"); exit(1); }' "$views_json" "$post_id"
 printf 'WordPress integration behaviour: OK\n'
+
+# Run the real native uploader, not media_handle_sideload or a mocked API.
+# shellcheck disable=SC2016
+"${compose[@]}" run --rm cli eval 'if ("local" !== wp_get_environment_type() || "127.0.0.1" !== wp_parse_url(home_url(), PHP_URL_HOST)) { throw new RuntimeException("Disposable loopback WordPress is required."); }'
+"${docker_command[@]}" run --rm --network host --ipc=host \
+    --env-file "$ENV_FILE" -e HS_MEDIA_TEST_DISPOSABLE=1 -v "$ROOT_DIR:/work" -w /work \
+    'mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e' \
+    node ops/integration/media-upload.mjs
+cp "$ROOT_DIR/.artifacts/integration/media-upload-report.json" "$ROOT_DIR/.artifacts/integration/site/.integration/"
+cp "$ROOT_DIR/ops/integration/media-upload-check.php" "$ROOT_DIR/.artifacts/integration/site/.integration/"
+"${compose[@]}" run --rm cli eval-file /var/www/html/.integration/media-upload-check.php

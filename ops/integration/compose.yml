@@ -27,7 +27,7 @@ services:
       WORDPRESS_DB_PASSWORD: ${WP_TEST_DB_PASSWORD:?set by start.sh}
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_DEBUG: "1"
-      WORDPRESS_CONFIG_EXTRA: |
+      WORDPRESS_CONFIG_EXTRA: &wordpress_test_config |
         define( 'WP_ENVIRONMENT_TYPE', 'local' );
         define( 'WP_DEBUG_DISPLAY', false );
         @ini_set( 'display_errors', '0' );
@@ -37,6 +37,7 @@ services:
         define( 'WP_SITEURL', 'http://127.0.0.1:${WP_TEST_PORT:-8888}' );
     volumes:
       - ${WP_TEST_SITE_PATH:?set by start.sh}:/var/www/html
+      - ./uploads.ini:/usr/local/etc/php/conf.d/zz-integration-uploads.ini:ro
 
   cli:
     image: wordpress:cli-php8.2@sha256:837d55d02196b5f4c92d236317c6d089ab1471348b31d1708888d444a0390979
@@ -50,6 +51,8 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: ${WP_TEST_DB_PASSWORD:?set by start.sh}
       WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_CONFIG_EXTRA: *wordpress_test_config
     volumes:
       - ${WP_TEST_SITE_PATH:?set by start.sh}:/var/www/html
+      - ./uploads.ini:/usr/local/etc/php/conf.d/zz-integration-uploads.ini:ro
     working_dir: /var/www/html
