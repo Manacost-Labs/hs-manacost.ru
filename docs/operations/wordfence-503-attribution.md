@@ -37,7 +37,11 @@ separate retention rule is needed.
   Wordfence blocks separate from actionable availability failures.
 - `ops/nginx/resources/plausible-first-party.conf` repeats the sanitized log at
   its two location scopes because their standard access log overrides inherited
-  server logging. The monitor reads that separate standard log for count parity.
+  server logging. Because the resource is shared with the `.com` mirror, the
+  standard analytics logs are split by host before the monitor reads the `.ru`
+  stream for count parity. Mirror failures cannot become unattributed canonical
+  failures. The original URI is reduced to a fixed endpoint/owner class before
+  internal rewrites; neither that URI nor its query is written to this log.
 
 `ops/deploy.sh` does not install Nginx configuration. Treat this as a separate,
 reviewed infrastructure release; do not copy the entire runtime vhost over an

@@ -30,6 +30,7 @@ class WordfenceAttributionNginxTests(unittest.TestCase):
         self.assertIn('"endpoint":"$hs_manacost_5xx_endpoint"', config)
         self.assertIn('"owner":"$hs_manacost_5xx_owner"', config)
 
+        log_format = config.split("log_format hs_manacost_5xx_attribution", 1)[1]
         for forbidden in (
             "$remote_addr",
             "$realip_remote_addr",
@@ -39,39 +40,56 @@ class WordfenceAttributionNginxTests(unittest.TestCase):
             "$http_referer",
             "$http_user_agent",
         ):
-            self.assertNotIn(forbidden, config)
+            self.assertNotIn(forbidden, log_format)
 
     def test_only_endpoint_classes_are_logged(self) -> None:
         config = ATTRIBUTION.read_text(encoding="utf-8")
 
-        self.assertIn('"/wp-login.php" login;', config)
-        self.assertIn("~^/wp-admin(?:/|$) admin;", config)
-        self.assertIn("~^/wp-json(?:/|$) rest;", config)
-        self.assertIn("~^/mca(?:/|$) analytics;", config)
-        self.assertIn('"/views/hit" views;', config)
-        self.assertIn("~^/wp-(?:content|includes)(?:/|$) media;", config)
+        self.assertIn("map $request_uri $hs_manacost_5xx_endpoint", config)
+        self.assertIn(r"~^/wp-login\.php(?:\?|$) login;", config)
+        self.assertIn(r"~^/wp-admin(?:/|\?|$) admin;", config)
+        self.assertIn(r"~^/wp-json(?:/|\?|$) rest;", config)
+        self.assertIn(r"~^/mca(?:/|\?|$) analytics;", config)
+        self.assertIn(r"~^/views/hit(?:\?|$) views;", config)
+        self.assertIn(r"~^/wp-(?:content|includes)(?:/|\?|$) media;", config)
         self.assertIn("default page;", config)
 
     def test_only_bounded_owner_classes_are_logged(self) -> None:
         config = ATTRIBUTION.read_text(encoding="utf-8")
 
-        self.assertIn("map $uri $hs_manacost_5xx_owner_hint", config)
+        self.assertIn("map $request_uri $hs_manacost_5xx_owner_hint", config)
         self.assertIn("map \"$hs_manacost_5xx_owner_hint:$upstream_status\" $hs_manacost_5xx_owner", config)
         for owner in ("wordpress", "plausible", "views", "media_fallback", "nginx"):
             self.assertIn(owner, config)
-        self.assertIn(r"~^/wp-content/(?:uploads|uploads-webpc)(?:/|$) media_fallback;", config)
+        self.assertIn(r"~^/wp-content/(?:uploads|uploads-webpc)(?:/|\?|$) media_fallback;", config)
 
     def test_plausible_locations_keep_their_log_and_add_sanitized_attribution(self) -> None:
         config = PLAUSIBLE_RESOURCE.read_text(encoding="utf-8")
-        existing = "access_log /var/www/httpd-logs/hs-manacost.ru.plausible.access.log;"
+        canonical = (
+            "access_log /var/www/httpd-logs/hs-manacost.ru.plausible.access.log "
+            "combined if=$hs_manacost_plausible_ru_loggable;"
+        )
+        mirror = (
+            "access_log /var/www/httpd-logs/hs-manacost.com.plausible.access.log "
+            "combined if=$hs_manacost_plausible_com_loggable;"
+        )
         attribution = (
             "access_log /var/www/httpd-logs/hs-manacost.ru.5xx-attribution.log "
             "hs_manacost_5xx_attribution if=$hs_manacost_5xx_attribution_enabled;"
         )
 
-        self.assertEqual(2, config.count(existing))
+        self.assertEqual(2, config.count(canonical))
+        self.assertEqual(2, config.count(mirror))
         self.assertEqual(2, config.count(attribution))
         self.assertNotIn("hs-manacost.ru.access.log", config)
+
+    def test_plausible_host_logs_are_split_before_reconciliation(self) -> None:
+        config = ATTRIBUTION.read_text(encoding="utf-8")
+
+        self.assertIn("map $host $hs_manacost_plausible_ru_loggable", config)
+        self.assertIn("map $host $hs_manacost_plausible_com_loggable", config)
+        self.assertIn(r"~^(?:www\.)?hs-manacost\.ru$ 1;", config)
+        self.assertIn(r"~^(?:www\.)?hs-manacost\.com$ 1;", config)
 
     def test_shared_resource_only_attaches_to_the_canonical_host(self) -> None:
         resource = RESOURCE.read_text(encoding="utf-8")
@@ -110,6 +128,7 @@ class WordfenceAttributionNginxTests(unittest.TestCase):
             plausible.write_text(
                 PLAUSIBLE_RESOURCE.read_text(encoding="utf-8")
                 .replace("/var/www/httpd-logs/hs-manacost.ru.plausible.access.log", "/dev/null")
+                .replace("/var/www/httpd-logs/hs-manacost.com.plausible.access.log", "/dev/null")
                 .replace("/var/www/httpd-logs/hs-manacost.ru.5xx-attribution.log", "/dev/null"),
                 encoding="utf-8",
             )
@@ -211,6 +230,123 @@ class WordfenceAttributionNginxTests(unittest.TestCase):
              "retry_after_present": 0},
             {key: entry[key] for key in entry if key != "time"},
         )
+
+    @unittest.skipUnless(NGINX, "nginx is unavailable")
+    def test_internal_rewrite_keeps_original_rest_endpoint_class(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            socket_path = directory / "nginx.sock"
+            log_path = directory / "attribution.log"
+            config = directory / "nginx.conf"
+            config.write_text(
+                f"pid {directory / 'nginx.pid'};\n"
+                f"error_log {directory / 'error.log'} notice;\n"
+                "events {}\n"
+                "http {\n"
+                f"  include {ATTRIBUTION};\n"
+                "  server {\n"
+                f"    listen unix:{socket_path};\n"
+                "    server_name hs-manacost.ru;\n"
+                f"    access_log {log_path} hs_manacost_5xx_attribution if=$hs_manacost_5xx_attribution_enabled;\n"
+                "    location / { rewrite ^ /index.php last; }\n"
+                "    location = /index.php { return 503; }\n"
+                "  }\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            process = subprocess.Popen(
+                [NGINX, "-g", "daemon off;", "-p", str(directory), "-c", str(config)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            try:
+                deadline = time.monotonic() + 2
+                while not socket_path.exists() and time.monotonic() < deadline:
+                    if process.poll() is not None:
+                        self.fail("candidate nginx exited before opening its socket")
+                    time.sleep(0.01)
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                    client.connect(str(socket_path))
+                    client.sendall(
+                        b"GET /wp-json/wp/v2/posts?secret=never-log HTTP/1.1\r\n"
+                        b"Host: hs-manacost.ru\r\nConnection: close\r\n\r\n"
+                    )
+                    while client.recv(4096):
+                        pass
+                deadline = time.monotonic() + 1
+                while not log_path.exists() and time.monotonic() < deadline:
+                    time.sleep(0.01)
+            finally:
+                process.terminate()
+                process.wait(timeout=5)
+
+            raw = log_path.read_text(encoding="utf-8")
+            entry = json.loads(raw)
+            self.assertEqual("rest", entry["endpoint"])
+            self.assertNotIn("wp-json", raw)
+            self.assertNotIn("never-log", raw)
+
+    @unittest.skipUnless(NGINX, "nginx is unavailable")
+    def test_shared_plausible_resource_splits_canonical_and_mirror_logs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            socket_path = directory / "nginx.sock"
+            canonical_log = directory / "canonical.log"
+            mirror_log = directory / "mirror.log"
+            attribution_log = directory / "attribution.log"
+            resource = directory / "plausible.conf"
+            resource.write_text(
+                PLAUSIBLE_RESOURCE.read_text(encoding="utf-8")
+                .replace("http://127.0.0.1:8000", "http://127.0.0.1:9")
+                .replace("/var/www/httpd-logs/hs-manacost.ru.plausible.access.log", str(canonical_log))
+                .replace("/var/www/httpd-logs/hs-manacost.com.plausible.access.log", str(mirror_log))
+                .replace("/var/www/httpd-logs/hs-manacost.ru.5xx-attribution.log", str(attribution_log)),
+                encoding="utf-8",
+            )
+            config = directory / "nginx.conf"
+            config.write_text(
+                f"pid {directory / 'nginx.pid'};\n"
+                f"error_log {directory / 'error.log'} notice;\n"
+                "events {}\n"
+                "http {\n"
+                f"  include {ATTRIBUTION};\n"
+                "  server {\n"
+                f"    listen unix:{socket_path};\n"
+                "    server_name hs-manacost.ru hs-manacost.com;\n"
+                "    access_log off;\n"
+                f"    include {resource};\n"
+                "  }\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            process = subprocess.Popen(
+                [NGINX, "-g", "daemon off;", "-p", str(directory), "-c", str(config)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            try:
+                deadline = time.monotonic() + 2
+                while not socket_path.exists() and time.monotonic() < deadline:
+                    if process.poll() is not None:
+                        self.fail("candidate nginx exited before opening its socket")
+                    time.sleep(0.01)
+                for host in ("hs-manacost.ru", "hs-manacost.com"):
+                    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                        client.connect(str(socket_path))
+                        client.sendall(
+                            f"GET /mca/event HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n".encode()
+                        )
+                        while client.recv(4096):
+                            pass
+            finally:
+                process.terminate()
+                process.wait(timeout=5)
+
+            self.assertEqual(1, len(canonical_log.read_text(encoding="utf-8").splitlines()))
+            self.assertEqual(1, len(mirror_log.read_text(encoding="utf-8").splitlines()))
+            entries = attribution_log.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(1, len(entries))
+            self.assertEqual("plausible", json.loads(entries[0])["owner"])
 
 
 if __name__ == "__main__":

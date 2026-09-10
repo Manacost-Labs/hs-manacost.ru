@@ -383,6 +383,11 @@ class FpmStatusTests(unittest.TestCase):
             timeout=5,
         )
 
+    def age_state(self, seconds=60):
+        state = json.loads(self.state.read_text())
+        state["sample_time"] -= seconds
+        self.state.write_text(json.dumps(state))
+
     def test_healthy_status_emits_bounded_metrics_and_private_state(self):
         result = self.run_helper()
 
@@ -394,6 +399,7 @@ class FpmStatusTests(unittest.TestCase):
 
     def test_two_consecutive_queue_samples_fail(self):
         first = self.run_helper(self.payload(**{"listen queue": 1}))
+        self.age_state()
         second = self.run_helper(self.payload(**{"listen queue": 1}))
 
         self.assertEqual(first.returncode, 0, first.stdout)
@@ -413,12 +419,41 @@ class FpmStatusTests(unittest.TestCase):
     def test_two_high_utilization_samples_fail(self):
         first = self.run_helper(self.payload(**{"active processes": 24, "idle processes": 8,
                                                 "total processes": 32}))
+        self.age_state()
         second = self.run_helper(self.payload(**{"active processes": 24, "idle processes": 8,
                                                  "total processes": 32}))
 
         self.assertEqual(first.returncode, 0, first.stdout)
         self.assertEqual(second.returncode, 1, second.stdout)
         self.assertIn("utilization_streak=2", second.stdout)
+
+    def test_immediate_manual_rerun_does_not_create_sustained_queue(self):
+        first = self.run_helper(self.payload(**{"listen queue": 1}))
+        second = self.run_helper(self.payload(**{"listen queue": 1}))
+
+        self.assertEqual(first.returncode, 0, first.stdout)
+        self.assertEqual(second.returncode, 0, second.stdout)
+        self.assertIn("queue_streak=1", second.stdout)
+
+    def test_stale_sample_does_not_create_sustained_queue(self):
+        first = self.run_helper(self.payload(**{"listen queue": 1}))
+        self.age_state(3600)
+        second = self.run_helper(self.payload(**{"listen queue": 1}))
+
+        self.assertEqual(first.returncode, 0, first.stdout)
+        self.assertEqual(second.returncode, 0, second.stdout)
+        self.assertIn("queue_streak=1", second.stdout)
+
+    def test_failed_measurement_breaks_queue_continuity(self):
+        first = self.run_helper(self.payload(**{"listen queue": 1}))
+        self.age_state()
+        malformed = self.run_helper('{"token":"do-not-log"}')
+        second = self.run_helper(self.payload(**{"listen queue": 1}))
+
+        self.assertEqual(first.returncode, 0, first.stdout)
+        self.assertEqual(malformed.returncode, 2, malformed.stdout)
+        self.assertEqual(second.returncode, 0, second.stdout)
+        self.assertIn("queue_streak=1", second.stdout)
 
     def test_malformed_payload_is_unknown_without_echoing_input(self):
         result = self.run_helper('{"token":"do-not-log"}')
@@ -461,7 +496,17 @@ class ShellHealthcheckTests(unittest.TestCase):
         runbook = (ROOT / "docs/operations/availability-monitoring.md").read_text()
 
         self.assertIn("existing `/usr/local/libexec/manacost-monitoring/nginx_recent.py`", runbook)
-        self.assertIn("exact backed-up\n`nginx_recent.py`", runbook)
+        self.assertIn("recorded pre-state of `hs-manacost-healthcheck`", runbook)
+        self.assertIn("`nginx_recent.py`", runbook)
+
+    def test_monitoring_rollback_restores_every_scheduled_component(self):
+        runbook = (ROOT / "docs/operations/availability-monitoring.md").read_text()
+
+        for component in (
+                "hs-manacost-healthcheck", "koloda-healthcheck.sh", "nginx_recent.py",
+                "run-healthcheck.sh", "hs-manacost-healthcheck.cron", "koloda-healthcheck.cron"):
+            self.assertIn(component, runbook)
+        self.assertIn("recorded pre-state", runbook)
 
     def test_koloda_status_contracts_and_transport_failures(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -569,13 +614,21 @@ print(json.dumps({
             state = directory / "state"
             state.mkdir()
             state.chmod(0o700)
+            ager = directory / "age-state.py"
+            ager.write_text('''import json, pathlib, sys
+for path in pathlib.Path(sys.argv[1]).glob("*.state"):
+    state = json.loads(path.read_text())
+    state["sample_time"] -= 60
+    path.write_text(json.dumps(state))
+''')
             log = directory / "monitor.log"
             result = subprocess.run(
                 ["bash", "-c",
-                 'source "$1"; check_php_fpm_status; check_php_fpm_status; exit "$STATUS"', "test",
+                 'source "$1"; check_php_fpm_status; python3 "$FPM_STATE_AGER" "$HEALTHCHECK_FPM_STATE_DIR"; check_php_fpm_status; exit "$STATUS"', "test",
                  str(ROOT / "ops/monitoring/hs-manacost-healthcheck.sh")],
                 env=dict(os.environ, HEALTHCHECK_LOG=str(log), HEALTHCHECK_FCGI_CLIENT=str(fcgi),
-                         HEALTHCHECK_FPM_HELPER=str(FPM_HELPER), HEALTHCHECK_FPM_STATE_DIR=str(state)),
+                         HEALTHCHECK_FPM_HELPER=str(FPM_HELPER), HEALTHCHECK_FPM_STATE_DIR=str(state),
+                         FPM_STATE_AGER=str(ager)),
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -611,6 +664,43 @@ print(json.dumps({
             self.assertEqual(result.returncode, 1)
             self.assertIn("UNKNOWN fpm_status pool=php84", log.read_text())
             self.assertNotIn("OK fpm_status", log.read_text())
+
+    def test_fpm_wrapper_timeout_breaks_persisted_queue_continuity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            state_dir = directory / "state"
+            state_dir.mkdir(mode=0o700)
+            state_file = state_dir / "hs-php84-fpm.state"
+            payload = FpmStatusTests.payload(**{"listen queue": 1})
+            helper_command = [
+                "python3", str(FPM_HELPER), "--pool", "php84", "--max-children", "32",
+                "--state-file", str(state_file),
+            ]
+            first = subprocess.run(helper_command, input=payload, capture_output=True, text=True, timeout=5)
+            self.assertEqual(first.returncode, 0, first.stdout)
+
+            fcgi = directory / "cgi-fcgi"
+            fcgi.write_text("#!/bin/sh\nprintf '{'\nsleep 10\n")
+            fcgi.chmod(0o700)
+            log = directory / "monitor.log"
+            timed_out = subprocess.run(
+                ["bash", "-c",
+                 'source "$1"; check_one_php_fpm_status php84 /fixture.sock 32; exit "$STATUS"',
+                 "test", str(ROOT / "ops/monitoring/hs-manacost-healthcheck.sh")],
+                env=dict(os.environ, HEALTHCHECK_LOG=str(log), HEALTHCHECK_FCGI_CLIENT=str(fcgi),
+                         HEALTHCHECK_FPM_HELPER=str(FPM_HELPER), HEALTHCHECK_FPM_STATE_DIR=str(state_dir)),
+                capture_output=True,
+                text=True,
+                timeout=7,
+            )
+
+            self.assertEqual(timed_out.returncode, 1, log.read_text())
+            self.assertIn("UNKNOWN fpm_status pool=php84", log.read_text())
+            self.assertEqual(0, json.loads(state_file.read_text())["sample_valid"])
+            recovered = subprocess.run(
+                helper_command, input=payload, capture_output=True, text=True, timeout=5)
+            self.assertEqual(recovered.returncode, 0, recovered.stdout)
+            self.assertIn("queue_streak=1", recovered.stdout)
 
     def test_actual_php84_failure_is_reported_by_both_sites(self):
         for site, function in (("hs-manacost-healthcheck.sh", "check_origin_services"),

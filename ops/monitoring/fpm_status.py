@@ -8,12 +8,15 @@ import re
 import secrets
 import stat
 import sys
+import time
 
 
 MAX_INPUT = 64 * 1024
 POOL_LABEL = re.compile(r"^[a-z0-9_-]{1,24}$")
-STATE_FIELDS = {"start_time", "queue_streak", "utilization_streak",
-                "max_children_reached", "slow_requests"}
+STATE_FIELDS = {"start_time", "sample_time", "sample_valid", "queue_streak",
+                "utilization_streak", "max_children_reached", "slow_requests"}
+MIN_CONTINUITY_SECONDS = 30
+MAX_CONTINUITY_SECONDS = 150
 
 
 class Unknown(Exception):
@@ -119,22 +122,27 @@ def write_state(path, state):
         os.close(directory)
 
 
-def evaluate(values, previous, max_children):
+def evaluate(values, previous, max_children, sample_time):
     same_process = previous is not None and previous["start_time"] == values["start_time"]
     if same_process and (values["max_children_reached"] < previous["max_children_reached"]
                          or values["slow_requests"] < previous["slow_requests"]):
         raise Unknown("counter_regressed")
 
+    sample_age = sample_time - previous["sample_time"] if previous is not None else 0
+    continuous = (same_process and previous["sample_valid"] == 1
+                  and MIN_CONTINUITY_SECONDS <= sample_age <= MAX_CONTINUITY_SECONDS)
     utilization_pct = values["active"] * 100 // max_children
-    queue_streak = ((previous["queue_streak"] if same_process else 0) + 1
+    queue_streak = ((previous["queue_streak"] if continuous else 0) + 1
                     if values["listen_queue"] > 0 else 0)
-    utilization_streak = ((previous["utilization_streak"] if same_process else 0) + 1
+    utilization_streak = ((previous["utilization_streak"] if continuous else 0) + 1
                           if utilization_pct >= 75 else 0)
     max_children_delta = (values["max_children_reached"] - previous["max_children_reached"]
                           if same_process else 0)
     slow_delta = (values["slow_requests"] - previous["slow_requests"] if same_process else 0)
     state = {
         "start_time": values["start_time"],
+        "sample_time": sample_time,
+        "sample_valid": 1,
         "queue_streak": queue_streak,
         "utilization_streak": utilization_streak,
         "max_children_reached": values["max_children_reached"],
@@ -156,6 +164,19 @@ def evaluate(values, previous, max_children):
     return failed, state, metrics
 
 
+def invalidate_continuity(path, previous, sample_time):
+    if previous is None:
+        return
+    state = dict(previous)
+    state.update({
+        "sample_time": sample_time,
+        "sample_valid": 0,
+        "queue_streak": 0,
+        "utilization_streak": 0,
+    })
+    write_state(path, state)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pool", required=True)
@@ -165,11 +186,17 @@ def main():
     if not POOL_LABEL.fullmatch(args.pool) or not 1 <= args.max_children <= 10000:
         print("UNKNOWN fpm_status reason=invalid_arguments")
         return 2
+    previous = None
+    sample_time = int(time.time())
     try:
+        previous = read_state(args.state_file)
+        # Persist an invalid continuity marker before blocking on CGI input.
+        # If either side of the bounded pipeline is killed, the next healthy
+        # sample must start a new streak instead of bridging the blind spot.
+        invalidate_continuity(args.state_file, previous, sample_time)
         raw = sys.stdin.buffer.read(MAX_INPUT + 1)
         values = parse_payload(raw, args.max_children)
-        previous = read_state(args.state_file)
-        failed, state, metrics = evaluate(values, previous, args.max_children)
+        failed, state, metrics = evaluate(values, previous, args.max_children, sample_time)
         write_state(args.state_file, state)
     except (OSError, Unknown):
         print("UNKNOWN fpm_status reason=invalid_or_unavailable_status")

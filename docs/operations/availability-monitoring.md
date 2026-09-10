@@ -53,10 +53,11 @@ Shell wrappers make either nonzero result fail the overall check.
 `fpm_status.py` accepts only the fixed PHP-FPM status fields and persists a
 root-private aggregate state under `/run/lock/manacost-monitoring`. It returns
 failure when a nonempty listen queue or at least 75% pool utilization persists
-for two consecutive one-minute samples, or when `max children reached`
+for two consecutive samples 30–150 seconds apart, or when `max children reached`
 increments. A PHP master restart resets deltas by `start time`. Slow-request
-deltas are reported for diagnosis but do not page by themselves. The helper
-does not retain process rows, request paths or client data.
+deltas are reported for diagnosis but do not page by themselves. A failed,
+too-early or stale measurement breaks streak continuity. The helper does not
+retain process rows, request paths or client data.
 
 Activation requires verifying the live pool contracts before installation:
 PHP 8.4 must use `/var/www/php-fpm/hs-manacost-php84.sock`,
@@ -125,12 +126,16 @@ inside the active window as `UNKNOWN`; this makes schema transition explicit
 without deleting history. Shadow-run both FPM pools with a temporary root-owned
 state directory; never stop or saturate a production pool as a fault test.
 
-Rollback: restore the previous HS healthcheck and exact backed-up
-`nginx_recent.py` first, then restore the named Nginx files in the order defined
-by the attribution runbook, run `nginx -t` and reload gracefully. This prevents
-the new parser from reading newly produced legacy-schema records. No PHP/DB
-reload is needed. The inert new `fpm_status.py` and tmpfiles definition may remain;
-do not delete logs or backups. Verify original hashes and scheduled checks.
+Rollback: disable the two candidate cron entries first. Restore the exact
+recorded pre-state of `hs-manacost-healthcheck`, `koloda-healthcheck.sh`,
+`nginx_recent.py`, `run-healthcheck.sh`, `hs-manacost-healthcheck.cron` and
+`koloda-healthcheck.cron`; an originally absent target is moved into the release
+backup rather than left active. Then restore the named Nginx files in the order
+defined by the attribution runbook, run `nginx -t` and reload gracefully. This
+prevents the new parser or runner from reading newly produced legacy-schema
+records. No PHP/DB reload is needed. The inert new `fpm_status.py` and tmpfiles
+definition may remain; do not delete logs or backups. Verify original hashes,
+cron contents and every scheduled entrypoint against the recorded pre-state.
 Do not roll back accurate failure reporting merely because an old hidden problem
 becomes visible. Retain shadow and post-install evidence outside Git (no raw
 production logs committed).
