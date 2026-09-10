@@ -93,23 +93,34 @@ class RepositoryPolicyTests(unittest.TestCase):
 
     def test_staging_release_purges_only_the_reader_account_page_cache(self) -> None:
         staging = (ROOT / ".github/workflows/deploy-staging.yml").read_text(encoding="utf-8")
-        purge_script = ROOT / "ops/purge-reader-page-cache.sh"
+        deploy_script = ROOT / "ops/ci/hs-manacost-ci-deploy"
+        installer = ROOT / "ops/ci/install-deploy-helper.sh"
 
-        self.assertTrue(purge_script.is_file())
-        script = purge_script.read_text(encoding="utf-8")
+        self.assertFalse((ROOT / "ops/purge-reader-page-cache.sh").exists())
+        self.assertTrue(installer.is_file())
+        script = deploy_script.read_text(encoding="utf-8")
+        installer_text = installer.read_text(encoding="utf-8")
         self.assertIn("test-hs-manacost-wordpress", script)
         self.assertIn("test.hs-manacost.ru", script)
-        self.assertIn("rocket_clean_files", script)
-        self.assertIn("rocket_clean_minify", script)
-        self.assertIn("https://test.hs-manacost.ru/account/", script)
-        self.assertIn("wp_parse_url", script)
-        self.assertIn('rocket_clean_files( array( $account_url ), null, false )', script)
-        self.assertNotIn("production", script)
-        self.assertIn("Purge reader account page cache", staging)
-        self.assertIn("./ops/purge-reader-page-cache.sh staging", staging)
+        staging_branch = script.split('if [[ "$environment" == staging ]]', 1)[1].split(
+            'if [[ "$environment" == production ]]', 1
+        )[0]
+        production_branch = script.split('if [[ "$environment" == production ]]', 1)[1]
+        self.assertIn("rocket_clean_files", staging_branch)
+        self.assertIn("rocket_clean_minify", staging_branch)
+        self.assertIn("https://test.hs-manacost.ru/account/", staging_branch)
+        self.assertIn("wp_parse_url", staging_branch)
+        self.assertIn('rocket_clean_files( array( $account_url ), null, false )', staging_branch)
+        self.assertNotIn("rocket_clean_", production_branch)
+        self.assertIn("install -o root -g root -m 0755", installer_text)
+        self.assertIn("/usr/local/sbin/hs-manacost-ci-deploy", installer_text)
+        self.assertIn("Verify authorized deployment helper", staging)
+        self.assertIn("cmp --silent", staging)
+        self.assertNotIn("Purge reader account page cache", staging)
+        self.assertNotIn("./ops/purge-reader-page-cache.sh staging", staging)
         self.assertLess(
+            staging.index("Verify authorized deployment helper"),
             staging.index("Deploy isolated staging"),
-            staging.index("Purge reader account page cache"),
         )
 
     def test_required_ai_skills_are_pinned(self) -> None:

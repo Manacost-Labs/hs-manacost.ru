@@ -41,13 +41,13 @@ jobs:
       - name: Run quality gate
         run: make check
 
+      - name: Verify authorized deployment helper
+        run: cmp --silent ops/ci/hs-manacost-ci-deploy /usr/local/sbin/hs-manacost-ci-deploy
+
       - name: Deploy isolated staging
         env:
           DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
         run: sudo /usr/local/sbin/hs-manacost-ci-deploy staging "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
-
-      - name: Purge reader account page cache
-        run: ./ops/purge-reader-page-cache.sh staging
 
       - name: Verify staging and both RU proxies
         run: ./ops/smoke-check.sh staging
