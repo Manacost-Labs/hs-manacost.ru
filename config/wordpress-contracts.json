@@ -733,30 +733,37 @@
       {
         "name": "_hs_article_versions",
         "resolved": true,
-        "api": "update_post_meta",
+        "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 219
+        "line": 623
       },
       {
-        "name": "_hs_article_versions",
+        "name": "_hs_article_versions_active",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 478
+        "line": 681
       },
       {
-        "name": "_hs_article_versions",
+        "name": "_hs_article_versions_state",
         "resolved": true,
-        "api": "delete_post_meta",
+        "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 517
+        "line": 622
       },
       {
-        "name": "_hs_article_versions",
+        "name": "_hs_article_versions_state",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 520
+        "line": 671
+      },
+      {
+        "name": "_hs_article_versions_state",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-article-versions.php",
+        "line": 680
       },
       {
         "name": "_hs_deck_activity_created_logged",
@@ -1374,7 +1381,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 562
+        "line": 724
       },
       {
         "name": "hs_decks_announcement_button_text",
@@ -1843,7 +1850,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 562
+        "line": 724
       },
       {
         "name": "unified_hs_ad_tracker_db_version",
@@ -2318,7 +2325,7 @@
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 349
+        "line": 446
       },
       {
         "name": "manacost/v1/deck-meta/(?P<id>\\d+)",
@@ -2665,21 +2672,21 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 57
+        "line": 67
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 206
+        "line": 258
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 532
+        "line": 694
       },
       {
         "name": "edit_post",
@@ -2994,7 +3001,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
-        "line": 255
+        "line": 303
       }
     ]
   }
