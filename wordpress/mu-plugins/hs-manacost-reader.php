@@ -62,6 +62,29 @@ function hs_manacost_reader_menu( string $items, stdClass $args ): string {
 		. esc_url( $url ) . '">Кабинет</a></li>';
 }
 
+/**
+ * Give each first-party Reader asset a stable URL until its own content changes.
+ *
+ * The reader bundle is deliberately excluded from JS/CSS optimizers, but staging
+ * serves static files with a browser cache lifetime. A content-derived version
+ * prevents an old browser bundle from hiding a newly shipped UI control.
+ *
+ * @param string $asset Trusted Reader asset basename.
+ * @return string Short content version, or a safe fallback for a missing asset.
+ */
+function hs_manacost_reader_asset_version( string $asset ): string {
+	static $versions = array();
+	if ( isset( $versions[ $asset ] ) ) {
+		return $versions[ $asset ];
+	}
+	if ( 1 !== preg_match( '/\A[a-z0-9-]+\.(?:css|js)\z/', $asset ) ) {
+		return 'missing';
+	}
+	$hash               = hash_file( 'sha256', __DIR__ . '/hs-manacost-reader/' . $asset );
+	$versions[ $asset ] = is_string( $hash ) ? substr( $hash, 0, 12 ) : 'missing';
+	return $versions[ $asset ];
+}
+
 /** Load the scoped account bundle only on its explicitly provisioned page. */
 function hs_manacost_reader_assets(): void {
 	$page = hs_manacost_reader_page();
@@ -69,8 +92,8 @@ function hs_manacost_reader_assets(): void {
 		return;
 	}
 	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
-	wp_enqueue_style( 'hs-manacost-reader-ui', $base . 'ui.css', array(), '0.7.9' );
-	wp_enqueue_style( 'hs-manacost-reader', $base . 'reader.css', array( 'hs-manacost-reader-ui' ), '0.7.9' );
+	wp_enqueue_style( 'hs-manacost-reader-ui', $base . 'ui.css', array(), hs_manacost_reader_asset_version( 'ui.css' ) );
+	wp_enqueue_style( 'hs-manacost-reader', $base . 'reader.css', array( 'hs-manacost-reader-ui' ), hs_manacost_reader_asset_version( 'reader.css' ) );
 	if ( hs_reader_public_profile_request() ) {
 		return;
 	}
@@ -78,7 +101,7 @@ function hs_manacost_reader_assets(): void {
 		'hs-manacost-reader-profile-editor',
 		$base . 'profile-editor.js',
 		array(),
-		'0.7.9',
+		hs_manacost_reader_asset_version( 'profile-editor.js' ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
@@ -88,7 +111,7 @@ function hs_manacost_reader_assets(): void {
 		'hs-manacost-reader',
 		$base . 'reader.js',
 		array( 'hs-manacost-reader-profile-editor' ),
-		'0.7.9',
+		hs_manacost_reader_asset_version( 'reader.js' ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,
