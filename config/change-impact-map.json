@@ -20,6 +20,16 @@
   },
   "rules": [
     {
+      "patterns": ["ops/monitoring/**", "tests/test_availability_monitoring.py"],
+      "owner": "shared-origin-availability-monitoring",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["observability", "host-operations"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "kolodahearthstone.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-observability", "wordpress-release-manager", "agent-ci-cd-and-automation", "agent-shipping-and-launch"],
+      "checks": ["python3 -m unittest discover -s tests -p test_availability_monitoring.py -v", "make shell-check"]
+    },
+    {
       "patterns": ["services/reader/**", "tests/test_reader*.py", "tests/reader-ui/**", "wordpress/mu-plugins/hs-manacost-reader.php", "wordpress/mu-plugins/hs-manacost-reader/**"],
       "owner": "reader-identity",
       "classified": true,
