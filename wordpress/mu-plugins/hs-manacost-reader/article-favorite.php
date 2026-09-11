@@ -25,10 +25,9 @@ function hs_reader_article_favorite_shell( int $post_id ): string {
 	}
 	$login = '/reader-auth/start?returnTo=' . rawurlencode( $article['path'] );
 	return '<aside class="mc-reader-ui mc-article-favorite" data-mc-article-favorite data-post-id="' . esc_attr( (string) $post_id ) . '" aria-label="Избранное">'
-		. '<div class="mc-article-favorite__copy"><p>В личном кабинете</p><strong>Сохраните статью на потом</strong></div>'
-		. '<div class="mc-article-favorite__actions"><button class="mc-ui-button mc-article-favorite__button" data-favorite-toggle type="button" aria-pressed="false">'
+		. '<button class="mc-ui-button mc-ui-button--secondary mc-article-favorite__button" data-favorite-toggle type="button" aria-pressed="false">'
 		. hs_reader_article_favorite_icon() . '<span data-favorite-label>Сохранить статью</span></button>'
-		. '<a class="mc-ui-button mc-ui-button--secondary" data-favorite-login href="' . esc_attr( $login ) . '" hidden>Войти через HearthPulse</a></div>'
+		. '<a class="mc-ui-button mc-ui-button--secondary" data-favorite-login href="' . esc_attr( $login ) . '" hidden>Войти через HearthPulse</a>'
 		. '<p class="mc-article-favorite__status" data-favorite-status role="status" aria-live="polite"></p></aside>';
 }
 
@@ -42,5 +41,5 @@ function hs_reader_article_favorite_content( string $content ): string {
 	if ( is_admin() || is_feed() || ! is_singular( 'post' ) || ! in_the_loop() || ! is_main_query() ) {
 		return $content;
 	}
-	return $content . hs_reader_article_favorite_shell( (int) get_the_ID() );
+	return hs_reader_article_favorite_shell( (int) get_the_ID() ) . $content;
 }

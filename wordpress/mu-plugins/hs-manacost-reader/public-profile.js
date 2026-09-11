@@ -7,6 +7,9 @@
   const status = $('[data-public-profile-status]'), content = $('[data-public-profile-content]');
   const image = $('[data-public-profile-avatar]');
   const placeholder = $('[data-public-profile-placeholder]');
+  const classRow = $('[data-public-profile-class-row]');
+  const classCrest = $('[data-public-profile-class-crest]');
+  const classIconBase = root.dataset.classIconBase || '';
   const socials = $('[data-public-profile-socials]');
   const socialLinks = [
     { node: $('[data-public-profile-twitch]'), service: 'twitch' },
@@ -14,6 +17,10 @@
   ];
   const classes = { 'death-knight': 'Рыцарь смерти', 'demon-hunter': 'Охотник на демонов', druid: 'Друид', hunter: 'Охотник', mage: 'Маг', paladin: 'Паладин', priest: 'Жрец', rogue: 'Разбойник', shaman: 'Шаман', warlock: 'Чернокнижник', warrior: 'Воин' };
   let controller = null, generation = 0;
+  const initials = value => {
+    const words = value.trim().split(/\s+/u).filter(Boolean);
+    return words.slice(0, 2).map(word => Array.from(word)[0] || '').join('').toLocaleUpperCase('ru-RU') || 'М';
+  };
   function safeSocialUrl(value, service) {
     if (value === null || value === undefined) return null;
     if (typeof value !== 'string' || value.length > 200 || /[\u0000-\u001f\u007f]/.test(value)) return null;
@@ -34,6 +41,7 @@
   function clear() {
     content.hidden = true; image.hidden = true; image.removeAttribute('src');
     placeholder.textContent = 'М'; placeholder.hidden = false;
+    classRow.hidden = true; classCrest.hidden = true; classCrest.removeAttribute('src'); classCrest.alt = '';
     for (const selector of ['[data-public-profile-name]', '[data-public-profile-bio]', '[data-public-profile-class]']) $(selector).textContent = '';
     $('[data-public-profile-paid]').hidden = true;
     $('[data-public-profile-administrator]').hidden = true;
@@ -55,9 +63,16 @@
         || Array.from(profile.bio).length > 280 || typeof profile.paidSubscriber !== 'boolean'
         || (profile.administrator !== undefined && typeof profile.administrator !== 'boolean')) throw new Error('not_found');
       $('[data-public-profile-name]').textContent = profile.name;
-      placeholder.textContent = Array.from(profile.name)[0] || 'М';
+      placeholder.textContent = initials(profile.name);
       $('[data-public-profile-bio]').textContent = profile.bio;
-      $('[data-public-profile-class]').textContent = classes[profile.favoriteClass] ? `Любимый класс: ${classes[profile.favoriteClass]}` : '';
+      const className = classes[profile.favoriteClass] || '';
+      $('[data-public-profile-class]').textContent = className;
+      classRow.hidden = !className;
+      if (className && /^\/wp-content\/mu-plugins\/hs-manacost-reader\/class-icons\/$/.test(classIconBase)) {
+        classCrest.src = `${classIconBase}${profile.favoriteClass.replace(/-/g, '')}.png`;
+        classCrest.alt = `Эмблема класса ${className}`;
+        classCrest.hidden = false;
+      }
 
       let socialCount = 0;
       for (const social of socialLinks) {

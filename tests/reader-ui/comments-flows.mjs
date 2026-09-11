@@ -30,6 +30,8 @@ const assets = new Map([
   ['/public-profile.js', ['text/javascript', readFileSync(`${plugin}/public-profile.js`)]],
   ['/comments.css', ['text/css', readFileSync(`${plugin}/comments.css`)]],
   ['/ui.css', ['text/css', readFileSync(sharedUi)]],
+  ['/theme.css', ['text/css', readFileSync(`${root}/wordpress/themes/Newspaper_new/style.css`)]],
+  ['/theme-boxed.css', ['text/css', readFileSync(`${root}/wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]],
 ]);
 
 const author = (overrides = {}) => ({
@@ -70,7 +72,7 @@ const server = createServer(async (request, response) => {
   }
   if (request.url === '/profile') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${profileShell}<script src=/public-profile.js></script>`); return;
+    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body class="td-boxed-layout"><main class="td-main-content-wrap td-container-wrap"><div class=td-container><div class=td-page-content>${profileShell}</div></div></main><script src=/public-profile.js></script>`); return;
   }
   if (request.url === '/reader-api/v1/community/me') { json(response, 200, { canModerateComments: false, commentingBlocked: false }); return; }
   if (request.url === '/reader-api/v1/me') {
@@ -231,13 +233,55 @@ try {
   publicStatus = 200; publicProfile = author({ name: 'Жрец <img src=x onerror=window.injected=1>', bio: 'Русский текст <b>не HTML</b>', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost' });
   await page.goto(`${origin}/profile`); await page.getByRole('heading', { name: /Жрец/ }).waitFor();
   assert.equal(await page.evaluate(() => window.injected), undefined);
-  assert.equal(await page.locator('[data-public-profile-class]').textContent(), 'Любимый класс: Жрец');
+  assert.equal(await page.locator('[data-public-profile-class]').textContent(), 'Жрец');
+  assert.match(await page.locator('[data-public-profile-class-crest]').getAttribute('src'), /class-icons\/priest\.png$/);
   assert.equal(await page.locator('[data-public-profile-avatar]').getAttribute('src'), publicProfile.avatarUrl);
   assert.equal(await page.locator('[data-public-profile-twitch]').getAttribute('href'), 'https://www.twitch.tv/mana_cost');
   assert.equal(await page.locator('[data-public-profile-youtube]').getAttribute('href'), 'https://www.youtube.com/@Manacost');
   assert.equal(await page.locator('[data-public-profile-twitch] svg').isVisible(), true);
   assert.equal(await page.locator('[data-public-profile-youtube] svg').isVisible(), true);
   assert.equal(await page.locator('[data-public-profile-paid]').getAttribute('aria-label'), 'Платный подписчик');
+  assert.equal(await page.locator('[data-public-profile-paid]').textContent(), 'Платный подписчик');
+  const paidBadgeGeometry = await page.locator('[data-public-profile-paid]').evaluate(element => ({
+    boxWidth: element.getBoundingClientRect().width,
+    boxHeight: element.getBoundingClientRect().height,
+    textWidth: element.scrollWidth,
+    textHeight: element.scrollHeight,
+  }));
+  assert.ok(paidBadgeGeometry.boxWidth >= paidBadgeGeometry.textWidth && paidBadgeGeometry.boxHeight >= paidBadgeGeometry.textHeight,
+    `public subscriber label must remain inside its badge: ${JSON.stringify(paidBadgeGeometry)}`);
+  const publicPaidContrast = await page.locator('[data-public-profile-paid]').evaluate(element => {
+    const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => value / 255)
+      .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+      .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+    const style = getComputedStyle(element);
+    const levels = [luminance(style.color), luminance(style.backgroundColor)].sort((a, b) => b - a);
+    return (levels[0] + .05) / (levels[1] + .05);
+  });
+  assert.ok(publicPaidContrast >= 4.5, `public subscriber label must meet AA contrast: ${publicPaidContrast}`);
+  await page.setViewportSize({ width: 320, height: 900 });
+  const publicMobileGeometry = await page.locator('[data-mc-public-profile]').evaluate(element => {
+    const rect = node => {
+      const value = node.getBoundingClientRect();
+      return { left: value.left, right: value.right, top: value.top, bottom: value.bottom };
+    };
+    return {
+      badge: rect(element.querySelector('[data-public-profile-paid]')),
+      content: rect(element.querySelector('[data-public-profile-content]')),
+      overflow: document.documentElement.scrollWidth - innerWidth,
+    };
+  });
+  assert.equal(publicMobileGeometry.overflow, 0, 'public profile must not create horizontal scrolling at 320px');
+  assert.ok(publicMobileGeometry.badge.left >= publicMobileGeometry.content.left
+    && publicMobileGeometry.badge.right <= publicMobileGeometry.content.right,
+  `public subscriber badge must stay inside the profile at 320px: ${JSON.stringify(publicMobileGeometry)}`);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const publicVisual = await page.locator('[data-mc-public-profile]').evaluate(element => ({
+    background: getComputedStyle(element).backgroundColor,
+    borderRadius: getComputedStyle(element).borderRadius,
+    borderLeftWidth: getComputedStyle(element).borderLeftWidth,
+  }));
+  assert.deepEqual(publicVisual, { background: 'rgb(255, 255, 255)', borderRadius: '8px', borderLeftWidth: '1px' });
   publicProfile = author({ twitchUrl: 'https://evil.test/channel', youtubeUrl: 'https://youtube.com/watch?v=not-a-channel' });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
   assert.equal(await page.locator('[data-public-profile-socials]').isHidden(), true, 'unrecognised public URLs must never become outbound links');

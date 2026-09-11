@@ -80,10 +80,14 @@ try {
         .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
         .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
       const style = getComputedStyle(node);
-      const levels = [light(style.color), light(style.backgroundColor)].sort((a, b) => b - a);
-      return (levels[0] + .05) / (levels[1] + .05);
+      const ratio = foreground => {
+        const levels = [light(foreground), light(style.backgroundColor)].sort((a, b) => b - a);
+        return (levels[0] + .05) / (levels[1] + .05);
+      };
+      return { field: ratio(style.color), placeholder: ratio(getComputedStyle(node, '::placeholder').color) };
     });
-    assert.ok(contrast >= 4.5, 'the light comment composer must not inherit the dark account field background');
+    assert.ok(contrast.field >= 4.5, 'the light comment composer must not inherit the dark account field background');
+    assert.ok(contrast.placeholder >= 4.5, `placeholder text must meet AA contrast: ${JSON.stringify(contrast)}`);
     if (process.env.READER_UI_SCREENSHOTS) await page.screenshot({
       path: `${process.env.READER_UI_SCREENSHOTS}/comments-${width}.png`, fullPage: true,
     });
@@ -203,11 +207,33 @@ try {
   if (process.env.READER_UI_SCREENSHOTS) await zoomPage.screenshot({ path: `${process.env.READER_UI_SCREENSHOTS}/comments-zoom-200-emulated.png`, fullPage: true });
   await zoomContext.close();
   const favoriteButton = page.locator('[data-mc-article-favorite] [data-favorite-toggle]');
+  assert.equal(await page.getByText('Сохраните статью на потом', { exact: true }).count(), 0, 'the favorite action is not a promotional card');
+  const favoriteVisual = await page.locator('[data-mc-article-favorite]').evaluate(element => {
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return { display: style.display, height: rect.height, borderLeftWidth: style.borderLeftWidth };
+  });
+  assert.equal(favoriteVisual.display, 'inline-flex');
+  assert.ok(favoriteVisual.height < 72, `the favorite action must stay compact: ${JSON.stringify(favoriteVisual)}`);
+  assert.equal(favoriteVisual.borderLeftWidth, '0px');
   await favoriteButton.click();
   await page.getByText('Статья сохранена в избранное.', { exact: true }).waitFor();
   assert.equal(await favoriteButton.getAttribute('aria-pressed'), 'true');
   assert.equal(articleFavoriteWrites.at(-1).method, 'PUT');
   assert.equal(articleFavoriteWrites.at(-1).headers['x-reader-csrf'], articleFavoriteCsrf);
+  await page.waitForFunction(() => !document.querySelector('[data-mc-article-favorite] [data-favorite-toggle]').disabled);
+  await favoriteButton.hover();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-mc-article-favorite] [data-favorite-toggle]')).color === 'rgb(255, 255, 255)');
+  const savedHover = await favoriteButton.evaluate(element => {
+    const channel = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => value / 255)
+      .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+      .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+    const style = getComputedStyle(element);
+    const levels = [channel(style.color), channel(style.backgroundColor)].sort((a, b) => b - a);
+    return { color: style.color, ratio: (levels[0] + .05) / (levels[1] + .05) };
+  });
+  assert.equal(savedHover.color, 'rgb(255, 255, 255)', 'saved favorite hover must retain its on-accent label');
+  assert.ok(savedHover.ratio >= 4.5, `saved favorite hover contrast must remain readable: ${JSON.stringify(savedHover)}`);
   await favoriteButton.click();
   await page.getByText('Статья удалена из избранного.', { exact: true }).waitFor();
   assert.equal(await favoriteButton.getAttribute('aria-pressed'), 'false');

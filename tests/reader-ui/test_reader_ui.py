@@ -140,7 +140,7 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertEqual('aria-labelledby="mc-reader-publication-title" hidden' in html, not enabled)
     def test_account_headings_and_live_status_are_semantic(self):
         self.assertIn('<p class="mc-reader__masthead-kicker">Профиль Манакоста</p>', self.php)
-        self.assertIn('<h1 class="mc-reader__eyebrow">Кабинет</h1>', self.php)
+        self.assertIn('<h1 class="mc-reader__eyebrow">Личный кабинет</h1>', self.php)
         self.assertIn('<p class="mc-reader__profile-kicker">Ваш профиль</p>', self.php)
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
@@ -219,11 +219,11 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertIn(value, self.js)
     def test_copy_is_public_and_honest(self):
         self.assertIn('Профиль Манакоста', self.php)
-        self.assertIn('Кабинет', self.php)
+        self.assertIn('Личный кабинет', self.php)
         self.assertNotIn('Закладки пока недоступны.', self.php)
         self.assertNotIn('reader API', self.php)
     def test_responsive_accessible_geometry(self):
-        self.assertRegex(self.css, r'--mc-reader-(?:navy|slate|ice|muted|gold|blue|panel|line|panel-quiet)\s*:')
+        self.assertRegex(self.css, r'--mc-reader-(?:ink|muted|ember|line|interactive-line)\s*:')
         for selector in ('.mc-reader__title-group', '.mc-reader__profile-kicker', '.mc-reader__profile'):
             self.assertIn(selector, self.css)
         self.assertRegex(self.css, r'min-(?:height|block-size)\s*:\s*44px')
