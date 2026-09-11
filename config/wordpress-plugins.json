@@ -24,7 +24,7 @@
     {"slug": "td-composer", "status": "active", "version": "5.4.2 (2025-10-22 build)", "origin": "tagdiv"},
     {"slug": "td-standard-pack", "status": "active", "version": "2.7.1 (2025-10-22 build)", "origin": "tagdiv"},
     {"slug": "tinymce-advanced", "status": "active", "version": "5.9.2", "origin": "wordpress.org"},
-    {"slug": "wordfence", "status": "active", "version": "9.0.0", "origin": "wordpress.org"},
+    {"slug": "wordfence", "status": "active", "version": "9.0.1", "origin": "wordpress.org"},
     {"slug": "wp-kolodahearthstone-banner", "status": "active", "version": "1.0", "origin": "custom"},
     {"slug": "wp-kolodahearthstone-spoilers", "status": "active", "version": "1.0", "origin": "custom"},
     {"slug": "wp-manacost-decks_old", "status": "active", "version": "2.0.4", "origin": "legacy"},
