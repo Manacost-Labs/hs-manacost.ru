@@ -30,6 +30,7 @@
   const requests = new Set();
   const stale = new Error('stale');
   let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null;
+  let activationObserver = null, activated = false;
   let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
   let stagedAttachment = null, attachmentPreviewUrl = null, attachmentUploading = false;
   const say = message => { status.textContent = message; };
@@ -504,7 +505,23 @@
     catch (error) { if (error === stale || !current(ticket)) return; resetPrivate(); }
     if (current(ticket)) await loadComments(false, prefetched);
   }
-  addEventListener('pagehide', () => { visible = false; invalidate(); resetPrivate(); rows = []; cursor = null; render(); });
-  addEventListener('pageshow', event => { if (event.persisted) void start(); });
-  void start();
+  function activate() {
+    if (activated) return;
+    activated = true;
+    activationObserver?.disconnect();
+    activationObserver = null;
+    void start();
+  }
+  function scheduleStart() {
+    if (activated) { void start(); return; }
+    if (!('IntersectionObserver' in window)) { activate(); return; }
+    activationObserver?.disconnect();
+    activationObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) activate();
+    }, { rootMargin: '640px 0px' });
+    activationObserver.observe(root);
+  }
+  addEventListener('pagehide', () => { visible = false; activationObserver?.disconnect(); activationObserver = null; invalidate(); resetPrivate(); rows = []; cursor = null; render(); });
+  addEventListener('pageshow', event => { if (event.persisted) scheduleStart(); });
+  scheduleStart();
 })();
