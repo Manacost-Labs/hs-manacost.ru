@@ -124,6 +124,24 @@ try {
         sync: rect('.mc-comments__profile-sync'),
       };
     });
+    const composerAccents = await page.locator('[data-comments-form]').evaluate(node => {
+      const composerStyle = getComputedStyle(node);
+      const noticeStyle = getComputedStyle(node.querySelector('.mc-comments__profile-notice'));
+      return {
+        composerLeftColor: composerStyle.borderLeftColor,
+        composerLeftWidth: composerStyle.borderLeftWidth,
+        composerRightColor: composerStyle.borderRightColor,
+        composerRightWidth: composerStyle.borderRightWidth,
+        noticeLeftStyle: noticeStyle.borderLeftStyle,
+        noticeLeftWidth: noticeStyle.borderLeftWidth,
+      };
+    });
+    assert.equal(composerAccents.composerLeftWidth, composerAccents.composerRightWidth,
+      'the comment composer has no decorative left stripe');
+    assert.equal(composerAccents.composerLeftColor, composerAccents.composerRightColor,
+      'the comment composer uses the same neutral border on every side');
+    assert.equal(composerAccents.noticeLeftStyle, 'none', 'the profile notice has no decorative left marker');
+    assert.equal(composerAccents.noticeLeftWidth, '0px', 'the profile notice reserves no width for a left marker');
     if (width === 390) {
       assert.ok(composerHeight < 610, `mobile composer remains compact: ${composerHeight}`);
       assert.ok(composerActions.attachment.width >= composerActions.contentWidth - 1, 'mobile attachment action spans the composer');

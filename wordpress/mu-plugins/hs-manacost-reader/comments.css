@@ -34,7 +34,7 @@
 .mc-comments .mc-comments__image{display:block;max-width:min(100%,680px);max-height:560px;width:auto;height:auto;object-fit:contain;}
 .mc-comments .mc-comments__actions{display:flex;flex-wrap:wrap;gap:4px;margin-inline-start:44px;}
 .mc-comments [data-pending="true"] .mc-comments__body,.mc-comments [data-pending="true"] .mc-comments__actions{margin-inline-start:0;}
-.mc-comments .mc-comments__composer{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"heading heading" "reply reply" "label label" "body body" "meta meta" "attachment footer" "sync sync";gap:8px 16px;margin:24px 0 0;padding:clamp(16px,2vw,20px);border:1px solid var(--mc-comments-divider);border-inline-start:3px solid #d0ad61;border-radius:var(--mc-ui-radius);background:transparent;}
+.mc-comments .mc-comments__composer{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"heading heading" "reply reply" "label label" "body body" "meta meta" "attachment footer" "sync sync";gap:8px 16px;margin:24px 0 0;padding:clamp(16px,2vw,20px);border:1px solid var(--mc-comments-divider);border-radius:var(--mc-ui-radius);background:transparent;}
 .mc-comments .mc-comments__composer-heading{grid-area:heading;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px;margin-bottom:4px;}
 .mc-comments .mc-comments__composer-identity{min-width:0;}
 .mc-comments .mc-comments__composer-heading h3{font:700 18px/1.4 var(--mc-ui-body);}
@@ -48,7 +48,7 @@
 .mc-comments .mc-comments__composer>.mc-ui-label{grid-area:label;margin:0;}
 .mc-comments .mc-comments__field-meta{grid-area:meta;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;}
 .mc-comments .mc-comments__field-meta .mc-ui-help{margin:0;}
-.mc-comments .mc-comments__profile-notice{flex:1 1 280px;margin:0;padding-inline-start:12px;border-inline-start:2px solid var(--mc-ui-accent);color:var(--mc-ui-muted);font:400 13px/1.5 var(--mc-ui-body);}
+.mc-comments .mc-comments__profile-notice{flex:1 1 280px;margin:0;color:var(--mc-ui-muted);font:400 13px/1.5 var(--mc-ui-body);}
 .mc-comments .mc-comments__profile-sync{grid-area:sync;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:2px;padding-top:10px;border-top:1px solid var(--mc-comments-divider);}
 .mc-comments .mc-comments__profile-sync:not(:has(>:not([hidden]))){display:none;margin-top:0;padding-top:0;border-top:0;}
 .mc-comments .mc-comments__profile-sync .mc-ui-button{flex:0 0 auto;}
