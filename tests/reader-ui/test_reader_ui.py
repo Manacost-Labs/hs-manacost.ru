@@ -201,7 +201,7 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn('Комментарии сейчас недоступны.', self.php)
         self.assertIn('Изменить профиль', self.php)
         self.assertIn('Где меня найти', self.php)
-        self.assertIn('Обновить в комментариях', self.php)
+        self.assertIn('Обновить данные', self.php)
         self.assertNotIn('data-reader-public-consent', self.php)
         self.assertIn('Twitch / YouTube', self.php)
         self.assertIn('data-reader-favorites', self.php)

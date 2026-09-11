@@ -140,10 +140,35 @@ try {
   await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded' });
   await expect.poll(() => held.me.length).toBe(1);
   await expect.poll(() => held.comments.length, { message: 'comments request starts while identity is held' }).toBe(1);
-  release('comments', 200, { items: [row({ status: 'pending', body: 'Только после проверки входа', author: author({ profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) })], nextCursor: null });
+  assert.equal(await page.locator('[data-comments-status]').getAttribute('data-loading'), 'true');
+  release('comments', 200, { items: [
+    row({ body: 'Публичный комментарий без ожидания профиля' }),
+    row({ id: '423e4567-e89b-42d3-a456-426614174000', status: 'pending', body: 'Только после проверки входа', author: author({ profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) }),
+    row({ id: '523e4567-e89b-42d3-a456-426614174000', status: 'pending', body: 'Чужой ожидающий до входа', author: author({ id: otherId, profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) }),
+  ], nextCursor: null });
+  await page.getByText('Публичный комментарий без ожидания профиля').waitFor();
+  assert.equal(await page.locator('[data-comments-status]').getAttribute('data-loading'), null);
   assert.equal(await page.getByText('Только после проверки входа').count(), 0);
+  assert.equal(await page.getByText('Чужой ожидающий до входа').count(), 0);
   release('me', 200, me());
   await page.getByText('Только после проверки входа').waitFor();
+  assert.equal(await page.getByText('Чужой ожидающий до входа').count(), 0);
+  hold.me = hold.comments = false;
+
+  // If the thread resolves first with only the viewer's pending row, the empty
+  // message is cleared as soon as the independently verified identity reveals it.
+  hold.me = hold.comments = true;
+  await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded' });
+  await expect.poll(() => held.me.length).toBe(1);
+  await expect.poll(() => held.comments.length).toBe(1);
+  release('comments', 200, { items: [
+    row({ status: 'pending', body: 'Мой ожидающий после профиля', author: author({ profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) }),
+  ], nextCursor: null });
+  await page.getByText('Комментариев пока нет. Начните обсуждение.', { exact: true }).waitFor();
+  assert.equal(await page.getByText('Мой ожидающий после профиля').count(), 0);
+  release('me', 200, me());
+  await page.getByText('Мой ожидающий после профиля').waitFor();
+  assert.equal(await page.locator('[data-comments-status]').textContent(), '');
   hold.me = hold.comments = false;
 
   // 1. Only the viewer's pending DTO is valid/rendered; it intentionally has no public identity.
@@ -305,7 +330,7 @@ try {
   const oldRow = row({ author: author({ name: 'Зулут', avatarVersion: null, avatarUrl: null, hasTwitch: false }) });
   comments = [oldRow];
   await loadComments();
-  const refresh = page.getByRole('button', { name: 'Обновить профиль в комментариях', exact: true });
+  const refresh = page.getByRole('button', { name: 'Обновить данные', exact: true });
   await refresh.waitFor();
   await expect(page.locator('[data-comments-me] img')).toBeVisible();
   await expect(page.locator('[data-comments-me] img')).toHaveAttribute('src', meFields.avatarUrl);
