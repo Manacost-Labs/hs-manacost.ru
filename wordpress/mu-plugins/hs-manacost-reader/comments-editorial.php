@@ -102,6 +102,7 @@ function hs_reader_editorial_permission( WP_REST_Request $request ): bool|WP_Err
  * Validate a short signed ID batch before returning public metadata.
  *
  * @param WP_REST_Request $request Editorial IDs only, never a browser-supplied URL.
+ * @return list<int>|WP_Error
  */
 function hs_reader_editorial_ids( WP_REST_Request $request ): array|WP_Error {
 	$input = json_decode( $request->get_body(), true );
