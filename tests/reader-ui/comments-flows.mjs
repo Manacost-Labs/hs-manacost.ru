@@ -132,7 +132,7 @@ try {
   const page = await browser.newPage();
   page.setDefaultTimeout(4000);
   const loadComments = async () => { await page.goto(`${origin}/`); await page.getByLabel('Комментарий').waitFor(); };
-  const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('checkbox', { name: /Согласен/ }).check(); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
+  const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
   const openCommunityData = async () => { if (!await page.locator('[data-comments-data]').evaluate(element => element.open)) await page.locator('[data-comments-data] summary').click(); };
 
   // Reading starts alongside identity verification, but private pending rows wait for identity.
@@ -169,7 +169,7 @@ try {
   postStatus = 401; await submit('Потерянный черновик');
   await page.getByRole('link', { name: 'Войти через HearthPulse' }).waitFor();
   assert.equal(await page.locator('[data-comments-body]').evaluate(element => element.value), '');
-  assert.equal(await page.locator('[data-comments-consent]').evaluate(element => element.checked), false);
+  assert.equal(await page.locator('[data-comments-consent]').count(), 0, 'publication does not require a separate checkbox');
   assert.equal(await page.getByRole('button', { name: 'Повторить отправку' }).isHidden(), true);
   assert.equal(await page.locator('[data-comments-form]').isHidden(), true);
   assert.equal(await page.getByRole('link', { name: 'Войти через HearthPulse' }).isVisible(), true);
@@ -179,7 +179,6 @@ try {
   await loadComments(); meVersion = 2; await submit('Сохранённый после конфликта');
   await page.getByText(/Профиль или обсуждение изменились/).waitFor();
   assert.equal(await page.getByLabel('Комментарий').inputValue(), 'Сохранённый после конфликта');
-  assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isChecked(), false);
   postStatus = 201; await submit('После новой версии');
   await page.getByText('Комментарий опубликован.').waitFor();
   assert.equal(writes.at(-1).profileVersion, 2);
@@ -268,7 +267,7 @@ try {
 
   // 7. Community erasure sends the exact authenticated request, clears only community state on success, and leaves data intact on failure.
   comments = [row({ body: 'Мой публичный след' })]; meVersion = 12; eraseStatus = 200;
-  await loadComments(); await page.getByLabel('Комментарий').fill('Черновик перед удалением'); await page.getByRole('checkbox', { name: /Согласен/ }).check();
+  await loadComments(); await page.getByLabel('Комментарий').fill('Черновик перед удалением');
   await openCommunityData();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Удалить мои комментарии и публичный профиль' }).click();
@@ -279,7 +278,7 @@ try {
   assert.equal(await page.locator('[data-comments-list]').textContent(), '');
   assert.equal(await page.locator('[data-comments-form]').isVisible(), true, 'the private account composer remains available');
   comments = [row({ body: 'Данные не потеряны' })]; eraseStatus = 503;
-  await loadComments(); await page.getByLabel('Комментарий').fill('Сохранить при ошибке'); await page.getByRole('checkbox', { name: /Согласен/ }).check();
+  await loadComments(); await page.getByLabel('Комментарий').fill('Сохранить при ошибке');
   await openCommunityData();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Удалить мои комментарии и публичный профиль' }).click();
@@ -293,7 +292,6 @@ try {
   await page.getByText('Результат отправки неизвестен. Повторите тот же комментарий — повторная попытка не создаст дубликат.').waitFor({ timeout: 9000 });
   assert.equal(held.post.length, 1, 'the 201 response must have sent headers but hold its JSON body');
   assert.equal(await page.getByLabel('Комментарий').isDisabled(), true);
-  assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isDisabled(), true);
   const unknown = writes.at(-1);
   assert.equal(postHeaders.at(-1)['x-reader-csrf'], 'csrf-12');
   postPartial = false;
@@ -311,38 +309,35 @@ try {
   await refresh.waitFor();
   await expect(page.locator('[data-comments-me] img')).toBeVisible();
   await expect(page.locator('[data-comments-me] img')).toHaveAttribute('src', meFields.avatarUrl);
-  assert.equal(await refresh.isDisabled(), true, 'publishing needs explicit unchecked consent');
+  assert.equal(await refresh.isDisabled(), false, 'an explicit profile refresh action needs no additional checkbox');
   assert.equal(refreshCalls.length, 0, 'reading must not publish private profile data');
   assert.equal(await page.locator('[data-comments-list] img').count(), 0, 'private preview is not an optimistic public avatar');
   await page.getByLabel('Комментарий', { exact: true }).fill('Черновик останется здесь');
   await expect(page.locator('[data-comments-count]')).toHaveText('24 / 1000');
-  await page.getByRole('checkbox', { name: /Согласен/ }).check();
   await refresh.click();
   await page.getByText('Фото и значки в комментариях обновлены.', { exact: true }).waitFor();
-  assert.deepEqual(refreshCalls.at(-1).body, { profileVersion: 9, publicConsent: true });
+  assert.deepEqual(refreshCalls.at(-1).body, { profileVersion: 9 });
   assert.equal(refreshCalls.at(-1).headers['x-reader-csrf'], 'csrf-9');
   await expect(page.locator('[data-comments-list] img.mc-comments__avatar')).toHaveAttribute('src', author().avatarUrl);
   await expect(page.locator('[data-comments-list] .mc-comments__author-badge--twitch')).toBeVisible();
   assert.equal(comments.length, 1, 'refresh never creates an extra comment');
   assert.equal(await page.getByLabel('Комментарий', { exact: true }).inputValue(), 'Черновик останется здесь');
-  assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isChecked(), false);
   await expect(refresh).toBeHidden();
 
-  // A changed profile needs a fresh confirmation; failures leave public identity and draft intact.
+  // A changed profile needs a fresh version; failures leave public identity and draft intact.
   comments = [oldRow]; refreshStatus = 409;
   await loadComments(); meVersion = 10;
   await page.getByLabel('Комментарий', { exact: true }).fill('Не потерять текст');
-  await page.getByRole('checkbox', { name: /Согласен/ }).check(); await refresh.click();
-  await page.getByText('Профиль изменился. Проверьте его и подтвердите публикацию ещё раз.').waitFor();
-  assert.equal(await page.getByRole('checkbox', { name: /Согласен/ }).isChecked(), false);
+  await refresh.click();
+  await page.getByText('Профиль изменился. Проверьте его и обновите комментарии ещё раз.').waitFor();
   assert.equal(await page.getByLabel('Комментарий', { exact: true }).inputValue(), 'Не потерять текст');
   refreshStatus = 503;
-  await page.getByRole('checkbox', { name: /Согласен/ }).check(); await refresh.click();
+  await refresh.click();
   await page.getByText('Не удалось обновить профиль в комментариях. Повторите попытку.').waitFor();
   assert.equal(refreshCalls.at(-1).body.profileVersion, 10);
   assert.equal(await page.locator('[data-comments-list] img').count(), 0);
   refreshStatus = 401;
-  await page.getByRole('checkbox', { name: /Согласен/ }).check(); await refresh.click();
+  await refresh.click();
   await page.getByRole('link', { name: 'Войти через HearthPulse', exact: true }).waitFor();
   assert.equal(await page.locator('[data-comments-me] img').count(), 0, 'expired identity removes private avatar URL from DOM');
   assert.equal(await page.locator('[data-comments-body]').inputValue(), '');

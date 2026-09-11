@@ -3,6 +3,7 @@ import { verifiedReader } from './profile-http.js';
 import { requireSameSession } from './community-session.js';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
+const UUID_VALUE = new RegExp(`^${UUID}$`, 'i');
 const publicRoute = new RegExp(`^/reader-api/v1/readers/(${UUID})(/avatar)?$`, 'i');
 const commentRoute = new RegExp(`^/reader-api/v1/comments/(${UUID})$`, 'i');
 const fail = (status, code) => { throw new ReaderCommentError(status, code); };
@@ -12,9 +13,18 @@ async function input(request, keys) {
   const text = await request.text();
   if (Buffer.byteLength(text) > 4096) fail(413, 'request_too_large');
   let body; try { body = JSON.parse(text); } catch { fail(400, 'invalid_input'); }
-  if (!body || Object.getPrototypeOf(body) !== Object.prototype || Object.keys(body).length !== keys.length
-    || !keys.every(key => Object.hasOwn(body, key))) fail(400, 'invalid_input');
+  const candidates = Array.isArray(keys[0]) ? keys : [keys];
+  if (!body || Object.getPrototypeOf(body) !== Object.prototype || !candidates.some(candidate => Object.keys(body).length === candidate.length
+    && candidate.every(key => Object.hasOwn(body, key)))) fail(400, 'invalid_input');
   return body;
+}
+
+function attachmentDTO(item) {
+  const attachment = item?.attachment;
+  if (!attachment || !UUID_VALUE.test(attachment.id) || !Number.isSafeInteger(attachment.width)
+    || !Number.isSafeInteger(attachment.height) || attachment.width < 1 || attachment.height < 1
+    || attachment.width > 1600 || attachment.height > 1600) return null;
+  return { ...attachment, url: `/reader-api/v1/comments/${item.id}/attachment` };
 }
 
 /** Public DTO decoration never changes authorization and never exposes upstream subjects. */
@@ -33,6 +43,11 @@ function authorDTO(author, paid, pending = false, includeSocials = false, admini
     dto.youtubeUrl = author.youtubeUrl ?? null;
   }
   return dto;
+}
+
+function commentDTO(item, paid = false, administrator = false) {
+  return { ...item, attachment: attachmentDTO(item),
+    author: authorDTO(item.author, paid, item.status === 'pending', false, administrator) };
 }
 
 export function createCommentRoutes({ community, store, profiles, identity, validWrite, json, securityHeaders }) {
@@ -101,12 +116,15 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     if (request.method === 'POST') {
       if (!store.getSession(id)) fail(401, 'not_authenticated');
       if (!validWrite(request, id)) fail(403, 'invalid_request');
-      const body = await input(request, ['body', 'parentId', 'operationId', 'profileVersion', 'publicConsent']);
-      await allowed(postId, signal);
-      const session = await reader(id, signal);
+      const body = await input(request, ['body', 'parentId', 'operationId', 'profileVersion', 'attachmentId']);
+      // Editorial permission and identity verification do not depend on one
+      // another. Start both after the local CSRF/session gate, then recheck the
+      // session below before mutating so a logout or token rotation still wins.
+      const [, session] = await Promise.all([allowed(postId, signal), reader(id, signal)]);
+      requireSameSession(store, id, session, signal);
       signal.throwIfAborted();
       const comment = comments.submit(session.userId, { postId, ...body });
-      return json(201, { comment: { ...comment, author: authorDTO(comment.author, false, comment.status === 'pending') } });
+      return json(201, { comment: commentDTO(comment) });
     }
     if (request.method !== 'GET') return null;
     if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1) fail(400, 'invalid_input');
@@ -126,9 +144,8 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     }
     const result = comments.list(postId, options);
     const reactions = comments.reactions.summaries(result.items.map(item => item.id), options.viewerSubject);
-    return json(200, { ...result, items: result.items.map(item => ({ ...item,
-      reactions: reactions.get(item.id),
-      author: authorDTO(item.author, paid.get(item.author?.id), item.status === 'pending', false, admins.get(item.author?.id)) })) });
+    return json(200, { ...result, items: result.items.map(item => commentDTO({ ...item,
+      reactions: reactions.get(item.id) }, paid.get(item.author?.id), admins.get(item.author?.id))) });
   }
 
   return async (request, url, id, signal) => {
@@ -145,7 +162,7 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
         if (!store.getSession(id)) fail(401, 'not_authenticated');
         if (!validWrite(request, id)) fail(403, 'invalid_request');
         if (url.search) fail(400, 'invalid_input');
-        const body = await input(request, ['profileVersion', 'publicConsent']);
+        const body = await input(request, [['profileVersion'], ['profileVersion', 'publicConsent']]);
         const subject = store.getSession(id).userId;
         const profile = profiles.getOrCreate(subject);
         const ids = comments.postIdsForProfile(profile.id);

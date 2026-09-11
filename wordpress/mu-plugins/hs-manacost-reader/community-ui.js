@@ -78,28 +78,62 @@
       button.addEventListener('click', () => { void react(item, kind); });
       return button;
     }
+    function reactionGroup(item) {
+      if (!validReactions(item.reactions)) return null;
+      const group = element('div', 'mc-comments__reactions'); group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', 'Реакции на комментарий');
+      group.append(...kinds.map(args => reactionButton(item, ...args)));
+      return group;
+    }
+    function optimisticReactions(reactions, next) {
+      const selected = reactions.find(value => value.selected)?.kind ?? null;
+      return reactions.map(value => {
+        if (next === null && value.kind === selected) return { ...value, selected: false, count: Math.max(0, value.count - 1) };
+        if (next !== null && value.kind === next) return { ...value, selected: true, count: value.count + 1 };
+        if (next !== null && value.selected) return { ...value, selected: false, count: Math.max(0, value.count - 1) };
+        return { ...value };
+      });
+    }
+    function patchReactions(id) {
+      const item = binding.getRows().find(value => value.id === id);
+      const node = binding.root.querySelector('[data-comment-id="' + id + '"]');
+      if (!item || !node) return;
+      const prior = node.querySelector('.mc-comments__reactions');
+      const next = item.status === 'published' ? reactionGroup(item) : null;
+      if (prior && next) prior.replaceWith(next);
+      else if (prior) prior.remove();
+      else if (next) node.insertBefore(next, node.querySelector('[data-community-admin]'));
+    }
     async function react(item, kind) {
       if (!binding.getMe()) { binding.offerLogin(); return; }
       if (reacting.has(item.id) || !validReactions(item.reactions)) return;
       const ticket = binding.sessionKey();
       const reaction = item.reactions.some(value => value.kind === kind && value.selected) ? null : kind;
-      reacting.add(item.id); renderControls();
+      const previous = item.reactions.map(value => ({ ...value }));
+      item.reactions = optimisticReactions(previous, reaction);
+      reacting.add(item.id); patchReactions(item.id);
       try {
         const { response, data } = await binding.request(commentPath(item.id) + '/reaction', {
           method: 'PUT', headers: binding.write(), body: JSON.stringify({ reaction }),
         });
         if (response.status === 401) { binding.expired(); return; }
         if (!response.ok) {
+          item.reactions = previous; patchReactions(item.id);
           binding.say(response.status === 429 ? 'Слишком много реакций. Подождите немного.'
             : response.status === 404 ? 'Комментарий больше недоступен.' : 'Не удалось сохранить реакцию. Попробуйте ещё раз.');
           return;
         }
         if (!validReactions(data?.reactions)) throw new Error('reaction_failed');
         binding.updateReactions(item.id, data.reactions);
-      } catch (error) { if (error.message !== 'stale') binding.say('Не удалось сохранить реакцию. Попробуйте ещё раз.'); }
+      } catch (error) {
+        if (error.message !== 'stale') {
+          item.reactions = previous; patchReactions(item.id);
+          binding.say('Не удалось сохранить реакцию. Попробуйте ещё раз.');
+        }
+      }
       finally {
         if (ticket === binding.sessionKey()) {
-          reacting.delete(item.id); renderControls();
+          reacting.delete(item.id); patchReactions(item.id);
           binding.root.querySelector('[data-comment-id="' + item.id + '"] [data-reaction="' + kind + '"]')?.focus({ preventScroll: true });
         }
       }
@@ -205,11 +239,7 @@
       for (const item of binding.getRows()) {
         if (!uuid.test(item.id) || item.status !== 'published') continue;
         const node = binding.root.querySelector('[data-comment-id="' + item.id + '"]'); if (!node) continue;
-        if (validReactions(item.reactions)) {
-          const group = element('div', 'mc-comments__reactions'); group.setAttribute('role', 'group');
-          group.setAttribute('aria-label', 'Реакции на комментарий');
-          group.append(...kinds.map(args => reactionButton(item, ...args))); node.append(group);
-        }
+        const group = reactionGroup(item); if (group) node.append(group);
         if (moderator) node.append(adminActions(item));
       }
       if (moderator && !binding.root.querySelector('.mc-comments__bans')) binding.root.append(bansPanel());
@@ -223,7 +253,7 @@
         if (error.message !== 'stale') binding.say('Настройки сообщества временно недоступны.');
       }).finally(() => { if (ticket === binding.sessionKey()) permissionPending = null; });
     }
-    return { render, reset };
+    return { render, reset, patchReactions };
   }
   window.hsManacostReaderCommunity = Object.freeze({ create });
 })();

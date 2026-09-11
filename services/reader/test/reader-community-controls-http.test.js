@@ -26,7 +26,7 @@ function fixture(t) {
     return { session, subject, me, headers: { cookie, origin, 'x-reader-csrf': me.csrfToken, 'content-type': 'application/json' } };
   }
   const submit = user => call('/reader-api/v1/threads/17/comments', { method: 'POST', headers: user.headers,
-    body: { body: 'Тестовый комментарий', parentId: null, operationId: randomUUID(), profileVersion: user.me.profile.version, publicConsent: true } });
+    body: { body: 'Тестовый комментарий', parentId: null, operationId: randomUUID(), profileVersion: user.me.profile.version, attachmentId: null } });
   return { store, profiles, comments, identity, permissions, editorial, admins, call, reader, submit };
 }
 

@@ -85,9 +85,10 @@ echo json_encode($GLOBALS['assets']);'''
             for file in (PHP.parent / name for name in (
                 'ui.css', 'reader.css', 'comments.css', 'profile-editor.js',
                 'reader.js', 'community-ui.js', 'comments.js',
+                'article-favorite.css', 'article-favorite.js',
             ))
         }
-        self.assertEqual(len(assets), 8)
+        self.assertEqual(len(assets), 10)
         for source, version in assets:
             filename = pathlib.Path(urlparse(source).path).name
             self.assertEqual(version, expected[filename], filename)
@@ -122,7 +123,7 @@ echo json_encode($GLOBALS['assets']);'''
             setup = fixture + 'function hs_reader_comments_enabled(){return ' + ('true' if enabled else 'false') + ';} require $argv[1]; echo hs_manacost_reader_account_shell();'
             html = subprocess.run(['php', '-r', setup, str(PHP)], capture_output=True, text=True, check=True).stdout
             self.assertEqual('Комментарии сейчас недоступны.' in html, not enabled)
-            self.assertEqual('Комментарии публикуются сразу после вашего согласия.' in html, enabled)
+            self.assertEqual('Комментарии публикуются сразу.' in html, enabled)
             self.assertEqual('aria-labelledby="mc-reader-publication-title" hidden' in html, not enabled)
     def test_account_headings_and_live_status_are_semantic(self):
         self.assertIn('<p class="mc-reader__masthead-kicker">Профиль Манакоста</p>', self.php)
@@ -138,7 +139,7 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn("hs_manacost_reader_account_icon( 'account' )", self.php)
         self.assertIn("hs_manacost_reader_account_icon( 'chevron' )", self.php)
         self.assertNotIn('mc-reader-saved-title', self.php)
-        self.assertIn('aria-labelledby="mc-reader-profile-title"', self.php)
+        self.assertIn('aria-labelledby="mc-reader-tab-profile mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-status role="status" aria-live="polite"', self.php)
     def test_auth_contract_and_no_private_html_injection(self):
         for value in ("credentials: 'same-origin'", "cache: 'no-store'", 'response.status === 200', 'response.status === 401', 'response.status === 503', 'response.status !== 204', 'X-Reader-CSRF', 'textContent'):
@@ -180,8 +181,12 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn('Изменить профиль', self.php)
         self.assertIn('Где меня найти', self.php)
         self.assertIn('Обновить в комментариях', self.php)
-        self.assertIn('data-reader-public-consent', self.php)
+        self.assertNotIn('data-reader-public-consent', self.php)
         self.assertIn('Twitch / YouTube', self.php)
+        self.assertIn('data-reader-favorites', self.php)
+        self.assertIn('data-reader-tab-favorites', self.php)
+        self.assertIn('/reader-api/v1/favorites', self.js)
+        self.assertIn('Личная подборка', self.php)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
             self.assertIn(value, self.js)

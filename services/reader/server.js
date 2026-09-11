@@ -16,7 +16,10 @@ export function createReaderServer({ origin, handle }) {
       res.writeHead(400, { 'Cache-Control': 'private, no-store' }); res.end(); return;
     }
     const url = new URL(req.url, origin);
-    const upload = req.method === 'PUT' && url.pathname === '/reader-api/v1/profile/avatar';
+    const upload = req.method === 'PUT' && [
+      '/reader-api/v1/profile/avatar',
+      '/reader-api/v1/comment-attachments',
+    ].includes(url.pathname);
     const limit = upload ? 4 * 1024 * 1024 : 4096;
     const reject = status => {
       res.writeHead(status, { 'Cache-Control': 'private, no-store', Connection: 'close' });

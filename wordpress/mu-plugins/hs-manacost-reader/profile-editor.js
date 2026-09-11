@@ -110,7 +110,6 @@
 		const editorStatus = root.querySelector( '[data-reader-editor-status]' );
 		const nameCount = root.querySelector( '[data-reader-name-count]' );
 		const bioCount = root.querySelector( '[data-reader-bio-count]' );
-		const publicConsent = root.querySelector( '[data-reader-public-consent]' );
 		const publication = root.querySelector( '.mc-reader__publication' );
 		const publishProfile = root.querySelector( '[data-reader-publish-profile]' );
 		const publicationHelp = root.querySelector( '[data-reader-publication-help]' );
@@ -156,14 +155,13 @@
 				socialHelp.textContent = unavailable
 					? 'Ссылки Twitch и YouTube станут доступны сразу после обновления сервиса профиля. Остальные данные можно сохранять уже сейчас.'
 					: publication && ! publication.hidden
-						? 'Необязательно. Для показа ссылок другим читателям подтвердите обновление профиля в комментариях ниже.'
+						? 'Необязательно. Ссылки появятся в обсуждениях после обновления профиля ниже.'
 						: 'Необязательно. Сохранение здесь не публикует ссылки для других читателей.';
 			}
 		}
 
 		function setBusy( busy, label = '' ) {
 			save.disabled = busy;
-			if ( publicConsent ) publicConsent.disabled = busy;
 			syncPublication();
 			avatarInput.disabled = busy;
 			removeAvatar.disabled = busy;
@@ -174,8 +172,8 @@
 
 		function syncPublication() {
 			// A cached pre-publication shell can briefly receive the newer script.
-			if ( ! publication || ! publicConsent || ! publishProfile || ! publicationHelp ) return;
-			publishProfile.disabled = publication.hidden || Boolean( mutationController ) || ! serverProfile || dirty || ! publicConsent.checked;
+			if ( ! publication || ! publishProfile || ! publicationHelp ) return;
+			publishProfile.disabled = publication.hidden || Boolean( mutationController ) || ! serverProfile || dirty;
 			publicationHelp.textContent = dirty ? 'Сначала сохраните изменения профиля.' : 'Будет опубликована сохранённая версия профиля. Это действие не создаёт комментарий.';
 		}
 
@@ -233,7 +231,6 @@
 
 		function updateDirtyState() {
 			dirty = Boolean( serverProfile ) && ! sameDraft( draft(), serverProfile );
-			if ( publicConsent ) publicConsent.checked = false;
 			syncPublication();
 			renderPreview();
 			if ( dirty ) {
@@ -255,7 +252,6 @@
 			const profile = validProfile( rawProfile, options.avatarEndpoint );
 			if ( typeof nextCsrfToken !== 'string' || ! nextCsrfToken ) throw new Error( 'invalid_profile' );
 			csrfToken = nextCsrfToken;
-			if ( publicConsent ) publicConsent.checked = false;
 			syncPublication();
 			if ( ! serverProfile ) form.hidden = true;
 			overview.hidden = ! form.hidden;
@@ -305,7 +301,6 @@
 			csrfToken = '';
 			knownVersion = 0;
 			dirty = false;
-			if ( publicConsent ) publicConsent.checked = false;
 			fill( { displayName: '', bio: '', favoriteClass: null, twitchUrl: null, youtubeUrl: null } );
 			identity.replaceChildren();
 			for ( const mark of authorMarks ) mark.node.hidden = true;
@@ -388,7 +383,6 @@
 				syncSocialFields();
 				if ( operation === 'profile' && sentDraft && sameDraft( draft(), sentDraft ) ) fill( profile );
 				dirty = ! sameDraft( draft(), serverProfile );
-				if ( publicConsent ) publicConsent.checked = false;
 				revokeLocalAvatar();
 				setRetry( null );
 				reloadVersion.hidden = true;
@@ -457,7 +451,6 @@
 		}
 
 		function uploadAvatar( file ) {
-			if ( publicConsent ) publicConsent.checked = false;
 			syncPublication();
 			if ( ! file || ! avatarTypes.has( file.type ) || file.size < 1 || file.size > maxAvatarBytes ) {
 				showEditorStatus( file?.size > maxAvatarBytes ? 'Файл больше 4 МБ. Выберите изображение меньшего размера.' : 'Выберите JPEG, PNG или WebP.', 'error' );
@@ -476,7 +469,6 @@
 		}
 
 		function deleteAvatar() {
-			if ( publicConsent ) publicConsent.checked = false;
 			syncPublication();
 			request( {
 				method: 'DELETE', endpoint: options.avatarEndpoint, body: undefined, operation: 'avatar',
@@ -486,16 +478,22 @@
 		}
 
 		function publishSavedProfile() {
-			if ( ! publication || publication.hidden || ! publicConsent?.checked || dirty || mutationController ) return;
+			if ( ! publication || publication.hidden || dirty || mutationController ) return;
 			request( {
 				method: 'PUT', endpoint: '/reader-api/v1/community/profile', operation: 'publication',
-				body: JSON.stringify( { profileVersion: knownVersion, publicConsent: true } ),
+				body: JSON.stringify( { profileVersion: knownVersion } ),
 				headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Reader-CSRF': csrfToken },
 				repeat: publishSavedProfile,
 			} );
 		}
 
 		form.addEventListener( 'submit', ( event ) => { event.preventDefault(); saveProfile(); } );
+		function showOverview( focus = false ) {
+			if ( mutationController || ! serverProfile ) return;
+			form.hidden = true;
+			overview.hidden = false;
+			if ( focus ) openEditor.focus();
+		}
 		openEditor.addEventListener( 'click', () => {
 			form.hidden = false;
 			overview.hidden = true;
@@ -503,14 +501,9 @@
 			form.scrollIntoView( { behavior: window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 'auto' : 'smooth', block: 'start' } );
 		} );
 		cancelEditor.addEventListener( 'click', () => {
-			if ( ! mutationController ) {
-				form.hidden = true;
-				overview.hidden = false;
-				openEditor.focus();
-			}
+			showOverview( true );
 		} );
 		form.addEventListener( 'input', ( event ) => {
-			if ( event.target === publicConsent ) { syncPublication(); return; }
 			if ( event.target === name ) name.setCustomValidity( '' );
 			if ( event.target === bio ) bio.setCustomValidity( '' );
 			if ( event.target === twitch ) twitch.setCustomValidity( '' );
@@ -532,6 +525,7 @@
 		return {
 			applySession,
 			clear,
+			showOverview,
 			isBusy: () => Boolean( mutationController ),
 			isDirty: () => dirty,
 		};

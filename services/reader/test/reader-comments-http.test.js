@@ -25,7 +25,7 @@ function fixture(t, enabled = true) {
     return { id: session.id, subject, me, headers: { cookie, origin, 'x-reader-csrf': me.csrfToken, 'content-type': 'application/json' } };
   }
   const submit = async (user, extra = {}, postId = 17) => call(`/reader-api/v1/threads/${postId}/comments`, {
-    method: 'POST', headers: user.headers, body: { body: 'Полезная статья', parentId: null, operationId: randomUUID(), profileVersion: user.me.profile.version, publicConsent: true, ...extra },
+    method: 'POST', headers: user.headers, body: { body: 'Полезная статья', parentId: null, operationId: randomUUID(), profileVersion: user.me.profile.version, attachmentId: null, ...extra },
   });
   return { store, profiles, comments, identity, editorial, entitlements, call, reader, submit };
 }

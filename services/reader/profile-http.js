@@ -26,8 +26,8 @@ export async function verifiedWriter(store, identity, id, signal) {
   return { session: current };
 }
 
-class BodyTooLarge extends Error {}
-async function bodyBytes(request, limit) {
+export class BodyTooLarge extends Error {}
+export async function bodyBytes(request, limit) {
   if (Number(request.headers.get('content-length') ?? 0) > limit) throw new BodyTooLarge();
   const reader = request.body?.getReader();
   if (!reader) return Buffer.alloc(0);

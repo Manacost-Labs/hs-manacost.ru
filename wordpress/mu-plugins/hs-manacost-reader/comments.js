@@ -9,13 +9,21 @@
   const $ = selector => root.querySelector(selector);
   const status = $('[data-comments-status]'), list = $('[data-comments-list]');
   const form = $('[data-comments-form]'), body = $('[data-comments-body]');
-  const consent = $('[data-comments-consent]'), submit = $('[data-comments-submit]');
+  const submit = $('[data-comments-submit]');
   const retry = $('[data-comments-retry]'), login = $('[data-comments-login]');
   const reply = $('[data-comments-reply]'), cancel = $('[data-comments-cancel]');
   const dataTools = $('[data-comments-data]'), exportButton = $('[data-comments-export]');
   const eraseButton = $('[data-comments-erase]');
   const composerIdentity = $('[data-comments-me]'), count = $('[data-comments-count]');
   const profileNotice = $('[data-comments-profile-notice]'), refreshProfile = $('[data-comments-refresh-profile]');
+  const attachmentInput = $('[data-comments-attachment-input]');
+  const attachmentPicker = $('[data-comments-attachment-picker]');
+  const attachmentPreview = $('[data-comments-attachment-preview]');
+  const attachmentImage = $('[data-comments-attachment-image]');
+  const attachmentStatus = $('[data-comments-attachment-status]');
+  const attachmentRemove = $('[data-comments-attachment-remove]');
+  const attachmentTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  const maxAttachmentBytes = 4 * 1024 * 1024;
   const more = document.createElement('button');
   more.type = 'button'; more.textContent = 'Показать ещё'; more.hidden = true;
   more.className = 'mc-comments__more mc-ui-button mc-ui-button--secondary'; list.after(more);
@@ -23,6 +31,7 @@
   const stale = new Error('stale');
   let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null;
   let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
+  let stagedAttachment = null, attachmentPreviewUrl = null, attachmentUploading = false;
   const say = message => { status.textContent = message; };
   const current = ticket => visible && ticket === generation;
   const community = window.hsManacostReaderCommunity?.create({
@@ -30,7 +39,7 @@
     sessionKey: () => `${generation}:${csrf}`, expired, say, reload: () => loadComments(),
     updateReactions(id, reactions) {
       const item = rows.find(row => row.id === id);
-      if (item) { item.reactions = reactions; render(); }
+      if (item) { item.reactions = reactions; community?.patchReactions(id); }
     },
     replaceComment(id, replacement) {
       const index = rows.findIndex(row => row.id === id);
@@ -44,8 +53,13 @@
   });
 
   function controls() {
-    body.disabled = consent.disabled = busy || Boolean(retryPayload);
-    submit.disabled = retry.disabled = busy || commentingBlocked;
+    const locked = busy || Boolean(retryPayload);
+    body.disabled = locked;
+    if (attachmentInput) attachmentInput.disabled = locked || attachmentUploading;
+    if (attachmentPicker) attachmentPicker.disabled = locked || attachmentUploading;
+    if (attachmentRemove) attachmentRemove.disabled = locked || attachmentUploading || !stagedAttachment;
+    submit.disabled = locked || commentingBlocked || attachmentUploading;
+    retry.disabled = busy || commentingBlocked || attachmentUploading;
     exportButton.disabled = eraseButton.disabled = busy;
     submit.hidden = Boolean(retryPayload); retry.hidden = !retryPayload;
     root.querySelectorAll('[data-comment-action]').forEach(button => { button.disabled = busy || Boolean(retryPayload); });
@@ -53,16 +67,27 @@
     form.setAttribute('aria-busy', String(busy));
     if (refreshProfile && profileNotice) {
       refreshProfile.hidden = profileNotice.hidden = !hasOlderIdentity();
-      refreshProfile.disabled = busy || Boolean(retryPayload) || !consent.checked;
+      refreshProfile.disabled = locked;
     }
     if (count) count.textContent = `${Array.from(body.value).length} / 1000`;
   }
+  function revokeAttachmentPreview() {
+    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+    attachmentPreviewUrl = null;
+  }
+  function clearAttachment() {
+    revokeAttachmentPreview(); stagedAttachment = null;
+    if (attachmentInput) attachmentInput.value = '';
+    if (attachmentImage) attachmentImage.removeAttribute('src');
+    if (attachmentStatus) attachmentStatus.textContent = '';
+    if (attachmentPreview) attachmentPreview.hidden = true;
+  }
   function clearDraft() {
-    body.value = ''; consent.checked = false; parentId = null; retryPayload = null;
+    body.value = ''; clearAttachment(); parentId = null; retryPayload = null;
     reply.textContent = ''; reply.hidden = cancel.hidden = true; controls();
   }
   function resetPrivate() {
-    me = null; csrf = ''; busy = false; commentingBlocked = false; community?.reset(); clearDraft();
+    me = null; csrf = ''; busy = false; attachmentUploading = false; commentingBlocked = false; community?.reset(); clearDraft();
     composerIdentity?.replaceChildren();
     form.hidden = dataTools.hidden = true; login.hidden = false;
     rows = rows.filter(item => item.status !== 'pending'); render();
@@ -106,14 +131,21 @@
     return pending ? author.profileUrl === null && author.avatarUrl === null && author.paidSubscriber === false && platformFlags
       : author.profileUrl === `/account/?reader=${author.id}` && typeof author.paidSubscriber === 'boolean' && platformFlags;
   }
+  function validAttachment(attachment, commentId) {
+    return (attachment === undefined || attachment === null) || (attachment && uuid.test(attachment.id)
+      && Number.isSafeInteger(attachment.width) && attachment.width >= 1 && attachment.width <= 1600
+      && Number.isSafeInteger(attachment.height) && attachment.height >= 1 && attachment.height <= 1600
+      && attachment.url === `/reader-api/v1/comments/${commentId}/attachment`);
+  }
   function valid(item) {
     if (!item || !uuid.test(item.id) || item.postId !== postId
       || (item.parentId !== null && !uuid.test(item.parentId))
       || !Number.isSafeInteger(item.version) || item.version < 1
       || !Number.isSafeInteger(item.createdAt) || item.createdAt < 0 || item.createdAt > 8640000000000000
       || !['published', 'deleted', 'pending'].includes(item.status)) return false;
-    if (item.status === 'deleted') return item.body === null && item.author === null;
-    if (typeof item.body !== 'string' || Array.from(item.body).length > 1000 || !validAuthor(item.author, item.status === 'pending')) return false;
+    if (item.status === 'deleted') return item.body === null && item.author === null && (item.attachment === undefined || item.attachment === null);
+    if (typeof item.body !== 'string' || Array.from(item.body).length > 1000 || !validAttachment(item.attachment, item.id)
+      || !validAuthor(item.author, item.status === 'pending')) return false;
     return item.status !== 'pending' || (me && item.author.id === me.id);
   }
   function avatar(author) {
@@ -191,6 +223,18 @@
       time.dateTime = new Date(item.createdAt).toISOString(); node.append(time);
     }
     node.append(element('p', 'mc-comments__body', item.body));
+    if (item.attachment) {
+      const attachmentLink = element('a', 'mc-comments__image-link');
+      attachmentLink.href = item.attachment.url;
+      attachmentLink.target = '_blank'; attachmentLink.rel = 'noopener';
+      attachmentLink.setAttribute('aria-label', 'Открыть изображение к комментарию');
+      const image = element('img', 'mc-comments__image');
+      image.src = item.attachment.url; image.alt = 'Изображение к комментарию';
+      image.width = item.attachment.width; image.height = item.attachment.height;
+      image.decoding = 'async'; image.loading = 'lazy';
+      image.addEventListener('error', () => attachmentLink.remove(), { once: true });
+      attachmentLink.append(image); node.append(attachmentLink);
+    }
     const actions = element('div', 'mc-comments__actions');
     function action(label, callback) {
       const button = element('button', 'mc-ui-button mc-ui-button--text', label); button.type = 'button'; button.dataset.commentAction = '';
@@ -223,7 +267,7 @@
     form.hidden = dataTools.hidden = false; login.hidden = true;
     community?.render();
   }
-  async function loadComments(append = false, prefetched = null) {
+  async function loadComments(append = false, prefetched = null, preserveIds = null) {
     const ticket = generation;
     more.disabled = true;
     try {
@@ -234,34 +278,113 @@
       if (!response.ok || !Array.isArray(data?.items) || data.items.length > 20
         || (data.nextCursor !== null && !uuid.test(data.nextCursor))) throw new Error('comments_unavailable');
       const page = data.items.filter(valid);
-      rows = append ? [...rows, ...page.filter(item => !rows.some(old => old.id === item.id))] : page;
+      if (append) rows = [...rows, ...page.filter(item => !rows.some(old => old.id === item.id))];
+      else if (preserveIds instanceof Set) {
+        const received = new Set(page.map(item => item.id));
+        const preserved = rows.filter(item => preserveIds.has(item.id) && !received.has(item.id));
+        rows = [...page, ...preserved].sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id));
+      } else rows = page;
       cursor = data.nextCursor; render();
-      say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.length ? '' : 'Комментариев пока нет. Начните обсуждение.');
+      if (!(preserveIds instanceof Set)) say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.length ? '' : 'Комментариев пока нет. Начните обсуждение.');
       return true;
     } catch (error) {
       if (error === stale || !current(ticket)) return;
-      rows = []; cursor = null; render(); say('Не удалось загрузить комментарии. Повторите попытку позже.');
+      if (!(preserveIds instanceof Set)) { rows = []; cursor = null; render(); }
+      say('Не удалось загрузить комментарии. Повторите попытку позже.');
       return false;
     } finally { if (current(ticket)) more.disabled = false; }
   }
   async function publishIdentity() {
-    if (!me || busy || retryPayload || !consent.checked || !hasOlderIdentity()) return;
+    if (!me || busy || retryPayload || !hasOlderIdentity()) return;
     const ticket = generation, profileVersion = me.version, profileId = me.id;
     busy = true; controls(); say('Обновляем профиль в комментариях…');
     try {
       const { response, data } = await request('/reader-api/v1/community/profile', {
-        method: 'PUT', headers: write(), body: JSON.stringify({ profileVersion, publicConsent: true }),
+        method: 'PUT', headers: write(), body: JSON.stringify({ profileVersion }),
       });
       if (response.status === 401) { expired(); return; }
       if (response.status === 409) {
-        await loadMe(); say('Профиль изменился. Проверьте его и подтвердите публикацию ещё раз.'); return;
+        await loadMe(); say('Профиль изменился. Проверьте его и обновите комментарии ещё раз.'); return;
       }
       if (!response.ok || data?.profile?.id !== profileId || data.profile.version !== profileVersion) throw new Error('profile_refresh_failed');
       if (await loadComments()) say('Фото и значки в комментариях обновлены.');
     } catch (error) {
       if (error !== stale && current(ticket)) say('Не удалось обновить профиль в комментариях. Повторите попытку.');
+    } finally { if (current(ticket)) { busy = false; controls(); } }
+  }
+  function validStagedAttachment(value) {
+    return value && uuid.test(value.id) && Number.isSafeInteger(value.width) && value.width >= 1 && value.width <= 1600
+      && Number.isSafeInteger(value.height) && value.height >= 1 && value.height <= 1600;
+  }
+  function previewAttachment(file, message) {
+    revokeAttachmentPreview();
+    attachmentPreviewUrl = URL.createObjectURL(file);
+    if (attachmentImage) attachmentImage.src = attachmentPreviewUrl;
+    if (attachmentStatus) attachmentStatus.textContent = message;
+    if (attachmentPreview) attachmentPreview.hidden = false;
+  }
+  async function stageAttachment(file) {
+    if (!me || busy || retryPayload || attachmentUploading) return;
+    if (!file || !attachmentTypes.has(file.type) || file.size < 1 || file.size > maxAttachmentBytes) {
+      say(file?.size > maxAttachmentBytes ? 'Изображение больше 4 МБ. Выберите файл меньшего размера.' : 'Прикрепите JPEG, PNG или WebP до 4 МБ.');
+      if (attachmentInput) attachmentInput.value = '';
+      return;
+    }
+    const previous = stagedAttachment;
+    const ticket = generation;
+    attachmentUploading = true;
+    clearAttachment();
+    previewAttachment(file, 'Подготавливаем изображение…');
+    controls();
+    try {
+      if (previous) {
+        const discarded = await request(`/reader-api/v1/comment-attachments/${previous.id}`, {
+          method: 'DELETE', headers: { Accept: 'application/json', 'X-Reader-CSRF': csrf },
+        });
+        if (discarded.response.status === 401) { expired(); return; }
+        if (!discarded.response.ok) throw new Error('attachment_discard_failed');
+      }
+      const { response, data } = await request('/reader-api/v1/comment-attachments', {
+        method: 'PUT', body: file,
+        headers: { Accept: 'application/json', 'Content-Type': file.type, 'X-Reader-CSRF': csrf },
+      });
+      if (response.status === 401) { expired(); return; }
+      if (!response.ok || !validStagedAttachment(data?.attachment)) {
+        if (response.status === 413) say('Изображение больше 4 МБ. Выберите файл меньшего размера.');
+        else if (response.status === 429) say('Можно подготовить не более трёх изображений одновременно. Уберите ненужное и повторите попытку.');
+        else say('Не удалось подготовить изображение. Выберите JPEG, PNG или WebP и повторите попытку.');
+        clearAttachment();
+        return;
+      }
+      stagedAttachment = Object.freeze({ id: data.attachment.id, width: data.attachment.width, height: data.attachment.height });
+      if (attachmentStatus) attachmentStatus.textContent = 'Изображение готово и будет опубликовано вместе с комментарием.';
+    } catch (error) {
+      if (error !== stale && current(ticket)) {
+        clearAttachment();
+        say('Не удалось подготовить изображение. Повторите попытку.');
+      }
     } finally {
-      if (current(ticket)) { busy = false; consent.checked = false; controls(); }
+      if (current(ticket)) { attachmentUploading = false; controls(); }
+    }
+  }
+  async function removeAttachment() {
+    if (!stagedAttachment || busy || retryPayload || attachmentUploading) return;
+    const attachment = stagedAttachment;
+    const ticket = generation;
+    attachmentUploading = true;
+    clearAttachment();
+    controls();
+    try {
+      const { response } = await request(`/reader-api/v1/comment-attachments/${attachment.id}`, {
+        method: 'DELETE', headers: { Accept: 'application/json', 'X-Reader-CSRF': csrf },
+      });
+      if (response.status === 401) { expired(); return; }
+      if (!response.ok) throw new Error('attachment_discard_failed');
+      say('Изображение убрано.');
+    } catch (error) {
+      if (error !== stale && current(ticket)) say('Не удалось убрать изображение. Оно останется приватным и будет удалено автоматически.');
+    } finally {
+      if (current(ticket)) { attachmentUploading = false; controls(); }
     }
   }
   async function erase(item) {
@@ -286,16 +409,23 @@
         say('Вам запрещено комментировать. Черновик сохранён.'); return;
       }
       if (response.status === 409) {
-        retryPayload = null; consent.checked = false;
-        await loadMe(); say('Профиль или обсуждение изменились. Проверьте текст и подтвердите согласие ещё раз.'); return;
+        retryPayload = null;
+        await loadMe(); say('Профиль или обсуждение изменились. Проверьте текст и отправьте комментарий ещё раз.'); return;
       }
       if (response.status >= 400 && response.status < 500) {
-        retryPayload = null; consent.checked = false;
+        retryPayload = null;
         say(response.status === 429 ? 'Слишком много комментариев. Подождите минуту.' : 'Комментарий не отправлен. Проверьте текст или обновите страницу.'); return;
       }
       if (!response.ok || !valid(data?.comment)) throw new Error('ambiguous_result');
-      clearDraft(); await loadComments();
-      if (current(ticket)) say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.');
+      clearDraft();
+      const index = rows.findIndex(item => item.id === data.comment.id);
+      if (index >= 0) rows[index] = data.comment;
+      else rows = [...rows, data.comment].sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id));
+      render();
+      if (current(ticket)) {
+        say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.');
+        void loadComments(false, null, new Set([data.comment.id]));
+      }
     } catch (error) {
       if (error === stale || !current(ticket)) return;
       retryPayload = Object.freeze({ ...payload });
@@ -305,17 +435,25 @@
   form.addEventListener('submit', event => {
     event.preventDefault(); if (!me || busy || retryPayload) return;
     if (commentingBlocked) { say('Вам запрещено комментировать. Черновик сохранён.'); return; }
-    const payload = { body: body.value.trim(), parentId, operationId: crypto.randomUUID(), profileVersion: me.version, publicConsent: true };
+    const payload = { body: body.value.trim(), parentId, operationId: crypto.randomUUID(), profileVersion: me.version, attachmentId: stagedAttachment?.id ?? null };
     if (Array.from(payload.body).length < 2 || Array.from(payload.body).length > 1000 || new TextEncoder().encode(JSON.stringify(payload)).length > 4096) {
       say('Комментарий должен содержать от 2 до 1000 символов и помещаться в 4 КБ.'); return;
     }
-    if (!consent.checked) { say('Подтвердите согласие на публикацию данных профиля.'); return; }
     void send(payload);
   });
   retry.addEventListener('click', () => { if (retryPayload) void send(retryPayload); });
   refreshProfile?.addEventListener('click', () => { void publishIdentity(); });
-  consent.addEventListener('change', controls);
   body.addEventListener('input', controls);
+  body.addEventListener('paste', event => {
+    const item = [...(event.clipboardData?.items || [])].find(candidate => attachmentTypes.has(candidate.type));
+    const file = item?.getAsFile();
+    if (!file || busy || retryPayload || attachmentUploading) return;
+    event.preventDefault();
+    void stageAttachment(file);
+  });
+  attachmentInput?.addEventListener('change', () => { void stageAttachment(attachmentInput.files?.[0]); });
+  attachmentPicker?.addEventListener('click', () => { attachmentInput?.click(); });
+  attachmentRemove?.addEventListener('click', () => { void removeAttachment(); });
   cancel.addEventListener('click', () => { if (!busy && !retryPayload) { parentId = null; reply.hidden = cancel.hidden = true; body.focus(); } });
   more.addEventListener('click', () => { void loadComments(true); });
 

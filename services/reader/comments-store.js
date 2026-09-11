@@ -21,15 +21,18 @@ const safeText = (value, field, min, max) => {
 };
 
 export class ReaderComments {
-  constructor({ db, issuer, origin = 'https://test.hs-manacost.ru', now = Date.now } = {}) {
+  constructor({ db, issuer, origin = 'https://test.hs-manacost.ru', now = Date.now, attachments = null } = {}) {
     if (!db?.exec || !db?.prepare || typeof issuer !== 'string' || !issuer || typeof now !== 'function') fail(500, 'configuration_error');
-    this.db = db; this.issuer = issuer; this.now = now;
+    if (attachments !== null && (typeof attachments.claim !== 'function' || typeof attachments.removeForComment !== 'function'
+      || typeof attachments.erase !== 'function' || typeof attachments.cleanup !== 'function')) fail(500, 'configuration_error');
+    this.db = db; this.issuer = issuer; this.now = now; this.attachments = attachments;
     db.exec('BEGIN IMMEDIATE');
     try { db.exec(`CREATE TABLE IF NOT EXISTS reader_comments (
       id TEXT PRIMARY KEY, issuer TEXT NOT NULL, subject TEXT, author_profile_id TEXT, post_id INTEGER NOT NULL,
       body TEXT, parent_id TEXT, status TEXT NOT NULL CHECK(status IN ('pending','published','rejected','deleted')),
       version INTEGER NOT NULL CHECK(version > 0), profile_version INTEGER NOT NULL, operation_id TEXT,
       request_digest TEXT, public_consent INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+      attachment_id TEXT,
       UNIQUE(issuer, author_profile_id, operation_id)
     ); CREATE INDEX IF NOT EXISTS reader_comments_post_created ON reader_comments(post_id, created_at, id);
     CREATE INDEX IF NOT EXISTS reader_comments_owner_created ON reader_comments(issuer, subject, created_at, id);
@@ -44,10 +47,17 @@ export class ReaderComments {
     ); CREATE INDEX IF NOT EXISTS reader_comment_rate_events_key ON reader_comment_rate_events(rate_key, created_at);
     CREATE TABLE IF NOT EXISTS reader_comment_audit (
       id TEXT PRIMARY KEY, comment_id TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL, created_at INTEGER NOT NULL
-    );`);
-      const columns = new Set(db.prepare('PRAGMA table_info(reader_comment_public_profiles)').all().map(row => row.name));
-      if (!columns.has('twitch_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN twitch_url TEXT');
-      if (!columns.has('youtube_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN youtube_url TEXT');
+    ); CREATE TABLE IF NOT EXISTS reader_comment_attachments (
+      id TEXT PRIMARY KEY, issuer TEXT NOT NULL, subject TEXT NOT NULL, profile_id TEXT NOT NULL,
+      bytes BLOB NOT NULL, width INTEGER NOT NULL CHECK(width > 0), height INTEGER NOT NULL CHECK(height > 0),
+      attached_comment_id TEXT UNIQUE, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+    ); CREATE INDEX IF NOT EXISTS reader_comment_attachments_pending
+      ON reader_comment_attachments(issuer, subject, profile_id, attached_comment_id, expires_at);`);
+      const profileColumns = new Set(db.prepare('PRAGMA table_info(reader_comment_public_profiles)').all().map(row => row.name));
+      if (!profileColumns.has('twitch_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN twitch_url TEXT');
+      if (!profileColumns.has('youtube_url')) db.exec('ALTER TABLE reader_comment_public_profiles ADD COLUMN youtube_url TEXT');
+      const commentColumns = new Set(db.prepare('PRAGMA table_info(reader_comments)').all().map(row => row.name));
+      if (!commentColumns.has('attachment_id')) db.exec('ALTER TABLE reader_comments ADD COLUMN attachment_id TEXT');
       migrateCommunityControls(db);
       db.exec('COMMIT'); } catch (error) { try { db.exec('ROLLBACK'); } catch {} throw error; }
     this.reactions = new ReaderReactions({ db, issuer, now, profile: subject => this.profile(subject) });
@@ -61,17 +71,22 @@ export class ReaderComments {
     return row;
   }
   input(input) {
-    const keys = ['postId', 'body', 'parentId', 'operationId', 'profileVersion', 'publicConsent'];
+    const keys = ['postId', 'body', 'parentId', 'operationId', 'profileVersion', 'attachmentId'];
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Object.keys(input).length !== keys.length || !keys.every(key => own(input, key))) fail(400, 'invalid_input');
     if (!Number.isSafeInteger(input.postId) || input.postId < 1) fail(400, 'invalid_input');
-    if (typeof input.operationId !== 'string' || !UUID.test(input.operationId) || !Number.isSafeInteger(input.profileVersion) || input.profileVersion < 1 || input.publicConsent !== true) fail(400, 'invalid_input');
+    if (typeof input.operationId !== 'string' || !UUID.test(input.operationId) || !Number.isSafeInteger(input.profileVersion) || input.profileVersion < 1
+      || (input.attachmentId !== null && (typeof input.attachmentId !== 'string' || !UUID.test(input.attachmentId)))
+      || (input.attachmentId !== null && !this.attachments)) fail(400, 'invalid_input');
     if (input.parentId !== null && (typeof input.parentId !== 'string' || !UUID.test(input.parentId))) fail(400, 'invalid_input');
     return { ...input, body: safeText(input.body, 'body', 2, 1000) };
   }
   dto(row, viewerProfileId = null) {
     const owner = viewerProfileId && row.author_profile_id === viewerProfileId;
-    const base = { id: row.id, postId: row.post_id, parentId: row.parent_id, status: row.status, version: row.version, createdAt: row.created_at, body: row.body };
-    if (row.status === 'deleted') return { ...base, body: null, author: null };
+    const attachment = row.attachment_id && UUID.test(row.attachment_id) && Number.isSafeInteger(row.attachment_width)
+      && Number.isSafeInteger(row.attachment_height) && row.attachment_width > 0 && row.attachment_height > 0
+      ? { id: row.attachment_id, width: row.attachment_width, height: row.attachment_height } : null;
+    const base = { id: row.id, postId: row.post_id, parentId: row.parent_id, status: row.status, version: row.version, createdAt: row.created_at, body: row.body, attachment };
+    if (row.status === 'deleted') return { ...base, body: null, author: null, attachment: null };
     if (owner && row.status === 'pending') return { ...base, author: { id: row.author_profile_id, name: row.current_name, bio: row.current_bio, favoriteClass: row.current_class, avatarVersion: row.current_avatar_version } };
     // These are consented snapshot values. The HTTP DTO below reduces them to
     // presence booleans, so thread readers never receive the profile URLs.
@@ -84,7 +99,9 @@ export class ReaderComments {
       // Read the consented version under the same write lock as publication.
       const profile = this.profile(subject);
       if (this.bans.isBlocked(subject)) fail(403, 'commenting_blocked');
-      const retry = this.db.prepare('SELECT * FROM reader_comments WHERE issuer = ? AND author_profile_id = ? AND operation_id = ?').get(this.issuer, profile.id, data.operationId);
+      const retry = this.db.prepare(`SELECT c.*,a.width attachment_width,a.height attachment_height FROM reader_comments c
+        LEFT JOIN reader_comment_attachments a ON a.id=c.attachment_id AND a.issuer=c.issuer
+        WHERE c.issuer = ? AND c.author_profile_id = ? AND c.operation_id = ?`).get(this.issuer, profile.id, data.operationId);
       if (retry) {
         if (retry.request_digest !== requestDigest) fail(409, 'idempotency_conflict');
         if (retry.subject === null || retry.body === null) fail(410, 'erased');
@@ -102,16 +119,24 @@ export class ReaderComments {
         if (!parent || parent.status !== 'published' || parent.post_id !== data.postId || parent.parent_id !== null) fail(409, 'invalid_parent');
       }
       const id = randomUUID();
-      this.db.prepare('INSERT INTO reader_comments VALUES (?, ?, ?, ?, ?, ?, ?, \'published\', 1, ?, ?, ?, 1, ?, ?)').run(id, this.issuer, subject, profile.id, data.postId, data.body, data.parentId, data.profileVersion, data.operationId, requestDigest, now, now);
+      const attachment = this.attachments?.claim(subject, profile.id, data.attachmentId, id) ?? null;
+      this.db.prepare(`INSERT INTO reader_comments
+        (id,issuer,subject,author_profile_id,post_id,body,parent_id,status,version,profile_version,operation_id,request_digest,public_consent,created_at,updated_at,attachment_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'published', 1, ?, ?, ?, 1, ?, ?, ?)`).run(
+        id, this.issuer, subject, profile.id, data.postId, data.body, data.parentId, data.profileVersion, data.operationId,
+        requestDigest, now, now, attachment?.id ?? null,
+      );
       this.publishProfile(profile, now);
       this.db.prepare('INSERT INTO reader_comment_rate_events VALUES (?, ?, ?)').run(rateKey, now, now + 86_400_000);
-      const row = this.db.prepare('SELECT * FROM reader_comments WHERE id = ?').get(id); this.db.exec('COMMIT');
+      const row = this.db.prepare(`SELECT c.*,a.width attachment_width,a.height attachment_height FROM reader_comments c
+        LEFT JOIN reader_comment_attachments a ON a.id=c.attachment_id AND a.issuer=c.issuer WHERE c.id = ?`).get(id);
+      this.db.exec('COMMIT');
       return this.dto({ ...row, public_name: profile.display_name, public_bio: profile.bio, public_class: profile.favorite_class, public_avatar_version: profile.avatar_version, public_twitch_url: profile.twitch_url, public_youtube_url: profile.youtube_url }, profile.id);
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
   }
-  /** Refresh an existing public identity, never publish private edits implicitly. */
+  /** Refresh an existing public identity after the reader has chosen to comment. */
   refreshProfile(subject, { profileVersion, publicConsent } = {}) {
-    if (!Number.isSafeInteger(profileVersion) || profileVersion < 1 || publicConsent !== true) fail(400, 'invalid_input');
+    if (!Number.isSafeInteger(profileVersion) || profileVersion < 1 || (publicConsent !== undefined && publicConsent !== true)) fail(400, 'invalid_input');
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const profile = this.profile(subject);
@@ -133,9 +158,9 @@ export class ReaderComments {
     const viewer = viewerSubject === null ? null : this.profile(viewerSubject);
     const cursorRow = cursor && this.db.prepare("SELECT created_at FROM reader_comments WHERE id=? AND issuer=? AND post_id=? AND (status IN ('published','deleted') OR (status='pending' AND author_profile_id=?))").get(cursor, this.issuer, postId, viewer?.id ?? '');
     if (cursor && !cursorRow) fail(400, 'invalid_cursor');
-    const rows = this.db.prepare(`SELECT c.*, p.display_name current_name, p.bio current_bio, p.favorite_class current_class, p.avatar_version current_avatar_version,
+    const rows = this.db.prepare(`SELECT c.*,a.width attachment_width,a.height attachment_height, p.display_name current_name, p.bio current_bio, p.favorite_class current_class, p.avatar_version current_avatar_version,
       s.name public_name, s.bio public_bio, s.favorite_class public_class, s.avatar_version public_avatar_version, s.twitch_url public_twitch_url, s.youtube_url public_youtube_url
-      FROM reader_comments c LEFT JOIN reader_profiles p ON p.id=c.author_profile_id AND p.issuer=c.issuer LEFT JOIN reader_comment_public_profiles s ON s.profile_id=c.author_profile_id AND s.issuer=c.issuer
+      FROM reader_comments c LEFT JOIN reader_comment_attachments a ON a.id=c.attachment_id AND a.issuer=c.issuer LEFT JOIN reader_profiles p ON p.id=c.author_profile_id AND p.issuer=c.issuer LEFT JOIN reader_comment_public_profiles s ON s.profile_id=c.author_profile_id AND s.issuer=c.issuer
       WHERE c.issuer=? AND c.post_id=? AND (c.status IN ('published','deleted') OR (c.status='pending' AND c.author_profile_id=?))
       AND (? IS NULL OR c.created_at > ? OR (c.created_at=? AND c.id>?)) ORDER BY c.created_at, c.id LIMIT ?`).all(this.issuer, postId, viewer?.id ?? '', cursorRow?.created_at ?? null, cursorRow?.created_at ?? null, cursorRow?.created_at ?? null, cursor ?? '', limit);
     return { items: rows.map(row => this.dto(row, viewer?.id)), nextCursor: rows.length === limit ? rows.at(-1).id : null };
@@ -198,6 +223,7 @@ export class ReaderComments {
       const status = row.status === 'published' ? 'deleted' : 'rejected';
       const changed = this.db.prepare("UPDATE reader_comments SET status=?,body=NULL,version=version+1,updated_at=? WHERE id=? AND issuer=? AND author_profile_id=? AND version=? AND status IN ('pending','published')").run(status, now, id, this.issuer, profile.id, version);
       if (changed.changes !== 1) fail(409, 'comment_version_conflict');
+      this.attachments?.removeForComment(id);
       this.reactions.removeForComment(id);
       this.db.exec('COMMIT'); return { id, status, version: version + 1 };
     } catch (error) { try { this.db.exec('ROLLBACK'); } catch {} throw error; }
@@ -226,6 +252,7 @@ export class ReaderComments {
       const status = ['published', 'deleted'].includes(row.status) ? 'deleted' : 'rejected';
       const changed = this.db.prepare('UPDATE reader_comments SET status=?,body=NULL,version=version+1,updated_at=? WHERE id=? AND issuer=? AND version=?').run(status, now, id, this.issuer, version);
       if (changed.changes !== 1) fail(409, 'review_conflict');
+      this.attachments?.removeForComment(id);
       this.reactions.removeForComment(id);
       this.db.prepare('INSERT INTO reader_comment_audit VALUES (?, ?, ?, ?, ?)').run(randomUUID(), id, actor.trim(), 'takedown', now);
       this.db.exec('COMMIT'); return { id, status, version: version + 1 };
@@ -237,6 +264,7 @@ export class ReaderComments {
       const count = this.db.prepare('SELECT count(*) count FROM reader_comments WHERE issuer=? AND author_profile_id=?').get(this.issuer, profile.id).count;
       if (count > 5000) fail(409, 'erasure_needs_operator');
       this.reactions.erase(profile.id);
+      this.attachments?.erase(subject, profile.id);
       const operations = this.db.prepare('SELECT operation_id,request_digest FROM reader_comments WHERE issuer=? AND author_profile_id=? AND operation_id IS NOT NULL').all(this.issuer, profile.id);
       for (const item of operations) this.db.prepare('INSERT OR REPLACE INTO reader_comment_erased_operations VALUES (?, ?, ?)').run(operationKey(this.issuer, profile.id, item.operation_id), item.request_digest, now + 86_400_000);
       this.db.prepare("UPDATE reader_comments SET author_profile_id=NULL,subject=NULL,operation_id=NULL,request_digest=NULL,body=NULL,status=CASE WHEN status='published' THEN 'deleted' ELSE status END,version=version+1,updated_at=? WHERE issuer=? AND author_profile_id=?").run(now, this.issuer, profile.id);
@@ -250,6 +278,7 @@ export class ReaderComments {
     this.db.prepare('DELETE FROM reader_comment_rate_events WHERE expires_at <= ?').run(now);
     this.db.prepare('DELETE FROM reader_reaction_events WHERE issuer=? AND created_at<=?').run(this.issuer, now - 86_400_000);
     this.db.prepare('DELETE FROM reader_community_audit WHERE issuer=? AND created_at<=?').run(this.issuer, now - 90 * 86_400_000);
+    this.attachments?.cleanup();
     return { comments, audit };
   }
 }

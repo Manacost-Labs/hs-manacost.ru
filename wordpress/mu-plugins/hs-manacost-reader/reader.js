@@ -1,6 +1,7 @@
 ( function () {
 	'use strict';
 	const requestTimeoutMs = 7000;
+	const favoriteId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 	const endpoint = ( root, name, fallback ) => {
 		const value = root.dataset[ name ] || fallback;
@@ -18,6 +19,24 @@
 		}
 	}
 
+	function allowedArticlePath( value ) {
+		if ( typeof value !== 'string' || ! /^\/(?!\/)/.test( value ) || /[\\\s?#%\u0000-\u001f\u007f]/.test( value ) ) return null;
+		try {
+			const url = new URL( value, window.location.origin );
+			return url.origin === window.location.origin && url.pathname === value ? value : null;
+		} catch ( error ) {
+			return null;
+		}
+	}
+
+	function favorite( value ) {
+		const path = allowedArticlePath( value?.path );
+		if ( ! value || ! favoriteId.test( value.id || '' ) || ! Number.isSafeInteger( value.postId ) || value.postId < 1
+			|| typeof value.title !== 'string' || ! value.title.trim() || value.title.length > 1000
+			|| ! path || ! Number.isSafeInteger( value.createdAt ) || value.createdAt < 0 ) return null;
+		return { id: value.id, postId: value.postId, title: value.title.trim(), path, createdAt: value.createdAt };
+	}
+
 	function init( root ) {
 		const status = root.querySelector( '[data-reader-status]' );
 		const identity = root.querySelector( '[data-reader-identity]' );
@@ -25,6 +44,14 @@
 		const accountMenu = root.querySelector( '[data-reader-account-menu]' );
 		const accountActions = root.querySelector( '[data-reader-account-actions]' );
 		const administrator = root.querySelector( '[data-reader-administrator]' );
+		const tabs = root.querySelector( '[data-reader-tabs]' );
+		const profileTab = root.querySelector( '[data-reader-tab-profile]' );
+		const favoritesTab = root.querySelector( '[data-reader-tab-favorites]' );
+		const profileOverview = root.querySelector( '[data-reader-profile-overview]' );
+		const favoritesPanel = root.querySelector( '[data-reader-favorites]' );
+		const favoritesStatus = root.querySelector( '[data-reader-favorites-status]' );
+		const favoritesList = root.querySelector( '[data-reader-favorites-list]' );
+		const favoritesMore = root.querySelector( '[data-reader-favorites-more]' );
 		const loginEndpoint = endpoint( root, 'loginEndpoint', '/reader-auth/start?returnTo=%2Faccount%2F' );
 		const logoutEndpoint = endpoint( root, 'logoutEndpoint', '/reader-auth/logout' );
 		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/me' );
@@ -39,11 +66,160 @@
 		let currentCsrfToken = '';
 		let profileEditor = null;
 		let permissionsController = null;
+		let favoritesController = null;
+		let favoritesRows = [];
+		let favoritesCursor = null;
+		let favoritesLoaded = false;
+		let activeTab = 'profile';
 
 		function clearAdministrator() {
 			permissionsController?.abort();
 			permissionsController = null;
 			if ( administrator ) administrator.hidden = true;
+		}
+
+		function clearFavorites() {
+			favoritesController?.abort();
+			favoritesController = null;
+			favoritesRows = [];
+			favoritesCursor = null;
+			favoritesLoaded = false;
+			activeTab = 'profile';
+			favoritesList?.replaceChildren();
+			if ( favoritesStatus ) favoritesStatus.textContent = '';
+			if ( favoritesMore ) {
+				favoritesMore.hidden = true;
+				favoritesMore.disabled = false;
+				favoritesMore.textContent = 'Показать ещё';
+			}
+			if ( favoritesPanel ) favoritesPanel.hidden = true;
+			if ( profileTab ) profileTab.setAttribute( 'aria-selected', 'true' );
+			if ( favoritesTab ) favoritesTab.setAttribute( 'aria-selected', 'false' );
+		}
+
+		function favoriteRow( item ) {
+			const row = document.createElement( 'li' );
+			row.className = 'mc-reader__favorite';
+			row.dataset.favoriteId = item.id;
+			const article = document.createElement( 'a' );
+			article.className = 'mc-reader__favorite-link';
+			article.href = item.path;
+			article.textContent = item.title;
+			const controls = document.createElement( 'div' );
+			controls.className = 'mc-reader__favorite-actions';
+			const saved = document.createElement( 'span' );
+			saved.className = 'mc-reader__favorite-label';
+			saved.textContent = 'Сохранено';
+			const remove = actionButton( 'Убрать', 'mc-reader__favorite-remove mc-ui-button mc-ui-button--text' );
+			remove.setAttribute( 'aria-label', `Убрать «${ item.title }» из избранного` );
+			remove.addEventListener( 'click', () => { void removeFavorite( item, remove ); } );
+			controls.append( saved, remove );
+			row.append( article, controls );
+			return row;
+		}
+
+		function renderFavorites() {
+			if ( ! favoritesList ) return;
+			favoritesList.replaceChildren( ...favoritesRows.map( favoriteRow ) );
+			if ( favoritesLoaded && favoritesStatus ) favoritesStatus.textContent = favoritesRows.length ? '' : 'Здесь пока нет сохранённых статей.';
+			if ( favoritesMore && favoritesLoaded ) {
+				favoritesMore.hidden = ! favoritesCursor;
+				favoritesMore.disabled = false;
+				favoritesMore.textContent = 'Показать ещё';
+			}
+		}
+
+		function favoriteRequestCurrent( requestController, ticket ) {
+			return favoritesController === requestController && sessionActive && ticket === generation && ! requestController.signal.aborted;
+		}
+
+		async function loadFavorites( append = false ) {
+			if ( ! sessionActive || favoritesController || ! favoritesStatus ) return;
+			const ticket = generation;
+			const requestController = new AbortController();
+			favoritesController = requestController;
+			if ( favoritesMore ) {
+				favoritesMore.disabled = true;
+				favoritesMore.textContent = append ? 'Загружаем…' : 'Загружаем…';
+			}
+			if ( ! append ) favoritesStatus.textContent = 'Загружаем сохранённые статьи…';
+			const deadline = window.setTimeout( () => requestController.abort(), requestTimeoutMs );
+			try {
+				const query = append && favoritesCursor ? `?cursor=${ encodeURIComponent( favoritesCursor ) }` : '';
+				const response = await fetch( `/reader-api/v1/favorites${ query }`, { credentials: 'same-origin', cache: 'no-store', signal: requestController.signal, headers: { Accept: 'application/json' } } );
+				const body = await response.text();
+				if ( ! favoriteRequestCurrent( requestController, ticket ) ) return;
+				if ( response.status === 401 ) { guest( 'Сессия завершена. Войдите через HearthPulse снова.' ); return; }
+				if ( ! response.ok || body.length > 65536 ) throw new Error( 'favorites_unavailable' );
+				const data = JSON.parse( body );
+				if ( ! Array.isArray( data?.items ) || data.items.length > 20 || ( data.nextCursor !== null && ! favoriteId.test( data.nextCursor || '' ) ) ) throw new Error( 'invalid_favorites' );
+				const items = data.items.map( favorite ).filter( Boolean );
+				if ( items.length !== data.items.length || new Set( items.map( item => item.id ) ).size !== items.length ) throw new Error( 'invalid_favorites' );
+				const known = new Set( append ? favoritesRows.map( item => item.id ) : [] );
+				favoritesRows = append ? [ ...favoritesRows, ...items.filter( item => ! known.has( item.id ) ) ] : items;
+				favoritesCursor = data.nextCursor;
+				favoritesLoaded = true;
+				renderFavorites();
+			} catch ( error ) {
+				if ( error.name !== 'AbortError' && favoriteRequestCurrent( requestController, ticket ) ) {
+					favoritesStatus.textContent = 'Не удалось загрузить избранное. Повторите попытку.';
+					if ( favoritesMore ) {
+						favoritesMore.hidden = false;
+						favoritesMore.disabled = false;
+						favoritesMore.textContent = 'Повторить';
+					}
+				}
+			} finally {
+				window.clearTimeout( deadline );
+				const retryAfterSessionRefresh = favoritesController === requestController && ! append && sessionActive
+					&& activeTab === 'favorites' && ! favoritesLoaded && ticket !== generation && ! requestController.signal.aborted;
+				if ( favoritesController === requestController ) favoritesController = null;
+				if ( retryAfterSessionRefresh ) queueMicrotask( () => {
+					if ( sessionActive && activeTab === 'favorites' && ! favoritesLoaded && ! favoritesController ) void loadFavorites();
+				} );
+			}
+		}
+
+		async function removeFavorite( item, button ) {
+			if ( ! sessionActive || ! currentCsrfToken || ! favoritesRows.some( value => value.id === item.id ) ) return;
+			const ticket = generation;
+			const before = favoritesRows;
+			favoritesRows = favoritesRows.filter( value => value.id !== item.id );
+			button.disabled = true;
+			renderFavorites();
+			const requestController = new AbortController();
+			const deadline = window.setTimeout( () => requestController.abort(), requestTimeoutMs );
+			try {
+				const response = await fetch( `/reader-api/v1/favorites/${ item.postId }`, {
+					method: 'DELETE', credentials: 'same-origin', cache: 'no-store', signal: requestController.signal,
+					headers: { Accept: 'application/json', 'X-Reader-CSRF': currentCsrfToken },
+				} );
+				if ( ticket !== generation || ! sessionActive ) return;
+				if ( response.status === 401 ) { guest( 'Сессия завершена. Войдите через HearthPulse снова.' ); return; }
+				if ( ! response.ok ) throw new Error( 'favorite_remove_failed' );
+			} catch ( error ) {
+				if ( error.name !== 'AbortError' && ticket === generation && sessionActive ) {
+					favoritesRows = before;
+					renderFavorites();
+					favoritesStatus.textContent = 'Не удалось убрать статью. Повторите попытку.';
+				}
+			} finally {
+				window.clearTimeout( deadline );
+			}
+		}
+
+		function selectTab( name, load = true, returnToOverview = false ) {
+			if ( ! sessionActive || ! tabs || ! profileTab || ! favoritesTab || ! favoritesPanel || ! profileOverview || profileEditor?.isBusy() ) return;
+			activeTab = name === 'favorites' ? 'favorites' : 'profile';
+			const favorites = activeTab === 'favorites';
+			profileTab.setAttribute( 'aria-selected', String( ! favorites ) );
+			favoritesTab.setAttribute( 'aria-selected', String( favorites ) );
+			favoritesPanel.hidden = ! favorites;
+			if ( favorites ) {
+				profileEditor.showOverview();
+				profileOverview.hidden = true;
+				if ( load && ! favoritesLoaded ) void loadFavorites();
+			} else if ( returnToOverview ) profileEditor.showOverview();
 		}
 
 		async function refreshAdministrator() {
@@ -67,6 +243,7 @@
 
 		function clearPrivate() {
 			clearAdministrator();
+			clearFavorites();
 			identity.replaceChildren();
 			identity.hidden = true;
 			actions.replaceChildren();
@@ -76,6 +253,7 @@
 			profileEditor?.clear();
 			currentCsrfToken = '';
 			sessionActive = false;
+			if ( tabs ) tabs.hidden = true;
 		}
 
 		function link( label, className ) {
@@ -132,6 +310,7 @@
 			accountActions.replaceChildren();
 			status.textContent = '';
 			accountMenu.hidden = false;
+			if ( tabs ) tabs.hidden = false;
 			const profileHref = allowedProfileUrl( data.profileUrl );
 			if ( profileHref ) {
 				const profile = link( 'Профиль HearthPulse', 'mc-reader__button mc-reader__button--secondary mc-ui-button mc-ui-button--secondary' );
@@ -144,6 +323,7 @@
 			logout.addEventListener( 'click', () => logoutRequest( currentCsrfToken ) );
 			accountActions.append( logout );
 			sessionActive = true;
+			selectTab( activeTab, false );
 			void refreshAdministrator();
 		}
 
@@ -235,6 +415,16 @@
 				guest( 'Сессия завершена. Войдите через HearthPulse снова.' );
 			},
 		} );
+		profileTab?.addEventListener( 'click', () => selectTab( 'profile', true, true ) );
+		favoritesTab?.addEventListener( 'click', () => selectTab( 'favorites' ) );
+		tabs?.addEventListener( 'keydown', event => {
+			if ( event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' ) return;
+			event.preventDefault();
+			const next = event.key === 'ArrowRight' ? ( activeTab === 'profile' ? 'favorites' : 'profile' ) : ( activeTab === 'favorites' ? 'profile' : 'favorites' );
+			selectTab( next, true, next === 'profile' );
+			( next === 'favorites' ? favoritesTab : profileTab ).focus();
+		} );
+		favoritesMore?.addEventListener( 'click', () => { void loadFavorites( favoritesLoaded ); } );
 		accountMenu.addEventListener( 'keydown', ( event ) => {
 			if ( 'Escape' !== event.key || ! accountMenu.open ) return;
 			event.preventDefault();

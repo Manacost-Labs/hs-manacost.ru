@@ -129,6 +129,7 @@ try {
 
   holdReaction = true; await reaction('like').click();
   await page.waitForFunction(() => document.querySelector('[data-reaction="like"]').disabled);
+  assert.equal(await reaction('like').getAttribute('aria-pressed'), 'true', 'a reaction changes locally before the server response returns');
   await reaction('like').dispatchEvent('click');
   assert.equal(reactionWrites.length, 1, 'pending reaction cannot duplicate request');
   holdReaction = false; const pendingLike = heldReactions.shift(); json(pendingLike.response, 200, reactionReply(pendingLike.write.reaction));

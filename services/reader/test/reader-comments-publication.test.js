@@ -24,15 +24,15 @@ async function fixture(t) {
   const me = await (await call('/reader-api/v1/me', 'GET', undefined, { cookie })).json();
   const headers = { cookie, origin, 'x-reader-csrf': me.csrfToken, 'content-type': 'application/json' };
   const publish = (body, override = headers) => call(path, 'PUT', body, override);
-  comments.submit('reader', { postId: 17, body: 'Первый комментарий', parentId: null, operationId: randomUUID(), profileVersion: 1, publicConsent: true });
+  comments.submit('reader', { postId: 17, body: 'Первый комментарий', parentId: null, operationId: randomUUID(), profileVersion: 1, attachmentId: null });
   let updated = profiles.update('reader', { version: 1, displayName: 'Новое имя', bio: 'Описание', favoriteClass: 'druid', twitchUrl: 'https://twitch.tv/manacost', youtubeUrl: null });
   updated = profiles.setAvatar('reader', Buffer.from('synthetic-webp'), updated.version);
   return { store, profiles, comments, identity, editorial, call, publish, headers, updated };
 }
 
-test('explicit publication refreshes old comments and avatar without posting another comment', async t => {
+test('profile refresh updates old comments and avatar without posting another comment', async t => {
   const f = await fixture(t);
-  const body = { profileVersion: f.updated.version, publicConsent: true };
+  const body = { profileVersion: f.updated.version };
   assert.equal(f.comments.publicProfile(f.updated.id).avatarVersion, null, 'private edits alone never publish');
   for (let retry = 0; retry < 2; retry++) {
     const response = await f.publish(body);
@@ -50,11 +50,11 @@ test('explicit publication refreshes old comments and avatar without posting ano
   assert.equal(profile.profile.twitchUrl, 'https://www.twitch.tv/manacost');
 });
 
-test('publication rejects guests, CSRF, absent consent, spoofed fields and stale versions', async t => {
-  const f = await fixture(t); const body = { profileVersion: f.updated.version, publicConsent: true };
+test('profile refresh rejects guests, CSRF, spoofed fields and stale versions', async t => {
+  const f = await fixture(t); const body = { profileVersion: f.updated.version };
   assert.equal((await f.publish(body, {})).status, 401);
   assert.equal((await f.publish(body, { ...f.headers, origin: 'https://evil.test' })).status, 403);
-  for (const invalid of [{ ...body, publicConsent: false }, { profileVersion: body.profileVersion }, { ...body, profileId: 'other' }]) {
+  for (const invalid of [{ ...body, publicConsent: false }, { ...body, profileId: 'other' }]) {
     assert.equal((await f.publish(invalid)).status, 400);
   }
   assert.equal((await f.publish({ ...body, profileVersion: 1 })).status, 409);
@@ -70,7 +70,7 @@ test('publication requires an existing visible comment and cannot undo erasure o
       if (action === 'edit') f.profiles.setAvatar('reader', null, f.updated.version);
       return new Map(ids.map(id => [id, { allowed: action !== 'hidden' }]));
     };
-    assert.equal((await f.publish({ profileVersion: f.updated.version, publicConsent: true })).status,
+    assert.equal((await f.publish({ profileVersion: f.updated.version })).status,
       action === 'logout' ? 401 : action === 'edit' ? 409 : 404, action);
     assert.equal(f.comments.publicProfile(f.updated.id)?.avatarVersion ?? null, null);
   }

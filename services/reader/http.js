@@ -3,6 +3,8 @@ import { ReaderAuthorizationDenied, ReaderValidationError } from './core.js';
 import { createProfileRoutes, verifiedReader } from './profile-http.js';
 import { createCommentRoutes } from './comments-http.js';
 import { createCommunityControlRoutes } from './community-controls-http.js';
+import { createCommentAttachmentRoutes } from './comment-attachments-http.js';
+import { createFavoriteRoutes } from './favorites-http.js';
 import { ReaderSessionEnded, SESSION_TTL } from './session-tokens.js';
 
 const SESSION_COOKIE = '__Host-manacost_reader';
@@ -40,6 +42,8 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
   if (community && origin !== 'https://test.hs-manacost.ru') throw new Error('Comments are staging-only');
   const commentRoutes = createCommentRoutes({ community, store, identity, profiles, validWrite, json, securityHeaders });
   const communityControls = createCommunityControlRoutes({ community, store, identity, profiles, validWrite, json });
+  const attachmentRoutes = createCommentAttachmentRoutes({ community, store, profiles, identity, validWrite, json, securityHeaders });
+  const favoriteRoutes = createFavoriteRoutes({ community, store, profiles, identity, validWrite, json, csrf });
   let windowStart = Date.now();
   const buckets = new Map();
   async function dispatch(request) {
@@ -118,7 +122,9 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       return response;
     }
     return await profileRoutes(request, url, id, signal)
+      ?? await attachmentRoutes(request, url, id, signal)
       ?? await communityControls(request, url, id, signal)
+      ?? await favoriteRoutes(request, url, id, signal)
       ?? await commentRoutes(request, url, id, signal) ?? json(404, { error: 'not_found' });
   }
   return async request => {

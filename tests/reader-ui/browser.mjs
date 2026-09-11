@@ -82,6 +82,10 @@ try {
   const profileWrites = [];
   const avatarWrites = [];
   const publicationWrites = [];
+  const favoriteCalls = [];
+  let favorites = [{ id: '523e4567-e89b-42d3-a456-426614174000', postId: 17, title: 'Гайд по старту игры на Полях сражений', path: '/guides/battlegrounds/', createdAt: 1700000000000 }];
+  let holdFavoriteRead = false;
+  const releaseFavoriteReads = [];
   let publicationStatus = 200;
   const fulfillMe = async route => {
     meCalls += 1;
@@ -106,6 +110,20 @@ try {
   await page.route('**/reader-api/v1/community/profile', route => {
     publicationWrites.push({ headers: route.request().headers(), body: route.request().postDataJSON() });
     return route.fulfill({ status: publicationStatus, json: publicationStatus === 200 ? { profile: profileWriteResponse } : { error: 'public_profile_not_found' } });
+  });
+  await page.route('**/reader-api/v1/favorites**', async route => {
+    const request = route.request();
+    const url = new URL(request.url());
+    favoriteCalls.push({ method: request.method(), path: url.pathname, headers: request.headers() });
+    if (request.method() === 'GET' && url.pathname === '/reader-api/v1/favorites') {
+			if (holdFavoriteRead) await new Promise(resolve => releaseFavoriteReads.push(resolve));
+      return route.fulfill({ status: 200, json: { items: favorites, nextCursor: null } });
+    }
+    if (request.method() === 'DELETE' && url.pathname === '/reader-api/v1/favorites/17') {
+      favorites = favorites.filter(item => item.postId !== 17);
+      return route.fulfill({ status: 200, json: { postId: 17, saved: false } });
+    }
+    return route.fulfill({ status: 404, json: { error: 'not_found' } });
   });
   await page.route('**/reader-auth/logout', async route => {
     logoutCalls += 1;
@@ -223,6 +241,28 @@ try {
       'adjacent class and edit controls must have equal heights');
     await capture(`authenticated-${width}`);
   }
+  assert.equal(favoriteCalls.length, 0, 'favorites are not loaded with the profile shell');
+  holdFavoriteRead = true;
+  await page.getByRole('tab', { name: 'Избранное', exact: true }).click();
+  await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).waitFor();
+  await page.waitForTimeout(50);
+  assert.equal(releaseFavoriteReads.length, 1, 'the first favorites read is deliberately delayed');
+  const meBeforeFavoriteRefresh = meCalls;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(50);
+  assert.ok(meCalls > meBeforeFavoriteRefresh, 'a session refresh supersedes the stale favorite read');
+  holdFavoriteRead = false;
+  for (const release of releaseFavoriteReads.splice(0)) release();
+  await page.getByRole('link', { name: 'Гайд по старту игры на Полях сражений' }).waitFor();
+  assert.ok(favoriteCalls.filter(call => call.method === 'GET').length >= 2, 'the active favorites tab retries after a stale session refresh');
+  assert.equal(favoriteCalls.at(-1).method, 'GET');
+  await capture('favorites');
+  await page.locator('[data-reader-favorites-list] [data-favorite-id] button').click();
+  await page.getByText('Здесь пока нет сохранённых статей.').waitFor();
+  assert.equal(favoriteCalls.at(-1).method, 'DELETE');
+  assert.equal(favoriteCalls.at(-1).headers['x-reader-csrf'], 'synthetic-only');
+  await page.getByRole('tab', { name: 'Профиль', exact: true }).click();
+  await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
   shell = renderShell(false);
   await ready();
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
@@ -377,14 +417,14 @@ try {
       return {
         preview: Boolean(form.querySelector('[data-reader-editor-avatar]')),
         controls: [...form.querySelectorAll('input:not([type=file]):not([type=checkbox]), textarea, select')].map(element => ({ ...rect(element), social: Object.hasOwn(element.dataset, 'readerTwitch') || Object.hasOwn(element.dataset, 'readerYoutube') })),
-        consent: rect(form.querySelector('.mc-reader__publication-consent')),
+        publication: rect(form.querySelector('.mc-reader__publication')),
         photo: rect(form.querySelector('.mc-reader__preview')),
         upload: rect(form.querySelector('[data-reader-avatar-input]')),
       };
     });
     assert.equal(editorGeometry.preview, true, 'the photo must be visible next to its upload control inside the editor');
     assert.ok(editorGeometry.controls.every(r => r.height >= 44 && r.width > 0), 'all fields keep usable targets');
-    assert.ok(editorGeometry.consent.height >= 44 && editorGeometry.consent.width > 0, 'publication consent has a full clickable label');
+    assert.ok(editorGeometry.publication.height >= 44 && editorGeometry.publication.width > 0, 'publication action remains a readable, deliberate section');
     const primaryControls = editorGeometry.controls.filter(control => !control.social);
     assert.ok(primaryControls.every(r => Math.abs(r.left - primaryControls[0].left) < 1 && Math.abs(r.right - primaryControls[0].right) < 1), 'name, bio and class share one field alignment');
     assert.ok(editorGeometry.upload.left >= editorGeometry.photo.left && editorGeometry.upload.right <= editorGeometry.photo.right, 'upload control stays in the photo component');
@@ -462,33 +502,25 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
   assert.equal(profileWrites.at(-1).body.version, 2, 'retry after conflict must use the reloaded version');
 
-  const publicationConsent = page.locator('[data-reader-public-consent]');
   const publicationButton = page.locator('[data-reader-publish-profile]');
   assert.equal(publicationWrites.length, 0, 'saving private fields never silently publishes');
-  assert.equal(await publicationConsent.isChecked(), false);
-  assert.equal(await publicationButton.isDisabled(), true);
-  await publicationConsent.check();
+  assert.equal(await page.locator('[data-reader-public-consent]').count(), 0, 'publication has no extra consent checkbox');
+  assert.equal(await publicationButton.isDisabled(), false);
   await bioField.fill('Ещё не сохранено');
-  assert.equal(await publicationConsent.isChecked(), false, 'editing invalidates previous publication consent');
-  await publicationConsent.check();
   assert.equal(await publicationButton.isDisabled(), true, 'unsaved fields cannot be mistaken for the published snapshot');
   await bioField.fill(profileWriteResponse.bio);
-  await publicationConsent.check();
   publicationStatus = 404;
   await publicationButton.click();
   await editorStatus.filter({ hasText: 'Публичный профиль появится после первого комментария' }).waitFor();
   publicationStatus = 200;
   await publicationButton.click();
   await editorStatus.filter({ hasText: 'Профиль в комментариях обновлён' }).waitFor();
-  assert.deepEqual(publicationWrites.at(-1).body, { profileVersion: 3, publicConsent: true });
+  assert.deepEqual(publicationWrites.at(-1).body, { profileVersion: 3 });
   assert.equal(publicationWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
-  assert.equal(await publicationConsent.isChecked(), false, 'consent is not carried to future versions');
-  assert.equal(await publicationButton.isDisabled(), true);
+  assert.equal(await publicationButton.isDisabled(), false, 'the same saved snapshot may be refreshed again deliberately');
 
-  await publicationConsent.check();
   await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') });
-  assert.equal(await publicationConsent.isChecked(), false, 'even an invalid avatar edit clears prior publication consent');
-  assert.equal(await publicationButton.isDisabled(), true);
+  assert.equal(await publicationButton.isDisabled(), false, 'an invalid local image does not alter the saved profile snapshot');
   await bioField.fill('Этот текст нельзя потерять при загрузке фото.');
   avatarWriteResponse = profileDto({ version: 4, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost', avatarUrl: '/reader-api/v1/profile/avatar?v=avatar4' });
   avatarDelay = 250;

@@ -16,7 +16,7 @@ function fixture(t) {
   const bob = profiles.getOrCreate('bob', 'Боб');
   const submit = (subject = 'alice', extra = {}) => comments.submit(subject, {
     postId: 17, body: 'Полезный разбор', parentId: null, operationId: randomUUID(),
-    profileVersion: profiles.getOrCreate(subject).version, publicConsent: true, ...extra,
+    profileVersion: profiles.getOrCreate(subject).version, attachmentId: null, ...extra,
   });
   return { db, profiles, comments, alice, bob, submit, tick: n => { time += n; } };
 }

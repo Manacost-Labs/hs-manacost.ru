@@ -12,11 +12,11 @@ function fixture(t) {
   const comments = new ReaderComments({ db, issuer });
   const profile = profiles.getOrCreate('reader-one', 'Алиса');
   const input = (overrides = {}) => ({ postId: 17, body: 'Полезный разбор!', parentId: null,
-    operationId: randomUUID(), profileVersion: profile.version, publicConsent: true, ...overrides });
+    operationId: randomUUID(), profileVersion: profile.version, attachmentId: null, ...overrides });
   return { db, profiles, comments, profile, input };
 }
 
-test('a consented comment and its current public profile are immediately visible to a guest', t => {
+test('a posted comment and its current public profile are immediately visible to a guest', t => {
   const f = fixture(t);
   const avatar = f.profiles.setAvatar('reader-one', Buffer.from('synthetic-avatar'), 1);
   const request = f.input({ profileVersion: avatar.version });
@@ -31,7 +31,7 @@ test('a consented comment and its current public profile are immediately visible
   assert.deepEqual(f.comments.submit('reader-one', request), comment);
 });
 
-test('a stale or refused consent cannot publish private profile changes; a new consent can', t => {
+test('a stale profile cannot publish private changes; a new comment can', t => {
   const f = fixture(t);
   const original = f.input();
   f.comments.submit('reader-one', original);
@@ -41,7 +41,7 @@ test('a stale or refused consent cannot publish private profile changes; a new c
   });
   assert.equal(f.comments.publicProfile(f.profile.id).name, 'Алиса');
   assert.throws(() => f.comments.submit('reader-one', f.input()), { code: 'profile_version_conflict' });
-  assert.throws(() => f.comments.submit('reader-one', f.input({ profileVersion: changed.version, publicConsent: false })), { code: 'invalid_input' });
+  assert.throws(() => f.comments.submit('reader-one', { ...f.input({ profileVersion: changed.version }), publicConsent: true }), { code: 'invalid_input' });
   assert.equal(f.comments.publicProfile(f.profile.id).bio, '');
   assert.equal(f.comments.publicProfile(f.profile.id).twitchUrl, null);
   // An acknowledged old request is a retry, never consent to a later private edit.
@@ -54,7 +54,7 @@ test('a stale or refused consent cannot publish private profile changes; a new c
   assert.equal(f.comments.list(17).items.every(item => item.author.name === 'Новое имя'), true);
 });
 
-test('publication and profile consent roll back together on snapshot storage failure', t => {
+test('publication and profile snapshot roll back together on storage failure', t => {
   const f = fixture(t);
   f.db.exec("CREATE TRIGGER fail_snapshot BEFORE INSERT ON reader_comment_public_profiles BEGIN SELECT RAISE(ABORT, 'synthetic storage failure'); END");
   assert.throws(() => f.comments.submit('reader-one', f.input()), /synthetic storage failure/);

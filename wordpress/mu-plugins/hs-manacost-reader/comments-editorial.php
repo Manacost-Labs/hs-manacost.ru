@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** A configured ID certifies a manually reviewed public pilot, not all legacy VIP posts. */
+/** Enable reader features only on their isolated staging origin. */
 function hs_reader_comments_enabled(): bool {
 	return defined( 'HS_MANACOST_READER_COMMENTS_ENABLED' ) && true === HS_MANACOST_READER_COMMENTS_ENABLED
 		&& 'staging' === wp_get_environment_type()
@@ -15,18 +15,17 @@ function hs_reader_comments_enabled(): bool {
 }
 
 /**
- * Recheck current publication on every request; no visitor/WP-admin role grants access.
+ * Recheck public article safety on every request; no visitor/WP-admin role grants access.
  *
  * @param int $post_id Editorial identifier.
  * @return array<string, bool|int|string>
  */
-function hs_reader_comment_article( int $post_id ): array {
+function hs_reader_public_article( int $post_id ): array {
 	$denied  = array(
 		'postId'  => $post_id,
 		'allowed' => false,
 	);
-	$allowed = defined( 'HS_MANACOST_READER_COMMENT_POSTS' ) ? HS_MANACOST_READER_COMMENT_POSTS : array();
-	if ( ! hs_reader_comments_enabled() || ! is_array( $allowed ) || ! in_array( $post_id, $allowed, true ) ) {
+	if ( ! hs_reader_comments_enabled() ) {
 		return $denied;
 	}
 	$post = get_post( $post_id );
@@ -51,6 +50,24 @@ function hs_reader_comment_article( int $post_id ): array {
 	);
 }
 
+/** A configured ID certifies a manually reviewed discussion pilot, not all legacy VIP posts. */
+function hs_reader_comment_article( int $post_id ): array {
+	$denied  = array(
+		'postId'  => $post_id,
+		'allowed' => false,
+	);
+	$allowed = defined( 'HS_MANACOST_READER_COMMENT_POSTS' ) ? HS_MANACOST_READER_COMMENT_POSTS : array();
+	if ( ! is_array( $allowed ) || ! in_array( $post_id, $allowed, true ) ) {
+		return $denied;
+	}
+	return hs_reader_public_article( $post_id );
+}
+
+/** Favorites are useful on every safe, published public article; they do not enable comments. */
+function hs_reader_favorite_article( int $post_id ): array {
+	return hs_reader_public_article( $post_id );
+}
+
 /**
  * Authenticate only the BFF; no WP user/cookie or public reader token is accepted.
  *
@@ -72,11 +89,11 @@ function hs_reader_editorial_permission( WP_REST_Request $request ): bool|WP_Err
 }
 
 /**
- * Return only public metadata or an indistinguishable denial for each requested ID.
+ * Validate a short signed ID batch before returning public metadata.
  *
  * @param WP_REST_Request $request Editorial IDs only, never a browser-supplied URL.
  */
-function hs_reader_editorial_threads( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+function hs_reader_editorial_ids( WP_REST_Request $request ): array|WP_Error {
 	$input = json_decode( $request->get_body(), true );
 	if ( ! is_array( $input ) || array( 'ids' ) !== array_keys( $input ) || ! is_array( $input['ids'] )
 		|| ! array_is_list( $input['ids'] ) || count( $input['ids'] ) < 1 || count( $input['ids'] ) > 20 ) {
@@ -89,10 +106,24 @@ function hs_reader_editorial_threads( WP_REST_Request $request ): WP_REST_Respon
 		}
 		$seen[ $post_id ] = true;
 	}
+	return $input['ids'];
+}
+
+/**
+ * Return only public metadata or an indistinguishable denial for each requested ID.
+ *
+ * @param WP_REST_Request $request Signed ID batch.
+ * @param callable         $article Article eligibility resolver.
+ */
+function hs_reader_editorial_response( WP_REST_Request $request, callable $article ): WP_REST_Response|WP_Error {
+	$ids = hs_reader_editorial_ids( $request );
+	if ( is_wp_error( $ids ) ) {
+		return $ids;
+	}
 	return new WP_REST_Response(
 		array(
 			'site'    => 'test.hs-manacost.ru',
-			'threads' => array_map( 'hs_reader_comment_article', $input['ids'] ),
+			'threads' => array_map( $article, $ids ),
 		),
 		200,
 		array(
@@ -100,6 +131,16 @@ function hs_reader_editorial_threads( WP_REST_Request $request ): WP_REST_Respon
 			'X-Robots-Tag'  => 'noindex, nofollow',
 		)
 	);
+}
+
+/** Signed discussion-pilot metadata. */
+function hs_reader_editorial_threads( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+	return hs_reader_editorial_response( $request, 'hs_reader_comment_article' );
+}
+
+/** Signed favorite metadata for every safe public post. */
+function hs_reader_editorial_favorites( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+	return hs_reader_editorial_response( $request, 'hs_reader_favorite_article' );
 }
 
 /** Register an opt-in server-to-server read; no native comments route is changed. */
@@ -113,6 +154,15 @@ function hs_reader_editorial_routes(): void {
 		array(
 			'methods'             => 'POST',
 			'callback'            => 'hs_reader_editorial_threads',
+			'permission_callback' => 'hs_reader_editorial_permission',
+		)
+	);
+	register_rest_route(
+		'manacost-reader/v1',
+		'/favorites',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'hs_reader_editorial_favorites',
 			'permission_callback' => 'hs_reader_editorial_permission',
 		)
 	);

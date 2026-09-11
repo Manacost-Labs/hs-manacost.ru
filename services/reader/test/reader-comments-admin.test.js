@@ -15,7 +15,7 @@ const error = (fn, code) => assert.throws(fn, item => item instanceof ReaderComm
 function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'reader-admin-')); const filename = join(dir, 'reader.sqlite'); const db = new DatabaseSync(filename);
   const profiles = new ReaderProfiles({ db, issuer: 'https://hearthpulse.net/identity', now: () => 1 }); const comments = new ReaderComments({ db, issuer: 'https://hearthpulse.net/identity', now: () => 1 });
-  const profile = profiles.getOrCreate('private-subject', 'Модерируемый'); const item = legacyPending(comments, 'private-subject', { postId: 1, body: 'Проверяемый текст', parentId: null, operationId: randomUUID(), profileVersion: profile.version, publicConsent: true }); db.close();
+  const profile = profiles.getOrCreate('private-subject', 'Модерируемый'); const item = legacyPending(comments, 'private-subject', { postId: 1, body: 'Проверяемый текст', parentId: null, operationId: randomUUID(), profileVersion: profile.version, attachmentId: null }); db.close();
   return { filename, item, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 

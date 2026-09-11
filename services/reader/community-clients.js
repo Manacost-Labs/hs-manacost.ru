@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 
 const EDITORIAL_URL = 'https://test.hs-manacost.ru/wp-json/manacost-reader/v1/threads';
+const FAVORITES_EDITORIAL_URL = 'https://test.hs-manacost.ru/wp-json/manacost-reader/v1/favorites';
 const ENTITLEMENTS_URL = 'https://hearthpulse.net/identity/reader-entitlements';
 const PERMISSIONS_URL = 'https://hearthpulse.net/identity/reader-permissions';
 const basic = (name, password) => `Basic ${Buffer.from(`${name}:${password}`).toString('base64')}`;
@@ -31,17 +32,17 @@ function batch(values, valid) {
     || new Set(values).size !== values.length || !values.every(valid)) throw new Error('Invalid community batch');
 }
 
-/** Only an authenticated, freshly checked editorial response can make a thread readable. */
-export function createEditorialClient({ key, username, password }, transport = fetch) {
+/** Only an authenticated, freshly checked editorial response can permit article data. */
+function createArticleClient({ key, username, password }, { url, route }, transport = fetch) {
   if (typeof key !== 'string' || key.length < 43 || typeof username !== 'string' || !/^[a-z0-9-]{1,64}$/.test(username)
-    || typeof password !== 'string' || password.length < 43) throw new Error('Editorial configuration invalid');
+    || typeof password !== 'string' || password.length < 43 || typeof url !== 'string' || typeof route !== 'string') throw new Error('Editorial configuration invalid');
   return {
     async get(ids, parent = AbortSignal.timeout(2000)) {
       batch(ids, id => Number.isSafeInteger(id) && id > 0);
       const signal = AbortSignal.any([parent, AbortSignal.timeout(2000)]);
       const body = JSON.stringify({ ids }); const timestamp = String(Math.floor(Date.now() / 1000));
-      const signature = createHmac('sha256', key).update(`POST\n/manacost-reader/v1/threads\n${timestamp}\n${body}`).digest('hex');
-      const response = await transport(EDITORIAL_URL, { method: 'POST', redirect: 'error', signal, body,
+      const signature = createHmac('sha256', key).update(`POST\n${route}\n${timestamp}\n${body}`).digest('hex');
+      const response = await transport(url, { method: 'POST', redirect: 'error', signal, body,
         headers: { authorization: basic(username, password), 'content-type': 'application/json',
           'x-reader-time': timestamp, 'x-reader-signature': signature } });
       const data = await boundedJSON(response, signal);
@@ -60,6 +61,16 @@ export function createEditorialClient({ key, username, password }, transport = f
       return result;
     },
   };
+}
+
+/** The manually reviewed discussion pilot is the only eligible comment surface. */
+export function createEditorialClient(config, transport = fetch) {
+  return createArticleClient(config, { url: EDITORIAL_URL, route: '/manacost-reader/v1/threads' }, transport);
+}
+
+/** Saving an article uses its own editorial predicate and never trusts a browser title/path. */
+export function createFavoriteEditorialClient(config, transport = fetch) {
+  return createArticleClient(config, { url: FAVORITES_EDITORIAL_URL, route: '/manacost-reader/v1/favorites' }, transport);
 }
 
 /** Current canonical roles, never a cached token/browser claim. Failure denies privileged operations. */

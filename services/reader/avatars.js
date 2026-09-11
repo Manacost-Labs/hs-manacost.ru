@@ -10,7 +10,9 @@ export class AvatarBusyError extends Error {
 
 const MAX_INPUT_BYTES = 4 * 1024 * 1024;
 const MAX_OUTPUT_BYTES = 128 * 1024;
+const MAX_COMMENT_OUTPUT_BYTES = 1024 * 1024;
 const MAX_PIXELS = 16_000_000;
+const MAX_COMMENT_EDGE = 1600;
 const INPUT_FORMATS = new Map([['image/jpeg', 'jpeg'], ['image/png', 'png'], ['image/webp', 'webp']]);
 let active = 0;
 
@@ -73,6 +75,49 @@ export async function normalizeAvatar(bytes, contentType) {
   } catch (error) {
     if (error instanceof AvatarValidationError || error instanceof AvatarBusyError) throw error;
     throw new AvatarValidationError('invalid avatar image');
+  } finally {
+    active -= 1;
+  }
+}
+
+/**
+ * Decode a single static comment image into a bounded, metadata-free WebP.
+ *
+ * Comment screenshots must retain their aspect ratio, unlike square avatars.
+ * The shared decode slot prevents simultaneous image work from exhausting the
+ * small reader service.
+ */
+export async function normalizeCommentImage(bytes, contentType) {
+  if (!Buffer.isBuffer(bytes) || bytes.length === 0 || bytes.length > MAX_INPUT_BYTES) throw new AvatarValidationError('comment image bytes invalid');
+  const requestedFormat = suppliedFormat(contentType);
+  if (hasChunk(bytes, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), 'acTL')
+    || hasWebpAnimation(bytes)) {
+    throw new AvatarValidationError('animated comment images are not supported');
+  }
+  if (active >= 1) throw new AvatarBusyError('comment image processing busy');
+  active += 1;
+  try {
+    const inspected = pipeline(bytes);
+    const metadata = await inspected.metadata();
+    if (metadata.format !== requestedFormat) throw new AvatarValidationError('comment image content type does not match decoded image');
+    if ((metadata.pages ?? 1) > 1 || (Array.isArray(metadata.delay) && metadata.delay.length > 1)) {
+      throw new AvatarValidationError('animated comment images are not supported');
+    }
+    const encode = quality => pipeline(bytes).rotate().resize({
+      width: MAX_COMMENT_EDGE,
+      height: MAX_COMMENT_EDGE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    }).webp({ quality }).toBuffer({ resolveWithObject: true });
+    let output = await encode(82);
+    if (output.data.length > MAX_COMMENT_OUTPUT_BYTES) output = await encode(68);
+    if (output.data.length > MAX_COMMENT_OUTPUT_BYTES || !Number.isSafeInteger(output.info.width) || !Number.isSafeInteger(output.info.height)) {
+      throw new AvatarValidationError('normalized comment image too large');
+    }
+    return { bytes: output.data, width: output.info.width, height: output.info.height };
+  } catch (error) {
+    if (error instanceof AvatarValidationError || error instanceof AvatarBusyError) throw error;
+    throw new AvatarValidationError('invalid comment image');
   } finally {
     active -= 1;
   }

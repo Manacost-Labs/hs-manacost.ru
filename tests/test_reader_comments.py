@@ -20,6 +20,7 @@ function home_url($path = '') { return 'https://test.hs-manacost.ru' . $path; }
 function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
 class WP_Post { public $ID = 17; public $post_type = 'post'; public $post_status = 'publish'; public $post_password = ''; public $post_title = 'Тестовая статья'; public $post_content = 'Открытая статья'; }
 class WP_Error { public function __construct(public $code, public $message, public $data) {} }
+function is_wp_error($value) { return $value instanceof WP_Error; }
 class WP_REST_Response { public function __construct(public $data, public $status = 200, public $headers = array()) {} }
 class WP_REST_Request {
     public $headers = array(); public $body = '{"ids":[17,18]}';
@@ -62,6 +63,18 @@ echo json_encode(array(hs_reader_editorial_permission($request), hs_reader_edito
         self.assertEqual(response['headers']['Cache-Control'], 'private, no-store')
         self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': False})
 
+    def test_favorites_use_the_same_signed_editorial_boundary(self):
+        code = '''class FavoriteRequest extends WP_REST_Request { function get_route() { return '/manacost-reader/v1/favorites'; } }
+$request = new FavoriteRequest();
+$time = (string) time();
+$request->headers['x-reader-time'] = $time;
+$request->headers['x-reader-signature'] = hash_hmac('sha256', "POST\\n/manacost-reader/v1/favorites\\n" . $time . "\\n" . $request->body, HS_MANACOST_READER_EDITORIAL_KEY);
+echo json_encode(array(hs_reader_editorial_permission($request), hs_reader_editorial_favorites($request)));'''
+        permitted, response = self.evaluate(code)
+        self.assertTrue(permitted)
+        self.assertEqual(response['data']['threads'][0], {'postId': 17, 'allowed': True, 'title': 'Тестовая статья', 'path': '/test-article/'})
+        self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': False})
+
     def test_false_or_malformed_permalink_is_an_indistinguishable_denial(self):
         for value in ('false', 'null', '17', "'https://evil.test/hidden/'", "'not a URL'"):
             self.assertEqual(self.evaluate('$permalink=' + value + '; echo json_encode(hs_reader_comment_article(17));'), {'postId': 17, 'allowed': False})
@@ -101,7 +114,7 @@ echo json_encode(array($pilot, $pilot_assets, $outside, $outside_assets, $public
 '''
         pilot, assets, outside, outside_assets, public_assets, requested, invalid_id = self.evaluate(code)
         self.assertTrue(pilot.endswith('/reader-comments-page.php'))
-        self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
+        self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite', 'hs-manacost-reader-favorite', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
         self.assertEqual(outside, '/native.php')
         self.assertEqual(outside_assets, [])
         self.assertEqual(public_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader', 'hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-public-profile'])
