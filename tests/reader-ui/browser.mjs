@@ -173,7 +173,7 @@ try {
     if (width >= 1180) {
       assert.ok(outerAlignment.main.width > outerAlignment.inner.width, 'theme outer wrapper must remain distinct from the inner content container');
     }
-    assert.notEqual(outerAlignment.mainBackground, 'rgba(0, 0, 0, 0)', 'dark account background must stay on the aligned main wrapper');
+    assert.equal(outerAlignment.mainBackground, 'rgb(243, 245, 246)', 'the cabinet must use the cool paper background from the Reader design contract');
   };
 
   for (const width of [320, 390, 560, 768, 1024, 1440]) {
@@ -187,7 +187,7 @@ try {
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
   }
   await capture('guest');
-  assert.equal(await page.getByRole('heading', { name: 'Кабинет', level: 1 }).count(), 1);
+  assert.equal(await page.getByRole('heading', { name: 'Личный кабинет', level: 1 }).count(), 1);
   assert.equal(await page.getByText('Профиль Манакоста', { exact: true }).count(), 1);
   assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 0, 'unavailable future navigation must not be rendered');
   assert.equal(await page.getByText('Закладки пока недоступны.').count(), 0, 'unavailable bookmark copy must not consume account space');
@@ -235,8 +235,8 @@ try {
       return { profile: rect('[data-reader-profile-overview]'), favorites: rect('[data-reader-favorites]') };
     });
     const stackedGap = sectionOrder.favorites.top - sectionOrder.profile.bottom;
-    assert.ok(stackedGap >= 0 && stackedGap <= 1,
-      `saved articles must form one continuous profile stack at ${width}px: ${stackedGap}`);
+    assert.ok(stackedGap >= (width <= 560 ? 32 : 48),
+      `saved articles must follow the profile as a separate section at ${width}px: ${stackedGap}`);
     const geometry = await page.evaluate(() => {
       const rect = selector => { const { x, y, width, height, bottom, right } = document.querySelector(selector).getBoundingClientRect(); return { x, y, width, height, bottom, right }; };
       return { favorite: rect('.mc-reader__class-mark'), edit: rect('[data-reader-open-editor]') };
@@ -244,8 +244,7 @@ try {
     const { favorite, edit } = geometry;
     assert.ok(edit.y >= favorite.bottom + 12 || edit.x >= favorite.right + 12,
       `class and edit action need a deliberate gap at ${width}px: ${JSON.stringify(geometry)}`);
-    if (edit.y < favorite.bottom) assert.ok(Math.abs(edit.height - favorite.height) <= 1,
-      'adjacent class and edit controls must have equal heights');
+    assert.ok(favorite.height <= 48, 'favorite class must stay compact instead of becoming a large control tile');
     await capture(`authenticated-${width}`);
   }
 
@@ -272,7 +271,7 @@ try {
   assert.equal(favoriteCalls.at(-1).method, 'GET');
   await capture('favorites');
   await page.locator('[data-reader-favorites-list] [data-favorite-id] button').click();
-  await page.getByText('Здесь пока нет сохранённых статей.').waitFor();
+  await page.getByText('Здесь появятся статьи, которые вы сохраните на сайте.').waitFor();
   assert.equal(favoriteCalls.at(-1).method, 'DELETE');
   assert.equal(favoriteCalls.at(-1).headers['x-reader-csrf'], 'synthetic-only');
   await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
@@ -327,6 +326,12 @@ try {
       assert.equal(mark.focusVisible, true, `author mark must expose keyboard focus at ${width}px`);
       assert.ok(mark.outlineStyle !== 'none' && mark.outlineWidth > 0, `author mark focus must be visible at ${width}px`);
     }
+    const identityLines = await page.locator('[data-reader-identity]').evaluate(element => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
+    });
+    assert.ok(identityLines <= 2, `reader name must not collapse into orphaned characters at ${width}px`);
   }
   const profileHierarchy = await page.locator('[data-reader-profile-overview]').evaluate(profile => {
     const rect = element => {
@@ -349,6 +354,13 @@ try {
   assert.ok(profileHierarchy.classRect && profileHierarchy.classRect.width > 0, 'favorite class remains part of the visible profile passport');
   assert.equal(profileHierarchy.classWithinIdentity, true, 'favorite class must stay with the identity rather than occupying a detached profile column');
   assert.ok(profileHierarchy.classRect.width < 260, 'favorite class must remain a compact token, not a wide secondary panel');
+  const overviewVisual = await page.locator('[data-reader-profile-overview]').evaluate(element => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, borderLeft: style.borderLeftWidth, radius: style.borderRadius };
+  });
+  assert.equal(overviewVisual.background, 'rgb(255, 255, 255)');
+  assert.equal(overviewVisual.borderLeft, '1px', 'the profile must not use an ornamental amber rail');
+  assert.equal(overviewVisual.radius, '8px');
   const accountMenu = page.locator('[data-reader-account-menu]');
   const accountSummary = page.getByText('Аккаунт', { exact: true });
   const assertAccountMenuFits = async width => {

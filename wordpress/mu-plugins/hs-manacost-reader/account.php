@@ -94,7 +94,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. ' data-logout-endpoint="' . esc_attr( $public['logout_endpoint'] ) . '"'
 		. ' data-login-endpoint="' . esc_attr( $public['login_endpoint'] ) . '">'
 		. '<div class="mc-reader__shell"><header class="mc-reader__masthead"><div class="mc-reader__title-group">'
-		. '<p class="mc-reader__masthead-kicker">Профиль Манакоста</p><h1 class="mc-reader__eyebrow">Кабинет</h1></div>'
+		. '<p class="mc-reader__masthead-kicker">Профиль Манакоста</p><h1 class="mc-reader__eyebrow">Личный кабинет</h1></div>'
 		. '<details class="mc-reader__account-menu" data-reader-account-menu hidden><summary>' . hs_manacost_reader_account_icon( 'account' ) . 'Аккаунт' . hs_manacost_reader_account_icon( 'chevron' ) . '</summary><div class="mc-reader__account-actions" data-reader-account-actions></div></details></header>'
 		. '<p class="mc-reader__status" data-reader-status role="status" aria-live="polite">Проверяем вход…</p>'
 		. '<div class="mc-reader__actions" data-reader-actions></div>'

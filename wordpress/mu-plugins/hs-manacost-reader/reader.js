@@ -160,7 +160,7 @@
 		function renderFavorites() {
 			if ( ! favoritesList ) return;
 			favoritesList.replaceChildren( ...favoritesRows.map( favoriteRow ) );
-			if ( favoritesLoaded && favoritesStatus ) favoritesStatus.textContent = favoritesRows.length ? '' : 'Здесь пока нет сохранённых статей.';
+			if ( favoritesLoaded && favoritesStatus ) favoritesStatus.textContent = favoritesRows.length ? '' : 'Здесь появятся статьи, которые вы сохраните на сайте.';
 			if ( favoritesMore && favoritesLoaded ) {
 				favoritesMore.hidden = ! favoritesCursor;
 				favoritesMore.disabled = false;
