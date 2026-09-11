@@ -68,6 +68,11 @@ for required_path in \
   fi
 done
 
+if [[ "$environment" == staging && ! -f "$workspace_real/ops/ci/warm-staging-minified-assets.php" ]]; then
+  echo 'Required staging asset warmup script is missing.' >&2
+  exit 1
+fi
+
 backup_root="/var/backups/hs-manacost-deploy/$environment/$(date -u +%Y%m%dT%H%M%SZ)-$commit_sha"
 mkdir -p "$backup_root/wp-content/plugins" "$backup_root/wp-content/themes"
 
@@ -92,12 +97,19 @@ if [[ "$environment" == staging ]]; then
   touch "$maintenance_file"
 fi
 
-cleanup() {
-  if [[ -n "$maintenance_file" ]]; then
-    rm -f "$maintenance_file"
+retain_staging_refresh_on_failure() {
+  if [[ -n "$maintenance_file" && -e "$maintenance_file" ]]; then
+    echo 'Staging refresh marker retained because deployment did not complete.' >&2
   fi
 }
-trap cleanup EXIT
+
+release_staging_refresh() {
+  if [[ -n "$maintenance_file" ]]; then
+    rm -f -- "$maintenance_file"
+    maintenance_file=''
+  fi
+}
+trap retain_staging_refresh_on_failure EXIT
 
 sync_owned_tree() {
   local source="$1"
@@ -122,6 +134,7 @@ run_wp() {
   runuser -u koloda -- env \
     REQUEST_URI='/' \
     HTTP_HOST="$wordpress_host" \
+    SERVER_NAME="$wordpress_host" \
     HTTPS='on' \
     SERVER_PORT='443' \
     /usr/local/bin/wp --path="$target_root" "$@"
@@ -134,14 +147,25 @@ run_wp cache flush
 if [[ "$environment" == staging ]]; then
   # shellcheck disable=SC2016 # Keep PHP variables literal for WP-CLI.
   run_wp eval '
-    if ( ! function_exists( "rocket_clean_files" ) || ! function_exists( "rocket_clean_minify" ) ) {
+    if ( ! function_exists( "rocket_clean_domain" ) || ! function_exists( "rocket_clean_files" ) || ! function_exists( "rocket_clean_minify" ) ) {
       WP_CLI::error( "WP Rocket cache APIs are unavailable." );
+    }
+    if ( wp_parse_url( home_url(), PHP_URL_HOST ) !== "test.hs-manacost.ru" ) {
+      WP_CLI::error( "Refusing to refresh: staging home URL host does not match." );
+    }
+    rocket_clean_domain();
+    rocket_clean_minify();
+  '
+  run_wp eval-file "$workspace_real/ops/ci/warm-staging-minified-assets.php"
+  # shellcheck disable=SC2016 # Keep PHP variables literal for WP-CLI.
+  run_wp eval '
+    if ( ! function_exists( "rocket_clean_files" ) ) {
+      WP_CLI::error( "WP Rocket page cache API is unavailable." );
     }
     $account_url = "https://test.hs-manacost.ru/account/";
     if ( wp_parse_url( home_url(), PHP_URL_HOST ) !== "test.hs-manacost.ru" ) {
       WP_CLI::error( "Refusing to purge: staging home URL host does not match." );
     }
-    rocket_clean_minify();
     rocket_clean_files( array( $account_url ), null, false );
   '
 fi
@@ -155,6 +179,6 @@ if [[ "$environment" == production ]]; then
   fi
 fi
 
-cleanup
+release_staging_refresh
 trap - EXIT
 echo "Deployed $commit_sha to $environment. Backup: $backup_root"

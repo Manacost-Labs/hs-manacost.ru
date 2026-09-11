@@ -91,27 +91,61 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("successful staging deployment", production)
         self.assertIn("smoke-check.sh production", production)
 
-    def test_staging_release_purges_only_the_reader_account_page_cache(self) -> None:
+    def test_staging_release_clears_page_cache_and_warms_reader_assets_before_exposure(self) -> None:
         staging = (ROOT / ".github/workflows/deploy-staging.yml").read_text(encoding="utf-8")
         deploy_script = ROOT / "ops/ci/hs-manacost-ci-deploy"
         installer = ROOT / "ops/ci/install-deploy-helper.sh"
+        warm_script = ROOT / "ops/ci/warm-staging-minified-assets.php"
 
         self.assertFalse((ROOT / "ops/purge-reader-page-cache.sh").exists())
         self.assertTrue(installer.is_file())
+        self.assertTrue(warm_script.is_file())
         script = deploy_script.read_text(encoding="utf-8")
         installer_text = installer.read_text(encoding="utf-8")
+        warm_script_text = warm_script.read_text(encoding="utf-8")
         self.assertIn("test-hs-manacost-wordpress", script)
         self.assertIn("test.hs-manacost.ru", script)
+        self.assertIn('if [[ "$environment" == staging && ! -f "$workspace_real/ops/ci/warm-staging-minified-assets.php" ]]', script)
+        self.assertIn('SERVER_NAME="$wordpress_host"', script)
         staging_branch = script.split('if [[ "$environment" == staging ]]', 1)[1].split(
             'if [[ "$environment" == production ]]', 1
         )[0]
         production_branch = script.split('if [[ "$environment" == production ]]', 1)[1]
         self.assertIn("rocket_clean_files", staging_branch)
+        self.assertIn("rocket_clean_domain", staging_branch)
         self.assertIn("rocket_clean_minify", staging_branch)
         self.assertIn("https://test.hs-manacost.ru/account/", staging_branch)
         self.assertIn("wp_parse_url", staging_branch)
         self.assertIn('rocket_clean_files( array( $account_url ), null, false )', staging_branch)
+        self.assertIn('run_wp eval-file "$workspace_real/ops/ci/warm-staging-minified-assets.php"', staging_branch)
+        self.assertLess(
+            staging_branch.index("rocket_clean_domain"),
+            staging_branch.index("rocket_clean_minify"),
+        )
+        self.assertLess(
+            staging_branch.index("rocket_clean_minify"),
+            staging_branch.index('run_wp eval-file "$workspace_real/ops/ci/warm-staging-minified-assets.php"'),
+        )
+        self.assertLess(
+            staging_branch.index('run_wp eval-file "$workspace_real/ops/ci/warm-staging-minified-assets.php"'),
+            staging_branch.index('rocket_clean_files( array( $account_url ), null, false )'),
+        )
+        self.assertIn("get_page_by_path( 'account' )", warm_script_text)
+        self.assertIn("get_header()", warm_script_text)
+        self.assertIn("the_content()", warm_script_text)
+        self.assertIn("get_footer()", warm_script_text)
+        self.assertIn("apply_filters( 'rocket_buffer'", warm_script_text)
+        self.assertIn("WP_ROCKET_MINIFY_CACHE_PATH", warm_script_text)
+        self.assertIn('data-minify="1"', warm_script_text)
+        self.assertIn("get_rocket_option( 'minify_css' )", warm_script_text)
+        self.assertIn("is_rocket_post_excluded_option( 'minify_css' )", warm_script_text)
+        self.assertIn("expected minified assets", warm_script_text)
+        self.assertIn("$minified_size = filesize( $minified_file )", warm_script_text)
+        self.assertIn("false === $minified_size || 0 === $minified_size", warm_script_text)
+        self.assertIn("retain_staging_refresh_on_failure", script)
+        self.assertIn("release_staging_refresh", script)
         self.assertNotIn("rocket_clean_", production_branch)
+        self.assertNotIn("warm-staging-minified-assets.php", production_branch)
         self.assertIn("install -o root -g root -m 0755", installer_text)
         self.assertIn("/usr/local/sbin/hs-manacost-ci-deploy", installer_text)
         self.assertIn("Verify authorized deployment helper", staging)
