@@ -234,8 +234,9 @@ try {
       const rect = selector => document.querySelector(selector).getBoundingClientRect();
       return { profile: rect('[data-reader-profile-overview]'), favorites: rect('[data-reader-favorites]') };
     });
-    assert.ok(sectionOrder.favorites.top >= sectionOrder.profile.bottom + 16,
-      `saved articles must follow the profile instead of using a tab at ${width}px`);
+    const stackedGap = sectionOrder.favorites.top - sectionOrder.profile.bottom;
+    assert.ok(stackedGap >= 0 && stackedGap <= 1,
+      `saved articles must form one continuous profile stack at ${width}px: ${stackedGap}`);
     const geometry = await page.evaluate(() => {
       const rect = selector => { const { x, y, width, height, bottom, right } = document.querySelector(selector).getBoundingClientRect(); return { x, y, width, height, bottom, right }; };
       return { favorite: rect('.mc-reader__class-mark'), edit: rect('[data-reader-open-editor]') };
@@ -322,6 +323,7 @@ try {
       assert.equal(mark.active, true, `author mark must be keyboard reachable at ${width}px`);
       assert.equal(mark.parentClass, 'mc-reader__identity-line', `author mark must remain beside the name at ${width}px`);
       assert.ok(mark.width >= 44 && mark.height >= 44, `author mark must keep a 44px touch target at ${width}px`);
+      assert.ok(mark.width <= 48, `author mark must stay icon-sized beside the name at ${width}px`);
       assert.equal(mark.focusVisible, true, `author mark must expose keyboard focus at ${width}px`);
       assert.ok(mark.outlineStyle !== 'none' && mark.outlineWidth > 0, `author mark focus must be visible at ${width}px`);
     }

@@ -15,8 +15,9 @@ const favoriteShell = execFileSync('php', ['-r', favoritePhp, `${plugin}article-
 const sharedUi = `${plugin}ui.css`;
 const assets = new Map([['/community-ui.js', readFileSync(`${plugin}community-ui.js`)],['/comments.js', readFileSync(`${plugin}comments.js`)], ['/comments.css', readFileSync(`${plugin}comments.css`)], ['/article-favorite.js', readFileSync(`${plugin}article-favorite.js`)], ['/article-favorite.css', readFileSync(`${plugin}article-favorite.css`)], ['/ui.css', readFileSync(sharedUi)], ['/theme.css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)], ['/theme-boxed.css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]]);
 const id = '123e4567-e89b-42d3-a456-426614174000';
+const reactions = [{ kind: 'like', count: 7, selected: true }, { kind: 'thanks', count: 3, selected: false }, { kind: 'fire', count: 5, selected: false }];
 const author = { id, name: 'Маг <script>alert(1)</script>', bio: 'Люблю колоды', favoriteClass: 'mage', avatarVersion: 'a'.repeat(32), avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${'a'.repeat(32)}`, profileUrl: `/account/?reader=${id}`, paidSubscriber: true, hasTwitch: true, hasYoutube: true };
-let comments = [{ id: '223e4567-e89b-42d3-a456-426614174000', postId: 7, parentId: null, status: 'published', version: 1, createdAt: Date.now(), body: '<img src=x onerror=alert(1)> Первый комментарий', author }];
+let comments = [{ id: '223e4567-e89b-42d3-a456-426614174000', postId: 7, parentId: null, status: 'published', version: 1, createdAt: Date.now(), body: '<img src=x onerror=alert(1)> Первый комментарий', author, reactions }];
 let writes = [];
 let holdCommentBody = false;
 let holdRefresh = false;
@@ -27,15 +28,17 @@ const attachmentId = '423e4567-e89b-42d3-a456-426614174000';
 let attachmentUploads = 0;
 let articleFavoriteSaved = false;
 let articleFavoriteWrites = [];
+let commentReads = 0;
+let meReads = 0;
 const articleFavoriteCsrf = 'f'.repeat(43);
 const server = createServer(async (req, res) => {
   if (assets.has(req.url)) { res.writeHead(200, {'content-type': req.url.endsWith('css') ? 'text/css' : 'text/javascript'}); return res.end(assets.get(req.url)); }
-  if (req.url === '/') { res.writeHead(200, {'content-type':'text/html; charset=utf-8'}); return res.end(`<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><link rel=stylesheet href=/article-favorite.css><body class="td-boxed-layout"><header class="td-container-wrap"></header><main class="td-main-content-wrap td-container-wrap"><div class="td-container"><div class="td-page-content">${shell}${favoriteShell}</div></div></main><footer class="td-container-wrap"></footer><script src=/community-ui.js></script><script src=/comments.js></script><script src=/article-favorite.js></script>`); }
+  if (req.url === '/' || req.url === '/deferred') { const spacer = req.url === '/deferred' ? '<div style="height:2400px"></div>' : ''; res.writeHead(200, {'content-type':'text/html; charset=utf-8'}); return res.end(`<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><link rel=stylesheet href=/article-favorite.css><body class="td-boxed-layout"><header class="td-container-wrap"></header><main class="td-main-content-wrap td-container-wrap"><div class="td-container"><div class="td-page-content">${spacer}${shell}${favoriteShell}</div></div></main><footer class="td-container-wrap"></footer><script src=/community-ui.js></script><script src=/comments.js></script><script src=/article-favorite.js></script>`); }
 	if (req.url.startsWith('/reader-api/v1/readers/')) { res.writeHead(200, {'content-type':'image/svg+xml'}); return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#19313e"/><text x="20" y="27" text-anchor="middle" font-size="20" fill="#eef3f5">М</text></svg>'); }
   if (req.url === '/favicon.ico') { res.writeHead(204); return res.end(); }
   if (req.url === '/reader-api/v1/community/me') return res.end(JSON.stringify({ canModerateComments: false, commentingBlocked: false }));
-  if (req.url === '/reader-api/v1/me') return res.end(JSON.stringify({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version: 1, avatarUrl: null }, csrfToken: 'synthetic' }));
-  if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} if (holdRefresh) { req.resume(); heldRefreshes.push(res); return; } return res.end(JSON.stringify({items: comments, nextCursor: null})); }
+  if (req.url === '/reader-api/v1/me') { meReads++; return res.end(JSON.stringify({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version: 1, avatarUrl: null }, csrfToken: 'synthetic' })); }
+  if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { commentReads++; if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} if (holdRefresh) { req.resume(); heldRefreshes.push(res); return; } return res.end(JSON.stringify({items: comments, nextCursor: null})); }
   if (req.url === '/reader-api/v1/comment-attachments' && req.method === 'PUT') { for await (const _chunk of req) {} attachmentUploads++; return res.end(JSON.stringify({attachment:{id:attachmentId,width:96,height:48}})); }
   if (req.url === `/reader-api/v1/comment-attachments/${attachmentId}` && req.method === 'DELETE') { req.resume(); return res.end(JSON.stringify({id:attachmentId,discarded:true})); }
   if (req.url === '/reader-api/v1/favorites/7' && req.method === 'GET') return res.end(JSON.stringify({ postId: 7, saved: articleFavoriteSaved, csrfToken: articleFavoriteCsrf }));
@@ -63,6 +66,7 @@ try {
     });
     assert.equal(await page.locator('.mc-comments__author-badge--twitch').isVisible(), true, 'a Twitch author receives the Twitch mark');
     assert.equal(await page.locator('.mc-comments__author-badge--youtube').isVisible(), true, 'a YouTube author receives the YouTube mark');
+    assert.equal(await page.getByRole('group', { name: 'Реакции на комментарий' }).isVisible(), true, 'reactions remain visible in the discussion layout');
     assert.equal(await page.locator('.mc-comments__author-badge--paid').getAttribute('aria-label'), 'Платный подписчик');
     const crown = await page.locator('.mc-comments__author-badge--paid').evaluate(node => ({
       width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height,
@@ -107,8 +111,32 @@ try {
         `${key} remains inside author header at ${width}px`);
     }
     assert.ok(layout.targets.every(height => height >= 44), 'comment actions retain touch targets');
+    const composerHeight = await page.locator('[data-comments-form]').evaluate(node => node.getBoundingClientRect().height);
+    if (width === 390) assert.ok(composerHeight < 650, `mobile composer remains compact: ${composerHeight}`);
+    if (width === 1440) assert.ok(composerHeight < 500, `desktop composer remains compact: ${composerHeight}`);
   }
+  const profileSyncGeometry = await page.locator('.mc-comments__profile-sync').evaluate(node => {
+    const visibility = [...node.children].map(child => child.hidden);
+    [...node.children].forEach(child => { child.hidden = true; });
+    const rect = node.getBoundingClientRect();
+    const marginTop = parseFloat(getComputedStyle(node).marginTop);
+    [...node.children].forEach((child, index) => { child.hidden = visibility[index]; });
+    return { height: rect.height, marginTop };
+  });
+  assert.deepEqual(profileSyncGeometry, { height: 0, marginTop: 0 },
+    'a profile sync with no visible controls must contribute no dead composer spacing');
   assert.deepEqual(consoleErrors, [], `fixture console errors: ${consoleErrors.join('; ')}`);
+  const deferredPage = await browser.newPage({ viewport: { width: 1440, height: 800 } });
+  const readsBeforeDeferred = { comments: commentReads, me: meReads };
+  await deferredPage.goto(`http://127.0.0.1:${server.address().port}/deferred`, { waitUntil: 'load' });
+  await deferredPage.waitForTimeout(150);
+  assert.deepEqual({ comments: commentReads, me: meReads }, readsBeforeDeferred,
+    'below-the-fold discussion must not start API requests during article rendering');
+  await deferredPage.locator('[data-mc-comments]').scrollIntoViewIfNeeded();
+  await deferredPage.locator('.mc-comments__body').waitFor();
+  assert.ok(commentReads > readsBeforeDeferred.comments && meReads > readsBeforeDeferred.me,
+    'discussion requests start when the reader approaches the section');
+  await deferredPage.close();
   const initialScriptCount = await page.locator('script').count();
   // Emulate 200% desktop zoom: 1440 physical pixels / 2 = 720 CSS pixels.
   // This checks zoom-equivalent reflow, not browser-chrome zoom controls.
@@ -134,7 +162,7 @@ try {
   await page.getByText('Статья удалена из избранного.', { exact: true }).waitFor();
   assert.equal(await favoriteButton.getAttribute('aria-pressed'), 'false');
   assert.equal(articleFavoriteWrites.at(-1).method, 'DELETE');
-  const pasted = await page.getByLabel('Комментарий').evaluate(node => {
+  const pasted = await page.getByLabel('Комментарий', { exact: true }).evaluate(node => {
     const clipboard = new DataTransfer();
     clipboard.items.add(new File([new Uint8Array([137, 80, 78, 71])], 'screen.png', { type: 'image/png' }));
     const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: clipboard });
@@ -143,7 +171,7 @@ try {
   assert.equal(pasted, true, 'an image paste is handled by the attachment control');
   await page.getByText('Изображение готово и будет опубликовано вместе с комментарием.').waitFor();
   assert.equal(attachmentUploads, 1);
-  await page.getByLabel('Комментарий').fill('Скриншот из буфера');
+  await page.getByLabel('Комментарий', { exact: true }).fill('Скриншот из буфера');
   holdRefresh = true;
   await page.getByRole('button', { name: 'Опубликовать', exact: true }).click();
   await page.getByText('Комментарий опубликован.', { exact: true }).waitFor();
@@ -155,12 +183,12 @@ try {
   holdRefresh = false;
   for (const response of heldRefreshes.splice(0)) response.end(JSON.stringify({ items: comments, nextCursor: null }));
   await page.getByRole('textbox', {name:'Комментарий'}).waitFor(); assert.equal(await page.locator('script').count(), initialScriptCount, 'untrusted comment body is text, not HTML');
-  failPost=true; await page.getByLabel('Комментарий').fill('Новый ответ'); await page.getByRole('button', {name:'Опубликовать', exact: true}).click(); await page.getByRole('button',{name:'Повторить отправку'}).waitFor(); assert.equal(await page.getByLabel('Комментарий').isDisabled(),true); const original=writes.at(-1); failPost=false; await Promise.all([page.waitForResponse(response => response.request().method() === 'POST' && response.status() === 201), page.getByRole('button',{name:'Повторить отправку'}).click()]);
+  failPost=true; await page.getByLabel('Комментарий', { exact: true }).fill('Новый ответ'); await page.getByRole('button', {name:'Опубликовать', exact: true}).click(); await page.getByRole('button',{name:'Повторить отправку'}).waitFor(); assert.equal(await page.getByLabel('Комментарий', { exact: true }).isDisabled(),true); const original=writes.at(-1); failPost=false; await Promise.all([page.waitForResponse(response => response.request().method() === 'POST' && response.status() === 201), page.getByRole('button',{name:'Повторить отправку'}).click()]);
   await page.getByText('Комментарий опубликован.', {exact:true}).waitFor(); await page.locator('.mc-comments__body').filter({hasText:'Новый ответ'}).waitFor(); assert.equal(await page.locator('.mc-comments__pending').count(),0); const retried = writes.filter(write => write.operationId === original.operationId); assert.ok(retried.length >= 2); assert.ok(retried.every(write=>JSON.stringify(write)===JSON.stringify(original))); assert.equal(original.attachmentId, null); assert.equal(Object.hasOwn(original, 'publicConsent'), false); assert.match(original.operationId, /^[0-9a-f-]{36}$/i);
-  await page.getByRole('button', {name:'Ответить'}).first().click(); await page.getByLabel('Комментарий').fill('Реплика'); assert.equal(await page.getByRole('button', {name:'Отменить ответ'}).isVisible(), true);
+  await page.getByRole('button', {name:'Ответить'}).first().click(); await page.getByLabel('Комментарий', { exact: true }).fill('Реплика'); assert.equal(await page.getByRole('button', {name:'Отменить ответ'}).isVisible(), true);
   page.once('dialog', dialog => dialog.accept()); await Promise.all([page.waitForResponse(response => response.request().method() === 'DELETE'), page.getByRole('button',{name:'Удалить'}).first().click()]); assert.deepEqual(deletes.at(-1).body,{version:1}); assert.equal(deletes.at(-1).headers['x-reader-csrf'],'synthetic');
   await page.waitForFunction(() => !document.querySelector('[data-comments-attachment-picker]').disabled);
-  await page.getByLabel('Комментарий').focus(); await page.keyboard.press('Tab'); assert.equal(await page.locator('[data-comments-attachment-picker]').evaluate(node => node === document.activeElement), true); await page.keyboard.press('Tab'); if (await page.locator('[data-comments-refresh-profile]').isVisible()) { assert.equal(await page.locator('[data-comments-refresh-profile]').evaluate(node => node === document.activeElement), true); await page.keyboard.press('Tab'); } assert.equal(await page.locator('[data-comments-submit]').evaluate(node => node === document.activeElement), true); assert.ok(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== 'none'));
+  await page.getByLabel('Комментарий', { exact: true }).focus(); await page.keyboard.press('Tab'); assert.equal(await page.locator('[data-comments-attachment-picker]').evaluate(node => node === document.activeElement), true); await page.keyboard.press('Tab'); if (await page.locator('[data-comments-refresh-profile]').isVisible()) { assert.equal(await page.locator('[data-comments-refresh-profile]').evaluate(node => node === document.activeElement), true); await page.keyboard.press('Tab'); } assert.equal(await page.locator('[data-comments-submit]').evaluate(node => node === document.activeElement), true); assert.ok(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== 'none'));
   holdCommentBody=true; await page.reload(); await page.getByText('Не удалось загрузить комментарии. Повторите попытку позже.').waitFor({timeout:8000});
   console.log('comments-browser: pass');
 } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

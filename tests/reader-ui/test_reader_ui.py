@@ -108,6 +108,19 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertIn(label, community)
         self.assertIn('Администратор', (PHP.parent / 'comments.js').read_text())
 
+    def test_reader_frontend_stays_inside_its_dependency_free_size_budget(self):
+        assets = tuple(
+            PHP.parent / name
+            for name in (
+                'ui.css', 'reader.css', 'reader.js', 'profile-editor.js',
+                'comments.css', 'comments.js', 'community-ui.js',
+                'article-favorite.css', 'article-favorite.js',
+            )
+        )
+        self.assertLessEqual(sum(path.stat().st_size for path in assets), 145_000)
+        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 34_000)
+        self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
+
     @classmethod
     def setUpClass(cls):
         cls.php, cls.js, cls.css = PHP.read_text(), JS.read_text(), CSS.read_text() + (PHP.parent / 'ui.css').read_text()
