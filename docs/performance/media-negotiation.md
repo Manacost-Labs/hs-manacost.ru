@@ -58,6 +58,21 @@ independent loopback cache proxies. It is part of `make check` and CI. It covers
 local/remote AVIF/WebP/original, missing 403/404, 429/5xx, unsupported Accept,
 explicit-format URLs, HEAD/Range, encoded names/query strings, anonymous and
 BasicAuth states, upload rejection, credential isolation and cache variation.
+It also drops the first request to each of two loopback object-storage peers,
+then proves the next request reaches a recovered peer without entering a
+`no live upstreams` interval. Default passive failure accounting produced
+`502, 502, 502`; the protected source produces `502, 502, 200`.
+
+The fixed S3 host therefore uses `max_fails=0`: it is one required dependency,
+not a pool with an independent fallback. The one-second connect timeout limits
+connection setup and the two-second read/send timeouts limit idle time between
+I/O operations; none is a total response deadline. A persistently unhealthy
+resolved address can keep receiving its round-robin share while retries are
+disabled, and a complete outage still attempts the dependency on every request.
+This deliberate tradeoff avoids an amplified passive-down interval after brief
+failures; it does not make S3 highly available or turn a real outage into a
+successful response.
+
 The initial assertion failed against the previous JPEG-only route before the
 new configuration was written.
 
