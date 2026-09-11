@@ -230,6 +230,12 @@ try {
     await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
     assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Читатель Манакоста');
     await assertFits();
+    const sectionOrder = await page.evaluate(() => {
+      const rect = selector => document.querySelector(selector).getBoundingClientRect();
+      return { profile: rect('[data-reader-profile-overview]'), favorites: rect('[data-reader-favorites]') };
+    });
+    assert.ok(sectionOrder.favorites.top >= sectionOrder.profile.bottom + 16,
+      `saved articles must follow the profile instead of using a tab at ${width}px`);
     const geometry = await page.evaluate(() => {
       const rect = selector => { const { x, y, width, height, bottom, right } = document.querySelector(selector).getBoundingClientRect(); return { x, y, width, height, bottom, right }; };
       return { favorite: rect('.mc-reader__class-mark'), edit: rect('[data-reader-open-editor]') };
@@ -241,12 +247,19 @@ try {
       'adjacent class and edit controls must have equal heights');
     await capture(`authenticated-${width}`);
   }
-  assert.equal(favoriteCalls.length, 0, 'favorites are not loaded with the profile shell');
+
+  const favoriteReadsBefore = favoriteCalls.filter(call => call.method === 'GET').length;
   holdFavoriteRead = true;
-  await page.getByRole('tab', { name: 'Избранное', exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await ready();
+  await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
+  await page.locator('[data-reader-favorites]').waitFor({ state: 'visible' });
+  assert.equal(await page.getByRole('tab').count(), 0, 'saved articles are a normal section, not a tab panel');
+  await page.locator('[data-reader-favorites-sentinel]').scrollIntoViewIfNeeded();
   await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).waitFor();
-  await page.waitForTimeout(50);
+  await page.waitForTimeout(100);
   assert.equal(releaseFavoriteReads.length, 1, 'the first favorites read is deliberately delayed');
+  assert.equal(await page.locator('[data-reader-profile-overview]').isVisible(), true, 'a delayed saved-articles response must never delay the profile');
   const meBeforeFavoriteRefresh = meCalls;
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await page.waitForTimeout(50);
@@ -254,14 +267,13 @@ try {
   holdFavoriteRead = false;
   for (const release of releaseFavoriteReads.splice(0)) release();
   await page.getByRole('link', { name: 'Гайд по старту игры на Полях сражений' }).waitFor();
-  assert.ok(favoriteCalls.filter(call => call.method === 'GET').length >= 2, 'the active favorites tab retries after a stale session refresh');
+  assert.ok(favoriteCalls.filter(call => call.method === 'GET').length >= favoriteReadsBefore + 2, 'the visible saved-articles section retries after a stale session refresh');
   assert.equal(favoriteCalls.at(-1).method, 'GET');
   await capture('favorites');
   await page.locator('[data-reader-favorites-list] [data-favorite-id] button').click();
   await page.getByText('Здесь пока нет сохранённых статей.').waitFor();
   assert.equal(favoriteCalls.at(-1).method, 'DELETE');
   assert.equal(favoriteCalls.at(-1).headers['x-reader-csrf'], 'synthetic-only');
-  await page.getByRole('tab', { name: 'Профиль', exact: true }).click();
   await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
   shell = renderShell(false);
   await ready();
@@ -408,6 +420,7 @@ try {
   await ready();
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
   assert.equal(await page.locator('[data-reader-profile-overview]').isVisible(), false, 'editing is a dedicated view, not another duplicate profile panel');
+  assert.equal(await page.locator('[data-reader-favorites]').isVisible(), false, 'saved articles stay below the profile instead of interrupting its editor');
 
   for (const width of [320, 390, 560, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -458,6 +471,7 @@ try {
 
   await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
   assert.equal(await page.locator('[data-reader-profile-editor]').isVisible(), false);
+  assert.equal(await page.locator('[data-reader-favorites]').isVisible(), true, 'saved articles return directly below the profile after editing');
   assert.equal(await page.locator('[data-reader-twitch-mark]').isVisible(), true, 'a valid Twitch link must add a mark after the profile name');
   assert.equal(await page.locator('[data-reader-youtube-mark]').isVisible(), true, 'a valid YouTube link must add a mark after the profile name');
   assert.equal(await page.locator('[data-reader-preview-label]').isVisible(), true);
@@ -565,12 +579,31 @@ try {
   assert.equal(await bioField.inputValue(), 'Этот текст нельзя потерять при загрузке фото.');
   profileWriteStatus = 200;
 
+  const ownerAFavorite = { id: '623e4567-e89b-42d3-a456-426614174007', postId: 18, title: 'Сохранённая статья первого аккаунта', path: '/guides/owner-a/', createdAt: 1700000000000 };
+  const ownerBFavorite = { id: '723e4567-e89b-42d3-a456-426614174008', postId: 19, title: 'Сохранённая статья второго аккаунта', path: '/guides/owner-b/', createdAt: 1700000001000 };
+  favorites = [ownerAFavorite];
+  profile = sessionDto({ profile: profileDto({ id: '123e4567-e89b-42d3-a456-426614174000', displayName: 'Первый читатель', bio: '', favoriteClass: null, version: 1 }) });
+  await ready();
+  await page.locator('[data-reader-favorites-sentinel]').scrollIntoViewIfNeeded();
+  await page.getByRole('link', { name: ownerAFavorite.title }).waitFor();
+
+  holdFavoriteRead = true;
+  const favoriteReadsBeforeAccountSwitch = releaseFavoriteReads.length;
+  favorites = [ownerBFavorite];
   profile = sessionDto({
     profileUrl: null,
     profile: profileDto({ id: '223e4567-e89b-42d3-a456-426614174001', displayName: 'Другой читатель', bio: '', favoriteClass: null, version: 1 }),
   });
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await page.waitForFunction(() => document.querySelector('[data-reader-display-name]').value === 'Другой читатель');
+  assert.equal(await page.getByRole('link', { name: ownerAFavorite.title }).count(), 0, 'account B must never render saved articles from account A');
+  assert.equal(await page.getByRole('link', { name: ownerBFavorite.title }).count(), 0, 'the delayed account B response must not be guessed from account A state');
+  await page.locator('[data-reader-favorites-sentinel]').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(100);
+  assert.ok(releaseFavoriteReads.length > favoriteReadsBeforeAccountSwitch, 'account B must request its own saved articles instead of reusing account A data');
+  holdFavoriteRead = false;
+  for (const release of releaseFavoriteReads.splice(0)) release();
+  await page.getByRole('link', { name: ownerBFavorite.title }).waitFor();
   assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0, 'account switch must remove the prior account link');
   await accountSummary.click();
   assert.equal(await page.getByRole('button', { name: 'Выйти', exact: true }).count(), 1);
@@ -595,11 +628,11 @@ try {
   await page.setViewportSize({ width: 1024, height: 900 });
   await ready();
   let sections = await assertFits();
-  assert.equal(sections.sections.length, 1, 'the profile is the only overview panel');
+  assert.equal(sections.sections.length, 2, 'profile and saved articles remain visible in one reading flow');
   await page.setViewportSize({ width: 560, height: 900 });
   await ready();
   sections = await assertFits();
-  assert.equal(sections.sections.length, 1, 'narrow layouts keep one compact profile panel');
+  assert.equal(sections.sections.length, 2, 'narrow layouts keep profile and saved articles as stacked sections');
   const identitySize = () => page.locator('[data-reader-identity]').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
   const originalIdentitySize = await identitySize();
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });

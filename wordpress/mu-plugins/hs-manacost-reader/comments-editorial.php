@@ -15,39 +15,53 @@ function hs_reader_comments_enabled(): bool {
 }
 
 /**
- * Recheck public article safety on every request; no visitor/WP-admin role grants access.
+ * Recheck public article safety once per request; no visitor/WP-admin role grants access.
+ *
+ * A single page can ask for the same article through the discussion template,
+ * favorite control and asset loader. This intentionally stays request-local:
+ * it avoids duplicate WordPress lookups without retaining visibility metadata
+ * between visitors or requests.
  *
  * @param int $post_id Editorial identifier.
  * @return array<string, bool|int|string>
  */
 function hs_reader_public_article( int $post_id ): array {
+	static $articles = array();
+	if ( isset( $articles[ $post_id ] ) ) {
+		return $articles[ $post_id ];
+	}
 	$denied = array(
 		'postId'  => $post_id,
 		'allowed' => false,
 	);
 	if ( ! hs_reader_comments_enabled() ) {
-		return $denied;
+		$articles[ $post_id ] = $denied;
+		return $articles[ $post_id ];
 	}
 	$post = get_post( $post_id );
 	if ( ! $post || 'post' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password
 		|| str_contains( $post->post_content, '[' ) ) {
 		// Shortcode-controlled access is deliberately unsupported until its owner is integrated.
-		return $denied;
+		$articles[ $post_id ] = $denied;
+		return $articles[ $post_id ];
 	}
 	$url = filter_var( get_permalink( $post ), FILTER_VALIDATE_URL );
 	if ( ! is_string( $url ) || ! str_starts_with( $url, 'https://test.hs-manacost.ru/' ) ) {
-		return $denied;
+		$articles[ $post_id ] = $denied;
+		return $articles[ $post_id ];
 	}
 	$path = wp_parse_url( $url, PHP_URL_PATH );
 	if ( ! is_string( $path ) || ! str_starts_with( $path, '/' ) || str_starts_with( $path, '//' ) ) {
-		return $denied;
+		$articles[ $post_id ] = $denied;
+		return $articles[ $post_id ];
 	}
-	return array(
+	$articles[ $post_id ] = array(
 		'postId'  => $post_id,
 		'allowed' => true,
 		'title'   => wp_strip_all_tags( $post->post_title ),
 		'path'    => $path,
 	);
+	return $articles[ $post_id ];
 }
 
 /**

@@ -2318,14 +2318,14 @@
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 181
+        "line": 195
       },
       {
         "name": "manacost-reader/v1/threads",
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 172
+        "line": 186
       },
       {
         "name": "manacost/v1/article-versions/(?P<post_id>\\d+)/(?P<version>\\d+)",
