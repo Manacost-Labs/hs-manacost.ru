@@ -139,8 +139,16 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn("hs_manacost_reader_account_icon( 'account' )", self.php)
         self.assertIn("hs_manacost_reader_account_icon( 'chevron' )", self.php)
         self.assertNotIn('mc-reader-saved-title', self.php)
-        self.assertIn('aria-labelledby="mc-reader-tab-profile mc-reader-profile-title"', self.php)
+        self.assertIn('aria-labelledby="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-status role="status" aria-live="polite"', self.php)
+
+    def test_saved_articles_follow_the_profile_without_a_tab_switcher(self):
+        self.assertIn('data-reader-profile-overview', self.php)
+        self.assertIn('data-reader-favorites', self.php)
+        self.assertIn('data-reader-favorites-sentinel', self.php)
+        self.assertLess(self.php.index('data-reader-profile-overview'), self.php.index('data-reader-favorites'))
+        for obsolete_tab_markup in ('data-reader-tabs', 'data-reader-tab-profile', 'data-reader-tab-favorites', 'role="tablist"', 'role="tabpanel"'):
+            self.assertNotIn(obsolete_tab_markup, self.php)
     def test_auth_contract_and_no_private_html_injection(self):
         for value in ("credentials: 'same-origin'", "cache: 'no-store'", 'response.status === 200', 'response.status === 401', 'response.status === 503', 'response.status !== 204', 'X-Reader-CSRF', 'textContent'):
             self.assertIn(value, self.js)
@@ -184,9 +192,10 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertNotIn('data-reader-public-consent', self.php)
         self.assertIn('Twitch / YouTube', self.php)
         self.assertIn('data-reader-favorites', self.php)
-        self.assertIn('data-reader-tab-favorites', self.php)
+        self.assertNotIn('data-reader-tab-favorites', self.php)
         self.assertIn('/reader-api/v1/favorites', self.js)
         self.assertIn('Личная подборка', self.php)
+        self.assertIn('IntersectionObserver', self.js)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
             self.assertIn(value, self.js)
@@ -219,3 +228,24 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertIn("'" + icon + "'", self.php)
         self.assertIn('.mc-reader__icon', self.css)
         self.assertNotIn('url(http', self.php)
+
+    def test_public_article_eligibility_is_memoized_only_within_the_request(self):
+        editorial = PHP.parent / 'comments-editorial.php'
+        fixture = r'''define('ABSPATH', '/fixture/');
+define('HS_MANACOST_READER_COMMENTS_ENABLED', true);
+define('HS_MANACOST_READER_COMMENT_POSTS', array(17));
+function wp_get_environment_type() { return 'staging'; }
+function home_url($path = '') { return 'https://test.hs-manacost.ru' . $path; }
+class WP_Post { public $ID; public $post_type = 'post'; public $post_status = 'publish'; public $post_password = ''; public $post_content = 'Открытая статья'; public $post_title = 'Тест'; }
+$GLOBALS['get_post_calls'] = 0;
+function get_post($id) { $GLOBALS['get_post_calls']++; $post = new WP_Post(); $post->ID = $id; return $post; }
+function get_permalink($post) { return 'https://test.hs-manacost.ru/test-article/'; }
+function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
+function wp_strip_all_tags($value) { return strip_tags($value); }
+require $argv[1];
+$thread = hs_reader_comment_article(17);
+$favorite = hs_reader_favorite_article(17);
+echo json_encode(array('calls' => $GLOBALS['get_post_calls'], 'thread' => $thread['allowed'], 'favorite' => $favorite['allowed']));'''
+        result = subprocess.run(['php', '-r', fixture, str(editorial)], capture_output=True, text=True, check=True)
+        response = json.loads(result.stdout)
+        self.assertEqual(response, {'calls': 1, 'thread': True, 'favorite': True})
