@@ -29,14 +29,15 @@
   more.className = 'mc-comments__more mc-ui-button mc-ui-button--secondary'; list.after(more);
   const requests = new Set();
   const stale = new Error('stale');
-  let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null;
+  let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null, threadLoaded = false;
   let activationObserver = null, activated = false;
   let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
   let stagedAttachment = null, attachmentPreviewUrl = null, attachmentUploading = false;
-  const say = message => { status.textContent = message; };
+  const say = message => { status.removeAttribute('data-loading'); status.textContent = message; };
+  const showLoading = () => { status.dataset.loading = 'true'; status.textContent = 'Загружаем комментарии…'; };
   const current = ticket => visible && ticket === generation;
   const community = window.hsManacostReaderCommunity?.create({
-    root, request, write: () => write(), getMe: () => me, getRows: () => rows.filter(valid),
+    root, request, write: () => write(), getMe: () => me, getRows: () => rows.filter(visibleRow),
     sessionKey: () => `${generation}:${csrf}`, expired, say, reload: () => loadComments(),
     updateReactions(id, reactions) {
       const item = rows.find(row => row.id === id);
@@ -147,7 +148,13 @@
     if (item.status === 'deleted') return item.body === null && item.author === null && (item.attachment === undefined || item.attachment === null);
     if (typeof item.body !== 'string' || Array.from(item.body).length > 1000 || !validAttachment(item.attachment, item.id)
       || !validAuthor(item.author, item.status === 'pending')) return false;
-    return item.status !== 'pending' || (me && item.author.id === me.id);
+    return true;
+  }
+  function visibleRow(item) {
+    return valid(item) && (item.status !== 'pending' || (me && item.author.id === me.id));
+  }
+  function showThreadStatus() {
+    say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.some(visibleRow) ? '' : 'Комментариев пока нет. Начните обсуждение.');
   }
   function avatar(author) {
     return typeof author.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(author.avatarVersion)
@@ -252,7 +259,7 @@
     return node;
   }
   function render() {
-    list.replaceChildren(...rows.filter(valid).map(commentNode));
+    list.replaceChildren(...rows.filter(visibleRow).map(commentNode));
     more.hidden = !cursor; controls();
     community?.render();
   }
@@ -266,15 +273,14 @@
     me = data.profile; csrf = data.csrfToken;
     renderComposer();
     form.hidden = dataTools.hidden = false; login.hidden = true;
-    community?.render();
+    render();
+    if (threadLoaded) showThreadStatus();
   }
-  async function loadComments(append = false, prefetched = null, preserveIds = null) {
+  async function loadComments(append = false, preserveIds = null) {
     const ticket = generation;
     more.disabled = true;
     try {
-      const outcome = await (prefetched || request(endpoint + (append && cursor ? `?cursor=${cursor}` : '')));
-      if (outcome.error) throw outcome.error;
-      const { response, data } = outcome;
+      const { response, data } = await request(endpoint + (append && cursor ? `?cursor=${cursor}` : ''));
       if (response.status === 401) { expired(); return; }
       if (!response.ok || !Array.isArray(data?.items) || data.items.length > 20
         || (data.nextCursor !== null && !uuid.test(data.nextCursor))) throw new Error('comments_unavailable');
@@ -285,12 +291,12 @@
         const preserved = rows.filter(item => preserveIds.has(item.id) && !received.has(item.id));
         rows = [...page, ...preserved].sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id));
       } else rows = page;
-      cursor = data.nextCursor; render();
-      if (!(preserveIds instanceof Set)) say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.length ? '' : 'Комментариев пока нет. Начните обсуждение.');
+      cursor = data.nextCursor; threadLoaded = true; render();
+      if (!(preserveIds instanceof Set)) showThreadStatus();
       return true;
     } catch (error) {
       if (error === stale || !current(ticket)) return;
-      if (!(preserveIds instanceof Set)) { rows = []; cursor = null; render(); }
+      if (!(preserveIds instanceof Set)) { rows = []; cursor = null; threadLoaded = false; render(); }
       say('Не удалось загрузить комментарии. Повторите попытку позже.');
       return false;
     } finally { if (current(ticket)) more.disabled = false; }
@@ -425,7 +431,7 @@
       render();
       if (current(ticket)) {
         say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.');
-        void loadComments(false, null, new Set([data.comment.id]));
+        void loadComments(false, new Set([data.comment.id]));
       }
     } catch (error) {
       if (error === stale || !current(ticket)) return;
@@ -497,13 +503,17 @@
 
   async function start() {
     visible = true; invalidate(); resetPrivate();
+    threadLoaded = false;
+    showLoading();
     const ticket = generation;
-    // Fetch concurrently, but validate/render pending rows only after /me has settled.
-    // Capture rejection immediately: pagehide may abandon this generation while /me waits.
-    const prefetched = request(endpoint).catch(error => ({ error }));
+    // Public rows can render as soon as the thread arrives. Pending rows remain
+    // hidden until the independently loaded viewer identity is validated.
+    const commentsReady = loadComments();
     try { await loadMe(true); }
-    catch (error) { if (error === stale || !current(ticket)) return; resetPrivate(); }
-    if (current(ticket)) await loadComments(false, prefetched);
+    catch (error) {
+      if (error !== stale && current(ticket)) resetPrivate();
+    }
+    await commentsReady;
   }
   function activate() {
     if (activated) return;

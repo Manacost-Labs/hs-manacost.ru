@@ -112,8 +112,40 @@ try {
     }
     assert.ok(layout.targets.every(height => height >= 44), 'comment actions retain touch targets');
     const composerHeight = await page.locator('[data-comments-form]').evaluate(node => node.getBoundingClientRect().height);
-    if (width === 390) assert.ok(composerHeight < 650, `mobile composer remains compact: ${composerHeight}`);
-    if (width === 1440) assert.ok(composerHeight < 500, `desktop composer remains compact: ${composerHeight}`);
+    const composerActions = await page.locator('[data-comments-form]').evaluate(node => {
+      const rect = selector => {
+        const value = node.querySelector(selector).getBoundingClientRect();
+        return { top: value.top, bottom: value.bottom, width: value.width, center: value.top + value.height / 2 };
+      };
+      return {
+        contentWidth: node.clientWidth - parseFloat(getComputedStyle(node).paddingLeft) - parseFloat(getComputedStyle(node).paddingRight),
+        attachment: rect('[data-comments-attachment-picker]'),
+        submit: rect('[data-comments-submit]'),
+        sync: rect('.mc-comments__profile-sync'),
+      };
+    });
+    if (width === 390) {
+      assert.ok(composerHeight < 610, `mobile composer remains compact: ${composerHeight}`);
+      assert.ok(composerActions.attachment.width >= composerActions.contentWidth - 1, 'mobile attachment action spans the composer');
+      assert.ok(composerActions.submit.width >= composerActions.contentWidth - 1, 'mobile publish action spans the composer');
+    }
+    if (width === 1440) {
+      assert.ok(composerHeight < 460, `desktop composer remains compact: ${composerHeight}`);
+      assert.ok(Math.abs(composerActions.attachment.center - composerActions.submit.center) <= 1, 'desktop actions share one toolbar row');
+      assert.ok(composerActions.sync.top >= Math.max(composerActions.attachment.bottom, composerActions.submit.bottom), 'profile sync follows the primary toolbar');
+    }
+    if (width === 390 || width === 1440) {
+      const refreshProfile = page.getByRole('button', { name: 'Обновить данные', exact: true });
+      assert.equal(await refreshProfile.isVisible(), true, `profile refresh has one visible and accessible label at ${width}px`);
+      await page.getByLabel('Комментарий', { exact: true }).focus();
+      await page.keyboard.press('Tab');
+      assert.equal(await page.locator('[data-comments-attachment-picker]').evaluate(node => node === document.activeElement), true);
+      await page.keyboard.press('Tab');
+      assert.equal(await page.locator('[data-comments-submit]').evaluate(node => node === document.activeElement), true);
+      await page.keyboard.press('Tab');
+      assert.equal(await refreshProfile.evaluate(node => node === document.activeElement), true, `DOM and visual action order agree at ${width}px`);
+      assert.ok(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== 'none'));
+    }
   }
   const profileSyncGeometry = await page.locator('.mc-comments__profile-sync').evaluate(node => {
     const visibility = [...node.children].map(child => child.hidden);
@@ -188,7 +220,6 @@ try {
   await page.getByRole('button', {name:'Ответить'}).first().click(); await page.getByLabel('Комментарий', { exact: true }).fill('Реплика'); assert.equal(await page.getByRole('button', {name:'Отменить ответ'}).isVisible(), true);
   page.once('dialog', dialog => dialog.accept()); await Promise.all([page.waitForResponse(response => response.request().method() === 'DELETE'), page.getByRole('button',{name:'Удалить'}).first().click()]); assert.deepEqual(deletes.at(-1).body,{version:1}); assert.equal(deletes.at(-1).headers['x-reader-csrf'],'synthetic');
   await page.waitForFunction(() => !document.querySelector('[data-comments-attachment-picker]').disabled);
-  await page.getByLabel('Комментарий', { exact: true }).focus(); await page.keyboard.press('Tab'); assert.equal(await page.locator('[data-comments-attachment-picker]').evaluate(node => node === document.activeElement), true); await page.keyboard.press('Tab'); if (await page.locator('[data-comments-refresh-profile]').isVisible()) { assert.equal(await page.locator('[data-comments-refresh-profile]').evaluate(node => node === document.activeElement), true); await page.keyboard.press('Tab'); } assert.equal(await page.locator('[data-comments-submit]').evaluate(node => node === document.activeElement), true); assert.ok(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== 'none'));
   holdCommentBody=true; await page.reload(); await page.getByText('Не удалось загрузить комментарии. Повторите попытку позже.').waitFor({timeout:8000});
   console.log('comments-browser: pass');
 } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
