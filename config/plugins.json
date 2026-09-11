@@ -27,7 +27,7 @@
     { "slug": "shortcodes-ultimate-skins", "version": null, "source": "commercial" },
     { "slug": "td-composer", "version": "5.4.2", "source": "theme-vendor" },
     { "slug": "td-standard-pack", "version": "2.7.1", "source": "theme-vendor" },
-    { "slug": "wordfence", "version": "9.0.0", "source": "wordpress.org" },
+    { "slug": "wordfence", "version": "9.0.1", "source": "wordpress.org" },
     { "slug": "wp-rocket", "version": "3.21.3", "source": "commercial" }
   ],
   "notes": [

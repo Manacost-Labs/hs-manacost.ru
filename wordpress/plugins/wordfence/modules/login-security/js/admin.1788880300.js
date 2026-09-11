@@ -18,39 +18,91 @@
 		init: function() {
 			this.basePageName = document.title;
 
+			var featuredPageShell = document.querySelector('.wfls-featured-page-shell');
+			if (featuredPageShell) {
+				var shellHeightUpdateScheduled = false;
+				var updateFeaturedPageShellHeight = function() {
+					shellHeightUpdateScheduled = false;
+					var documentTop = featuredPageShell.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+					featuredPageShell.style.minHeight = Math.max(window.innerHeight - documentTop, 0) + 'px';
+				};
+				var scheduleFeaturedPageShellHeightUpdate = function() {
+					if (shellHeightUpdateScheduled) {
+						return;
+					}
+					shellHeightUpdateScheduled = true;
+					if (window.requestAnimationFrame) {
+						window.requestAnimationFrame(updateFeaturedPageShellHeight);
+					}
+					else {
+						window.setTimeout(updateFeaturedPageShellHeight, 0);
+					}
+				};
+
+				updateFeaturedPageShellHeight();
+				$(window).on('resize.wflsFeaturedPage', scheduleFeaturedPageShellHeightUpdate);
+				if (window.MutationObserver && featuredPageShell.parentNode) {
+					var featuredPageObserver = new MutationObserver(scheduleFeaturedPageShellHeightUpdate);
+					featuredPageObserver.observe(featuredPageShell.parentNode, {childList: true, subtree: true});
+				}
+			}
+
 			var tabs = $('.wfls-page-tabs').find('.wfls-tab a');
 			if (tabs.length > 0) {
-				tabs.click(function() {
+				tabs.click(function(event) {
+					var link = this;
+					var activeTab = $('.wfls-page-tabs').find('.wfls-tab.wfls-active');
+					var tab = $(link).closest('.wfls-tab');
+					var tabChangeRequest = {
+						from: activeTab.data('target') || null,
+						to: tab.data('target'),
+						href: link.href,
+						prevented: false,
+						proceed: function() {
+							window.location.href = link.href;
+							window.location.reload(true);
+						}
+					};
+
+					if (window.WFLSEventEmitter) {
+						window.WFLSEventEmitter.emit('beforeTabChange', tabChangeRequest);
+					}
+					if (tabChangeRequest.prevented) {
+						event.preventDefault();
+						if (activeTab.length && window.history && window.history.replaceState) {
+							window.history.replaceState('', document.title, activeTab.find('a').attr('href'));
+						}
+						return;
+					}
+
 					$('.wfls-page-tabs').find('.wfls-tab').removeClass('wfls-active');
 					$('.wfls-tab-content').removeClass('wfls-active');
 
-					var tab = $(this).closest('.wfls-tab');
 					tab.addClass('wfls-active');
 					var content = $('#' + tab.data('target'));
 					content.addClass('wfls-active');
 					document.title = tab.data('pageTitle') + " \u2039 " + WFLS.basePageName;
 					$(window).trigger('wfls-tab-change', [tab.data('target')]);
 				});
-				if (window.location.hash) {
+				var activateHashTab = function() {
 					var hashes = WFLS.parseHashes();
 					var hash = hashes[hashes.length - 1];
 					for (var i = 0; i < tabs.length; i++) {
 						if (hash == $(tabs[i]).closest('.wfls-tab').data('target')) {
 							$(tabs[i]).trigger('click');
+							return;
 						}
 					}
+					$(tabs[0]).trigger('click');
+				};
+				if (window.location.hash) {
+					activateHashTab();
 				}
 				else {
 					$(tabs[0]).trigger('click');
 				}
 				$(window).on('hashchange', function () {
-					var hashes = WFLS.parseHashes();
-					var hash = hashes[hashes.length - 1];
-					for (var i = 0; i < tabs.length; i++) {
-						if (hash == $(tabs[i]).closest('.wfls-tab').data('target')) {
-							$(tabs[i]).trigger('click');
-						}
-					}
+					activateHashTab();
 				});
 			}
 		},
