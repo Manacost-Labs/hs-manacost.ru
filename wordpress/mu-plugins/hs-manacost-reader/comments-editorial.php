@@ -21,7 +21,7 @@ function hs_reader_comments_enabled(): bool {
  * @return array<string, bool|int|string>
  */
 function hs_reader_public_article( int $post_id ): array {
-	$denied  = array(
+	$denied = array(
 		'postId'  => $post_id,
 		'allowed' => false,
 	);
@@ -50,7 +50,12 @@ function hs_reader_public_article( int $post_id ): array {
 	);
 }
 
-/** A configured ID certifies a manually reviewed discussion pilot, not all legacy VIP posts. */
+/**
+ * A configured ID certifies a manually reviewed discussion pilot, not all legacy VIP posts.
+ *
+ * @param int $post_id Editorial post identifier.
+ * @return array<string, bool|int|string>
+ */
 function hs_reader_comment_article( int $post_id ): array {
 	$denied  = array(
 		'postId'  => $post_id,
@@ -63,7 +68,12 @@ function hs_reader_comment_article( int $post_id ): array {
 	return hs_reader_public_article( $post_id );
 }
 
-/** Favorites are useful on every safe, published public article; they do not enable comments. */
+/**
+ * Favorites are useful on every safe, published public article; they do not enable comments.
+ *
+ * @param int $post_id Editorial post identifier.
+ * @return array<string, bool|int|string>
+ */
 function hs_reader_favorite_article( int $post_id ): array {
 	return hs_reader_public_article( $post_id );
 }
@@ -113,7 +123,7 @@ function hs_reader_editorial_ids( WP_REST_Request $request ): array|WP_Error {
  * Return only public metadata or an indistinguishable denial for each requested ID.
  *
  * @param WP_REST_Request $request Signed ID batch.
- * @param callable         $article Article eligibility resolver.
+ * @param callable        $article Article eligibility resolver.
  */
 function hs_reader_editorial_response( WP_REST_Request $request, callable $article ): WP_REST_Response|WP_Error {
 	$ids = hs_reader_editorial_ids( $request );
@@ -133,12 +143,22 @@ function hs_reader_editorial_response( WP_REST_Request $request, callable $artic
 	);
 }
 
-/** Signed discussion-pilot metadata. */
+/**
+ * Signed discussion-pilot metadata.
+ *
+ * @param WP_REST_Request $request Signed discussion-pilot batch.
+ * @return WP_REST_Response|WP_Error
+ */
 function hs_reader_editorial_threads( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 	return hs_reader_editorial_response( $request, 'hs_reader_comment_article' );
 }
 
-/** Signed favorite metadata for every safe public post. */
+/**
+ * Signed favorite metadata for every safe public post.
+ *
+ * @param WP_REST_Request $request Signed favorite metadata batch.
+ * @return WP_REST_Response|WP_Error
+ */
 function hs_reader_editorial_favorites( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 	return hs_reader_editorial_response( $request, 'hs_reader_favorite_article' );
 }

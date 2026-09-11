@@ -77,9 +77,9 @@ function hs_reader_comments_template( string $template ): string {
 
 /** Load discussion and favorite bundles only on their matching safe public surfaces. */
 function hs_reader_comments_assets(): void {
-	$page   = hs_manacost_reader_page();
-	$public = $page && is_page( $page->ID ) && hs_reader_public_profile_request();
-	$thread = is_singular( 'post' ) && hs_reader_comment_article( (int) get_the_ID() )['allowed'];
+	$page     = hs_manacost_reader_page();
+	$public   = $page && is_page( $page->ID ) && hs_reader_public_profile_request();
+	$thread   = is_singular( 'post' ) && hs_reader_comment_article( (int) get_the_ID() )['allowed'];
 	$favorite = is_singular( 'post' ) && hs_reader_favorite_article( (int) get_the_ID() )['allowed'];
 	if ( ! $public && ! $thread && ! $favorite ) {
 		return;
