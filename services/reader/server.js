@@ -1,17 +1,30 @@
 import { createServer } from 'node:http';
 import { realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
+import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { ReaderStore } from './core.js';
 import { ReaderProfiles } from './profiles.js';
 import { createIdentityClient } from './identity-client.js';
 import { createReaderHandler, drainRevocations } from './http.js';
 import { createCommunity } from './community.js';
+import { BodyTooLarge } from './profile-http.js';
+
+function boundedRequestBody(request, limit) {
+  let size = 0;
+  return Readable.toWeb(request).pipeThrough(new TransformStream({
+    transform(chunk, controller) {
+      size += chunk.byteLength;
+      if (size > limit) throw new BodyTooLarge();
+      controller.enqueue(chunk);
+    },
+  }));
+}
 
 export function createReaderServer({ origin, handle }) {
   const authority = new URL(origin).host;
   let uploads = 0;
-  return createServer({ maxHeaderSize: 8192, requestTimeout: 6000, headersTimeout: 6000 }, async (req, res) => {
+  return createServer({ maxHeaderSize: 8192, requestTimeout: 10_000, headersTimeout: 6000 }, async (req, res) => {
     if (req.headers.host !== authority || !req.url?.startsWith('/') || req.url.startsWith('//')) {
       res.writeHead(400, { 'Cache-Control': 'private, no-store' }); res.end(); return;
     }
@@ -30,23 +43,32 @@ export function createReaderServer({ origin, handle }) {
     if (upload && uploads >= 2) { reject(503); return; }
     if (upload) uploads++;
     const controller = new AbortController();
-    const deadline = setTimeout(() => { controller.abort(); if (!res.headersSent) reject(408); }, 6000);
+    const deadline = setTimeout(() => { controller.abort(); if (!res.headersSent) reject(408); }, upload ? 9500 : 6000);
     try {
-      let size = 0; const chunks = [];
-      for await (const chunk of req) {
-        size += chunk.length;
-        if (size > limit) { reject(413); return; }
-        chunks.push(chunk);
-      }
       const init = { method: req.method, headers: req.headers, signal: controller.signal };
-      if (req.method !== 'GET' && req.method !== 'HEAD') init.body = Buffer.concat(chunks);
-      const response = await handle(new Request(url, init));
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        const body = boundedRequestBody(req, limit);
+        if (upload) {
+          init.body = body;
+          init.duplex = 'half';
+        } else {
+          // Small JSON/control requests remain dispatch-after-validation.
+          // Only image uploads need early streaming into the Reader handler.
+          init.body = await new Response(body).arrayBuffer();
+        }
+      }
+      const request = new Request(url, init);
+      const response = await handle(request);
+      // Routes that reject before parsing still have to drain the bounded body.
+      // Cancelling Readable.toWeb while IncomingMessage is emitting can enqueue
+      // into a closed controller on Node 22, so consume the guarded stream.
+      if (request.body && !request.bodyUsed) await request.arrayBuffer();
       if (controller.signal.aborted || res.headersSent) return;
       const headers = Object.fromEntries(response.headers);
       const cookies = response.headers.getSetCookie();
       if (cookies.length) headers['set-cookie'] = cookies;
       res.writeHead(response.status, headers); res.end(Buffer.from(await response.arrayBuffer()));
-    } catch { if (!res.headersSent) reject(503); }
+    } catch (error) { if (!res.headersSent) reject(error instanceof BodyTooLarge ? 413 : 503); }
     finally { clearTimeout(deadline); if (upload) uploads--; }
   });
 }

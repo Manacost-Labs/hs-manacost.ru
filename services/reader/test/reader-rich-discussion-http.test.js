@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { request } from 'node:http';
 import test from 'node:test';
 import sharp from 'sharp';
 import { ReaderArticleFavorites } from '../article-favorites.js';
@@ -8,6 +9,7 @@ import { ReaderComments } from '../comments-store.js';
 import { ReaderStore } from '../core.js';
 import { createReaderHandler } from '../http.js';
 import { ReaderProfiles } from '../profiles.js';
+import { createReaderServer } from '../server.js';
 
 const origin = 'https://test.hs-manacost.ru';
 
@@ -41,8 +43,10 @@ function fixture(t) {
     entitlements: { get: async () => new Map() },
   };
   let verifyCalls = 0;
+  let verifyHook = null;
+  let verifyResult = true;
   const identity = {
-    verify: async () => { verifyCalls += 1; return true; },
+    verify: async () => { verifyCalls += 1; if (verifyHook) await verifyHook(); return verifyResult; },
     profile: async () => ({ displayName: 'Читатель' }),
   };
   const handle = createReaderHandler({ origin, store, profiles, identity, community, csrfKey: randomBytes(32) });
@@ -50,6 +54,7 @@ function fixture(t) {
     method,
     headers,
     ...(body === undefined ? {} : { body: raw ? body : JSON.stringify(body) }),
+    ...(raw && body instanceof ReadableStream ? { duplex: 'half' } : {}),
   }));
   async function reader(subject) {
     const session = store.createSession({ userId: subject, upstreamToken: `synthetic-${subject}`, ttlMs: 300000 });
@@ -58,15 +63,94 @@ function fixture(t) {
     return { me, sessionId: session.id, headers: { cookie, origin, 'x-reader-csrf': me.csrfToken } };
   }
   return {
+    handle,
     call,
     reader,
     verifyCalls: () => verifyCalls,
+    onVerify: hook => { verifyHook = hook; },
+    verifyAs: result => { verifyResult = result; },
     revokeAfterStage: sessionId => { revokeAfterAttachmentStage = sessionId; },
     pendingAttachments: () => store.db.prepare('SELECT count(*) count FROM reader_comment_attachments WHERE attached_comment_id IS NULL').get().count,
     denyComment: postId => commentAllowed.delete(postId),
     denyFavorite: postId => favoriteAllowed.delete(postId),
   };
 }
+
+test('native chunked comment image upload keeps the shared 4 MiB response contract', async t => {
+  const f = fixture(t); const reader = await f.reader('oversized-image-reader');
+  const server = createReaderServer({ origin, handle: f.handle });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const response = await new Promise((resolve, reject) => {
+    const req = request({
+      hostname: '127.0.0.1', port: server.address().port,
+      path: '/reader-api/v1/comment-attachments', method: 'PUT',
+      headers: {
+        host: new URL(origin).host, origin,
+        cookie: reader.headers.cookie,
+        'x-reader-csrf': reader.headers['x-reader-csrf'],
+        'content-type': 'image/png', 'transfer-encoding': 'chunked',
+      },
+    }, res => {
+      res.resume();
+      res.on('end', () => resolve(res));
+    });
+    req.on('error', reject);
+    for (let count = 0; count < 4; count++) req.write(Buffer.alloc(1024 * 1024));
+    req.end(Buffer.alloc(1));
+  });
+  assert.equal(response.statusCode, 413);
+});
+
+test('early upload authentication failure keeps native body slots until chunked streams finish', async t => {
+  const f = fixture(t);
+  const firstReader = await f.reader('revoked-slow-upload-reader-1');
+  const secondReader = await f.reader('revoked-slow-upload-reader-2');
+  f.verifyAs(false);
+  const server = createReaderServer({ origin, handle: f.handle });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const openUpload = reader => {
+    let resolveResponse; let rejectResponse;
+    const response = new Promise((resolve, reject) => { resolveResponse = resolve; rejectResponse = reject; });
+    const req = request({
+      hostname: '127.0.0.1', port: server.address().port,
+      path: '/reader-api/v1/comment-attachments', method: 'PUT',
+      headers: {
+        host: new URL(origin).host, origin,
+        cookie: reader.headers.cookie,
+        'x-reader-csrf': reader.headers['x-reader-csrf'],
+        'content-type': 'image/png', 'transfer-encoding': 'chunked',
+      },
+    }, res => { res.resume(); res.on('end', () => resolveResponse(res)); });
+    req.on('error', rejectResponse);
+    req.write(Buffer.alloc(16));
+    return { req, response };
+  };
+  const baseline = f.verifyCalls();
+  const first = openUpload(firstReader); const second = openUpload(secondReader);
+  try {
+    await Promise.race([
+      new Promise(resolve => {
+        const ready = () => f.verifyCalls() >= baseline + 2 ? resolve() : setImmediate(ready);
+        ready();
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('authentication did not start')), 500)),
+    ]);
+    const third = await new Promise((resolve, reject) => {
+      const req = request({
+        hostname: '127.0.0.1', port: server.address().port,
+        path: '/reader-api/v1/comment-attachments', method: 'PUT',
+        headers: { host: new URL(origin).host, 'content-type': 'image/png', 'content-length': '16' },
+      }, res => { res.resume(); res.on('end', () => resolve(res)); });
+      req.on('error', reject); req.end(Buffer.alloc(16));
+    });
+    assert.equal(third.statusCode, 503, 'a third body cannot bypass two unfinished uploads after auth rejection');
+  } finally {
+    first.req.end(); second.req.end();
+    await Promise.all([first.response, second.response]);
+  }
+});
 
 async function sourcePng() {
   return sharp({ create: { width: 96, height: 48, channels: 3, background: '#224466' } }).png().toBuffer();
@@ -100,6 +184,35 @@ test('a pasted-comment image is authenticated, private before publication, and d
     method: 'DELETE', headers: { ...reader.headers, 'content-type': 'application/json' }, body: { version: comment.version },
   })).status, 200);
   assert.equal((await f.call(comment.attachment.url)).status, 404);
+});
+
+test('attachment authentication overlaps a streaming file body instead of adding another waterfall', async t => {
+  const f = fixture(t); const reader = await f.reader('streamed-image-reader'); const image = await sourcePng();
+  let identityStarted; const started = new Promise(resolve => { identityStarted = resolve; });
+  f.onVerify(async () => { identityStarted(); });
+  let releaseBody;
+  const bodyReleased = new Promise(resolve => { releaseBody = resolve; });
+  const stream = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(image.subarray(0, 16));
+      await bodyReleased;
+      controller.enqueue(image.subarray(16));
+      controller.close();
+    },
+  });
+  const pending = f.call('/reader-api/v1/comment-attachments', {
+    method: 'PUT', headers: { ...reader.headers, 'content-type': 'image/png' }, body: stream, raw: true,
+  });
+  try {
+    const beganBeforeBodyCompleted = await Promise.race([
+      started.then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 100)),
+    ]);
+    assert.equal(beganBeforeBodyCompleted, true, 'identity verification should overlap the incoming file body');
+  } finally {
+    releaseBody();
+  }
+  assert.equal((await pending).status, 201);
 });
 
 test('a session change during image processing rejects and discards the private upload', async t => {

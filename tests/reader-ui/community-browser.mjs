@@ -48,12 +48,13 @@ const requestBody = async request => {
   return text ? JSON.parse(text) : null;
 };
 
-let rows, community, reactionStatus, holdPermission, holdReaction, heldPermissions, heldReactions;
-let reactionWrites, deleteWrites, banWrites, unbanWrites, banListCalls, commentPosts, bans;
+let rows, community, reactionStatus, holdPermission, holdReaction, holdHydration, heldPermissions, heldReactions, heldHydrations;
+let reactionWrites, hydrationCalls, deleteWrites, banWrites, unbanWrites, banListCalls, commentPosts, bans;
 function reset({ moderator = false, blocked = false } = {}) {
   rows = [comment()]; community = { canModerateComments: moderator, commentingBlocked: blocked };
-  reactionStatus = 200; holdPermission = holdReaction = false; heldPermissions = []; heldReactions = [];
-  reactionWrites = []; deleteWrites = []; banWrites = []; unbanWrites = []; banListCalls = []; commentPosts = 0; bans = [];
+  reactionStatus = 200; holdPermission = holdReaction = holdHydration = false;
+  heldPermissions = []; heldReactions = []; heldHydrations = [];
+  reactionWrites = []; hydrationCalls = 0; deleteWrites = []; banWrites = []; unbanWrites = []; banListCalls = []; commentPosts = 0; bans = [];
 }
 function reactionReply(value) {
   const item = rows.find(row => row.id === commentId), old = item.reactions;
@@ -80,6 +81,16 @@ const server = createServer(async (request, response) => {
   if (request.url === '/reader-api/v1/community/me') {
     if (holdPermission) { request.resume(); heldPermissions.push(response); return; }
     json(response, 200, community); return;
+  }
+  if (request.url.startsWith('/reader-api/v1/community/reactions?')) {
+    hydrationCalls++;
+    const ids = new URL(request.url, 'http://fixture').searchParams.getAll('comment');
+    if (holdHydration) { request.resume(); heldHydrations.push(response); return; }
+    json(response, 200, { items: ids.map(id => ({
+      commentId: id,
+      reactions: rows.find(row => row.id === id)?.reactions ?? reactions(),
+    })) });
+    return;
   }
   if (request.url === `/reader-api/v1/comments/${commentId}/reaction` && request.method === 'PUT') {
     const write = await requestBody(request); reactionWrites.push(write);
@@ -127,6 +138,44 @@ try {
   assert.ok((await reaction('like').boundingBox()).height >= 44, 'reaction touch target is at least 44px');
   assert.equal(await moderation().count(), 0, 'regular readers have no moderator UI');
 
+  reset(); holdHydration = true; await load();
+  await new Promise(resolve => {
+    const ready = () => heldHydrations.length ? resolve() : setImmediate(ready);
+    ready();
+  });
+  await reaction('like').click();
+  await page.waitForFunction(() => {
+    const button = document.querySelector('[data-reaction="like"]');
+    return button?.getAttribute('aria-pressed') === 'true' && !button.disabled;
+  });
+  holdHydration = false;
+  release(heldHydrations, 200, { items: [{ commentId, reactions: reactions() }] });
+  await page.waitForTimeout(20);
+  assert.equal(await reaction('like').getAttribute('aria-pressed'), 'true', 'stale hydration cannot overwrite a newer reaction');
+
+  reset(); holdHydration = holdReaction = true; await load();
+  await new Promise(resolve => {
+    const ready = () => heldHydrations.length ? resolve() : setImmediate(ready);
+    ready();
+  });
+  await reaction('like').click();
+  await page.waitForFunction(() => document.querySelector('[data-reaction="like"]').disabled);
+  const failedReaction = heldReactions.shift();
+  json(failedReaction.response, 503, { error: 'comments_unavailable' });
+  await page.getByText('Не удалось сохранить реакцию. Попробуйте ещё раз.').waitFor();
+  holdReaction = holdHydration = false;
+  release(heldHydrations, 200, { items: [{ commentId, reactions: reactions() }] });
+  await Promise.race([
+    new Promise(resolve => {
+      const retried = () => hydrationCalls >= 2 ? resolve() : setImmediate(retried);
+      retried();
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('reaction hydration did not retry')), 500)),
+  ]);
+  assert.equal(hydrationCalls, 2, 'failed PUT causes a retry after stale hydration is released');
+  assert.equal(await reaction('like').getAttribute('aria-pressed'), 'false', 'retry restores the authoritative reaction state');
+
+  reset(); await load();
   holdReaction = true; await reaction('like').click();
   await page.waitForFunction(() => document.querySelector('[data-reaction="like"]').disabled);
   assert.equal(await reaction('like').getAttribute('aria-pressed'), 'true', 'a reaction changes locally before the server response returns');

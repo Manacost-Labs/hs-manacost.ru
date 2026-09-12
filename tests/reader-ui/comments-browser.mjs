@@ -13,9 +13,10 @@ const shell = execFileSync('php', ['-r', php, `${plugin}comments.php`], { encodi
 const favoritePhp = "define('ABSPATH','/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function hs_reader_favorite_article($id){return ['allowed'=>true,'path'=>'/article/'];} require $argv[1]; echo hs_reader_article_favorite_shell(7);";
 const favoriteShell = execFileSync('php', ['-r', favoritePhp, `${plugin}article-favorite.php`], { encoding: 'utf8' });
 const sharedUi = `${plugin}ui.css`;
-const assets = new Map([['/community-ui.js', readFileSync(`${plugin}community-ui.js`)],['/comments.js', readFileSync(`${plugin}comments.js`)], ['/comments.css', readFileSync(`${plugin}comments.css`)], ['/article-favorite.js', readFileSync(`${plugin}article-favorite.js`)], ['/article-favorite.css', readFileSync(`${plugin}article-favorite.css`)], ['/ui.css', readFileSync(sharedUi)], ['/theme.css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)], ['/theme-boxed.css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]]);
+const assets = new Map([['/community-ui.js', readFileSync(`${plugin}community-ui.js`)],['/comments.js', readFileSync(`${plugin}comments.js`)], ['/comments.css', readFileSync(`${plugin}comments.css`)], ['/tailwind.css', readFileSync(`${plugin}tailwind.css`)], ['/article-favorite.js', readFileSync(`${plugin}article-favorite.js`)], ['/article-favorite.css', readFileSync(`${plugin}article-favorite.css`)], ['/ui.css', readFileSync(sharedUi)], ['/theme.css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)], ['/theme-boxed.css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]]);
 const id = '123e4567-e89b-42d3-a456-426614174000';
-const reactions = [{ kind: 'like', count: 7, selected: true }, { kind: 'thanks', count: 3, selected: false }, { kind: 'fire', count: 5, selected: false }];
+const reactions = [{ kind: 'like', count: 7, selected: false }, { kind: 'thanks', count: 3, selected: false }, { kind: 'fire', count: 5, selected: false }];
+const selectedReactions = reactions.map(reaction => ({ ...reaction, selected: reaction.kind === 'like' }));
 const author = { id, name: 'Маг <script>alert(1)</script>', bio: 'Люблю колоды', favoriteClass: 'mage', avatarVersion: 'a'.repeat(32), avatarUrl: `/reader-api/v1/readers/${id}/avatar?v=${'a'.repeat(32)}`, profileUrl: `/account/?reader=${id}`, paidSubscriber: true, hasTwitch: true, hasYoutube: true };
 let comments = [{ id: '223e4567-e89b-42d3-a456-426614174000', postId: 7, parentId: null, status: 'published', version: 1, createdAt: Date.now(), body: '<img src=x onerror=alert(1)> Первый комментарий', author, reactions }];
 let writes = [];
@@ -31,13 +32,19 @@ let articleFavoriteSaved = false;
 let articleFavoriteWrites = [];
 let commentReads = 0;
 let meReads = 0;
+let reactionHydrations = 0;
 const articleFavoriteCsrf = 'f'.repeat(43);
 const server = createServer(async (req, res) => {
   if (assets.has(req.url)) { res.writeHead(200, {'content-type': req.url.endsWith('css') ? 'text/css' : 'text/javascript'}); return res.end(assets.get(req.url)); }
-  if (req.url === '/' || req.url === '/deferred') { const spacer = req.url === '/deferred' ? '<div style="height:2400px"></div>' : ''; res.writeHead(200, {'content-type':'text/html; charset=utf-8'}); return res.end(`<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><link rel=stylesheet href=/article-favorite.css><body class="td-boxed-layout"><header class="td-container-wrap"></header><main class="td-main-content-wrap td-container-wrap"><div class="td-container"><div class="td-page-content">${spacer}<div class="td-post-content tagdiv-type">${favoriteShell}<p data-article-first>Отдельная тестовая статья для проверки обсуждения.</p><p>Здесь можно проверить отправку комментария и вложения.</p></div>${shell}</div></div></main><footer class="td-container-wrap"></footer><script src=/community-ui.js></script><script src=/comments.js></script><script src=/article-favorite.js></script>`); }
+  if (req.url === '/' || req.url === '/deferred') { const spacer = req.url === '/deferred' ? '<div style="height:2400px"></div>' : ''; res.writeHead(200, {'content-type':'text/html; charset=utf-8'}); return res.end(`<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><link rel=stylesheet href=/article-favorite.css><link rel=stylesheet href=/tailwind.css><body class="td-boxed-layout"><header class="td-container-wrap"></header><main class="td-main-content-wrap td-container-wrap"><div class="td-container"><div class="td-page-content">${spacer}<div class="td-post-content tagdiv-type">${favoriteShell}<p data-article-first>Отдельная тестовая статья для проверки обсуждения.</p><p>Здесь можно проверить отправку комментария и вложения.</p></div>${shell}</div></div></main><footer class="td-container-wrap"></footer><script src=/community-ui.js></script><script src=/comments.js></script><script src=/article-favorite.js></script>`); }
 	if (req.url.startsWith('/reader-api/v1/readers/')) { res.writeHead(200, {'content-type':'image/svg+xml'}); return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#19313e"/><text x="20" y="27" text-anchor="middle" font-size="20" fill="#eef3f5">М</text></svg>'); }
   if (req.url === '/favicon.ico') { res.writeHead(204); return res.end(); }
   if (req.url === '/reader-api/v1/community/me') return res.end(JSON.stringify({ canModerateComments: false, commentingBlocked: false }));
+  if (req.url.startsWith('/reader-api/v1/community/reactions?')) {
+    reactionHydrations++;
+    const ids = new URL(req.url, 'http://fixture').searchParams.getAll('comment');
+    return res.end(JSON.stringify({ items: ids.map(commentId => ({ commentId, reactions: selectedReactions })) }));
+  }
   if (req.url === '/reader-api/v1/me') { meReads++; return res.end(JSON.stringify({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version: 1, avatarUrl: null }, csrfToken: 'synthetic' })); }
   if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { commentReads++; if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} if (holdRefresh) { req.resume(); heldRefreshes.push(res); return; } return res.end(JSON.stringify({items: comments, nextCursor: null})); }
   if (req.url === '/reader-api/v1/comment-attachments' && req.method === 'PUT') { for await (const _chunk of req) {} attachmentUploads++; res.writeHead(attachmentResponse.status, {'content-type':'application/json'}); return res.end(JSON.stringify(attachmentResponse.body)); }
@@ -68,6 +75,7 @@ try {
     assert.equal(await page.locator('.mc-comments__author-badge--twitch').isVisible(), true, 'a Twitch author receives the Twitch mark');
     assert.equal(await page.locator('.mc-comments__author-badge--youtube').isVisible(), true, 'a YouTube author receives the YouTube mark');
     assert.equal(await page.getByRole('group', { name: 'Реакции на комментарий' }).isVisible(), true, 'reactions remain visible in the discussion layout');
+    await page.waitForFunction(() => document.querySelector('[data-reaction="like"]')?.getAttribute('aria-pressed') === 'true');
     assert.equal(await page.locator('.mc-comments__author-badge--paid').getAttribute('aria-label'), 'Платный подписчик');
     const crown = await page.locator('.mc-comments__author-badge--paid').evaluate(node => ({
       width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height,
@@ -142,6 +150,8 @@ try {
         composerLeftWidth: composerStyle.borderLeftWidth,
         composerRightColor: composerStyle.borderRightColor,
         composerRightWidth: composerStyle.borderRightWidth,
+        radius: composerStyle.borderRadius,
+        shadow: composerStyle.boxShadow,
         noticeLeftStyle: noticeStyle.borderLeftStyle,
         noticeLeftWidth: noticeStyle.borderLeftWidth,
       };
@@ -152,6 +162,8 @@ try {
       'the comment composer uses the same neutral border on every side');
     assert.equal(composerAccents.noticeLeftStyle, 'none', 'the profile notice has no decorative left marker');
     assert.equal(composerAccents.noticeLeftWidth, '0px', 'the profile notice reserves no width for a left marker');
+    assert.equal(composerAccents.radius, '12px', 'the generated Reader Tailwind layer must be active on comments');
+    assert.notEqual(composerAccents.shadow, 'none', 'the generated Reader Tailwind layer must add restrained composer depth');
     if (width === 390) {
       assert.ok(composerHeight < 610, `mobile composer remains compact: ${composerHeight}`);
       assert.ok(composerActions.attachment.width >= composerActions.contentWidth - 1, 'mobile attachment action spans the composer');
@@ -246,6 +258,28 @@ try {
   await page.getByText('Статья удалена из избранного.', { exact: true }).waitFor();
   assert.equal(await favoriteButton.getAttribute('aria-pressed'), 'false');
   assert.equal(articleFavoriteWrites.at(-1).method, 'DELETE');
+  const uploadsBeforeFilePicker = attachmentUploads;
+  const attachmentPicker = page.locator('[data-comments-attachment-picker]');
+  await attachmentPicker.hover();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-comments-attachment-picker]')).transform === 'matrix(1, 0, 0, 1, 0, -1)');
+  await page.mouse.down();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-comments-attachment-picker]')).transform === 'matrix(1, 0, 0, 1, 0, 1)');
+  await page.mouse.up();
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    attachmentPicker.click(),
+  ]);
+  await fileChooser.setFiles({
+    name: 'selected-from-disk.png', mimeType: '',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+  });
+  await page.getByText('Изображение готово и будет опубликовано вместе с комментарием.').waitFor();
+  assert.equal(attachmentUploads, uploadsBeforeFilePicker + 1, 'the visible file picker stages a selected image');
+  assert.equal(await page.locator('[data-comments-attachment-preview]').isVisible(), true, 'a selected file gets a visible preview');
+  await page.locator('[data-comments-attachment-remove]').click();
+  await page.waitForFunction(() => document.querySelector('[data-comments-attachment-preview]').hidden);
+  await page.waitForFunction(() => !document.querySelector('[data-comments-attachment-picker]').disabled);
+
   const pasted = await page.getByLabel('Комментарий', { exact: true }).evaluate(node => {
     const clipboard = new DataTransfer();
     clipboard.items.add(new File([new Uint8Array([137, 80, 78, 71])], 'screen.png', { type: 'image/png' }));
@@ -254,7 +288,8 @@ try {
   });
   assert.equal(pasted, true, 'an image paste is handled by the attachment control');
   await page.getByText('Изображение готово и будет опубликовано вместе с комментарием.').waitFor();
-  assert.equal(attachmentUploads, 1);
+  assert.equal(attachmentUploads, uploadsBeforeFilePicker + 2);
+  assert.ok(reactionHydrations >= 1, 'selected reactions hydrate through the verified private endpoint');
   await page.getByLabel('Комментарий', { exact: true }).fill('Скриншот из буфера');
   holdRefresh = true;
   await page.getByRole('button', { name: 'Опубликовать', exact: true }).click();

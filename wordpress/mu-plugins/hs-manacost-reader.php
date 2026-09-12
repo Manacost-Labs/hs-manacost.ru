@@ -22,9 +22,30 @@ function hs_manacost_reader_bootstrap(): void {
 	add_filter( 'wp_nav_menu_items', 'hs_manacost_reader_menu', 20, 2 );
 	add_filter( 'template_include', 'hs_manacost_reader_template' );
 	add_action( 'wp_enqueue_scripts', 'hs_manacost_reader_assets' );
+	add_action( 'wp_enqueue_scripts', 'hs_manacost_reader_tailwind_assets', 30 );
 	add_action( 'wp_enqueue_scripts', 'hs_reader_account_trim_assets', 1000 );
 	add_action( 'wp', 'hs_reader_account_integrations', 20 );
 	add_action( 'template_redirect', 'hs_manacost_reader_cache_policy' );
+}
+
+/** Load the zero-runtime Tailwind refinement after every active Reader surface. */
+function hs_manacost_reader_tailwind_assets(): void {
+	$dependencies = array_values(
+		array_filter(
+			array( 'hs-manacost-reader', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite' ),
+			static fn( string $handle ): bool => wp_style_is( $handle, 'enqueued' )
+		)
+	);
+	if ( array() === $dependencies ) {
+		return;
+	}
+	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
+	wp_enqueue_style(
+		'hs-manacost-reader-tailwind',
+		$base . 'tailwind.css',
+		$dependencies,
+		hs_manacost_reader_asset_version( 'tailwind.css' )
+	);
 }
 
 /** Require an explicitly provisioned page; never take over an existing account route. */

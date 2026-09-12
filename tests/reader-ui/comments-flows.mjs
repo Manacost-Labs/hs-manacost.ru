@@ -75,6 +75,14 @@ const server = createServer(async (request, response) => {
     response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body class="td-boxed-layout"><main class="td-main-content-wrap td-container-wrap"><div class=td-container><div class=td-page-content>${profileShell}</div></div></main><script src=/public-profile.js></script>`); return;
   }
   if (request.url === '/reader-api/v1/community/me') { json(response, 200, { canModerateComments: false, commentingBlocked: false }); return; }
+  if (request.url.startsWith('/reader-api/v1/community/reactions?')) {
+    const ids = new URL(request.url, 'http://fixture').searchParams.getAll('comment');
+    json(response, 200, { items: ids.map(commentId => ({
+      commentId,
+      reactions: (comments.find(comment => comment.id === commentId)?.reactions ?? []).map(reaction => ({ ...reaction, selected: false })),
+    })) });
+    return;
+  }
   if (request.url === '/reader-api/v1/me') {
     if (hold.me) { request.resume(); held.me.push({ response }); return; }
     json(response, 200, me(meVersion)); return;

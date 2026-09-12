@@ -64,8 +64,18 @@ export function createCommentAttachmentRoutes({ community, store, profiles, iden
       if (request.method !== 'PUT' || url.search) return null;
       if (!store.getSession(id)) fail(401, 'not_authenticated');
       if (!validWrite(request, id)) fail(403, 'invalid_request');
-      const bytes = await bodyBytes(request, 4 * 1024 * 1024);
-      const verified = await verifiedWriter(store, identity, id, signal);
+      // A screenshot may still be streaming. Overlap the identity RTT with the
+      // body read instead of adding both waits to the visible upload time.
+      const [bodyResult, identityResult] = await Promise.allSettled([
+        bodyBytes(request, 4 * 1024 * 1024),
+        verifiedWriter(store, identity, id, signal),
+      ]);
+      // Keep the native server's global upload slot until the bounded body has
+      // actually finished, even when identity verification rejects early.
+      if (bodyResult.status === 'rejected') throw bodyResult.reason;
+      if (identityResult.status === 'rejected') throw identityResult.reason;
+      const bytes = bodyResult.value;
+      const verified = identityResult.value;
       if (!verified) fail(401, 'not_authenticated');
       const subject = verified.session.userId;
       const profile = profiles.getOrCreate(subject);

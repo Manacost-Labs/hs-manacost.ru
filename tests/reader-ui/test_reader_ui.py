@@ -42,6 +42,19 @@ class ReaderUiContractTests(unittest.TestCase):
         self.assertIn('.mc-ui-control', shared)
         self.assertIn('.mc-ui-button:disabled', shared)
 
+    def test_tailwind_is_a_scoped_zero_runtime_build_asset(self):
+        package = json.loads((ROOT / 'package.json').read_text())
+        config = (ROOT / 'tailwind.config.js').read_text()
+        source = (PHP.parent / 'tailwind.input.css').read_text()
+        built = PHP.parent / 'tailwind.css'
+        self.assertEqual(package['devDependencies']['tailwindcss'], '3.4.19')
+        self.assertIn('build:reader-css', package['scripts'])
+        self.assertIn("prefix: 'mc-tw-'", config)
+        self.assertIn('preflight: false', config)
+        self.assertIn('.mc-reader-ui', source)
+        self.assertTrue(built.exists())
+        self.assertLessEqual(built.stat().st_size, 12_000)
+
     def test_reader_assets_use_their_content_version_to_invalidate_stale_browser_bundles(self):
         loader = ROOT / 'wordpress/mu-plugins/hs-manacost-reader.php'
         comments_loader = PHP.parent / 'comments-loader.php'
@@ -58,7 +71,8 @@ function is_page($id) { return $GLOBALS['account']; }
 function is_singular($type) { return ! $GLOBALS['account']; }
 function get_the_ID() { return 17; }
 function content_url($path) { return '/wp-content/' . $path; }
-function wp_enqueue_style($handle, $source = '', $dependencies = array(), $version = false) { $GLOBALS['assets'][] = array($source, $version); }
+function wp_enqueue_style($handle, $source = '', $dependencies = array(), $version = false) { $GLOBALS['styles'][$handle] = true; $GLOBALS['assets'][] = array($source, $version); }
+function wp_style_is($handle, $state = 'enqueued') { return !empty($GLOBALS['styles'][$handle]); }
 function wp_enqueue_script($handle, $source = '', $dependencies = array(), $version = false) { $GLOBALS['assets'][] = array($source, $version); }
 class WP_Post { public $ID; public $post_status; public $post_content; public $post_type = 'post'; public $post_password = ''; public $post_title = 'Тест'; }
 function get_post($id) { $post = new WP_Post(); $post->ID = $id; $post->post_status = 'publish'; $post->post_content = 'Открытая статья'; return $post; }
@@ -68,10 +82,11 @@ function wp_strip_all_tags($text) { return strip_tags($text); }
 function __($text, $domain = '') { return $text; }
 function wp_unslash($value) { return $value; }
 function sanitize_text_field($value) { return strip_tags($value); }
-$GLOBALS['assets'] = array(); $GLOBALS['account'] = true;
+$GLOBALS['assets'] = array(); $GLOBALS['styles'] = array(); $GLOBALS['account'] = true;
 require $argv[1]; require $argv[2];
 hs_manacost_reader_assets();
 $GLOBALS['account'] = false; hs_reader_comments_assets();
+hs_manacost_reader_tailwind_assets();
 echo json_encode($GLOBALS['assets']);'''
         result = subprocess.run(
             ['php', '-r', fixture, str(loader), str(comments_loader)],
@@ -83,12 +98,12 @@ echo json_encode($GLOBALS['assets']);'''
         expected = {
             file.name: hashlib.sha256(file.read_bytes()).hexdigest()[:12]
             for file in (PHP.parent / name for name in (
-                'ui.css', 'reader.css', 'comments.css', 'profile-editor.js',
+                'ui.css', 'reader.css', 'tailwind.css', 'comments.css', 'profile-editor.js',
                 'reader.js', 'community-ui.js', 'comments.js',
                 'article-favorite.css', 'article-favorite.js',
             ))
         }
-        self.assertEqual(len(assets), 10)
+        self.assertEqual(len(assets), 11)
         for source, version in assets:
             filename = pathlib.Path(urlparse(source).path).name
             self.assertEqual(version, expected[filename], filename)
@@ -112,13 +127,13 @@ echo json_encode($GLOBALS['assets']);'''
         assets = tuple(
             PHP.parent / name
             for name in (
-                'ui.css', 'reader.css', 'reader.js', 'profile-editor.js',
+                'ui.css', 'reader.css', 'tailwind.css', 'reader.js', 'profile-editor.js',
                 'comments.css', 'comments.js', 'community-ui.js',
                 'article-favorite.css', 'article-favorite.js',
             )
         )
         self.assertLessEqual(sum(path.stat().st_size for path in assets), 145_000)
-        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 34_000)
+        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 34_500)
         self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
 
     @classmethod

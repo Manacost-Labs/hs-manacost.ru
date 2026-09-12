@@ -39,10 +39,17 @@ test('reaction HTTP boundary requires canonical reader, origin/CSRF and exact in
   const saved = await f.call(path, { method: 'PUT', headers: alice.headers, body: { reaction: 'like' } });
   assert.equal(saved.status, 200);
   assert.equal((await saved.json()).reactions[0].count, 1);
-  assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: alice.headers })).json()).items[0].reactions[0].selected, true);
+  assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: alice.headers })).json()).items[0].reactions[0].selected, false);
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments')).json()).items[0].reactions[0].selected, false);
+  const selectedPath = `/reader-api/v1/community/reactions?comment=${comment.id}`;
+  const selected = await (await f.call(selectedPath, { headers: alice.headers })).json();
+  assert.equal(selected.items[0].commentId, comment.id);
+  assert.equal(selected.items[0].reactions[0].selected, true);
   f.editorial.get = async ids => new Map(ids.map(id => [id, { allowed: false }]));
   assert.equal((await f.call(path, { method: 'PUT', headers: alice.headers, body: { reaction: 'fire' } })).status, 404);
+  assert.equal((await f.call(selectedPath, { headers: alice.headers })).status, 404);
+  f.identity.profile = async () => null;
+  assert.equal((await f.call(selectedPath, { headers: alice.headers })).status, 401);
 });
 
 test('HearthPulse role controls administrator badges, own permissions and moderation, never client flags', async t => {

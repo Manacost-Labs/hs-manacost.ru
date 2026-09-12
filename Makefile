@@ -1,8 +1,8 @@
-.PHONY: check composer-validate code-quality php-lint test reader-test reader-browser-test shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
+.PHONY: check composer-validate code-quality php-lint test reader-test reader-browser-test reader-css-check shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
 
 .PHONY: nginx-media-test
 
-check: composer-validate php-lint contract-check skill-audit test reader-test shell-check nginx-media-test
+check: composer-validate php-lint contract-check skill-audit test reader-css-check reader-test shell-check nginx-media-test
 
 nginx-media-test:
 	@python3 ops/nginx/tests/check_media_negotiation.py
@@ -27,6 +27,14 @@ reader-test:
 	@node --test services/reader/test/*.test.js
 	@for source in wordpress/mu-plugins/hs-manacost-reader/*.js; do node --check "$$source" || exit; done
 	@python3 -m unittest discover -s tests/reader-ui -v
+
+reader-css-check:
+	@tmp_file=$$(mktemp); trap 'rm -f "$$tmp_file"' EXIT; \
+		./node_modules/.bin/tailwindcss -c tailwind.config.js \
+		-i wordpress/mu-plugins/hs-manacost-reader/tailwind.input.css \
+		-o "$$tmp_file" --minify >/dev/null; \
+		cmp -s "$$tmp_file" wordpress/mu-plugins/hs-manacost-reader/tailwind.css || \
+		{ echo "Reader Tailwind CSS is stale; run npm run build:reader-css" >&2; exit 1; }
 
 reader-browser-test:
 	@node tests/reader-ui/browser.mjs

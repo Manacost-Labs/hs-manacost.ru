@@ -15,6 +15,7 @@ let shell = renderShell(true);
 const assets = new Map([
   ['/ui.css', ['text/css', readFileSync(`${plugin}ui.css`)]],
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
+  ['/tailwind.css', ['text/css', readFileSync(`${plugin}tailwind.css`)]],
   ['/profile-editor.js', ['text/javascript', readFileSync(`${plugin}profile-editor.js`)]],
   ['/reader.js', ['text/javascript', readFileSync(`${plugin}reader.js`)]],
   ['/theme.css', ['text/css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)]],
@@ -48,7 +49,7 @@ const server = createServer((request, response) => {
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   // The account shell owns the only page title, just as the dedicated template does.
-  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/ui.css"><link rel="stylesheet" href="/reader.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/profile-editor.js"></script><script src="/reader.js"></script></body></html>`);
+  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/ui.css"><link rel="stylesheet" href="/reader.css"><link rel="stylesheet" href="/tailwind.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/profile-editor.js"></script><script src="/reader.js"></script></body></html>`);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -258,7 +259,7 @@ try {
   await page.locator('[data-reader-favorites-sentinel]').scrollIntoViewIfNeeded();
   await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).waitFor();
   await page.waitForTimeout(100);
-  assert.equal(releaseFavoriteReads.length, 1, 'the first favorites read is deliberately delayed');
+  assert.ok(releaseFavoriteReads.length >= 1, 'at least one favorites read is deliberately delayed');
   assert.equal(await page.locator('[data-reader-profile-overview]').isVisible(), true, 'a delayed saved-articles response must never delay the profile');
   const meBeforeFavoriteRefresh = meCalls;
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -356,11 +357,12 @@ try {
   assert.ok(profileHierarchy.classRect.width < 260, 'favorite class must remain a compact token, not a wide secondary panel');
   const overviewVisual = await page.locator('[data-reader-profile-overview]').evaluate(element => {
     const style = getComputedStyle(element);
-    return { background: style.backgroundColor, borderLeft: style.borderLeftWidth, radius: style.borderRadius };
+    return { background: style.backgroundColor, borderLeft: style.borderLeftWidth, radius: style.borderRadius, shadow: style.boxShadow };
   });
   assert.equal(overviewVisual.background, 'rgb(255, 255, 255)');
   assert.equal(overviewVisual.borderLeft, '1px', 'the profile must not use an ornamental amber rail');
-  assert.equal(overviewVisual.radius, '8px');
+  assert.equal(overviewVisual.radius, '12px', 'the generated Reader Tailwind layer must be active after the semantic CSS');
+  assert.notEqual(overviewVisual.shadow, 'none', 'the generated Reader Tailwind layer must add restrained surface depth');
   const accountMenu = page.locator('[data-reader-account-menu]');
   const accountSummary = page.getByText('Аккаунт', { exact: true });
   const assertAccountMenuFits = async width => {

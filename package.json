@@ -2,9 +2,11 @@
   "name": "hs-manacost-wordpress-quality",
   "private": true,
   "scripts": {
+    "build:reader-css": "tailwindcss -c tailwind.config.js -i wordpress/mu-plugins/hs-manacost-reader/tailwind.input.css -o wordpress/mu-plugins/hs-manacost-reader/tailwind.css --minify",
     "test:visual": "playwright test tests/visual"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.1"
+    "@playwright/test": "1.62.1",
+    "tailwindcss": "3.4.19"
   }
 }
