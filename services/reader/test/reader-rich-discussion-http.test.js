@@ -17,6 +17,16 @@ function fixture(t) {
   t.after(() => store.close());
   const profiles = new ReaderProfiles({ db: store.db, issuer });
   const attachments = new ReaderCommentAttachments({ db: store.db, issuer });
+  let revokeAfterAttachmentStage = null;
+  const stageAttachment = attachments.stage.bind(attachments);
+  attachments.stage = async (...args) => {
+    const attachment = await stageAttachment(...args);
+    if (revokeAfterAttachmentStage) {
+      store.revokeSession(revokeAfterAttachmentStage);
+      revokeAfterAttachmentStage = null;
+    }
+    return attachment;
+  };
   const comments = new ReaderComments({ db: store.db, issuer, attachments });
   const favorites = new ReaderArticleFavorites({ db: store.db, issuer });
   const commentAllowed = new Set([17]);
@@ -30,7 +40,11 @@ function fixture(t) {
     favoriteEditorial: { get: async ids => new Map(ids.map(id => [id, article(id, favoriteAllowed.has(id))])) },
     entitlements: { get: async () => new Map() },
   };
-  const identity = { verify: async () => true, profile: async () => ({ displayName: 'Читатель' }) };
+  let verifyCalls = 0;
+  const identity = {
+    verify: async () => { verifyCalls += 1; return true; },
+    profile: async () => ({ displayName: 'Читатель' }),
+  };
   const handle = createReaderHandler({ origin, store, profiles, identity, community, csrfKey: randomBytes(32) });
   const call = (path, { method = 'GET', headers = {}, body, raw = false } = {}) => handle(new Request(origin + path, {
     method,
@@ -41,9 +55,17 @@ function fixture(t) {
     const session = store.createSession({ userId: subject, upstreamToken: `synthetic-${subject}`, ttlMs: 300000 });
     const cookie = `__Host-manacost_reader=${session.id}`;
     const me = await (await call('/reader-api/v1/me', { headers: { cookie } })).json();
-    return { me, headers: { cookie, origin, 'x-reader-csrf': me.csrfToken } };
+    return { me, sessionId: session.id, headers: { cookie, origin, 'x-reader-csrf': me.csrfToken } };
   }
-  return { call, reader, denyComment: postId => commentAllowed.delete(postId), denyFavorite: postId => favoriteAllowed.delete(postId) };
+  return {
+    call,
+    reader,
+    verifyCalls: () => verifyCalls,
+    revokeAfterStage: sessionId => { revokeAfterAttachmentStage = sessionId; },
+    pendingAttachments: () => store.db.prepare('SELECT count(*) count FROM reader_comment_attachments WHERE attached_comment_id IS NULL').get().count,
+    denyComment: postId => commentAllowed.delete(postId),
+    denyFavorite: postId => favoriteAllowed.delete(postId),
+  };
 }
 
 async function sourcePng() {
@@ -56,6 +78,7 @@ test('a pasted-comment image is authenticated, private before publication, and d
     method: 'PUT', headers: { ...reader.headers, 'content-type': 'image/png' }, body: image, raw: true,
   });
   assert.equal(upload.status, 201);
+  assert.equal(f.verifyCalls(), 1, 'a private staged image needs one upstream identity verification, not two serial round trips');
   const staged = (await upload.json()).attachment;
   assert.match(staged.id, /^[0-9a-f-]{36}$/i); assert.deepEqual(Object.keys(staged).sort(), ['height', 'id', 'width']);
   assert.equal((await f.call(`/reader-api/v1/comments/${staged.id}/attachment`)).status, 404, 'staged bytes have no public route');
@@ -77,6 +100,17 @@ test('a pasted-comment image is authenticated, private before publication, and d
     method: 'DELETE', headers: { ...reader.headers, 'content-type': 'application/json' }, body: { version: comment.version },
   })).status, 200);
   assert.equal((await f.call(comment.attachment.url)).status, 404);
+});
+
+test('a session change during image processing rejects and discards the private upload', async t => {
+  const f = fixture(t); const reader = await f.reader('rotated-image-reader'); const image = await sourcePng();
+  f.revokeAfterStage(reader.sessionId);
+  const upload = await f.call('/reader-api/v1/comment-attachments', {
+    method: 'PUT', headers: { ...reader.headers, 'content-type': 'image/png' }, body: image, raw: true,
+  });
+  assert.equal(upload.status, 401);
+  assert.equal(f.verifyCalls(), 1);
+  assert.equal(f.pendingAttachments(), 0, 'a rejected upload must not consume the private staging quota');
 });
 
 test('attachment uploads reject a guest, foreign origin, invalid bytes, and an oversized body', async t => {

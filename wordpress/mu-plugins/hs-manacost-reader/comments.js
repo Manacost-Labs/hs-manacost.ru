@@ -359,7 +359,11 @@
       if (!response.ok || !validStagedAttachment(data?.attachment)) {
         if (response.status === 413) say('Изображение больше 4 МБ. Выберите файл меньшего размера.');
         else if (response.status === 429) say('Можно подготовить не более трёх изображений одновременно. Уберите ненужное и повторите попытку.');
-        else say('Не удалось подготовить изображение. Выберите JPEG, PNG или WebP и повторите попытку.');
+        else if (data?.error === 'attachment_busy') say('Обработка занята. Повторите через несколько секунд.');
+        else if (response.status === 503) say('Изображения временно недоступны. Повторите.');
+        else if (response.status === 403) say('Сессия изменилась. Обновите страницу и повторите.');
+        else if (response.status === 400 || data?.error === 'invalid_attachment') say('Файл не распознан. Выберите JPEG, PNG или WebP.');
+        else say('Не удалось загрузить изображение. Повторите.');
         clearAttachment();
         return;
       }

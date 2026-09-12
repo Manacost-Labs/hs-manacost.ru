@@ -70,9 +70,16 @@ export function createCommentAttachmentRoutes({ community, store, profiles, iden
       const subject = verified.session.userId;
       const profile = profiles.getOrCreate(subject);
       const attachment = await attachments.stage(subject, profile.id, bytes, request.headers.get('content-type'));
-      const current = await verifiedWriter(store, identity, id, signal);
-      if (!current || current.session.userId !== subject || current.session.upstreamToken !== verified.session.upstreamToken) fail(401, 'not_authenticated');
-      requireSameSession(store, id, current.session, signal);
+      try {
+        // Image decoding may take long enough for the local session to change,
+        // but it does not justify a second serial identity-provider request.
+        requireSameSession(store, id, verified.session, signal);
+      } catch (error) {
+        // Never leave a private upload consuming the reader's staging quota
+        // when the session that authorized it disappeared mid-request.
+        attachments.discard(subject, profile.id, attachment.id);
+        throw error;
+      }
       return json(201, { attachment });
     } catch (error) {
       const response = json(error instanceof BodyTooLarge ? 413 : error instanceof ReaderCommentError ? error.status : 503,
