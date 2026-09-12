@@ -82,6 +82,15 @@ test('new posts are immediately public with server-derived author links and paid
   assert.equal((await f.call(`/reader-api/v1/readers/${user.me.profile.id}`)).status, 404);
 });
 
+test('public comment reads never wait for viewer identity, even when a session cookie exists', async t => {
+  const f = fixture(t); const user = await f.reader('one');
+  let profileCalls = 0;
+  f.identity.profile = async () => { profileCalls += 1; throw new Error('slow identity must not delay public rows'); };
+  const response = await f.call('/reader-api/v1/threads/17/comments', { headers: user.headers });
+  assert.equal(response.status, 200);
+  assert.equal(profileCalls, 0);
+});
+
 test('logout during editorial work prevents posting', async t => {
   const f = fixture(t); const user = await f.reader('one');
   let entered; let release; const waiting = new Promise(resolve => { entered = resolve; });

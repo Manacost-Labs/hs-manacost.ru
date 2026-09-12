@@ -1,5 +1,10 @@
 import * as oidc from 'openid-client';
+import { createHash } from 'node:crypto';
 import { ReaderAuthorizationDenied } from './core.js';
+
+const IDENTITY_PROFILE_CACHE_TTL = 30_000;
+const IDENTITY_WRITE_CACHE_TTL = 5_000;
+const IDENTITY_CACHE_LIMIT = 4096;
 
 export function validateIdentityClient(options) {
   const { origin, issuer, clientId, clientSecret, deployment, allowProductionIdentityForStaging } = options;
@@ -31,6 +36,25 @@ export function createIdentityClient(options, transport = fetch) {
     revocation_endpoint: `${issuer}/token/revocation`, jwks_uri: `${issuer}/jwks`,
     id_token_signing_alg_values_supported: ['RS256'], authorization_response_iss_parameter_supported: true };
   const allowed = new Set(Object.values(metadata).filter(value => typeof value === 'string'));
+  const snapshots = new Map();
+  const pending = new Map();
+  const cacheKey = (token, subject) => createHash('sha256').update(subject).update('\0').update(token).digest('base64url');
+  function remember(key, value) {
+    if (!snapshots.has(key) && snapshots.size >= IDENTITY_CACHE_LIMIT) snapshots.delete(snapshots.keys().next().value);
+    snapshots.set(key, { ...value, expiresAt: Date.now() + IDENTITY_PROFILE_CACHE_TTL });
+    return value;
+  }
+  function remembered(key) {
+    const value = snapshots.get(key);
+    if (!value || value.expiresAt <= Date.now()) { snapshots.delete(key); return null; }
+    return value;
+  }
+  async function shared(key, task) {
+    if (pending.has(key)) return pending.get(key);
+    const operation = task().finally(() => pending.delete(key));
+    pending.set(key, operation);
+    return operation;
+  }
   function config(signal = AbortSignal.timeout(5000)) {
     const value = new oidc.Configuration(metadata, clientId, { id_token_signed_response_alg: 'RS256' }, oidc.ClientSecretBasic(clientSecret));
     value.timeout = 5;
@@ -42,10 +66,24 @@ export function createIdentityClient(options, transport = fetch) {
     return value;
   }
 
-  async function verify(token, subject, signal) {
-    const status = await oidc.tokenIntrospection(config(signal), token, { token_type_hint: 'access_token' });
-    return Boolean(status.active && status.sub === subject && status.client_id === clientId
-      && typeof status.exp === 'number' && status.exp > Date.now() / 1000);
+  async function verify(token, subject, signal = AbortSignal.timeout(5000)) {
+    const key = cacheKey(token, subject);
+    const cached = remembered(key);
+    if (cached?.active === true && cached.verifiedAt > Date.now() - IDENTITY_WRITE_CACHE_TTL) return true;
+    const result = await shared(`verify:${key}`, async () => {
+      const upstreamSignal = AbortSignal.timeout(5000);
+      const verifiedAt = Date.now();
+      const status = await oidc.tokenIntrospection(config(upstreamSignal), token, { token_type_hint: 'access_token' });
+      const active = Boolean(status.active && status.sub === subject && status.client_id === clientId
+        && typeof status.exp === 'number' && status.exp > Date.now() / 1000);
+      if (!active) {
+        snapshots.delete(key);
+        return { active: false, profile: null };
+      }
+      return remember(key, { active: true, profile: cached?.profile ?? null, verifiedAt });
+    });
+    signal.throwIfAborted();
+    return result.active;
   }
 
   return {
@@ -84,12 +122,34 @@ export function createIdentityClient(options, transport = fetch) {
       return { subject, accessToken: tokens.access_token, refreshToken: tokens.refresh_token, expiresIn: tokens.expires_in };
     },
     verify,
-    async profile(token, subject, signal) {
-      if (!await verify(token, subject, signal)) return null;
-      const configuration = config(signal);
-      const profile = await oidc.fetchUserInfo(configuration, token, subject);
-      if (typeof profile.name !== 'string' || profile.name.length > 200) throw new Error('Invalid profile');
-      return { displayName: profile.name || 'Читатель' };
+    async profile(token, subject, signal = AbortSignal.timeout(5000)) {
+      const key = cacheKey(token, subject);
+      const cached = remembered(key);
+      if (cached?.active === true && cached.profile
+        && cached.verifiedAt > Date.now() - IDENTITY_WRITE_CACHE_TTL) return cached.profile;
+      if (cached?.profile) {
+        if (!await verify(token, subject, signal)) return null;
+        return remembered(key)?.profile ?? cached.profile;
+      }
+      const result = await shared(`profile:${key}`, async () => {
+        const upstreamSignal = AbortSignal.timeout(5000);
+        const verifiedAt = Date.now();
+        let profile;
+        try {
+          profile = await oidc.fetchUserInfo(config(upstreamSignal), token, subject);
+        } catch (error) {
+          if (error instanceof oidc.ClientError && error.cause?.status === 401) return { active: false, profile: null };
+          throw error;
+        }
+        if (typeof profile.name !== 'string' || profile.name.length > 200) throw new Error('Invalid profile');
+        return remember(key, {
+          active: true,
+          profile: { displayName: profile.name || 'Читатель' },
+          verifiedAt,
+        });
+      });
+      signal.throwIfAborted();
+      return result.active ? result.profile : null;
     },
     // Omit the optional hint: the durable queue can contain either access or refresh tokens.
     async revoke(token, signal) { await oidc.tokenRevocation(config(signal), token); },

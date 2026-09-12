@@ -3,6 +3,7 @@ import { verifiedReader } from './profile-http.js';
 import { requireSameSession } from './community-session.js';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
+const UUID_VALUE = new RegExp(`^${UUID}$`, 'i');
 const reactionRoute = new RegExp(`^/reader-api/v1/comments/(${UUID})/reaction$`, 'i');
 const removeRoute = new RegExp(`^/reader-api/v1/moderation/comments/(${UUID})$`, 'i');
 const banRoute = new RegExp(`^/reader-api/v1/moderation/readers/(${UUID})/ban$`, 'i');
@@ -32,23 +33,42 @@ export function createCommunityControlRoutes({ community, store, profiles, ident
   const { comments, editorial, permissions } = community;
   return async (request, url, id, signal) => {
     const me = url.pathname === '/reader-api/v1/community/me';
+    const reactionSelections = url.pathname === '/reader-api/v1/community/reactions';
     const list = url.pathname === '/reader-api/v1/moderation/bans';
     const reaction = url.pathname.match(reactionRoute), remove = url.pathname.match(removeRoute);
     const ban = url.pathname.match(banRoute), unban = url.pathname.match(unbanRoute);
-    if (!me && !list && !reaction && !remove && !ban && !unban) return null;
+    if (!me && !reactionSelections && !list && !reaction && !remove && !ban && !unban) return null;
     const method = request.method;
-    if (!((me || list) && method === 'GET') && !(ban && ['GET', 'PUT'].includes(method))
+    if (!((me || reactionSelections || list) && method === 'GET') && !(ban && ['GET', 'PUT'].includes(method))
       && !(remove && method === 'DELETE') && !((unban || reaction) && method === 'PUT')) return null;
     try {
       if (!store.getSession(id)) fail(401, 'not_authenticated');
       if (method !== 'GET' && !validWrite(request, id)) fail(403, 'invalid_request');
-      if (list ? [...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1 : url.search) fail(400, 'invalid_input');
+      let selectionIds = null;
+      if (reactionSelections) {
+        selectionIds = url.searchParams.getAll('comment');
+        if ([...url.searchParams.keys()].some(key => key !== 'comment') || selectionIds.length < 1
+          || selectionIds.length > 50 || new Set(selectionIds).size !== selectionIds.length
+          || selectionIds.some(value => !UUID_VALUE.test(value))) fail(400, 'invalid_input');
+      } else if (list
+        ? [...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1
+        : url.search) fail(400, 'invalid_input');
       const body = method === 'GET' ? null : await input(request, reaction ? 'reaction' : 'version');
       const verified = await verifiedReader(store, identity, id, signal);
       if (!verified) fail(401, 'not_authenticated');
       const { session } = verified;
       requireSameSession(store, id, session, signal);
       profiles.getOrCreate(session.userId, verified.profile.displayName);
+      if (reactionSelections) {
+        const commentsById = selectionIds.map(commentId => comments.get(commentId));
+        if (commentsById.some(comment => !comment || comment.status !== 'published')) fail(404, 'not_found');
+        const postIds = [...new Set(commentsById.map(comment => comment.postId))];
+        const articles = await editorial.get(postIds, signal);
+        requireSameSession(store, id, session, signal);
+        if (postIds.some(postId => articles.get(postId)?.allowed !== true)) fail(404, 'not_found');
+        const summaries = comments.reactions.summaries(selectionIds, session.userId);
+        return json(200, { items: selectionIds.map(commentId => ({ commentId, reactions: summaries.get(commentId) })) });
+      }
       if (reaction) {
         const metadata = comments.metadataForComment(reaction[1]);
         if (!metadata) fail(404, 'comment_not_found');

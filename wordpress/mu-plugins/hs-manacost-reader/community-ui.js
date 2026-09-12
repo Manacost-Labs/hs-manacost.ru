@@ -29,7 +29,8 @@
   function create(binding) {
     let session = null, checked = false, permissionPending = null;
     let moderator = false;
-    const reacting = new Set(), moderating = new Set();
+    let loaded = '', loading = null;
+    const reacting = new Set(), generations = new Map(), moderating = new Set();
     const commentPath = id => '/reader-api/v1/comments/' + id;
     const adminPath = id => '/reader-api/v1/moderation/comments/' + id;
     const banPath = id => '/reader-api/v1/moderation/readers/' + id + '/ban';
@@ -40,7 +41,8 @@
     }
     function reset() {
       session = binding.sessionKey(); checked = false; permissionPending = null;
-      reacting.clear(); moderating.clear(); clearAdmin(); binding.setCommentingBlocked(false);
+      loaded = ''; loading = null;
+      reacting.clear(); generations.clear(); moderating.clear(); clearAdmin(); binding.setCommentingBlocked(false);
     }
     async function authority() {
       const ticket = binding.sessionKey();
@@ -50,7 +52,7 @@
       if (response.status === 401) { binding.expired(); throw new Error('stale'); }
       checked = true;
       if (!response.ok || typeof data?.canModerateComments !== 'boolean' || typeof data?.commentingBlocked !== 'boolean') {
-        clearAdmin(); throw new Error('community_unavailable');
+        clearAdmin(); throw new Error();
       }
       moderator = data.canModerateComments;
       binding.setCommentingBlocked(data.commentingBlocked);
@@ -104,12 +106,58 @@
       else if (prior) prior.remove();
       else if (next) node.insertBefore(next, node.querySelector('[data-community-admin]'));
     }
+    function reactionItems(idle = false) {
+      return binding.getRows().filter(item => uuid.test(item.id) && item.status === 'published'
+        && validReactions(item.reactions) && (!idle || !reacting.has(item.id)));
+    }
+    const selection = (items = reactionItems()) => binding.sessionKey() + '|' + items.map(item => item.id + ':'
+      + (item.reactions.find(value => value.selected)?.kind ?? '')).join(',');
+    async function hydrateReactions() {
+      if (!binding.getMe() || loading) return;
+      const items = reactionItems(true);
+      if (!items.length) return;
+      const requested = selection(items);
+      if (requested === loaded) return;
+      const ticket = binding.sessionKey();
+      let skipped = false;
+      loading = (async () => {
+        for (let offset = 0; offset < items.length; offset += 50) {
+          const batch = items.slice(offset, offset + 50);
+          const prior = new Map(batch.map(item => [item.id, generations.get(item.id) ?? 0]));
+          const query = new URLSearchParams(batch.map(item => ['comment', item.id]));
+          const { response, data } = await binding.request('/reader-api/v1/community/reactions?' + query);
+          if (ticket !== binding.sessionKey()) throw new Error('stale');
+          if (response.status === 401) { binding.expired(); throw new Error('stale'); }
+          const ids = new Set();
+          if (!response.ok || !Array.isArray(data?.items) || data.items.length !== batch.length
+            || !data.items.every(item => uuid.test(item?.commentId) && batch.some(row => row.id === item.commentId)
+              && !ids.has(item.commentId) && ids.add(item.commentId) && validReactions(item.reactions))) {
+            throw new Error();
+          }
+          for (const item of data.items) {
+            if (!reacting.has(item.commentId)
+              && (generations.get(item.commentId) ?? 0) === prior.get(item.commentId)) {
+              binding.updateReactions(item.commentId, item.reactions);
+            } else skipped = true;
+          }
+        }
+        if (!skipped) loaded = selection();
+      })().catch(error => {
+        if (error.message !== 'stale') loaded = '';
+      }).finally(() => {
+        loading = null;
+        const latest = selection();
+        if (ticket === binding.sessionKey() && latest !== loaded && (skipped || latest !== requested)) void hydrateReactions();
+      });
+    }
     async function react(item, kind) {
       if (!binding.getMe()) { binding.offerLogin(); return; }
       if (reacting.has(item.id) || !validReactions(item.reactions)) return;
       const ticket = binding.sessionKey();
       const reaction = item.reactions.some(value => value.kind === kind && value.selected) ? null : kind;
       const previous = item.reactions.map(value => ({ ...value }));
+      generations.set(item.id, (generations.get(item.id) ?? 0) + 1);
+      let saved = false;
       item.reactions = optimisticReactions(previous, reaction);
       reacting.add(item.id); patchReactions(item.id);
       try {
@@ -123,8 +171,10 @@
             : response.status === 404 ? 'Комментарий больше недоступен.' : 'Не удалось сохранить реакцию. Попробуйте ещё раз.');
           return;
         }
-        if (!validReactions(data?.reactions)) throw new Error('reaction_failed');
+        if (!validReactions(data?.reactions)) throw new Error();
         binding.updateReactions(item.id, data.reactions);
+        saved = true;
+        loaded = selection();
       } catch (error) {
         if (error.message !== 'stale') {
           item.reactions = previous; patchReactions(item.id);
@@ -134,6 +184,7 @@
       finally {
         if (ticket === binding.sessionKey()) {
           reacting.delete(item.id); patchReactions(item.id);
+          if (!saved) { loaded = ''; void hydrateReactions(); }
           binding.root.querySelector('[data-comment-id="' + item.id + '"] [data-reaction="' + kind + '"]')?.focus({ preventScroll: true });
         }
       }
@@ -155,14 +206,14 @@
       });
       if (authError(response)) return;
       if (response.status === 409) { await binding.reload(); binding.say('Комментарий изменился. Список обновлён.'); return; }
-      if (!response.ok || data?.id !== item.id || data.status !== 'deleted' || !Number.isSafeInteger(data.version)) throw new Error('delete_failed');
+      if (!response.ok || data?.id !== item.id || data.status !== 'deleted' || !Number.isSafeInteger(data.version)) throw new Error();
       binding.replaceComment(item.id, { status: 'deleted', body: null, author: null, version: data.version });
       binding.say('Комментарий удалён.');
     }
     async function ban(item) {
       let result = await binding.request(banPath(item.author.id));
       if (authError(result.response)) return;
-      if (!result.response.ok || !validBan(result.data?.ban)) throw new Error('ban_status');
+      if (!result.response.ok || !validBan(result.data?.ban)) throw new Error();
       if (result.data.ban.blocked) { binding.say('У этого читателя уже отключены комментарии.'); return; }
       if (!confirm('Запретить ' + item.author.name + ' комментировать?')) return;
       result = await binding.request(banPath(item.author.id), {
@@ -170,7 +221,7 @@
       });
       if (authError(result.response)) return;
       if (result.response.status === 409) { binding.say('Статус изменился. Повторите действие, чтобы проверить его.'); return; }
-      if (!result.response.ok || !validBan(result.data?.ban) || !result.data.ban.blocked) throw new Error('ban_failed');
+      if (!result.response.ok || !validBan(result.data?.ban) || !result.data.ban.blocked) throw new Error();
       binding.say('Комментирование запрещено.');
     }
     function adminActions(item) {
@@ -200,7 +251,7 @@
           const data = result.data;
           if (!result.response.ok || !Array.isArray(data?.items) || data.items.length > 20
             || !data.items.every(item => validBan(item) && uuid.test(item.id) && item.blocked)
-            || (data.nextCursor !== null && (!uuid.test(data.nextCursor) || data.nextCursor === cursor))) throw new Error('bans_failed');
+            || (data.nextCursor !== null && (!uuid.test(data.nextCursor) || data.nextCursor === cursor))) throw new Error();
           if (!append) list.replaceChildren();
           for (const item of data.items) list.append(banRow(item));
           cursor = data.nextCursor; more.hidden = !cursor;
@@ -223,7 +274,7 @@
             });
             if (authError(result.response)) return;
             if (result.response.status === 409) { cursor = null; await load(); binding.say('Список обновлён. Повторите действие при необходимости.'); return; }
-            if (!result.response.ok || !validBan(result.data?.ban) || result.data.ban.blocked) throw new Error('unban_failed');
+            if (!result.response.ok || !validBan(result.data?.ban) || result.data.ban.blocked) throw new Error();
             cursor = null; await load(); binding.say('Комментирование снова разрешено.');
           } catch (error) { if (error.message !== 'stale') binding.say('Не удалось снять запрет. Попробуйте ещё раз.'); }
           finally { button.disabled = false; }
@@ -247,6 +298,7 @@
     function render() {
       if (session !== binding.sessionKey()) reset();
       renderControls();
+      void hydrateReactions();
       if (!binding.getMe() || checked || permissionPending) return;
       const ticket = binding.sessionKey();
       permissionPending = authority().then(renderControls).catch(error => {

@@ -36,6 +36,43 @@ test('chunked uploads cannot bypass native request body limits', async t => {
   assert.equal(dispatched, 0);
 });
 
+test('native HTTP adapter dispatches a bounded upload before the chunked body completes', async t => {
+  const origin = 'https://test.hs-manacost.ru';
+  let entered;
+  const handlerStarted = new Promise(resolve => { entered = resolve; });
+  const server = createReaderServer({ origin, handle: async req => {
+    entered();
+    return new Response(await req.arrayBuffer());
+  } });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  let resolveResponse; let rejectResponse;
+  const response = new Promise((resolve, reject) => { resolveResponse = resolve; rejectResponse = reject; });
+  const req = request({
+    hostname: '127.0.0.1', port: server.address().port,
+    path: '/reader-api/v1/comment-attachments', method: 'PUT',
+    headers: { host: new URL(origin).host, 'content-type': 'image/png', 'transfer-encoding': 'chunked' },
+  }, res => {
+    const chunks = [];
+    res.on('data', chunk => chunks.push(chunk));
+    res.on('end', () => resolveResponse({ status: res.statusCode, body: Buffer.concat(chunks) }));
+  });
+  req.on('error', rejectResponse);
+  req.write(Buffer.alloc(4096, 65));
+  try {
+    const dispatchedBeforeEnd = await Promise.race([
+      handlerStarted.then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 100)),
+    ]);
+    assert.equal(dispatchedBeforeEnd, true);
+  } finally {
+    req.end(Buffer.alloc(4096, 66));
+  }
+  const result = await response;
+  assert.equal(result.status, 200);
+  assert.equal(result.body.length, 8192);
+});
+
 test('at most two image bodies remain in flight while the handler is pending', async t => {
   let release; let ready; let dispatched = 0;
   const pending = new Promise(resolve => { release = resolve; });

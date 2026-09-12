@@ -51,7 +51,9 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
     if (url.origin !== origin || url.href.length > 8192) return json(400, { error: 'invalid_request' });
     const now = Date.now();
     if (now - windowStart >= 60_000) { windowStart = now; buckets.clear(); store.cleanup(); }
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(5000)]);
+    const imageUpload = request.method === 'PUT'
+      && ['/reader-api/v1/comment-attachments', '/reader-api/v1/profile/avatar'].includes(url.pathname);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(imageUpload ? 9000 : 5000)]);
     const id = readCookie(request, SESSION_COOKIE);
     const localSession = store.getSession(id);
     // Anonymous overload must never prevent a valid reader from ending their own session.

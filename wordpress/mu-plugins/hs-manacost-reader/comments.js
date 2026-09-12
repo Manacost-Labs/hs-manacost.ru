@@ -323,6 +323,13 @@
     return value && uuid.test(value.id) && Number.isSafeInteger(value.width) && value.width >= 1 && value.width <= 1600
       && Number.isSafeInteger(value.height) && value.height >= 1 && value.height <= 1600;
   }
+  function attachmentContentType(file) {
+    const supplied = typeof file?.type === 'string' ? file.type.toLowerCase() : '';
+    if (attachmentTypes.has(supplied)) return supplied;
+    const extension = typeof file?.name === 'string' ? file.name.toLowerCase().match(/\.(jpe?g|png|webp)$/)?.[1] : null;
+    return extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg'
+      : extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : null;
+  }
   function previewAttachment(file, message) {
     revokeAttachmentPreview();
     attachmentPreviewUrl = URL.createObjectURL(file);
@@ -332,7 +339,8 @@
   }
   async function stageAttachment(file) {
     if (!me || busy || retryPayload || attachmentUploading) return;
-    if (!file || !attachmentTypes.has(file.type) || file.size < 1 || file.size > maxAttachmentBytes) {
+    const contentType = attachmentContentType(file);
+    if (!file || !contentType || file.size < 1 || file.size > maxAttachmentBytes) {
       say(file?.size > maxAttachmentBytes ? 'Изображение больше 4 МБ. Выберите файл меньшего размера.' : 'Прикрепите JPEG, PNG или WebP до 4 МБ.');
       if (attachmentInput) attachmentInput.value = '';
       return;
@@ -353,7 +361,7 @@
       }
       const { response, data } = await request('/reader-api/v1/comment-attachments', {
         method: 'PUT', body: file,
-        headers: { Accept: 'application/json', 'Content-Type': file.type, 'X-Reader-CSRF': csrf },
+        headers: { Accept: 'application/json', 'Content-Type': contentType, 'X-Reader-CSRF': csrf },
       });
       if (response.status === 401) { expired(); return; }
       if (!response.ok || !validStagedAttachment(data?.attachment)) {

@@ -128,22 +128,19 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     }
     if (request.method !== 'GET') return null;
     if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1) fail(400, 'invalid_input');
+    // New comments publish immediately, so the public thread has no private
+    // viewer rows to resolve. Never put the public list behind HearthPulse.
     const options = { cursor: url.searchParams.get('cursor'), viewerSubject: null };
-    let viewerSession = null;
-    if (store.getSession(id)) {
-      try { viewerSession = await reader(id, signal); options.viewerSubject = viewerSession.userId; } catch { /* Public reading survives an unavailable identity provider. */ }
-    }
     const initial = comments.list(postId, options);
     const authorIds = initial.items.filter(item => item.status === 'published').map(item => item.author?.id).filter(Boolean);
     const [paid, admins] = await Promise.all([
       paidFor(authorIds, signal), adminsFor(authorIds, signal),
       allowed(postId, signal),
     ]);
-    if (viewerSession) {
-      try { requireSameSession(store, id, viewerSession, signal); } catch { options.viewerSubject = null; }
-    }
     const result = comments.list(postId, options);
-    const reactions = comments.reactions.summaries(result.items.map(item => item.id), options.viewerSubject);
+    // Counts are public. A viewer's selected reaction is private and is loaded
+    // separately only after the Reader session has been verified.
+    const reactions = comments.reactions.summaries(result.items.map(item => item.id));
     return json(200, { ...result, items: result.items.map(item => commentDTO({ ...item,
       reactions: reactions.get(item.id) }, paid.get(item.author?.id), admins.get(item.author?.id))) });
   }
