@@ -26,6 +26,7 @@ let failPost = false;
 let deletes = [];
 const attachmentId = '423e4567-e89b-42d3-a456-426614174000';
 let attachmentUploads = 0;
+let attachmentResponse = { status: 200, body: { attachment: { id: attachmentId, width: 96, height: 48 } } };
 let articleFavoriteSaved = false;
 let articleFavoriteWrites = [];
 let commentReads = 0;
@@ -33,13 +34,13 @@ let meReads = 0;
 const articleFavoriteCsrf = 'f'.repeat(43);
 const server = createServer(async (req, res) => {
   if (assets.has(req.url)) { res.writeHead(200, {'content-type': req.url.endsWith('css') ? 'text/css' : 'text/javascript'}); return res.end(assets.get(req.url)); }
-  if (req.url === '/' || req.url === '/deferred') { const spacer = req.url === '/deferred' ? '<div style="height:2400px"></div>' : ''; res.writeHead(200, {'content-type':'text/html; charset=utf-8'}); return res.end(`<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><link rel=stylesheet href=/article-favorite.css><body class="td-boxed-layout"><header class="td-container-wrap"></header><main class="td-main-content-wrap td-container-wrap"><div class="td-container"><div class="td-page-content">${spacer}${shell}${favoriteShell}</div></div></main><footer class="td-container-wrap"></footer><script src=/community-ui.js></script><script src=/comments.js></script><script src=/article-favorite.js></script>`); }
+  if (req.url === '/' || req.url === '/deferred') { const spacer = req.url === '/deferred' ? '<div style="height:2400px"></div>' : ''; res.writeHead(200, {'content-type':'text/html; charset=utf-8'}); return res.end(`<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><link rel=stylesheet href=/article-favorite.css><body class="td-boxed-layout"><header class="td-container-wrap"></header><main class="td-main-content-wrap td-container-wrap"><div class="td-container"><div class="td-page-content">${spacer}<div class="td-post-content tagdiv-type">${favoriteShell}<p data-article-first>Отдельная тестовая статья для проверки обсуждения.</p><p>Здесь можно проверить отправку комментария и вложения.</p></div>${shell}</div></div></main><footer class="td-container-wrap"></footer><script src=/community-ui.js></script><script src=/comments.js></script><script src=/article-favorite.js></script>`); }
 	if (req.url.startsWith('/reader-api/v1/readers/')) { res.writeHead(200, {'content-type':'image/svg+xml'}); return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#19313e"/><text x="20" y="27" text-anchor="middle" font-size="20" fill="#eef3f5">М</text></svg>'); }
   if (req.url === '/favicon.ico') { res.writeHead(204); return res.end(); }
   if (req.url === '/reader-api/v1/community/me') return res.end(JSON.stringify({ canModerateComments: false, commentingBlocked: false }));
   if (req.url === '/reader-api/v1/me') { meReads++; return res.end(JSON.stringify({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version: 1, avatarUrl: null }, csrfToken: 'synthetic' })); }
   if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { commentReads++; if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} if (holdRefresh) { req.resume(); heldRefreshes.push(res); return; } return res.end(JSON.stringify({items: comments, nextCursor: null})); }
-  if (req.url === '/reader-api/v1/comment-attachments' && req.method === 'PUT') { for await (const _chunk of req) {} attachmentUploads++; return res.end(JSON.stringify({attachment:{id:attachmentId,width:96,height:48}})); }
+  if (req.url === '/reader-api/v1/comment-attachments' && req.method === 'PUT') { for await (const _chunk of req) {} attachmentUploads++; res.writeHead(attachmentResponse.status, {'content-type':'application/json'}); return res.end(JSON.stringify(attachmentResponse.body)); }
   if (req.url === `/reader-api/v1/comment-attachments/${attachmentId}` && req.method === 'DELETE') { req.resume(); return res.end(JSON.stringify({id:attachmentId,discarded:true})); }
   if (req.url === '/reader-api/v1/favorites/7' && req.method === 'GET') return res.end(JSON.stringify({ postId: 7, saved: articleFavoriteSaved, csrfToken: articleFavoriteCsrf }));
   if (req.url === '/reader-api/v1/favorites/7' && (req.method === 'PUT' || req.method === 'DELETE')) { for await (const _chunk of req) {} articleFavoriteSaved = req.method === 'PUT'; articleFavoriteWrites.push({ method: req.method, headers: req.headers }); return res.end(JSON.stringify(req.method === 'PUT' ? { postId: 7, saved: true, favorite: { id: '523e4567-e89b-42d3-a456-426614174000', postId: 7, title: 'Тестовая статья', path: '/article/', createdAt: Date.now() } } : { postId: 7, saved: false })); }
@@ -101,7 +102,9 @@ try {
         avatar: rect('.mc-comments__avatar'), name: rect('.mc-comments__name'),
         header: rect('.mc-comments__identity'), body: rect('.mc-comments__body'),
         time: rect('.mc-comments__meta'), paid: rect('.mc-comments__author-badge--paid'),
+        actions: rect('.mc-comments__actions'), reactions: rect('.mc-comments__reactions'),
         targets: [...node.querySelectorAll('[data-comment-action]')].map(button => button.getBoundingClientRect().height),
+        paddingTop: parseFloat(getComputedStyle(node).paddingTop),
       };
     });
     // Text may legitimately wrap. Measure whitespace after the entire author
@@ -110,11 +113,14 @@ try {
     assert.ok(gap >= 0 && gap <= 12, `header/body gap at ${width}px: ${gap}`);
     const textLeft = width <= 560 ? layout.avatar.left : layout.name.left;
     assert.ok(Math.abs(layout.body.left - textLeft) < 1, 'body follows the responsive identity alignment');
+    assert.ok(Math.abs(layout.actions.left - textLeft) < 1, 'comment actions share the text alignment');
+    assert.ok(Math.abs(layout.reactions.left - textLeft) < 1, 'comment reactions share the text alignment');
+    assert.ok(layout.paddingTop <= 20, `comment top padding stays compact at ${width}px: ${layout.paddingTop}`);
     for (const key of ['name', 'time', 'paid']) {
       assert.ok(layout[key].left >= layout.header.left && layout[key].right <= layout.header.right,
         `${key} remains inside author header at ${width}px`);
     }
-    assert.ok(layout.targets.every(height => height >= 44), 'comment actions retain touch targets');
+    assert.ok(layout.targets.every(height => height >= 44 && height <= 48), 'comment actions retain compact touch targets');
     const composerHeight = await page.locator('[data-comments-form]').evaluate(node => node.getBoundingClientRect().height);
     const composerActions = await page.locator('[data-comments-form]').evaluate(node => {
       const rect = selector => {
@@ -211,10 +217,12 @@ try {
   const favoriteVisual = await page.locator('[data-mc-article-favorite]').evaluate(element => {
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
-    return { display: style.display, height: rect.height, borderLeftWidth: style.borderLeftWidth };
+    const first = document.querySelector('[data-article-first]').getBoundingClientRect();
+    return { display: style.display, height: rect.height, borderLeftWidth: style.borderLeftWidth, gap: first.top - rect.bottom };
   });
-  assert.equal(favoriteVisual.display, 'inline-flex');
+  assert.equal(favoriteVisual.display, 'flex');
   assert.ok(favoriteVisual.height < 72, `the favorite action must stay compact: ${JSON.stringify(favoriteVisual)}`);
+  assert.ok(favoriteVisual.gap >= 12 && favoriteVisual.gap <= 20, `favorite/article gap follows the spacing scale: ${JSON.stringify(favoriteVisual)}`);
   assert.equal(favoriteVisual.borderLeftWidth, '0px');
   await favoriteButton.click();
   await page.getByText('Статья сохранена в избранное.', { exact: true }).waitFor();
@@ -258,6 +266,16 @@ try {
   assert.equal(heldRefreshes.length, 1, 'the reconciliation read is in flight after the published comment is already visible');
   holdRefresh = false;
   for (const response of heldRefreshes.splice(0)) response.end(JSON.stringify({ items: comments, nextCursor: null }));
+  attachmentResponse = { status: 503, body: { error: 'attachment_busy' } };
+  await page.locator('[data-comments-attachment-input]').setInputFiles({
+    name: 'busy.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]),
+  });
+  await page.getByText('Обработка занята. Повторите через несколько секунд.').waitFor();
+  attachmentResponse = { status: 503, body: { error: 'comments_unavailable' } };
+  await page.locator('[data-comments-attachment-input]').setInputFiles({
+    name: 'unavailable.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]),
+  });
+  await page.getByText('Изображения временно недоступны. Повторите.').waitFor();
   await page.getByRole('textbox', {name:'Комментарий'}).waitFor(); assert.equal(await page.locator('script').count(), initialScriptCount, 'untrusted comment body is text, not HTML');
   failPost=true; await page.getByLabel('Комментарий', { exact: true }).fill('Новый ответ'); await page.getByRole('button', {name:'Опубликовать', exact: true}).click(); await page.getByRole('button',{name:'Повторить отправку'}).waitFor(); assert.equal(await page.getByLabel('Комментарий', { exact: true }).isDisabled(),true); const original=writes.at(-1); failPost=false; await Promise.all([page.waitForResponse(response => response.request().method() === 'POST' && response.status() === 201), page.getByRole('button',{name:'Повторить отправку'}).click()]);
   await page.getByText('Комментарий опубликован.', {exact:true}).waitFor(); await page.locator('.mc-comments__body').filter({hasText:'Новый ответ'}).waitFor(); assert.equal(await page.locator('.mc-comments__pending').count(),0); const retried = writes.filter(write => write.operationId === original.operationId); assert.ok(retried.length >= 2); assert.ok(retried.every(write=>JSON.stringify(write)===JSON.stringify(original))); assert.equal(original.attachmentId, null); assert.equal(Object.hasOwn(original, 'publicConsent'), false); assert.match(original.operationId, /^[0-9a-f-]{36}$/i);

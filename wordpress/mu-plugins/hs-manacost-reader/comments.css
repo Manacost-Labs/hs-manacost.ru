@@ -11,7 +11,7 @@
 .mc-comments .mc-comments__status:empty{margin:0;}
 @keyframes mc-comments-loading{50%{opacity:.45;}
 }
-.mc-comments .mc-comments__comment{padding:24px 0 16px;border-bottom:1px solid var(--mc-comments-divider);content-visibility:auto;contain-intrinsic-size:auto 152px;}
+.mc-comments .mc-comments__comment{padding:16px 0;border-bottom:1px solid var(--mc-comments-divider);content-visibility:auto;contain-intrinsic-size:auto 152px;}
 .mc-comments .mc-comments__reply{margin-inline-start:20px;padding-inline-start:14px;border-inline-start:2px solid var(--mc-ui-accent);}
 .mc-comments .mc-comments__identity{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px 16px;}
 .mc-comments .mc-comments__author{display:flex;align-items:center;gap:12px;min-width:0;color:var(--mc-ui-text);text-decoration:none;}
@@ -32,7 +32,8 @@
 .mc-comments .mc-comments__image-link{display:block;width:fit-content;max-width:calc(100% - 52px);margin:12px 0 0 52px;border:1px solid var(--mc-comments-divider);border-radius:8px;overflow:hidden;background:var(--mc-ui-raised);}
 .mc-comments .mc-comments__image-link:focus-visible{outline:3px solid var(--mc-ui-focus);outline-offset:3px;}
 .mc-comments .mc-comments__image{display:block;max-width:min(100%,680px);max-height:560px;width:auto;height:auto;object-fit:contain;}
-.mc-comments .mc-comments__actions{display:flex;flex-wrap:wrap;gap:4px;margin-inline-start:44px;}
+.mc-comments .mc-comments__actions{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 0 52px;}
+.mc-comments .mc-comments__actions .mc-ui-button{min-height:44px;padding-block:8px;}
 .mc-comments [data-pending="true"] .mc-comments__body,.mc-comments [data-pending="true"] .mc-comments__actions{margin-inline-start:0;}
 .mc-comments .mc-comments__composer{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"heading heading" "reply reply" "label label" "body body" "meta meta" "attachment footer" "sync sync";gap:8px 16px;margin:24px 0 0;padding:clamp(16px,2vw,20px);border:1px solid var(--mc-comments-divider);border-radius:var(--mc-ui-radius);background:transparent;}
 .mc-comments .mc-comments__composer-heading{grid-area:heading;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px;margin-bottom:4px;}
@@ -68,7 +69,7 @@
 .mc-comments .mc-comments__data p{font:inherit;}
 .mc-comments .mc-comments__data button{margin:4px 8px 4px 0;}
 .mc-comments .mc-comments__more{margin-top:12px;}
-.mc-comments .mc-comments__reactions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0 44px;}
+.mc-comments .mc-comments__reactions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0 52px;}
 .mc-comments .mc-comments__reaction{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:8px 10px;border:1px solid #e0e5e8;border-radius:10px;background:transparent;color:#526875;font:600 13px/1.2 var(--mc-ui-body);cursor:pointer;}
 .mc-comments .mc-comments__reaction:hover:not(:disabled){background:#f4f7f8;border-color:#aebdc6;}
 .mc-comments .mc-comments__reaction:disabled{opacity:.55;cursor:progress;}
@@ -76,7 +77,7 @@
 .mc-comments .mc-comments__reaction[aria-pressed="true"]{border-color:#d0ad61;background:#fff7e5;color:#604007;}
 .mc-comments .mc-comments__reaction:focus-visible,.mc-comments .mc-comments__moderation-actions summary:focus-visible,.mc-comments .mc-comments__bans summary:focus-visible,.mc-comments .mc-comments__moderation-actions button:focus-visible,.mc-comments .mc-comments__bans button:focus-visible{outline:3px solid var(--mc-ui-focus);outline-offset:2px;}
 .mc-comments .mc-comments__reaction-icon{width:18px;height:18px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8;}
-.mc-comments .mc-comments__moderation-actions{margin:4px 0 0 44px;color:var(--mc-ui-muted);font:600 13px/1.4 var(--mc-ui-body);}
+.mc-comments .mc-comments__moderation-actions{margin:4px 0 0 52px;color:var(--mc-ui-muted);font:600 13px/1.4 var(--mc-ui-body);}
 .mc-comments .mc-comments__moderation-actions summary{width:fit-content;min-height:44px;padding:12px 0;cursor:pointer;}
 .mc-comments .mc-comments__moderation-menu{display:flex;flex-wrap:wrap;gap:4px 12px;padding:6px 12px;border:1px solid #e0e5e8;border-radius:8px;}
 .mc-comments .mc-comments__moderation-actions button{min-height:44px;}
