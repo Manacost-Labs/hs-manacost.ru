@@ -48,6 +48,26 @@ class HeadlessV2ContractTests(unittest.TestCase):
         release = (ROOT / "ops" / "web-v2" / "release.sh").read_text()
         self.assertIn("fetch --quiet --no-tags origin main", release)
         self.assertIn("refs/remotes/origin/main", release)
+        self.assertIn(
+            'install -d -o hs-manacost-v2 -g hs-manacost-v2 -m 0700 "$build/.home" "$build/.npm-cache"',
+            release,
+        )
+        self.assertIn(
+            'runuser -u hs-manacost-v2 -- env \\\n'
+            '  HOME="$build/.home" \\\n'
+            '  npm_config_cache="$build/.npm-cache" \\\n'
+            '  npm ci --prefix "$build" --ignore-scripts',
+            release,
+        )
+        self.assertIn(
+            'runuser -u hs-manacost-v2 -- env \\\n'
+            '  HOME="$build/.home" \\\n'
+            '  npm_config_cache="$build/.npm-cache" \\\n'
+            '  NEXT_TELEMETRY_DISABLED=1 \\\n'
+            "  WORDPRESS_API_URL='https://hs-manacost.ru/wp-json/wp/v2' \\\n"
+            '  npm run build --prefix "$build"',
+            release,
+        )
         self.assertIn("WORDPRESS_API_URL='https://hs-manacost.ru/wp-json/wp/v2'", release)
         self.assertIn('test -w "$release/.next/cache"', release)
         self.assertIn('test -w "$release/server.js"', release)
