@@ -1,8 +1,8 @@
-.PHONY: check composer-validate code-quality php-lint test lightbox-test lightbox-browser-test reader-test reader-browser-test reader-css-check shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
+.PHONY: check composer-validate code-quality php-lint test lightbox-test lightbox-browser-test reader-test reader-browser-test reader-css-check web-v2-check web-v2-browser-test shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
 
 .PHONY: nginx-media-test
 
-check: composer-validate php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test shell-check nginx-media-test
+check: composer-validate php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test web-v2-check shell-check nginx-media-test
 
 nginx-media-test:
 	@python3 ops/nginx/tests/check_media_negotiation.py
@@ -48,6 +48,17 @@ reader-browser-test: lightbox-browser-test
 	@node tests/reader-ui/comments-browser.mjs
 	@node tests/reader-ui/comments-flows.mjs
 	@node tests/reader-ui/community-browser.mjs
+
+web-v2-check:
+	@npm ci --prefix services/web-v2 --ignore-scripts
+	@npm audit --prefix services/web-v2 --audit-level=high
+	@npm run lint --prefix services/web-v2
+	@npm run typecheck --prefix services/web-v2
+	@npm run test --prefix services/web-v2
+	@npm run build --prefix services/web-v2
+
+web-v2-browser-test: web-v2-check
+	@npm run test:browser --prefix services/web-v2
 
 shell-check:
 	@find ops -type f -name '*.sh' -print0 | xargs -0 -n 1 bash -n
