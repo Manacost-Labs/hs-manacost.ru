@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac } from 'node:crypto';
-import { createEditorialClient, createPaidTitleClient, createReaderPermissionsClient } from '../community-clients.js';
+import { createEditorialClient, createFavoriteEditorialClient, createPaidTitleClient, createReaderPermissionsClient } from '../community-clients.js';
 
-const editorial = { key: 'x'.repeat(43), username: 'synthetic-editorial', password: 'y'.repeat(43) };
+const editorial = { key: 'x'.repeat(43), username: 'synthetic-editorial', password: 'y'.repeat(43),
+  origin: 'https://test.hs-manacost.ru' };
+
+test('private HearthPulse community clients accept only exact staging or production Reader ids', () => {
+  const clientSecret = 'z'.repeat(43);
+  for (const clientId of ['manacost-reader-staging', 'manacost-reader-production']) {
+    assert.doesNotThrow(() => createPaidTitleClient({ clientId, clientSecret }));
+    assert.doesNotThrow(() => createReaderPermissionsClient({ clientId, clientSecret }));
+  }
+  for (const clientId of ['reader', 'manacost-reader-production-preview', '']) {
+    assert.throws(() => createPaidTitleClient({ clientId, clientSecret }));
+    assert.throws(() => createReaderPermissionsClient({ clientId, clientSecret }));
+  }
+});
 test('editorial request is signed, fixed-destination and rejects mismatched metadata', async () => {
   let called;
   const client = createEditorialClient(editorial, async (url, options) => {
@@ -21,6 +34,23 @@ test('editorial request is signed, fixed-destination and rejects mismatched meta
     { site: 'test.hs-manacost.ru', threads: [{ postId: 17, allowed: true, title: 'Private', path: '/wp-admin/' }] },
   ]) await assert.rejects(createEditorialClient(editorial, async () => Response.json(body)).get([17]));
   await assert.rejects(client.get([17, 17]));
+});
+
+test('editorial clients use only the exact configured Manacost origin', async () => {
+  for (const [create, route] of [[createEditorialClient, 'threads'], [createFavoriteEditorialClient, 'favorites']]) {
+    let called;
+    const client = create({ ...editorial, origin: 'https://hs-manacost.ru' }, async (url) => {
+      called = url;
+      return Response.json({ site: 'hs-manacost.ru', threads: [{ postId: 17, allowed: false }] });
+    });
+    assert.equal((await client.get([17])).get(17).allowed, false);
+    assert.equal(called, `https://hs-manacost.ru/wp-json/manacost-reader/v1/${route}`);
+  }
+  for (const origin of ['https://hs-manacost.com', 'https://evil.test', 'https://hs-manacost.ru.evil.test']) {
+    assert.throws(() => createEditorialClient({ ...editorial, origin }));
+  }
+  await assert.rejects(createEditorialClient({ ...editorial, origin: 'https://hs-manacost.ru' }, async () =>
+    Response.json({ site: 'test.hs-manacost.ru', threads: [{ postId: 17, allowed: false }] })).get([17]));
 });
 
 test('editorial failures never grant visibility and oversized responses are bounded', async () => {

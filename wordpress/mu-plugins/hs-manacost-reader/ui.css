@@ -48,7 +48,7 @@
   min-height: 44px;
   max-width: 100%;
   margin: 0;
-  padding: 10px 15px;
+  padding: 8px 16px;
   border: 1px solid var(--mc-ui-accent);
   border-radius: var(--mc-ui-radius);
   background: var(--mc-ui-accent);
@@ -95,7 +95,7 @@
   min-height: 44px;
   height: auto;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--mc-ui-border);
   border-radius: var(--mc-ui-radius);
   background: var(--mc-ui-field);

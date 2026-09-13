@@ -1,7 +1,9 @@
 import { createHmac } from 'node:crypto';
 
-const EDITORIAL_URL = 'https://test.hs-manacost.ru/wp-json/manacost-reader/v1/threads';
-const FAVORITES_EDITORIAL_URL = 'https://test.hs-manacost.ru/wp-json/manacost-reader/v1/favorites';
+const EDITORIAL_ORIGINS = new Map([
+  ['https://test.hs-manacost.ru', 'test.hs-manacost.ru'],
+  ['https://hs-manacost.ru', 'hs-manacost.ru'],
+]);
 const ENTITLEMENTS_URL = 'https://hearthpulse.net/identity/reader-entitlements';
 const PERMISSIONS_URL = 'https://hearthpulse.net/identity/reader-permissions';
 const basic = (name, password) => `Basic ${Buffer.from(`${name}:${password}`).toString('base64')}`;
@@ -33,9 +35,11 @@ function batch(values, valid) {
 }
 
 /** Only an authenticated, freshly checked editorial response can permit article data. */
-function createArticleClient({ key, username, password }, { url, route }, transport = fetch) {
+function createArticleClient({ key, username, password, origin }, route, transport = fetch) {
+  const site = EDITORIAL_ORIGINS.get(origin);
   if (typeof key !== 'string' || key.length < 43 || typeof username !== 'string' || !/^[a-z0-9-]{1,64}$/.test(username)
-    || typeof password !== 'string' || password.length < 43 || typeof url !== 'string' || typeof route !== 'string') throw new Error('Editorial configuration invalid');
+    || typeof password !== 'string' || password.length < 43 || !site || typeof route !== 'string') throw new Error('Editorial configuration invalid');
+  const url = `${origin}/wp-json${route}`;
   return {
     async get(ids, parent = AbortSignal.timeout(2000)) {
       batch(ids, id => Number.isSafeInteger(id) && id > 0);
@@ -46,7 +50,7 @@ function createArticleClient({ key, username, password }, { url, route }, transp
         headers: { authorization: basic(username, password), 'content-type': 'application/json',
           'x-reader-time': timestamp, 'x-reader-signature': signature } });
       const data = await boundedJSON(response, signal);
-      if (!exactKeys(data, ['site', 'threads']) || data.site !== 'test.hs-manacost.ru'
+      if (!exactKeys(data, ['site', 'threads']) || data.site !== site
         || !Array.isArray(data.threads) || data.threads.length !== ids.length) throw new Error('Invalid editorial response');
       const result = new Map();
       for (let index = 0; index < ids.length; index++) {
@@ -65,17 +69,18 @@ function createArticleClient({ key, username, password }, { url, route }, transp
 
 /** The manually reviewed discussion pilot is the only eligible comment surface. */
 export function createEditorialClient(config, transport = fetch) {
-  return createArticleClient(config, { url: EDITORIAL_URL, route: '/manacost-reader/v1/threads' }, transport);
+  return createArticleClient(config, '/manacost-reader/v1/threads', transport);
 }
 
 /** Saving an article uses its own editorial predicate and never trusts a browser title/path. */
 export function createFavoriteEditorialClient(config, transport = fetch) {
-  return createArticleClient(config, { url: FAVORITES_EDITORIAL_URL, route: '/manacost-reader/v1/favorites' }, transport);
+  return createArticleClient(config, '/manacost-reader/v1/favorites', transport);
 }
 
 /** Current canonical roles, never a cached token/browser claim. Failure denies privileged operations. */
 export function createReaderPermissionsClient({ clientId, clientSecret }, transport = fetch) {
-  if (clientId !== 'manacost-reader-staging' || typeof clientSecret !== 'string' || clientSecret.length < 43) throw new Error('Permissions configuration invalid');
+  if (!['manacost-reader-staging', 'manacost-reader-production'].includes(clientId)
+    || typeof clientSecret !== 'string' || clientSecret.length < 43) throw new Error('Permissions configuration invalid');
   return {
     async get(subjects, parent = AbortSignal.timeout(2000)) {
       batch(subjects, subject => typeof subject === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(subject));
@@ -98,7 +103,8 @@ export function createReaderPermissionsClient({ clientId, clientSecret }, transp
 
 /** The title is optional decoration, never access control or a cached claim of payment. */
 export function createPaidTitleClient({ clientId, clientSecret }, transport = fetch) {
-  if (clientId !== 'manacost-reader-staging' || typeof clientSecret !== 'string' || clientSecret.length < 43) throw new Error('Paid title configuration invalid');
+  if (!['manacost-reader-staging', 'manacost-reader-production'].includes(clientId)
+    || typeof clientSecret !== 'string' || clientSecret.length < 43) throw new Error('Paid title configuration invalid');
   return {
     async get(subjects, parent = AbortSignal.timeout(2000)) {
       try {

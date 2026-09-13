@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Manacost Reader
  * Description: Opt-in anonymous account shell for the independent HearthPulse reader service.
- * Version: 0.8.0
+ * Version: 0.8.1
  *
  * @package Manacost
  */

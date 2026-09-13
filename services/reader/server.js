@@ -86,6 +86,7 @@ function start() {
   const profiles = new ReaderProfiles({ db: store.db, issuer: options.issuer });
   const community = createCommunity({ options, db: store.db });
   const handle = createReaderHandler({ origin: options.origin, identity, store, profiles, community,
+    communityProductionEnabled: process.env.READER_ALLOW_PRODUCTION_COMMUNITY === '1',
     csrfKey: Buffer.from(process.env.READER_CSRF_KEY ?? '', 'base64url') });
   const server = createReaderServer({ origin: options.origin, handle });
   const port = Number(process.env.READER_PORT || 18081);
