@@ -67,6 +67,7 @@
   let activeIndex = 0;
   let opener = null;
   let pointerStart = null;
+  const preloadedSources = new Set();
 
   function safeUrl(value) {
     if (!value) return '';
@@ -199,7 +200,7 @@
           <button class="hs-lightbox__control hs-lightbox__nav hs-lightbox__previous" type="button">${icon('m15 18-6-6 6-6')}</button>
           <figure class="hs-lightbox__figure">
             <span class="hs-lightbox__loading" role="status"></span>
-            <img class="hs-lightbox__image" alt="">
+            <img class="hs-lightbox__image" alt="" decoding="async" fetchpriority="high">
             <figcaption class="hs-lightbox__caption"></figcaption>
             <p class="hs-lightbox__error" role="alert"></p>
           </figure>
@@ -259,8 +260,11 @@
     if (activeItems.length < 2) return;
     [-1, 1].forEach(offset => {
       const item = activeItems[(activeIndex + offset + activeItems.length) % activeItems.length];
+      if (!item?.source || preloadedSources.has(item.source)) return;
+      preloadedSources.add(item.source);
       const preload = new Image();
       preload.decoding = 'async';
+      preload.fetchPriority = 'low';
       preload.src = item.source;
     });
   }
@@ -284,6 +288,7 @@
     dialogNodes.image.onload = () => {
       dialogNodes.loading.hidden = true;
       dialogNodes.image.classList.add('is-ready');
+      preloadAdjacent();
     };
     dialogNodes.image.onerror = () => {
       dialogNodes.loading.hidden = true;
@@ -292,7 +297,6 @@
     };
     dialogNodes.image.src = item.source;
     if (dialogNodes.image.complete && dialogNodes.image.naturalWidth > 0) dialogNodes.image.onload();
-    preloadAdjacent();
   }
 
   function showRelative(offset) {
