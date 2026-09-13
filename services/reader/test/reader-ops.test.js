@@ -28,3 +28,52 @@ test('staging-only release helper is valid shell and requires explicit activatio
   assert.equal(/systemctl (?:restart|start|stop)\b/.test(source), false);
   assert.equal(source.includes('service.env'), false);
 });
+
+test('production origin reader location is private, bounded and loopback-only', () => {
+  const source = readFileSync(new URL('../../../ops/reader/origin-production.conf', import.meta.url), 'utf8');
+  for (const contract of ['client_max_body_size 4m;', 'client_body_timeout 10s;',
+    'proxy_request_buffering off;', 'proxy_pass http://127.0.0.1:18183;',
+    'proxy_set_header Host hs-manacost.ru;', 'proxy_set_header Authorization "";',
+    'proxy_cache off;', 'proxy_buffering off;', 'access_log off;',
+    'proxy_read_timeout 10s;']) assert.ok(source.includes(contract), contract);
+  assert.equal(source.includes('auth_basic'), false);
+});
+
+test('production edge reader location uses a dedicated verified origin pool', () => {
+  const location = readFileSync(new URL('../../../ops/reader/proxy-production-reader.conf', import.meta.url), 'utf8');
+  for (const contract of ['client_max_body_size 4m;', 'proxy_request_buffering off;',
+    'proxy_pass https://hs_manacost_reader_production_origin;', 'proxy_ssl_name hs-manacost.ru;',
+    'proxy_ssl_verify on;', 'proxy_ssl_session_reuse off;', 'proxy_set_header Connection close;',
+    'proxy_set_header Host hs-manacost.ru;', 'proxy_set_header Authorization "";',
+    'proxy_cache off;', 'proxy_buffering off;', 'access_log off;']) assert.ok(location.includes(contract), contract);
+  assert.equal(location.includes('$http_authorization'), false);
+  const upstream = readFileSync(new URL('../../../ops/reader/proxy-production-upstream.conf', import.meta.url), 'utf8');
+  assert.ok(upstream.includes('upstream hs_manacost_reader_production_origin'));
+  assert.equal(upstream.includes('keepalive'), false);
+});
+
+test('production service template isolates state, secrets and the loopback listener', () => {
+  const source = readFileSync(new URL('../../../ops/reader/manacost-reader-production.service', import.meta.url), 'utf8');
+  for (const contract of ['User=manacost-reader', 'Group=manacost-reader',
+    'WorkingDirectory=/srv/manacost-reader/current',
+    'EnvironmentFile=/etc/manacost-reader/service.env', 'Environment=NODE_ENV=production',
+    'Environment=READER_PORT=18183', 'Environment=READER_DATABASE=/var/lib/manacost-reader/reader.sqlite',
+    'UMask=0077', 'ProtectSystem=strict', 'ProtectHome=true', 'NoNewPrivileges=true',
+    'PrivateTmp=true', 'IPAddressDeny=any', 'IPAddressAllow=213.186.33.99']) assert.ok(source.includes(contract), contract);
+  assert.equal(/(?:SECRET|TOKEN|PASSWORD|COOKIE_KEYS)=/.test(source), false);
+});
+
+test('production release helper prepares an immutable exact-SHA artifact without activation', () => {
+  const file = new URL('../../../ops/reader/release-production.sh', import.meta.url);
+  execFileSync('bash', ['-n', file.pathname]);
+  const source = readFileSync(file, 'utf8');
+  for (const contract of ["readonly app='/srv/manacost-reader'",
+    'git -C "$root" archive "$sha:services/reader"', 'status --porcelain',
+    'rev-parse origin/main', 'Release parents must be root-owned', '! -user root',
+    '\\( -type f -o -type d \\) -perm /022',
+    'sudo install -d -m 0750 -o root -g manacost-reader "$release"']) assert.ok(source.includes(contract), contract);
+  assert.equal(/systemctl (?:restart|start|stop|enable)\b/.test(source), false);
+  assert.equal(source.includes('current.new'), false);
+  assert.equal(source.includes('previous.new'), false);
+  assert.equal(source.includes('service.env'), false);
+});

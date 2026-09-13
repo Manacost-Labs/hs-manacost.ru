@@ -5,6 +5,23 @@ import { ReaderAuthorizationDenied } from './core.js';
 const IDENTITY_PROFILE_CACHE_TTL = 30_000;
 const IDENTITY_WRITE_CACHE_TTL = 5_000;
 const IDENTITY_CACHE_LIMIT = 4096;
+const HEARTHPULSE_ISSUER = 'https://hearthpulse.net/identity';
+const READER_STAGING_ORIGIN = 'https://test.hs-manacost.ru';
+const READER_STAGING_CLIENT_ID = 'manacost-reader-staging';
+const READER_PRODUCTION_ORIGIN = 'https://hs-manacost.ru';
+const READER_PRODUCTION_CLIENT_ID = 'manacost-reader-production';
+
+function isPersistentReaderIdentity(options) {
+  return options.issuer === HEARTHPULSE_ISSUER && (
+    options.deployment === 'production'
+      && options.origin === READER_PRODUCTION_ORIGIN
+      && options.clientId === READER_PRODUCTION_CLIENT_ID
+    || options.allowProductionIdentityForStaging === true
+      && options.deployment === 'staging'
+      && options.origin === READER_STAGING_ORIGIN
+      && options.clientId === READER_STAGING_CLIENT_ID
+  );
+}
 
 export function validateIdentityClient(options) {
   const { origin, issuer, clientId, clientSecret, deployment, allowProductionIdentityForStaging } = options;
@@ -17,12 +34,12 @@ export function validateIdentityClient(options) {
   const production = deployment === 'production';
   const productionIdentityForStaging = allowProductionIdentityForStaging === true
     && deployment === 'staging'
-    && origin === 'https://test.hs-manacost.ru'
-    && issuer === 'https://hearthpulse.net/identity'
-    && clientId === 'manacost-reader-staging';
+    && origin === READER_STAGING_ORIGIN
+    && issuer === HEARTHPULSE_ISSUER
+    && clientId === READER_STAGING_CLIENT_ID;
   if (allowProductionIdentityForStaging === true && !productionIdentityForStaging) throw new Error('Invalid production identity bridge');
-  if (production !== ['hs-manacost.ru', 'hs-manacost.com'].includes(site.hostname)
-    || (production && issuer !== 'https://hearthpulse.net/identity')
+  if (production && !isPersistentReaderIdentity(options)
+    || !production && ['hs-manacost.ru', 'hs-manacost.com'].includes(site.hostname)
     || (!production && identity.hostname === 'hearthpulse.net' && !productionIdentityForStaging)) throw new Error('Mixed identity environments');
 }
 
@@ -30,7 +47,7 @@ export function validateIdentityClient(options) {
 export function createIdentityClient(options, transport = fetch) {
   validateIdentityClient(options);
   const { issuer, origin, clientId, clientSecret } = options;
-  const persistentLogin = clientId === 'manacost-reader-staging' && origin === 'https://test.hs-manacost.ru';
+  const persistentLogin = isPersistentReaderIdentity(options);
   const metadata = { issuer, authorization_endpoint: `${issuer}/auth`, token_endpoint: `${issuer}/token`,
     userinfo_endpoint: `${issuer}/me`, introspection_endpoint: `${issuer}/token/introspection`,
     revocation_endpoint: `${issuer}/token/revocation`, jwks_uri: `${issuer}/jwks`,

@@ -1,0 +1,40 @@
+[Unit]
+Description=Manacost Reader production BFF
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=manacost-reader
+Group=manacost-reader
+WorkingDirectory=/srv/manacost-reader/current
+EnvironmentFile=/etc/manacost-reader/service.env
+Environment=NODE_ENV=production
+Environment=READER_PORT=18183
+Environment=READER_DATABASE=/var/lib/manacost-reader/reader.sqlite
+ExecStart=/usr/bin/node /srv/manacost-reader/current/server.js
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+MemoryMax=256M
+StateDirectory=manacost-reader
+StateDirectoryMode=0700
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1
+IPAddressAllow=::1
+# Current host resolver; recheck /etc/resolv.conf before installation.
+IPAddressAllow=213.186.33.99
+# Current public HearthPulse edges; re-resolve and review before installation.
+IPAddressAllow=162.19.220.14
+IPAddressAllow=186.246.28.244
+IPAddressAllow=194.67.92.242
+InaccessiblePaths=-/var/lib/manacost-reader-staging -/var/lib/manacost-ecosystem -/var/lib/docker -/var/www -/srv/projects/web -/etc/hs-arena
+
+[Install]
+WantedBy=multi-user.target

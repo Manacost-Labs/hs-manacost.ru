@@ -61,11 +61,12 @@ test('a provider without an offline grant retains the five-minute session', asyn
   assert.equal((await f.handle(new Request(`${origin}/reader-api/v1/me`, { headers: { cookie: cookie(response) } }))).status, 401);
 });
 
-test('offline scope is limited to the staging Reader client', () => {
+test('offline scope is limited to the exact staging and production Reader clients', () => {
   const options = { origin, issuer: 'https://hearthpulse.net/identity', clientId: 'manacost-reader-staging', clientSecret: 'a'.repeat(43), deployment: 'staging', allowProductionIdentityForStaging: true };
   const attempt = { state: 'state', nonce: 'nonce', codeChallenge: 'challenge' };
   assert.equal(createIdentityClient(options).authorizationUrl(attempt).searchParams.get('scope'), 'openid profile offline_access');
-  assert.equal(createIdentityClient({ ...options, origin: 'https://hs-manacost.ru', deployment: 'production', clientId: 'manacost-reader-production', allowProductionIdentityForStaging: false }).authorizationUrl(attempt).searchParams.get('scope'), 'openid profile');
+  assert.equal(createIdentityClient({ ...options, origin: 'https://hs-manacost.ru', deployment: 'production', clientId: 'manacost-reader-production', allowProductionIdentityForStaging: false }).authorizationUrl(attempt).searchParams.get('scope'), 'openid profile offline_access');
+  assert.equal(createIdentityClient({ ...options, issuer: 'https://identity.example/identity', clientId: 'reader-test', deployment: 'test', allowProductionIdentityForStaging: false }).authorizationUrl(attempt).searchParams.get('scope'), 'openid profile');
 });
 
 test('concurrent reads and writes use one rotating refresh token, preserving absolute expiry', async t => {

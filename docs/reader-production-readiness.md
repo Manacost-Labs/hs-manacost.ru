@@ -58,6 +58,42 @@ last.
    boot. Verify backup ownership/mode and restore procedure without replacing
    newer live data.
 
+## Prepared production artifacts
+
+The repository contains candidate-only operational contracts; none installs or
+activates itself:
+
+- `ops/reader/manacost-reader-production.service` isolates the production user,
+  environment and SQLite state and reserves loopback port `18183`;
+- `ops/reader/origin-production.conf` bypasses PHP and origin caches for only
+  `/reader-auth/` and `/reader-api/`;
+- `ops/reader/proxy-production-reader.conf` and
+  `proxy-production-upstream.conf` define a separate TLS-verified edge pool;
+- `ops/reader/release-production.sh` accepts only a clean merged `origin/main`
+  SHA and prepares an immutable artifact without changing `current`,
+  `previous`, systemd, Nginx, environment, database or feature flags.
+
+Recheck the reserved port, the host resolver from `/etc/resolv.conf`,
+HearthPulse edge addresses and all three loopback tunnels immediately before
+installation. The service network allowlist must include the current resolver
+as well as every required edge. A green source contract is not proof that the
+live topology is unchanged.
+
+## WordPress administrator integration
+
+There is currently no Reader comment queue inside `wp-admin` and Reader data is
+not stored in native `wp_comments`. Existing moderation consists of the
+HearthPulse-authorized controls on the article and a staging-only direct CLI.
+
+The production admin integration is a separate release slice. It will add one
+WordPress administration screen gated by `moderate_comments` and a WordPress
+nonce. WordPress will call a dedicated HMAC-authenticated Reader admin API from
+the server; the browser will never receive the service credential and PHP will
+never open the Reader SQLite database. The screen needs paginated filtering,
+comment/attachment inspection, deletion, reader ban/unban, conflict feedback
+and an audit actor derived on the server. It must not create WordPress users,
+copy comments into `wp_comments`, or expose HearthPulse subjects and tokens.
+
 ## Activation order
 
 1. Prepare an immutable BFF artifact from the staging-verified SHA without
