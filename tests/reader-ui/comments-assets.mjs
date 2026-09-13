@@ -24,6 +24,8 @@ function create_rocket_uniqid(){return 'fixture';}
 function get_current_blog_id(){return 1;}
 function rocket_get_constant($name){return '/fixture/';}
 function wp_parse_url($url,$component=-1){return parse_url($url,$component);}
+function wp_unslash($value){return stripslashes($value);}
+$_SERVER['HTTP_HOST']=parse_url($argv[5],PHP_URL_HOST);
 $GLOBALS['filters']=array();
 $vendor=$argv[1].'plugins/wp-rocket/inc/';
 foreach(array('classes/admin/class-options-data.php','Engine/Optimization/RegexTrait.php','Engine/Optimization/AbstractOptimization.php','Engine/Optimization/AssetsLocalCache.php','Engine/Optimization/Minify/CSS/AbstractCSSOptimization.php','Engine/Optimization/Minify/JS/AbstractJSOptimization.php') as $file){require $vendor.$file;}

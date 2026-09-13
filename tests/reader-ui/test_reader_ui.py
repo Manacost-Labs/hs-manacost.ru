@@ -14,7 +14,7 @@ ASSETS_PHP = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/assets.php'
 
 class ReaderUiContractTests(unittest.TestCase):
     def test_invalid_public_profile_keeps_shared_styles_without_private_editor(self):
-        fixture = "define('ABSPATH','/fixture/'); function hs_reader_public_profile_request(){return true;} function hs_reader_public_profile_id(){return '';} require $argv[1]; echo hs_manacost_reader_account_shell();"
+        fixture = "define('ABSPATH','/fixture/'); function hs_manacost_reader_is_account_request(){return true;} function hs_reader_public_profile_request(){return true;} function hs_reader_public_profile_id(){return '';} require $argv[1]; echo hs_manacost_reader_account_shell();"
         html = subprocess.run(['php', '-r', fixture, str(PHP)], capture_output=True, text=True, check=True).stdout
         self.assertIn('class="mc-reader-ui mc-public-profile"', html)
         self.assertIn('class="mc-public-profile__back"', html)
@@ -69,6 +69,8 @@ define('HS_MANACOST_READER_ENABLED', true);
 define('HS_MANACOST_READER_COMMENTS_ENABLED', true);
 define('HS_MANACOST_READER_COMMENT_POSTS', array(17));
 define('HS_MANACOST_READER_EDITORIAL_KEY', str_repeat('x', 43));
+$_SERVER['HTTP_HOST'] = 'test.hs-manacost.ru';
+$_SERVER['REQUEST_URI'] = '/account/';
 function add_action(...$args) {} function add_filter(...$args) {} function add_shortcode(...$args) {}
 function wp_get_environment_type() { return 'staging'; }
 function home_url($path = '') { return 'https://test.hs-manacost.ru' . $path; }
@@ -157,7 +159,7 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertNotIn(native_api, self.php)
 
     def test_account_notice_matches_the_actual_community_flag(self):
-        fixture = "define('ABSPATH','/fixture/'); function esc_attr($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html__($s,$domain=''){return esc_html($s);} "
+        fixture = "define('ABSPATH','/fixture/'); function hs_manacost_reader_is_account_request(){return true;} function esc_attr($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html__($s,$domain=''){return esc_html($s);} "
         for enabled in (False, True):
             setup = fixture + 'function hs_reader_comments_enabled(){return ' + ('true' if enabled else 'false') + ';} require $argv[1]; echo hs_manacost_reader_account_shell();'
             html = subprocess.run(['php', '-r', setup, str(PHP)], capture_output=True, text=True, check=True).stdout

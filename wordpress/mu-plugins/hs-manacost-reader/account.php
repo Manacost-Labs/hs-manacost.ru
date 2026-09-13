@@ -62,6 +62,9 @@ function hs_manacost_reader_author_mark( string $service ): string {
  * @param array<string, mixed> $config Public shortcode attributes.
  */
 function hs_manacost_reader_account_shell( array $config = array() ): string {
+	if ( ! function_exists( 'hs_manacost_reader_is_account_request' ) || ! hs_manacost_reader_is_account_request() ) {
+		return '';
+	}
 	if ( function_exists( 'hs_reader_public_profile_request' ) && hs_reader_public_profile_request() ) {
 		$id = hs_reader_public_profile_id();
 		return '' !== $id ? hs_reader_public_profile_shell( $id )
