@@ -4,41 +4,28 @@
 /* Build-time-only refinements. Semantic Reader classes remain the UI contract. */
 @layer components {
   .mc-reader-ui .mc-ui-button {
-    @apply mc-tw-rounded-lg mc-tw-shadow-[0_1px_2px_rgba(21,45,58,0.08)] mc-tw-transition-[transform,box-shadow,background-color,border-color,color] mc-tw-duration-150;
-  }
-  .mc-reader-ui .mc-ui-button:hover:not(:disabled) {
-    @apply mc-tw-shadow-md;
-    transform: translateY(-1px);
+    @apply mc-tw-rounded-md mc-tw-transition-[background-color,border-color,color] mc-tw-duration-150;
   }
   .mc-reader-ui .mc-ui-button:active:not(:disabled) {
     transform: translateY(1px);
   }
   .mc-reader-ui .mc-ui-control {
-    @apply mc-tw-rounded-lg mc-tw-transition-[border-color,box-shadow,background-color] mc-tw-duration-150;
+    @apply mc-tw-rounded-md mc-tw-transition-[border-color,background-color] mc-tw-duration-150;
   }
   .mc-reader .mc-reader__profile,
   .mc-reader .mc-reader__workspace {
-    @apply mc-tw-rounded-xl mc-tw-shadow-[0_8px_28px_rgba(21,45,58,0.07)];
-  }
-  .mc-reader .mc-reader__class-mark {
-    @apply mc-tw-rounded-lg mc-tw-border mc-tw-border-[#d8e0e4] mc-tw-bg-[#f7f9fa] mc-tw-px-2 mc-tw-py-1;
+    @apply mc-tw-rounded-lg;
   }
   .mc-comments .mc-comments__composer {
-    @apply mc-tw-rounded-xl mc-tw-shadow-[0_8px_28px_rgba(21,45,58,0.06)];
+    @apply mc-tw-rounded-lg;
   }
   .mc-comments .mc-comments__attachment-preview {
-    @apply mc-tw-rounded-lg mc-tw-shadow-sm;
+    @apply mc-tw-rounded-md;
   }
   .mc-comments .mc-comments__reaction {
-    @apply mc-tw-rounded-full mc-tw-transition-[transform,background-color,border-color,color] mc-tw-duration-150;
-  }
-  .mc-comments .mc-comments__reaction:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-  .mc-comments .mc-comments__reaction:active:not(:disabled) {
-    transform: translateY(0);
+    @apply mc-tw-rounded-lg mc-tw-transition-[background-color,border-color,color] mc-tw-duration-150;
   }
   .mc-public-profile.mc-reader-ui {
-    @apply mc-tw-rounded-xl mc-tw-shadow-[0_8px_28px_rgba(21,45,58,0.06)];
+    @apply mc-tw-rounded-lg;
   }
 }

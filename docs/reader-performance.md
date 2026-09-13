@@ -1,5 +1,32 @@
 # Reader compact UI and loading — staging, 2026-09-09
 
+## ZUL-13 surface isolation — candidate, 2026-09-13
+
+The clean candidate starts from `dcf19dba7b1beb70e4c0b57c9b657c31bfa5ceb9`.
+Before this change a public profile loaded `ui.css`, all of `reader.css`, all of
+`comments.css`, `tailwind.css` and `public-profile.js`: 37,365 raw CSS bytes
+across four stylesheets. The complete Reader frontend inventory, including the
+public-profile script, was 151,423 raw bytes.
+
+The candidate gives each surface one composition stylesheet and centralizes
+handles/dependencies in `assets.php`. The public profile now loads `ui.css`,
+`public-profile.css`, `tailwind.css` and `public-profile.js`: 9,313 raw CSS
+bytes and 5,063 gzip bytes for all four assets. That removes 28,052 raw CSS
+bytes (75.1%) from this route and reduces the complete Reader frontend inventory
+to 150,204 raw bytes, below the recalibrated 151,000-byte all-asset budget. The
+old 145,000-byte assertion omitted `public-profile.js`; the contract test now
+enumerates and content-hash-checks all 12 frontend assets. The private account
+is 19,832 raw CSS bytes; the complete eligible
+article discussion is 18,909 raw CSS bytes. These are deterministic source
+measurements, not field latency or authenticated production evidence.
+
+The visual layer now follows the published geometry: 6 px controls, 8 px
+surfaces, no profile/composer shadows, no hover lift and no favorite-class tile.
+Shared colors come from `ui.css`; comments no longer redefine them. Asset URLs
+still use per-file content hashes, scripts remain deferred, and WP Rocket plus
+Perfmatters retain the existing directory-scoped exclusion. No BFF endpoint,
+session, authorization, moderation, upload or cache policy changes in this slice.
+
 ## Scope and baseline
 
 User-approved compact dark Manacost direction; the working account/editor and

@@ -577,8 +577,9 @@ Newspaper utility classes to achieve these screens.
 - `ui.css` owns colors, type, spacing, buttons, fields, focus, badges, and shared
   identity primitives.
 - `reader.css` owns cabinet, editor, favorite collection, and responsive layout.
-- `comments.css` may own the public-profile layout only until a dedicated shared
-  profile file exists; do not duplicate identity tokens there.
+- `comments.css` owns only discussion layout and states.
+- `public-profile.css` owns the public-profile composition without importing
+  account or discussion layout rules; do not duplicate shared identity tokens.
 - `article-favorite.css` owns only article placement and favorite states.
 - PHP renders semantic, cache-safe shells. JavaScript hydrates private state and
   updates existing nodes; it does not replace the page with a framework app.

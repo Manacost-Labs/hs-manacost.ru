@@ -37,6 +37,8 @@
 .mc-reader-ui *,
 .mc-reader-ui *::before,
 .mc-reader-ui *::after { box-sizing: border-box; }
+.td-main-content-wrap.mc-reader-page { padding: 0; background: var(--mc-r-background, #f3f5f6); }
+.mc-reader-page .td-page-content { margin: 0; padding: 0; }
 .mc-reader-ui [hidden] { display: none !important; }
 .mc-reader-ui .mc-ui-button {
   display: inline-flex;

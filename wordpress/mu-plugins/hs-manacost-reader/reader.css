@@ -1,6 +1,4 @@
-/* Account composition only. Shared controls, colors and states belong to ui.css. */
-.td-main-content-wrap.mc-reader-page { padding: 0; background: #f3f5f6; }
-.mc-reader-page .td-page-content { margin: 0; padding: 0; }
+/* Account composition only. Shared controls, colors and page frame belong to ui.css. */
 .mc-reader {
   --mc-reader-ink: var(--mc-r-ink);
   --mc-reader-muted: var(--mc-r-muted);

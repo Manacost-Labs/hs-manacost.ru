@@ -361,8 +361,8 @@ try {
   });
   assert.equal(overviewVisual.background, 'rgb(255, 255, 255)');
   assert.equal(overviewVisual.borderLeft, '1px', 'the profile must not use an ornamental amber rail');
-  assert.equal(overviewVisual.radius, '12px', 'the generated Reader Tailwind layer must be active after the semantic CSS');
-  assert.notEqual(overviewVisual.shadow, 'none', 'the generated Reader Tailwind layer must add restrained surface depth');
+  assert.equal(overviewVisual.radius, '8px', 'the generated Reader Tailwind layer must preserve the shared surface geometry');
+  assert.equal(overviewVisual.shadow, 'none', 'the profile surface must remain shadow-free');
   const accountMenu = page.locator('[data-reader-account-menu]');
   const accountSummary = page.getByText('Аккаунт', { exact: true });
   const assertAccountMenuFits = async width => {

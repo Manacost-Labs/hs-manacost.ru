@@ -28,6 +28,7 @@ const assets = new Map([
   ['/community-ui.js', ['text/javascript', readFileSync(`${plugin}/community-ui.js`)]],
   ['/comments.js', ['text/javascript', readFileSync(`${plugin}/comments.js`)]],
   ['/public-profile.js', ['text/javascript', readFileSync(`${plugin}/public-profile.js`)]],
+  ['/public-profile.css', ['text/css', readFileSync(`${plugin}/public-profile.css`)]],
   ['/comments.css', ['text/css', readFileSync(`${plugin}/comments.css`)]],
   ['/ui.css', ['text/css', readFileSync(sharedUi)]],
   ['/theme.css', ['text/css', readFileSync(`${root}/wordpress/themes/Newspaper_new/style.css`)]],
@@ -72,7 +73,7 @@ const server = createServer(async (request, response) => {
   }
   if (request.url === '/profile') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body class="td-boxed-layout"><main class="td-main-content-wrap td-container-wrap"><div class=td-container><div class=td-page-content>${profileShell}</div></div></main><script src=/public-profile.js></script>`); return;
+    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/theme-boxed.css><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/public-profile.css><body class="td-boxed-layout"><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class=td-container><div class=td-page-content>${profileShell}</div></div></main><script src=/public-profile.js></script>`); return;
   }
   if (request.url === '/reader-api/v1/community/me') { json(response, 200, { canModerateComments: false, commentingBlocked: false }); return; }
   if (request.url.startsWith('/reader-api/v1/community/reactions?')) {
@@ -193,7 +194,7 @@ try {
     colorScheme: getComputedStyle(root).colorScheme,
     composerBackground: getComputedStyle(root.querySelector('[data-comments-form]')).backgroundColor,
   })), {
-    background: 'rgba(0, 0, 0, 0)', color: 'rgb(21, 45, 58)', colorScheme: 'light', composerBackground: 'rgba(0, 0, 0, 0)',
+    background: 'rgba(0, 0, 0, 0)', color: 'rgb(24, 48, 59)', colorScheme: 'light', composerBackground: 'rgba(0, 0, 0, 0)',
   });
   assert.equal(await page.getByText('Мой ожидающий').count(), 1);
   assert.equal(await page.getByText('Чужой ожидающий').count(), 0);
