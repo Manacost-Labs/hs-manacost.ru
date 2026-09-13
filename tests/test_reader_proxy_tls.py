@@ -55,3 +55,19 @@ class ReaderProxyTlsTests(unittest.TestCase):
         ):
             self.assertIn(expected, proxy)
         self.assertNotIn("auth_basic off;", proxy)
+
+    def test_production_reader_pins_the_origin_certificate(self):
+        proxy = directives("proxy-production-reader.conf")
+        self.assertIn("proxy_pass https://hs_manacost_reader_production_origin;", proxy)
+        self.assertIn("proxy_ssl_verify on;", proxy)
+        self.assertNotIn("proxy_ssl_verify off;", proxy)
+        self.assertIn("proxy_ssl_name hs-manacost.ru;", proxy)
+        self.assertIn(
+            "proxy_ssl_trusted_certificate "
+            "/etc/nginx/ssl/hs-manacost-reader-origin-ca.pem;",
+            proxy,
+        )
+        self.assertNotIn(
+            "proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;",
+            proxy,
+        )

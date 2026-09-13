@@ -79,6 +79,48 @@ installation. The service network allowlist must include the current resolver
 as well as every required edge. A green source contract is not proof that the
 live topology is unchanged.
 
+### Production origin TLS pin
+
+The live production origin currently presents a private self-signed
+`hs-manacost.ru` certificate through the reverse tunnels. The system CA bundle
+does not trust it, so the dedicated Reader edge route must use an explicit
+public-certificate trust anchor at
+`/etc/nginx/ssl/hs-manacost-reader-origin-ca.pem`. This file contains no private
+key and must not be committed to Git.
+
+Before changing either edge, read the public certificate from the active origin
+vhost and verify its subject/hostname, validity window and SHA-256 fingerprint.
+Copy that public certificate through the existing administrative channel, seal
+it as root-owned mode `0644`, and verify every loopback tunnel with both the
+pinned file and `-verify_hostname hs-manacost.ru`. The certificate fingerprint
+observed through all three tunnels must equal the origin file fingerprint. Stop
+if any listener differs, the hostname check fails, or expiry is too close for
+the planned observation window. Never copy the origin private key and never
+replace this contract with `proxy_ssl_verify off`.
+
+Install the pinned public certificate and production upstream before including
+the Reader location in the canonical production HTTPS vhost. Run `nginx -t`
+before reload, then canary Novosibirsk before Moscow. The normal WordPress
+upstream remains unchanged.
+
+Certificate rotation is a two-phase operation: first deploy a trust bundle
+containing both the current and next public origin certificates to both edges,
+verify and reload them, then rotate the origin certificate. After all six
+tunnels present the new fingerprint and regional Reader canaries pass, remove
+the old certificate from the bundle in a separate reviewed change. Keep the
+dual-trust bundle for the full observation window.
+
+Rollback is phase-aware. Before the origin certificate changes, the previous
+single-certificate bundle is a valid rollback target. After origin switches to
+the next certificate, never restore a bundle that does not trust the certificate
+the origin is actually presenting. To roll the certificate itself back, keep
+dual trust on both edges, restore the previous origin certificate, verify all
+six tunnels, and only then remove the next certificate from the bundle. To roll
+back only the Reader route while leaving the new origin certificate active,
+restore the prior edge vhost/snippet and upstream but retain a trust bundle that
+still trusts the active origin. Do not roll back the Reader database or keys for
+a TLS routing failure.
+
 ## WordPress administrator integration
 
 There is currently no Reader comment queue inside `wp-admin` and Reader data is
