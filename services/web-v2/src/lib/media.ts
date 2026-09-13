@@ -11,8 +11,19 @@ const ALLOWED_MIME_TYPES = new Set([
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MEDIA_TIMEOUT_MS = 8_000;
 export const MAX_CONCURRENT_MEDIA_REQUESTS = 6;
+export const MAX_QUEUED_MEDIA_REQUESTS = 24;
+export const MEDIA_SLOT_WAIT_MS = 3_000;
 
 let activeMediaRequests = 0;
+type ReleaseMediaSlot = () => void;
+type MediaWaiter = {
+  resolve: (release: ReleaseMediaSlot | null) => void;
+  signal?: AbortSignal;
+  onAbort?: () => void;
+  timer?: ReturnType<typeof setTimeout>;
+  settled: boolean;
+};
+const mediaQueue: MediaWaiter[] = [];
 
 export function parseMediaSource(value: string): URL | null {
   let source: URL;
@@ -42,24 +53,74 @@ export function normalizeRasterMimeType(value: string | null): string | null {
   return ALLOWED_MIME_TYPES.has(type) ? type : null;
 }
 
-export function createMediaFetchInit(timeoutMs = MEDIA_TIMEOUT_MS): RequestInit {
+export function createMediaFetchInit({
+  timeoutMs = MEDIA_TIMEOUT_MS,
+  signal,
+}: { timeoutMs?: number; signal?: AbortSignal } = {}): RequestInit {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
   return {
     headers: { Accept: "image/avif,image/webp,image/png,image/jpeg,image/gif" },
     cache: "no-store",
     redirect: "error",
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
   };
 }
 
-export function tryAcquireMediaSlot(): (() => void) | null {
-  if (activeMediaRequests >= MAX_CONCURRENT_MEDIA_REQUESTS) return null;
-  activeMediaRequests += 1;
+function removeWaiter(waiter: MediaWaiter): void {
+  const index = mediaQueue.indexOf(waiter);
+  if (index >= 0) mediaQueue.splice(index, 1);
+}
+
+function settleWaiter(waiter: MediaWaiter, release: ReleaseMediaSlot | null): boolean {
+  if (waiter.settled) return false;
+  waiter.settled = true;
+  if (waiter.timer) clearTimeout(waiter.timer);
+  if (waiter.signal && waiter.onAbort) waiter.signal.removeEventListener("abort", waiter.onAbort);
+  waiter.resolve(release);
+  return true;
+}
+
+function createRelease(): ReleaseMediaSlot {
   let released = false;
   return () => {
     if (released) return;
     released = true;
+    while (mediaQueue.length > 0) {
+      const waiter = mediaQueue.shift();
+      if (waiter && settleWaiter(waiter, createRelease())) return;
+    }
     activeMediaRequests -= 1;
   };
+}
+
+export async function acquireMediaSlot({
+  waitMs = MEDIA_SLOT_WAIT_MS,
+  signal,
+}: { waitMs?: number; signal?: AbortSignal } = {}): Promise<ReleaseMediaSlot | null> {
+  if (signal?.aborted) return null;
+  if (activeMediaRequests < MAX_CONCURRENT_MEDIA_REQUESTS) {
+    activeMediaRequests += 1;
+    return createRelease();
+  }
+  if (mediaQueue.length >= MAX_QUEUED_MEDIA_REQUESTS) return null;
+
+  return new Promise((resolve) => {
+    const waiter: MediaWaiter = {
+      resolve,
+      signal,
+      settled: false,
+    };
+    waiter.onAbort = () => {
+      removeWaiter(waiter);
+      settleWaiter(waiter, null);
+    };
+    waiter.timer = setTimeout(() => {
+      removeWaiter(waiter);
+      settleWaiter(waiter, null);
+    }, waitMs);
+    mediaQueue.push(waiter);
+    signal?.addEventListener("abort", waiter.onAbort, { once: true });
+  });
 }
 
 export async function readBoundedBody(

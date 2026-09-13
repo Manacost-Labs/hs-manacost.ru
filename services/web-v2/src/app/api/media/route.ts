@@ -5,7 +5,7 @@ import {
   normalizeRasterMimeType,
   parseMediaSource,
   readBoundedBody,
-  tryAcquireMediaSlot,
+  acquireMediaSlot,
 } from "@/lib/media";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
     return new Response("Media source is not allowed", { status: 403 });
   }
 
-  const release = tryAcquireMediaSlot();
+  const release = await acquireMediaSlot({ signal: request.signal });
   if (!release) return new Response("Media proxy busy", { status: 503, headers: { "Retry-After": "2" } });
   try {
-    const upstream = await fetch(source, createMediaFetchInit());
+    const upstream = await fetch(source, createMediaFetchInit({ signal: request.signal }));
     const type = normalizeRasterMimeType(upstream.headers.get("content-type"));
     const declaredHeader = upstream.headers.get("content-length");
     const declaredSize = declaredHeader === null ? 0 : Number(declaredHeader);
