@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  acquireMediaSlot,
   createMediaFetchInit,
   MAX_CONCURRENT_MEDIA_REQUESTS,
+  MAX_QUEUED_MEDIA_REQUESTS,
   normalizeRasterMimeType,
   parseMediaSource,
   readBoundedBody,
-  tryAcquireMediaSlot,
 } from "./media.ts";
 
 describe("media proxy boundaries", () => {
@@ -18,10 +19,13 @@ describe("media proxy boundaries", () => {
   });
 
   it("rejects redirects and applies an upstream deadline", () => {
-    const init = createMediaFetchInit(25);
+    const controller = new AbortController();
+    const init = createMediaFetchInit({ timeoutMs: 25, signal: controller.signal });
     assert.equal(init.cache, "no-store");
     assert.equal(init.redirect, "error");
     assert.ok(init.signal);
+    controller.abort();
+    assert.equal(init.signal?.aborted, true);
   });
 
   it("allows raster MIME types but rejects active SVG content", () => {
@@ -41,13 +45,90 @@ describe("media proxy boundaries", () => {
     assert.equal(await readBoundedBody(stream, 5), null);
   });
 
-  it("rejects excess concurrent upstream media work", () => {
-    const releases = Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => tryAcquireMediaSlot());
+  it("queues excess work without exceeding the active upstream limit", async () => {
+    const releases = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
     assert.ok(releases.every(Boolean));
-    assert.equal(tryAcquireMediaSlot(), null);
+    const queued = acquireMediaSlot({ waitMs: 100 });
+    const early = await Promise.race([
+      queued.then(() => "released"),
+      new Promise<string>((resolve) => setTimeout(() => resolve("waiting"), 5)),
+    ]);
+    assert.equal(early, "waiting");
+    releases.shift()?.();
+    const queuedRelease = await queued;
+    assert.ok(queuedRelease);
+    queuedRelease?.();
     releases.forEach((release) => release?.());
-    const release = tryAcquireMediaSlot();
-    assert.ok(release);
-    release?.();
+  });
+
+  it("times out a queued request when all upstream slots remain occupied", async () => {
+    const releases = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
+    assert.equal(await acquireMediaSlot({ waitMs: 5 }), null);
+    releases.forEach((release) => release?.());
+  });
+
+  it("hands released slots to queued requests in FIFO order", async () => {
+    const releases = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
+    const order: string[] = [];
+    const first = acquireMediaSlot({ waitMs: 100 }).then((release) => {
+      order.push("first");
+      return release;
+    });
+    const second = acquireMediaSlot({ waitMs: 100 }).then((release) => {
+      order.push("second");
+      return release;
+    });
+    releases.shift()?.();
+    const firstRelease = await first;
+    assert.deepEqual(order, ["first"]);
+    releases.shift()?.();
+    const secondRelease = await second;
+    assert.deepEqual(order, ["first", "second"]);
+    firstRelease?.();
+    secondRelease?.();
+    releases.forEach((release) => release?.());
+  });
+
+  it("rejects only requests beyond the bounded waiting queue", async () => {
+    const releases = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
+    const controller = new AbortController();
+    const queued = Array.from({ length: MAX_QUEUED_MEDIA_REQUESTS }, () =>
+      acquireMediaSlot({ waitMs: 1_000, signal: controller.signal }),
+    );
+    assert.equal(await acquireMediaSlot({ waitMs: 1_000 }), null);
+    controller.abort();
+    assert.ok((await Promise.all(queued)).every((release) => release === null));
+    releases.forEach((release) => release?.());
+  });
+
+  it("removes an aborted waiter and hands the next waiter the slot", async () => {
+    const releases = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
+    const controller = new AbortController();
+    const aborted = acquireMediaSlot({ waitMs: 100, signal: controller.signal });
+    const next = acquireMediaSlot({ waitMs: 100 });
+    controller.abort();
+    assert.equal(await aborted, null);
+    releases.shift()?.();
+    const nextRelease = await next;
+    assert.ok(nextRelease);
+    nextRelease?.();
+    releases.forEach((release) => release?.());
+  });
+
+  it("restores full capacity after handoff, abort, and idempotent release", async () => {
+    const releases = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
+    const controller = new AbortController();
+    const handedOff = acquireMediaSlot({ waitMs: 100, signal: controller.signal });
+    releases.shift()?.();
+    const handedOffRelease = await handedOff;
+    controller.abort();
+    assert.equal(createMediaFetchInit({ signal: controller.signal }).signal?.aborted, true);
+    handedOffRelease?.();
+    handedOffRelease?.();
+    releases.forEach((release) => release?.());
+
+    const restored = await Promise.all(Array.from({ length: MAX_CONCURRENT_MEDIA_REQUESTS }, () => acquireMediaSlot()));
+    assert.ok(restored.every(Boolean));
+    restored.forEach((release) => release?.());
   });
 });
