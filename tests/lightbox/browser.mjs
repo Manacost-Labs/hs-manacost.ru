@@ -81,11 +81,18 @@ try {
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.addInitScript(() => {
     window.lightboxLayoutReads = 0;
+    window.lightboxPreloadAllocations = 0;
     const original = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function (...args) {
       window.lightboxLayoutReads += 1;
       return original.apply(this, args);
     };
+    window.Image = new Proxy(window.Image, {
+      construct(Target, args) {
+        window.lightboxPreloadAllocations += 1;
+        return new Target(...args);
+      },
+    });
   });
   await page.goto(origin, { waitUntil: 'load' });
 
@@ -132,6 +139,9 @@ try {
   assert.equal(await page.evaluate(() => window.themeLightboxOpens), 0, 'capture handler prevents the Newspaper popup from opening');
   assert.equal(await page.locator('html').getAttribute('data-hs-lightbox-open'), 'true');
   assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('src'), `${origin}/images/one.jpg`);
+  assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('fetchpriority'), 'high');
+  await dialog.locator('.hs-lightbox__image.is-ready').waitFor();
+  assert.equal(await page.evaluate(() => window.lightboxPreloadAllocations), 1, 'a two-image gallery preloads its one neighbour once');
   assert.equal(await dialog.getByText('1 из 2').isVisible(), true);
   assert.equal(await dialog.getByText('Первая карта', { exact: true }).last().isVisible(), true);
   assert.equal(await dialog.getByRole('button', { name: 'Закрыть' }).evaluate(element => document.activeElement === element), true, 'close button receives focus');
@@ -165,22 +175,38 @@ try {
   await page.setViewportSize({ width: 320, height: 640 });
   await first.click();
   await dialog.waitFor({ state: 'visible' });
-  const mobile = await page.evaluate(() => {
-    const dialog = document.querySelector('.hs-lightbox');
-    const image = dialog.querySelector('.hs-lightbox__image');
-    const controls = [...dialog.querySelectorAll('button')].map(button => button.getBoundingClientRect());
-    return {
-      dialogWidth: dialog.getBoundingClientRect().width,
-      imageWidth: image.getBoundingClientRect().width,
-      overflow: document.documentElement.scrollWidth - innerWidth,
-      viewport: innerWidth,
-      controls: controls.map(rect => ({ width: rect.width, height: rect.height })),
-    };
-  });
-  assert.ok(mobile.overflow <= 0, 'modal must not create horizontal page overflow');
-  assert.ok(mobile.dialogWidth <= mobile.viewport && mobile.imageWidth <= mobile.viewport, JSON.stringify(mobile));
-  assert.ok(mobile.controls.every(control => control.width >= 44 && control.height >= 44), 'all modal buttons keep 44px touch targets');
-  if (process.env.LIGHTBOX_MOBILE_SCREENSHOT) await page.screenshot({ path: process.env.LIGHTBOX_MOBILE_SCREENSHOT });
+  for (const viewport of [
+    { width: 320, height: 640 },
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const geometry = await page.evaluate(() => {
+      const dialog = document.querySelector('.hs-lightbox');
+      const surface = dialog.querySelector('.hs-lightbox__surface');
+      const image = dialog.querySelector('.hs-lightbox__image');
+      const caption = dialog.querySelector('.hs-lightbox__caption');
+      const controls = [...dialog.querySelectorAll('button')].map(button => button.getBoundingClientRect());
+      return {
+        dialogWidth: dialog.getBoundingClientRect().width,
+        dialogRight: dialog.getBoundingClientRect().right,
+        surfaceRight: surface.getBoundingClientRect().right,
+        imageWidth: image.getBoundingClientRect().width,
+        imageCaptionGap: caption.getBoundingClientRect().top - image.getBoundingClientRect().bottom,
+        overflow: document.documentElement.scrollWidth - innerWidth,
+        viewport: innerWidth,
+        controls: controls.map(rect => ({ width: rect.width, height: rect.height })),
+      };
+    });
+    assert.ok(geometry.overflow <= 0, `modal must not create horizontal overflow at ${viewport.width}px`);
+    assert.ok(geometry.dialogWidth <= geometry.viewport && geometry.imageWidth <= geometry.viewport, JSON.stringify({ viewport, geometry }));
+    assert.ok(Math.abs(geometry.viewport - geometry.dialogRight) <= 1 && Math.abs(geometry.viewport - geometry.surfaceRight) <= 1, `modal must paint through the full viewport at ${viewport.width}px`);
+    assert.ok(geometry.imageCaptionGap <= 24, `caption stays attached at ${viewport.width}px: ${geometry.imageCaptionGap}`);
+    assert.ok(geometry.controls.every(control => control.width >= 44 && control.height >= 44), `modal controls keep 44px targets at ${viewport.width}px`);
+    if (viewport.width === 320 && process.env.LIGHTBOX_MOBILE_SCREENSHOT) await page.screenshot({ path: process.env.LIGHTBOX_MOBILE_SCREENSHOT });
+  }
   await page.keyboard.press('Escape');
 
   await page.locator('#long-caption-link').click();
@@ -198,6 +224,7 @@ try {
       return {
         captionBottom: caption.bottom,
         imageBottom: image.bottom,
+        imageCaptionGap: caption.top - image.bottom,
         captionTop: caption.top,
         modalBottom: modal.bottom,
         modalTop: modal.top,
@@ -207,6 +234,7 @@ try {
     });
     assert.ok(geometry.captionBottom <= geometry.modalBottom && geometry.captionTop >= geometry.modalTop, JSON.stringify({ viewport, geometry }));
     assert.ok(geometry.imageBottom <= geometry.captionTop, JSON.stringify({ viewport, geometry }));
+    assert.ok(geometry.imageCaptionGap <= 24, `caption stays visually attached to its image at ${viewport.width}x${viewport.height}: ${geometry.imageCaptionGap}`);
     assert.ok(geometry.scrollHeight > geometry.clientHeight, `long portrait caption remains scrollable at ${viewport.width}x${viewport.height}`);
   }
   await page.keyboard.press('Escape');
