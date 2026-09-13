@@ -107,9 +107,19 @@ Certificate rotation is a two-phase operation: first deploy a trust bundle
 containing both the current and next public origin certificates to both edges,
 verify and reload them, then rotate the origin certificate. After all six
 tunnels present the new fingerprint and regional Reader canaries pass, remove
-the old certificate from the bundle in a separate reviewed change. Rollback
-restores the previous edge vhost/snippet, upstream and trust bundle together;
-do not roll back the Reader database or keys for a TLS routing failure.
+the old certificate from the bundle in a separate reviewed change. Keep the
+dual-trust bundle for the full observation window.
+
+Rollback is phase-aware. Before the origin certificate changes, the previous
+single-certificate bundle is a valid rollback target. After origin switches to
+the next certificate, never restore a bundle that does not trust the certificate
+the origin is actually presenting. To roll the certificate itself back, keep
+dual trust on both edges, restore the previous origin certificate, verify all
+six tunnels, and only then remove the next certificate from the bundle. To roll
+back only the Reader route while leaving the new origin certificate active,
+restore the prior edge vhost/snippet and upstream but retain a trust bundle that
+still trusts the active origin. Do not roll back the Reader database or keys for
+a TLS routing failure.
 
 ## WordPress administrator integration
 
