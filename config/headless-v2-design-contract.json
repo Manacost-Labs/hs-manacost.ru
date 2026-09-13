@@ -1,0 +1,54 @@
+{
+  "project": "hs-manacost.ru headless v2 sandbox",
+  "audience": "Русскоязычные игроки Hearthstone, быстро просматривающие новости, гайды и мета-аналитику на телефоне и компьютере.",
+  "goals": [
+    "Создать долгоживущую независимую площадку для постепенного редизайна.",
+    "Сделать редакционную иерархию заметнее без копирования визуального языка другого медиа.",
+    "Проверять React-шаблоны на реальном публичном контенте WordPress без риска для основного сайта."
+  ],
+  "user_journeys": [
+    { "name": "Быстро найти главное", "entry": "Главная v2", "success": "Читатель различает главный материал и свежую ленту без прокрутки на 390 и 1440 px." },
+    { "name": "Просмотреть раздел", "entry": "Навигация или метка карточки", "success": "Читатель открывает рубрику и переходит к статье." },
+    { "name": "Прочитать материал", "entry": "Карточка статьи", "success": "Основной текст, изображения, таблицы и поддерживаемые видео читаются без горизонтального скролла." }
+  ],
+  "pages": [
+    { "template": "home", "job": "Показать главный материал, срочную ленту и свежие публикации." },
+    { "template": "category", "job": "Дать плотный сканируемый архив одной редакционной темы." },
+    { "template": "article", "job": "Обеспечить спокойное длинное чтение legacy WordPress-контента." },
+    { "template": "not-found", "job": "Объяснить отсутствие материала и вернуть на главную." }
+  ],
+  "direction": {
+    "name": "Mana Desk",
+    "thesis": "Контрастная редакционная газета о Hearthstone: плотность и ясная иерархия игровых медиа, но собственная типографика и манакостная лабораторная маркировка.",
+    "signature": "Вертикальная мана-линия в статье и служебные V2/LAB индексы, связывающие редакционную подачу с игровой темой.",
+    "rationale": "Пользователь выбрал направление ближе к StopGame по информационной плотности; собственные фирменные элементы исключают буквальное копирование.",
+    "avoid": ["копирование логотипа, сетки или палитры StopGame", "универсальная SaaS-сетка карточек", "неон ради декора", "скрытые состояния и hover-only навигация"]
+  },
+  "tokens": {
+    "colors": { "surface": "#f4f2ec", "surfaceStrong": "#ffffff", "text": "#11141a", "ink": "#0b0d12", "accent": "#ef5b2a", "mana": "#54c7ec", "border": "#d8d5cc", "muted": "#6a6e77" },
+    "typography": { "display": "Georgia, Times New Roman, serif", "body": "Arial, Helvetica, sans-serif", "utility": "Arial, Helvetica, sans-serif 800", "scale": [10, 12, 14, 17, 19, 25, 38, 58, 92], "rationale": "Системные шрифты покрывают кириллицу и не блокируют первый рендер; serif выделяет редакционную иерархию." },
+    "spacing": [4, 7, 9, 12, 16, 20, 24, 30, 40, 58, 82, 110],
+    "radii": { "small": 6, "medium": 12, "large": 22 },
+    "shadows": { "feature": "0 24px 70px rgba(9,11,16,.14)" },
+    "motion": { "fast_ms": 180, "image_ms": 450, "reduced_motion": "all decorative motion reduced to 0.01ms" }
+  },
+  "components": [
+    { "name": "Global header", "pages": ["all"], "states": ["desktop", "horizontal mobile nav", "keyboard focus"] },
+    { "name": "Hero story", "pages": ["home"], "states": ["real image", "missing image", "long Cyrillic title"] },
+    { "name": "Story card", "pages": ["home", "category"], "states": ["standard", "compact", "loading image", "missing image"] },
+    { "name": "Article body", "pages": ["article"], "states": ["text", "image", "table overflow", "supported embed", "unsupported legacy fragment removed"] },
+    { "name": "Pagination", "pages": ["category"], "states": ["first page", "middle page", "no further results"] },
+    { "name": "System state", "pages": ["all"], "states": ["loading", "not found", "upstream error"] }
+  ],
+  "responsive": { "viewports": [320, 390, 768, 1024, 1440], "zoom_percent": 200, "container": "min(1320px, viewport minus 40px; minus 28px below 640px)", "horizontal_overflow_px": 0, "policy": "article tables scroll within their own container; page never scrolls horizontally" },
+  "quality": {
+    "accessibility": "Keyboard-visible focus, skip link, semantic landmarks, alt text fallback, reduced motion, 200 percent zoom.",
+    "performance": "No external font request; hero eager and all other images lazy; initial target LCP under 2.5 seconds on warm v2 cache.",
+    "seo": "v2.hs-manacost.ru sends noindex, nofollow and robots Disallow /. hs-manacost.ru remains canonical; hs-manacost.com remains its noindex mirror; test.hs-manacost.ru remains noindex.",
+    "media": "Images stay on the existing public WordPress/S3 paths; missing media gets a fixed-ratio fallback.",
+    "ads": "No ads in the first v2 sandbox iteration; existing hs-manacost.ru ad slots are untouched.",
+    "analytics": "No analytics, view counter, cookies or event writes in v2; existing hs-manacost.ru analytics is untouched."
+  },
+  "implementation": { "ownership_layers": ["theme-api"], "runtime_layer": "services/web-v2 Next.js standalone service", "vertical_slices": ["public WordPress adapter", "shared shell and tokens", "homepage", "category", "article", "error states"], "dependencies": ["public wp/v2 REST API", "Node.js 22", "nginx reverse proxy"] },
+  "rollout": { "staging_evidence": "Local build, unit and contract tests; direct localhost health; live v2 HTTPS, headers, robots, real-content and viewport smoke.", "approval_owner": "Site owner reviews the live v2 sandbox iteratively.", "rollback_commit": "dba2f4aaf9f4f3152c6317580ca5ab96761da883", "template_restore": "No Newspaper assignment changes; rollback the v2 current symlink or disable only the v2 vhost and service." }
+}

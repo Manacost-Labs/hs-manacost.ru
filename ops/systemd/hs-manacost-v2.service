@@ -1,0 +1,35 @@
+[Unit]
+Description=hs-manacost v2 Next.js sandbox
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hs-manacost-v2
+Group=hs-manacost-v2
+WorkingDirectory=/srv/hs-manacost-v2/current
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3212
+Environment=WORDPRESS_API_URL=https://hs-manacost.ru/wp-json/wp/v2
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadOnlyPaths=/srv/hs-manacost-v2
+ReadWritePaths=/srv/hs-manacost-v2/current/.next/cache
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
