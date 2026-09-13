@@ -40,6 +40,16 @@
       "checks": ["make reader-test", "make check"]
     },
     {
+      "patterns": ["services/web-v2/**", "ops/web-v2/**", "ops/systemd/hs-manacost-v2.service", "ops/nginx/v2.conf", "config/headless-v2-design-contract.json", "tests/test_headless_v2_contract.py"],
+      "owner": "headless-v2-sandbox",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "rest-api-client", "seo", "infrastructure", "deployment"],
+      "domains": ["v2.hs-manacost.ru", "origin"],
+      "skills": ["wordpress-redesign-system", "wp-rest-api", "wordpress-release-manager", "agent-security-and-hardening"],
+      "checks": ["make web-v2-check", "make web-v2-browser-test", "python3 -m unittest tests.test_headless_v2_contract -v", "nginx -t"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-manacost-lightbox.php", "wordpress/mu-plugins/hs-manacost-lightbox/**", "wordpress/mu-plugins/hs-gallery-file-links.php", "tests/test_content_lightbox.py", "tests/lightbox/**"],
       "owner": "public-content-lightbox",
       "classified": true,
