@@ -45,8 +45,15 @@ if [[ "$apply" != true ]]; then echo 'Dry run: no changes.'; exit 0; fi
 install -d -o hs-manacost-v2 -g hs-manacost-v2 -m 0750 "$build"
 git -C "$root" archive "$sha:services/web-v2" | tar -x -C "$build"
 chown -R hs-manacost-v2:hs-manacost-v2 "$build"
-runuser -u hs-manacost-v2 -- npm ci --prefix "$build" --ignore-scripts
+install -d -o hs-manacost-v2 -g hs-manacost-v2 -m 0700 "$build/.home" "$build/.npm-cache"
 runuser -u hs-manacost-v2 -- env \
+  HOME="$build/.home" \
+  npm_config_cache="$build/.npm-cache" \
+  npm ci --prefix "$build" --ignore-scripts
+runuser -u hs-manacost-v2 -- env \
+  HOME="$build/.home" \
+  npm_config_cache="$build/.npm-cache" \
+  NEXT_TELEMETRY_DISABLED=1 \
   WORDPRESS_API_URL='https://hs-manacost.ru/wp-json/wp/v2' \
   npm run build --prefix "$build"
 standalone="$build/.next/standalone"
