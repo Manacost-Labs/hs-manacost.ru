@@ -1,9 +1,11 @@
 <?php
 /**
  * Plugin Name: HS Gallery File Links
- * Description: Makes legacy WordPress galleries link to image files so the Newspaper lightbox can open them reliably.
+ * Description: Makes legacy WordPress galleries link to image files so the Manacost lightbox can open them reliably.
  * Version: 1.0.0
  * Author: Manacost
+ *
+ * @package Manacost
  */
 
 defined( 'ABSPATH' ) || exit;

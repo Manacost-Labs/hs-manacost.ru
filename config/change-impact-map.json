@@ -40,6 +40,16 @@
       "checks": ["make reader-test", "make check"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-manacost-lightbox.php", "wordpress/mu-plugins/hs-manacost-lightbox/**", "wordpress/mu-plugins/hs-gallery-file-links.php", "tests/test_content_lightbox.py", "tests/lightbox/**"],
+      "owner": "public-content-lightbox",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "responsive-ui", "accessibility", "performance"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-responsive-experience", "wordpress-accessibility", "wp-plugin-development", "wp-performance", "playwright"],
+      "checks": ["make lightbox-test", "make lightbox-browser-test", "make code-quality", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-comments-policy.php"],
       "owner": "public-comments-policy",
       "classified": true,

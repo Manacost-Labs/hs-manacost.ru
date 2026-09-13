@@ -1,8 +1,8 @@
-.PHONY: check composer-validate code-quality php-lint test reader-test reader-browser-test reader-css-check shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
+.PHONY: check composer-validate code-quality php-lint test lightbox-test lightbox-browser-test reader-test reader-browser-test reader-css-check shell-check skill-audit contracts contract-check change-impact integration visual admin-performance plugin-audit
 
 .PHONY: nginx-media-test
 
-check: composer-validate php-lint contract-check skill-audit test reader-css-check reader-test shell-check nginx-media-test
+check: composer-validate php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test shell-check nginx-media-test
 
 nginx-media-test:
 	@python3 ops/nginx/tests/check_media_negotiation.py
@@ -28,6 +28,13 @@ reader-test:
 	@for source in wordpress/mu-plugins/hs-manacost-reader/*.js; do node --check "$$source" || exit; done
 	@python3 -m unittest discover -s tests/reader-ui -v
 
+lightbox-test:
+	@node --check wordpress/mu-plugins/hs-manacost-lightbox/lightbox.js
+	@python3 -m unittest tests.test_content_lightbox -v
+
+lightbox-browser-test:
+	@node tests/lightbox/browser.mjs
+
 reader-css-check:
 	@tmp_file=$$(mktemp); trap 'rm -f "$$tmp_file"' EXIT; \
 		./node_modules/.bin/tailwindcss -c tailwind.config.js \
@@ -36,7 +43,7 @@ reader-css-check:
 		cmp -s "$$tmp_file" wordpress/mu-plugins/hs-manacost-reader/tailwind.css || \
 		{ echo "Reader Tailwind CSS is stale; run npm run build:reader-css" >&2; exit 1; }
 
-reader-browser-test:
+reader-browser-test: lightbox-browser-test
 	@node tests/reader-ui/browser.mjs
 	@node tests/reader-ui/comments-browser.mjs
 	@node tests/reader-ui/comments-flows.mjs
