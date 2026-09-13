@@ -1,0 +1,308 @@
+html[data-hs-lightbox-open="true"] {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+[data-hs-lightbox-trigger="true"] {
+  cursor: zoom-in;
+}
+
+img[data-hs-lightbox-trigger="true"]:focus-visible {
+  outline: 3px solid #caa96f;
+  outline-offset: 4px;
+}
+
+.hs-lightbox {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #f7f4ed;
+  background: transparent;
+  overflow: hidden;
+}
+
+.hs-lightbox:not([open]) {
+  display: none;
+}
+
+.hs-lightbox::backdrop {
+  background: rgba(5, 10, 15, 0.94);
+}
+
+.hs-lightbox__surface {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  background: rgba(5, 10, 15, 0.96);
+}
+
+.hs-lightbox__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hs-lightbox__toolbar {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 52px;
+  gap: 8px;
+}
+
+.hs-lightbox__counter {
+  margin-inline-end: auto;
+  padding-inline: 8px;
+  color: #d8dee3;
+  font: 600 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.hs-lightbox__original,
+.hs-lightbox__control {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  color: #f7f4ed;
+  background: rgba(255, 255, 255, 0.08);
+  font: 650 14px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.hs-lightbox__original {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 14px;
+  text-decoration: none;
+}
+
+.hs-lightbox__original svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hs-lightbox__control {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.hs-lightbox__control svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hs-lightbox__original:hover,
+.hs-lightbox__control:hover {
+  color: #fff;
+  border-color: rgba(215, 183, 122, 0.8);
+  background: rgba(215, 183, 122, 0.18);
+}
+
+.hs-lightbox__original:focus-visible,
+.hs-lightbox__control:focus-visible {
+  outline: 3px solid #d7b77a;
+  outline-offset: 2px;
+}
+
+.hs-lightbox__stage {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  padding: 8px 64px 16px;
+  touch-action: pan-y pinch-zoom;
+}
+
+.hs-lightbox__figure {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: min(100%, 1600px);
+  max-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  place-items: center;
+}
+
+.hs-lightbox__image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  border-radius: 4px;
+  object-fit: contain;
+  opacity: 0;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.42);
+  transition: opacity 120ms ease;
+}
+
+.hs-lightbox__image.is-ready {
+  opacity: 1;
+}
+
+.hs-lightbox__caption {
+  box-sizing: border-box;
+  width: min(100%, 900px);
+  max-height: min(24vh, 180px);
+  max-height: min(24dvh, 180px);
+  margin-block-start: 10px;
+  padding-inline: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: #e5e9ec;
+  font: 500 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.hs-lightbox__loading,
+.hs-lightbox__error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 1;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #f7f4ed;
+  background: #142630;
+  font: 600 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+.hs-lightbox__error {
+  color: #ffd9d2;
+  border-color: rgba(255, 165, 147, 0.45);
+}
+
+.hs-lightbox__loading[hidden],
+.hs-lightbox__error[hidden],
+.hs-lightbox__caption[hidden],
+.hs-lightbox__nav[hidden] {
+  display: none;
+}
+
+.hs-lightbox__nav {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+}
+
+.hs-lightbox__previous {
+  inset-inline-start: 4px;
+}
+
+.hs-lightbox__next {
+  inset-inline-end: 4px;
+}
+
+@media (max-width: 600px) {
+  .hs-lightbox__surface {
+    padding-inline-start: max(8px, env(safe-area-inset-left));
+    padding-inline-end: max(8px, env(safe-area-inset-right));
+  }
+
+  .hs-lightbox__original {
+    width: 44px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .hs-lightbox__original-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+
+  .hs-lightbox__stage {
+    padding: 4px 0 62px;
+  }
+
+  .hs-lightbox__caption {
+    max-height: 128px;
+    margin-block-start: 8px;
+    padding-inline: 8px;
+    font-size: 14px;
+  }
+
+  .hs-lightbox__nav {
+    inset-block-start: auto;
+    inset-block-end: 6px;
+    transform: none;
+  }
+
+  .hs-lightbox__previous {
+    inset-inline-start: calc(50% - 52px);
+  }
+
+  .hs-lightbox__next {
+    inset-inline-end: calc(50% - 52px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-lightbox__original,
+  .hs-lightbox__control,
+  .hs-lightbox__image {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .hs-lightbox__original,
+  .hs-lightbox__control {
+    border: 1px solid ButtonText;
+  }
+}
