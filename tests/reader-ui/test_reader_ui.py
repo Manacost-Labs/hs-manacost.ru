@@ -144,7 +144,7 @@ echo json_encode($GLOBALS['assets']);'''
             )
         )
         self.assertLessEqual(sum(path.stat().st_size for path in assets), 151_000)
-        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 34_500)
+        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 35_500)
         self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
 
     @classmethod

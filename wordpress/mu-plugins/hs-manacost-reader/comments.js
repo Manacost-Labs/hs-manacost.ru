@@ -33,6 +33,7 @@
   let activationObserver = null, activated = false;
   let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
   let stagedAttachment = null, attachmentPreviewUrl = null, attachmentUploading = false;
+  let reconcileTimer=0;const reconcileIds=new Set;
   const say = message => { status.removeAttribute('data-loading'); status.textContent = message; };
   const showLoading = () => { status.dataset.loading = 'true'; status.textContent = 'Загружаем комментарии…'; };
   const current = ticket => visible && ticket === generation;
@@ -88,6 +89,16 @@
     body.value = ''; clearAttachment(); parentId = null; retryPayload = null;
     reply.textContent = ''; reply.hidden = cancel.hidden = true; controls();
   }
+  function reconcileLater(id, ticket) {
+    reconcileIds.add(id); clearTimeout(reconcileTimer);
+    reconcileTimer = setTimeout(() => {
+      reconcileTimer = 0;
+      if (current(ticket) && threadLoaded) void loadComments(false, new Set(reconcileIds));
+    }, 1000);
+  }
+  function clearReconcile() {
+    clearTimeout(reconcileTimer); reconcileTimer = 0; reconcileIds.clear();
+  }
   function resetPrivate() {
     me = null; csrf = ''; busy = false; attachmentUploading = false; commentingBlocked = false; community?.reset(); clearDraft();
     composerIdentity?.replaceChildren();
@@ -96,6 +107,7 @@
   }
   function invalidate() {
     generation++;
+    clearReconcile();
     for (const controller of requests) controller.abort();
     requests.clear();
   }
@@ -285,12 +297,15 @@
       if (!response.ok || !Array.isArray(data?.items) || data.items.length > 20
         || (data.nextCursor !== null && !uuid.test(data.nextCursor))) throw new Error('comments_unavailable');
       const page = data.items.filter(valid);
+      const keep = preserveIds instanceof Set ? preserveIds : new Set();
+      for (const id of reconcileIds) keep.add(id);
+      const received = new Set(page.map(item => item.id));
       if (append) rows = [...rows, ...page.filter(item => !rows.some(old => old.id === item.id))];
-      else if (preserveIds instanceof Set) {
-        const received = new Set(page.map(item => item.id));
-        const preserved = rows.filter(item => preserveIds.has(item.id) && !received.has(item.id));
+      else if (keep.size) {
+        const preserved = rows.filter(item => keep.has(item.id) && !received.has(item.id));
         rows = [...page, ...preserved].sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id));
       } else rows = page;
+      for (const id of received) reconcileIds.delete(id);
       cursor = data.nextCursor; threadLoaded = true; render();
       if (!(preserveIds instanceof Set)) showThreadStatus();
       return true;
@@ -413,13 +428,14 @@
       const { response } = await request(`/reader-api/v1/comments/${item.id}`, { method: 'DELETE', headers: write(), body: JSON.stringify({ version: item.version }) });
       if (response.status === 401) { expired(); return; }
       if (!response.ok) throw new Error('remove_failed');
+      reconcileIds.delete(item.id); rows = rows.filter(row => row.id !== item.id); render();
       await loadComments();
     } catch (error) { if (error !== stale && current(ticket)) say('Не удалось удалить комментарий. Повторите попытку.'); }
     finally { if (current(ticket)) { busy = false; controls(); } }
   }
   async function send(payload) {
-    if (!me || busy || commentingBlocked) return;
-    const ticket = generation; busy = true; controls();
+    if(!me || busy || commentingBlocked)return;
+    const ticket=generation; busy=true; controls();
     try {
       const { response, data } = await request(endpoint, { method: 'POST', headers: write(), body: JSON.stringify(payload) });
       if (response.status === 401) { expired(); return; }
@@ -443,7 +459,7 @@
       render();
       if (current(ticket)) {
         say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.');
-        void loadComments(false, new Set([data.comment.id]));
+        reconcileLater(data.comment.id, ticket);
       }
     } catch (error) {
       if (error === stale || !current(ticket)) return;
@@ -508,7 +524,8 @@
       const { response, data } = await request('/reader-api/v1/community/profile', { method: 'DELETE', headers: write(), body: JSON.stringify({ profileId, confirm: 'erase-community' }) });
       if (response.status === 401) { expired(); return; }
       if (!response.ok || data?.erased !== true) throw new Error('erase_failed');
-      clearDraft(); await loadComments(); if (current(ticket)) say('Комментарии и публичный профиль удалены. Кабинет сохранён.');
+      clearDraft(); clearReconcile(); rows = rows.filter(item => item.author?.id !== profileId); render();
+      await loadComments(); if (current(ticket)) say('Комментарии и публичный профиль удалены. Кабинет сохранён.');
     } catch (error) { if (error !== stale && current(ticket)) say('Не удалось удалить данные. Повторите попытку позже.'); }
     finally { if (current(ticket)) { busy = false; controls(); } }
   });

@@ -126,6 +126,14 @@ separately reviewed staging setup must provide all of the following:
   `READER_ENCRYPTION_KEY` and `READER_CSRF_KEY`; optional `READER_PORT` defaults
   to 18081. Inject secrets through managed deployment configuration, not source,
   WP options, public HTML or command-line arguments. Backup keys separately.
+- Community data is disabled by default. Staging requires
+  `READER_COMMENTS_ENABLED=1` and the exact staging tuple. Production additionally
+  requires `READER_ALLOW_PRODUCTION_COMMUNITY=1`, the exact
+  `https://hs-manacost.ru` origin, `production` deployment and
+  `manacost-reader-production` client. WordPress mirrors the boundary with
+  `HS_MANACOST_READER_COMMENTS_ENABLED=true` and production-only
+  `HS_MANACOST_READER_ALLOW_PRODUCTION_COMMUNITY=true`; its signed editorial
+  response is bound to the BFF's exact origin. Neither flag belongs in HTML.
 - A matching opt-in HearthPulse provider with persistent signing/encryption and
   cookie keys, an exact HTTPS callback and an isolated staging issuer/client.
 - A reviewed reverse proxy for `/reader-auth/` and `/reader-api/` to loopback
@@ -162,7 +170,7 @@ An optional `READER_TEST_CHROMIUM` selects an already-installed local browser.
 The first-party `reader-identity` boundary is classified high security risk in
 `config/change-impact-map.json`. No verification command uses live accounts.
 
-Next slices are broader end-to-end activation and
-bookmarks with authoritative WordPress article/VIP checks. A stored
-`(site_id, wp_post_id)` is not permission to reveal unpublished or paid content.
-Comments are not part of this activation and must remain disabled.
+Production activation is a separate release gate documented in
+`docs/reader-production-readiness.md`. A stored `(site_id, wp_post_id)` is not
+permission to reveal unpublished or paid content; every comments and favorites
+read retains the authoritative WordPress article/VIP check.

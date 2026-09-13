@@ -32,14 +32,18 @@ function queueUnusedTokens(store, result, ttlMs) {
 }
 
 /** Same-origin HTTP boundary; refresh credentials stay encrypted on the server. */
-export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community }) {
+export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community, communityProductionEnabled = false }) {
   if (new URL(origin).origin !== origin || !origin.startsWith('https://') || csrfKey?.length !== 32) throw new Error('Invalid reader HTTP configuration');
   const csrf = id => createHmac('sha256', csrfKey).update(id).digest('base64url');
   const validWrite = (request, id) => request.headers.get('origin') === origin
     && request.headers.get('sec-fetch-site') !== 'cross-site' && Boolean(id)
     && matches(request.headers.get('x-reader-csrf'), csrf(id));
   const profileRoutes = createProfileRoutes({ store, identity, profiles, validWrite, json, securityHeaders });
-  if (community && origin !== 'https://test.hs-manacost.ru') throw new Error('Comments are staging-only');
+  const stagingCommunity = origin === 'https://test.hs-manacost.ru'
+    && (!community?.boundary || community.boundary.origin === origin && community.boundary.deployment === 'staging');
+  const productionCommunity = communityProductionEnabled === true && origin === 'https://hs-manacost.ru'
+    && community?.boundary?.origin === origin && community.boundary.deployment === 'production';
+  if (community && !stagingCommunity && !productionCommunity) throw new Error('Community boundary invalid');
   const commentRoutes = createCommentRoutes({ community, store, identity, profiles, validWrite, json, securityHeaders });
   const communityControls = createCommunityControlRoutes({ community, store, identity, profiles, validWrite, json });
   const attachmentRoutes = createCommentAttachmentRoutes({ community, store, profiles, identity, validWrite, json, securityHeaders });

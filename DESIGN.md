@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Manacost Reader — Ink and Ember
-description: Focused design contract for the private cabinet, public reader profile, article favorite control, and saved-article collection on hs-manacost.ru.
+description: Focused design contract for the cabinet, public reader profile, article favorite control, saved articles, and Reader discussion on hs-manacost.ru.
 colors:
   primary: "#9B630E"
   primary-hover: "#7D4F0B"
@@ -214,16 +214,17 @@ components:
 
 ### Product boundary
 
-This document is the source of truth for exactly four connected surfaces on
+This document is the source of truth for exactly five connected surfaces on
 `hs-manacost.ru` and `test.hs-manacost.ru`:
 
 1. the authenticated reader cabinet at `/account/`;
 2. the public reader profile at `/account/?reader={opaque-id}`;
 3. the article action that adds or removes an article from favorites;
 4. the saved-article collection shown below the profile in the cabinet.
+5. the Reader comment list and composer attached to eligible articles.
 
 The homepage, article typography, article cards, main navigation, footer,
-advertising, editorial WordPress screens, comments, and the visual identity of
+advertising, editorial WordPress screens, native WordPress comments, and the visual identity of
 HearthPulse are outside this contract. Do not use this document as permission
 for a site-wide redesign.
 
@@ -327,7 +328,7 @@ independent viewport-wide canvas.
 - Outer width: `min(100% - 2 × gutter, 960px)`.
 - Form measure: maximum 640px.
 - Desktop gutter: 32px; tablet: 24px; mobile: 16px.
-- Section spacing: 48px desktop, 32px mobile.
+- Section spacing: 32px desktop, 24px mobile.
 - Do not use negative margins, fixed page heights, or horizontal clipping.
 - Verify the WordPress admin bar, logged-out cached page, and logged-in page.
 
@@ -381,6 +382,15 @@ the owner-only “Удалить из избранного” action. The title 
 - The remove action remains reachable by keyboard and is not hidden on hover.
 - The empty state explains the feature and links to current materials.
 - A failed page preserves already loaded items and offers an inline retry.
+
+### Reader discussion
+
+Comments stay on the article's paper surface and use dividers rather than nested
+cards. The composer follows the thread with a 24px separation, 16px desktop
+padding and 12px mobile padding. Its textarea starts at 96px desktop and 88px
+mobile; controls retain 44px touch targets. A successful publication inserts
+the authoritative POST response immediately. Full-thread reconciliation is
+deferred outside the first second so it cannot compete with publication feedback.
 
 ### Responsive acceptance widths
 

@@ -236,7 +236,7 @@ try {
       return { profile: rect('[data-reader-profile-overview]'), favorites: rect('[data-reader-favorites]') };
     });
     const stackedGap = sectionOrder.favorites.top - sectionOrder.profile.bottom;
-    assert.ok(stackedGap >= (width <= 560 ? 32 : 48),
+    assert.ok(stackedGap >= (width <= 560 ? 24 : 32) && stackedGap <= (width <= 560 ? 28 : 36),
       `saved articles must follow the profile as a separate section at ${width}px: ${stackedGap}`);
     const geometry = await page.evaluate(() => {
       const rect = selector => { const { x, y, width, height, bottom, right } = document.querySelector(selector).getBoundingClientRect(); return { x, y, width, height, bottom, right }; };

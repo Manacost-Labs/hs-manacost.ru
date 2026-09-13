@@ -9,14 +9,15 @@ ADAPTER = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php
 
 
 class ReaderCommentsEditorialTests(unittest.TestCase):
-    def evaluate(self, code, environment='staging', enabled=True):
+    def evaluate(self, code, environment='staging', enabled=True, origin='https://test.hs-manacost.ru', production_gate=False):
         fixture = r'''<?php
 define('ABSPATH', '/fixture/');
 define('HS_MANACOST_READER_COMMENTS_ENABLED', ENABLED);
+define('HS_MANACOST_READER_ALLOW_PRODUCTION_COMMUNITY', PRODUCTION_GATE);
 define('HS_MANACOST_READER_COMMENT_POSTS', array(17));
 define('HS_MANACOST_READER_EDITORIAL_KEY', str_repeat('x', 43));
 function wp_get_environment_type() { return ENVIRONMENT; }
-function home_url($path = '') { return 'https://test.hs-manacost.ru' . $path; }
+function home_url($path = '') { return ORIGIN . $path; }
 function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
 class WP_Post { public $ID = 17; public $post_type = 'post'; public $post_status = 'publish'; public $post_password = ''; public $post_title = 'Тестовая статья'; public $post_content = 'Открытая статья'; }
 class WP_Error { public function __construct(public $code, public $message, public $data) {} }
@@ -31,12 +32,12 @@ class WP_REST_Request {
 }
 $post = new WP_Post();
 function get_post($id) { global $post; return $id === 17 ? $post : null; }
-$permalink = 'https://test.hs-manacost.ru/test-article/';
+$permalink = ORIGIN . '/test-article/';
 function get_permalink($post) { global $permalink; return $permalink; }
 function wp_strip_all_tags($text) { return strip_tags($text); }
 function __($text, $domain = '') { return $text; }
 require ADAPTER;
-'''.replace('ENABLED);', ('true' if enabled else 'false') + ');').replace('ENVIRONMENT;', json.dumps(environment) + ';').replace('require ADAPTER;', 'require ' + json.dumps(str(ADAPTER)) + ';')
+'''.replace('ENABLED);', ('true' if enabled else 'false') + ');').replace('PRODUCTION_GATE);', ('true' if production_gate else 'false') + ');').replace('ENVIRONMENT;', json.dumps(environment) + ';').replace('ORIGIN', json.dumps(origin)).replace('require ADAPTER;', 'require ' + json.dumps(str(ADAPTER)) + ';')
         result = subprocess.run(['php'], input=fixture + code, text=True, capture_output=True, check=True)
         return json.loads(result.stdout)
 
@@ -44,6 +45,9 @@ require ADAPTER;
         self.assertTrue(self.evaluate('echo json_encode(hs_reader_comments_enabled());'))
         self.assertFalse(self.evaluate('echo json_encode(hs_reader_comments_enabled());', enabled=False))
         self.assertFalse(self.evaluate('echo json_encode(hs_reader_comments_enabled());', environment='production'))
+        self.assertFalse(self.evaluate('echo json_encode(hs_reader_comments_enabled());', environment='production', origin='https://hs-manacost.ru'))
+        self.assertTrue(self.evaluate('echo json_encode(hs_reader_comments_enabled());', environment='production', origin='https://hs-manacost.ru', production_gate=True))
+        self.assertFalse(self.evaluate('echo json_encode(hs_reader_comments_enabled());', environment='production', origin='https://hs-manacost.com', production_gate=True))
 
     def test_only_reviewed_published_plain_article_is_eligible(self):
         result = self.evaluate('echo json_encode(array(hs_reader_comment_article(17), hs_reader_comment_article(18)));')
@@ -62,6 +66,17 @@ echo json_encode(array(hs_reader_editorial_permission($request), hs_reader_edito
         self.assertEqual(response['data']['site'], 'test.hs-manacost.ru')
         self.assertEqual(response['headers']['Cache-Control'], 'private, no-store')
         self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': False})
+
+    def test_production_editorial_response_is_bound_to_the_exact_live_site(self):
+        code = '''$request = new WP_REST_Request();
+$time = (string) time();
+$request->headers['x-reader-time'] = $time;
+$request->headers['x-reader-signature'] = hash_hmac('sha256', "POST\\n/manacost-reader/v1/threads\\n" . $time . "\\n" . $request->body, HS_MANACOST_READER_EDITORIAL_KEY);
+echo json_encode(array(hs_reader_editorial_permission($request), hs_reader_editorial_threads($request)));'''
+        permitted, response = self.evaluate(code, environment='production', origin='https://hs-manacost.ru', production_gate=True)
+        self.assertTrue(permitted)
+        self.assertEqual(response['data']['site'], 'hs-manacost.ru')
+        self.assertEqual(response['data']['threads'][0]['path'], '/test-article/')
 
     def test_favorites_use_the_same_signed_editorial_boundary(self):
         code = '''class FavoriteRequest extends WP_REST_Request { function get_route() { return '/manacost-reader/v1/favorites'; } }

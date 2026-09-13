@@ -157,3 +157,32 @@ The resource hints now use `media="(min-width: 768px)"`, matching Newspaper's
 767 px mobile breakpoint. Browsers must not preload these desktop-only fonts
 on a narrow initial viewport; normal CSS font loading remains available when
 needed. No asset content/version or server/account behavior changes here.
+
+## Production-readiness density and interaction slice — 2026-09-13
+
+The 0.8.1 candidate starts from staging-tested source
+`b5d4a1d3dbee245e0cc376e48651df9b9de89109`. It changes the Reader surfaces,
+not Newspaper, WP Rocket, Perfmatters or their global options.
+
+The cabinet now uses a 32px desktop and 24px mobile section rhythm instead of
+48px and 32px. Profile padding is 24px on roomy screens and 16px below 430px.
+The comment composer uses 16px desktop and 12px mobile padding, a 96px/88px
+initial textarea and 6px row gaps while every interactive target remains at
+least 44px. Synthetic browser checks cover 320, 390, 560, 768, 1024 and 1440px
+plus 200% zoom; the 390px composer remains below 560px high and the 1440px
+composer below 420px.
+
+A successful comment POST already returns the canonical comment and the browser
+renders it before releasing the submit lock. Previously the same path started a
+full thread GET immediately. The candidate performs no reconciliation GET in
+the first 250ms and schedules one after one second. Rapid publications are
+coalesced into that refresh and all canonical POST results remain visible even
+when they fall beyond the first 20-item page. This removes the redundant read
+from the interaction-critical window without changing authorization,
+idempotency or eventual server reconciliation. Reactions remain optimistic and
+roll back on failure.
+
+The complete twelve-asset Reader source inventory is 150,920 bytes, below the
+existing 151,000-byte guard; `comments.js` remains within its 35,500-byte guard.
+These are deterministic source and synthetic interaction measurements. They do
+not claim field latency for an authenticated production user.

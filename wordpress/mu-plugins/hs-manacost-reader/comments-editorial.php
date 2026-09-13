@@ -7,11 +7,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** Enable reader features only on their isolated staging origin. */
+/** Enable reader features on staging, or on production behind its separate explicit gate. */
 function hs_reader_comments_enabled(): bool {
-	return defined( 'HS_MANACOST_READER_COMMENTS_ENABLED' ) && true === HS_MANACOST_READER_COMMENTS_ENABLED
-		&& 'staging' === wp_get_environment_type()
-		&& 'https://test.hs-manacost.ru' === home_url();
+	if ( ! defined( 'HS_MANACOST_READER_COMMENTS_ENABLED' ) || true !== HS_MANACOST_READER_COMMENTS_ENABLED ) {
+		return false;
+	}
+	$staging    = 'staging' === wp_get_environment_type() && 'https://test.hs-manacost.ru' === home_url();
+	$production = defined( 'HS_MANACOST_READER_ALLOW_PRODUCTION_COMMUNITY' )
+		&& true === HS_MANACOST_READER_ALLOW_PRODUCTION_COMMUNITY
+		&& 'production' === wp_get_environment_type() && 'https://hs-manacost.ru' === home_url();
+	return $staging || $production;
 }
 
 /**
@@ -46,7 +51,7 @@ function hs_reader_public_article( int $post_id ): array {
 		return $articles[ $post_id ];
 	}
 	$url = filter_var( get_permalink( $post ), FILTER_VALIDATE_URL );
-	if ( ! is_string( $url ) || ! str_starts_with( $url, 'https://test.hs-manacost.ru/' ) ) {
+	if ( ! is_string( $url ) || ! str_starts_with( $url, home_url() . '/' ) ) {
 		$articles[ $post_id ] = $denied;
 		return $articles[ $post_id ];
 	}
@@ -147,7 +152,7 @@ function hs_reader_editorial_response( WP_REST_Request $request, callable $artic
 	}
 	return new WP_REST_Response(
 		array(
-			'site'    => 'test.hs-manacost.ru',
+			'site'    => wp_parse_url( home_url(), PHP_URL_HOST ),
 			'threads' => array_map( $article, $ids ),
 		),
 		200,

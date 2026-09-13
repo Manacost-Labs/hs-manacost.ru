@@ -23,6 +23,7 @@ let writes = [];
 let holdCommentBody = false;
 let holdRefresh = false;
 let heldRefreshes = [];
+let paginated = false;
 let failPost = false;
 let deletes = [];
 const attachmentId = '423e4567-e89b-42d3-a456-426614174000';
@@ -46,14 +47,15 @@ const server = createServer(async (req, res) => {
     return res.end(JSON.stringify({ items: ids.map(commentId => ({ commentId, reactions: selectedReactions })) }));
   }
   if (req.url === '/reader-api/v1/me') { meReads++; return res.end(JSON.stringify({ profile: { id, displayName: 'Я', bio: '', favoriteClass: 'mage', version: 1, avatarUrl: null }, csrfToken: 'synthetic' })); }
-  if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { commentReads++; if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} if (holdRefresh) { req.resume(); heldRefreshes.push(res); return; } return res.end(JSON.stringify({items: comments, nextCursor: null})); }
+  if (req.url.startsWith('/reader-api/v1/threads/7/comments') && req.method === 'GET') { commentReads++; if(holdCommentBody){res.writeHead(200,{'content-type':'application/json'});res.write('{"items":');return;} if (holdRefresh) { req.resume(); heldRefreshes.push(res); return; } return res.end(JSON.stringify({items: paginated ? comments.slice(0,20) : comments, nextCursor: paginated ? '623e4567-e89b-42d3-a456-426614174000' : null})); }
   if (req.url === '/reader-api/v1/comment-attachments' && req.method === 'PUT') { for await (const _chunk of req) {} attachmentUploads++; res.writeHead(attachmentResponse.status, {'content-type':'application/json'}); return res.end(JSON.stringify(attachmentResponse.body)); }
   if (req.url === `/reader-api/v1/comment-attachments/${attachmentId}` && req.method === 'DELETE') { req.resume(); return res.end(JSON.stringify({id:attachmentId,discarded:true})); }
   if (req.url === '/reader-api/v1/favorites/7' && req.method === 'GET') return res.end(JSON.stringify({ postId: 7, saved: articleFavoriteSaved, csrfToken: articleFavoriteCsrf }));
   if (req.url === '/reader-api/v1/favorites/7' && (req.method === 'PUT' || req.method === 'DELETE')) { for await (const _chunk of req) {} articleFavoriteSaved = req.method === 'PUT'; articleFavoriteWrites.push({ method: req.method, headers: req.headers }); return res.end(JSON.stringify(req.method === 'PUT' ? { postId: 7, saved: true, favorite: { id: '523e4567-e89b-42d3-a456-426614174000', postId: 7, title: 'Тестовая статья', path: '/article/', createdAt: Date.now() } } : { postId: 7, saved: false })); }
   if (req.url === '/reader-api/v1/comments/323e4567-e89b-42d3-a456-426614174000/attachment') { res.writeHead(200, {'content-type':'image/svg+xml'}); return res.end('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="48"><rect width="96" height="48" fill="#547"/></svg>'); }
-  if (req.url === '/reader-api/v1/threads/7/comments' && req.method === 'POST') { let raw=''; for await (const chunk of req) raw += chunk; const body=JSON.parse(raw); writes.push(body); if(failPost)return req.socket.destroy(); const comment={id:'323e4567-e89b-42d3-a456-426614174000',postId:7,parentId:body.parentId,status:'published',version:1,createdAt:Date.now(),body:body.body,attachment:body.attachmentId ? {id:body.attachmentId,width:96,height:48,url:'/reader-api/v1/comments/323e4567-e89b-42d3-a456-426614174000/attachment'} : null,author:{...author,id,name:'Я',avatarUrl:null,avatarVersion:null,paidSubscriber:false,hasTwitch:false,hasYoutube:false}}; comments=[...comments,comment]; res.writeHead(201,{'content-type':'application/json'}); return res.end(JSON.stringify({comment})); }
-	if (req.url === '/reader-api/v1/comments/223e4567-e89b-42d3-a456-426614174000' && req.method === 'DELETE') { let raw=''; for await (const chunk of req) raw += chunk; deletes.push({headers:req.headers,body:JSON.parse(raw)}); return res.end('{}'); }
+  if (req.url === '/reader-api/v1/threads/7/comments' && req.method === 'POST') { let raw=''; for await (const chunk of req) raw += chunk; const body=JSON.parse(raw); writes.push(body); if(failPost)return req.socket.destroy(); const commentId=writes.length===1?'323e4567-e89b-42d3-a456-426614174000':`${String(writes.length).padStart(8,'0')}-e89b-42d3-a456-426614174000`; const comment={id:commentId,postId:7,parentId:body.parentId,status:'published',version:1,createdAt:Date.now(),body:body.body,attachment:body.attachmentId ? {id:body.attachmentId,width:96,height:48,url:`/reader-api/v1/comments/${commentId}/attachment`} : null,author:{...author,id,name:'Я',avatarUrl:null,avatarVersion:null,paidSubscriber:false,hasTwitch:false,hasYoutube:false}}; comments=[...comments,comment]; res.writeHead(201,{'content-type':'application/json'}); return res.end(JSON.stringify({comment})); }
+	if (/^\/reader-api\/v1\/comments\/[0-9a-f-]{36}$/i.test(req.url) && req.method === 'DELETE') { let raw=''; for await (const chunk of req) raw += chunk; deletes.push({headers:req.headers,body:JSON.parse(raw)}); const commentId=req.url.split('/').at(-1); comments=comments.filter(comment=>comment.id!==commentId); return res.end('{}'); }
+	if (req.url === '/reader-api/v1/community/profile' && req.method === 'DELETE') { for await (const _chunk of req) {} comments=comments.filter(comment=>comment.author?.id!==id); return res.end(JSON.stringify({erased:true})); }
   res.statusCode=404; res.end();
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -165,12 +167,12 @@ try {
     assert.equal(composerAccents.radius, '8px', 'the generated Reader Tailwind layer must preserve the shared surface geometry');
     assert.equal(composerAccents.shadow, 'none', 'the comment composer must remain shadow-free');
     if (width === 390) {
-      assert.ok(composerHeight < 610, `mobile composer remains compact: ${composerHeight}`);
+      assert.ok(composerHeight < 560, `mobile composer remains compact: ${composerHeight}`);
       assert.ok(composerActions.attachment.width >= composerActions.contentWidth - 1, 'mobile attachment action spans the composer');
       assert.ok(composerActions.submit.width >= composerActions.contentWidth - 1, 'mobile publish action spans the composer');
     }
     if (width === 1440) {
-      assert.ok(composerHeight < 460, `desktop composer remains compact: ${composerHeight}`);
+      assert.ok(composerHeight < 420, `desktop composer remains compact: ${composerHeight}`);
       assert.ok(Math.abs(composerActions.attachment.center - composerActions.submit.center) <= 1, 'desktop actions share one toolbar row');
       assert.ok(composerActions.sync.top >= Math.max(composerActions.attachment.bottom, composerActions.submit.bottom), 'profile sync follows the primary toolbar');
     }
@@ -297,10 +299,52 @@ try {
   await page.locator('.mc-comments__image').waitFor();
   assert.equal(writes.at(-1).attachmentId, attachmentId);
   await page.waitForFunction(() => document.querySelectorAll('.mc-comments__body').length >= 2);
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(heldRefreshes.length, 1, 'the reconciliation read is in flight after the published comment is already visible');
+  await page.waitForTimeout(250);
+  assert.equal(heldRefreshes.length, 0, 'publishing must not immediately compete with a full thread read');
+  await page.waitForTimeout(1100);
+  assert.equal(heldRefreshes.length, 1, 'the authoritative thread is reconciled outside the interaction-critical window');
   holdRefresh = false;
   for (const response of heldRefreshes.splice(0)) response.end(JSON.stringify({ items: comments, nextCursor: null }));
+  await page.waitForTimeout(50);
+  const originalRow = comments[0];
+  comments = Array.from({ length: 20 }, (_, index) => ({ ...originalRow,
+    id: `${String(index + 10).padStart(8, '0')}-e89b-42d3-a456-426614174000`, body: `Старый комментарий ${index + 1}` }));
+  paginated = true;
+  for (const text of ['Быстрый комментарий A', 'Быстрый комментарий B']) {
+    await page.getByLabel('Комментарий', { exact: true }).fill(text);
+    await Promise.all([
+      page.waitForResponse(response => response.request().method() === 'POST' && response.status() === 201),
+      page.getByRole('button', { name: 'Опубликовать', exact: true }).click(),
+    ]);
+    await page.locator('.mc-comments__body').filter({ hasText: text }).waitFor();
+  }
+  await page.waitForTimeout(1250);
+  for (const text of ['Быстрый комментарий A', 'Быстрый комментарий B']) {
+    assert.equal(await page.locator('.mc-comments__body').filter({ hasText: text }).count(), 1,
+      'coalesced pagination reconciliation preserves every rapid publication');
+  }
+  const rapidB = page.locator('.mc-comments__comment').filter({ hasText: 'Быстрый комментарий B' });
+  page.once('dialog', dialog => dialog.accept());
+  await Promise.all([
+    page.waitForResponse(response => response.request().method() === 'DELETE' && response.url().includes('/comments/')),
+    rapidB.getByRole('button', { name: 'Удалить' }).click(),
+  ]);
+  assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий B' }).count(), 0,
+    'confirmed deletion removes a reconciled comment even when it is beyond the first page');
+  assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий A' }).count(), 1,
+    'deleting one reconciled comment keeps the other publication');
+  await page.locator('[data-comments-data] summary').click();
+  page.once('dialog', dialog => dialog.accept());
+  await Promise.all([
+    page.waitForResponse(response => response.request().method() === 'DELETE' && response.url().endsWith('/community/profile')),
+    page.locator('[data-comments-erase]').click(),
+  ]);
+  assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий A' }).count(), 0,
+    'community erasure clears retained own comments outside the first page');
+  paginated = false;
+  comments = [originalRow];
+  await page.reload();
+  await page.getByRole('textbox', { name: 'Комментарий' }).waitFor();
   attachmentResponse = { status: 503, body: { error: 'attachment_busy' } };
   await page.locator('[data-comments-attachment-input]').setInputFiles({
     name: 'busy.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]),
