@@ -1,0 +1,34 @@
+/* Public Reader profile only. Shared controls and page frame belong to ui.css. */
+.mc-public-profile .mc-public-profile__eyebrow{margin:0 0 6px;color:var(--mc-ui-muted);font:500 12px/1.5 var(--mc-ui-display);letter-spacing:.08em;text-transform:uppercase;}
+.mc-public-profile h1{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;color:var(--mc-ui-text);font:700 28px/1.2 var(--mc-ui-display);}
+.mc-public-profile [data-public-profile-status]{color:var(--mc-ui-muted);font-size:14px;line-height:1.5;}
+.mc-public-profile .mc-public-profile__author-mark{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--mc-ui-muted);}
+.mc-public-profile .mc-public-profile__author-mark svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8;}
+.mc-public-profile .mc-public-profile__author-mark--twitch{color:#7650a9;}
+.mc-public-profile .mc-public-profile__author-mark--youtube{color:#a33a34;}
+.mc-public-profile .mc-public-profile__author-mark--paid{display:inline-flex;flex:none;width:auto;height:26px;gap:5px;padding:3px 8px;border:1px solid #ead6aa;border-radius:999px;background:#fbf3e2;color:#875b13;font:650 12px/1.2 var(--mc-ui-body);}
+.mc-public-profile .mc-public-profile__author-mark--administrator{width:auto;min-height:24px;padding:3px 7px;border:1px solid #8aa7b7;border-radius:999px;background:#edf5f8;color:#245970;font:700 11px/1.2 var(--mc-ui-body);}
+.mc-public-profile .mc-platform-icon{fill:currentColor;stroke:none;}
+.mc-public-profile .mc-public-profile__author-mark--paid svg{width:16px;height:16px;fill:currentColor;stroke-width:1.2;}
+.mc-reader-ui.mc-public-profile{margin:32px 0;padding:clamp(24px,4vw,40px);border:1px solid var(--mc-ui-border);border-radius:8px;background:#fff;}
+.mc-public-profile .mc-public-profile__back{display:inline-flex;align-items:center;min-height:44px;margin-bottom:24px;color:var(--mc-ui-accent);font:650 14px/1.5 var(--mc-ui-body);text-decoration:none;}
+.mc-public-profile [data-public-profile-content]{display:grid;grid-template-columns:96px minmax(0,1fr);gap:0 24px;}
+.mc-public-profile [data-public-profile-content]>*{grid-column:2;}
+.mc-public-profile [data-public-profile-avatar],.mc-public-profile [data-public-profile-placeholder]{grid-column:1;grid-row:1 / span 7;width:96px;height:96px;border:1px solid #c9a96f;border-radius:50%;object-fit:cover;}
+.mc-public-profile [data-public-profile-placeholder]{display:grid;place-items:center;background:var(--mc-ui-raised);color:var(--mc-ui-accent);font:700 30px/1 var(--mc-ui-body);}
+.mc-public-profile [data-public-profile-bio]{margin-bottom:18px;color:var(--mc-ui-muted);white-space:pre-wrap;}
+.mc-public-profile .mc-public-profile__class{display:inline-flex;align-items:center;gap:10px;}
+.mc-public-profile .mc-public-profile__class img{display:block;width:38px;height:38px;}
+.mc-public-profile .mc-public-profile__class small{display:block;color:var(--mc-ui-muted);font-size:12px;}
+.mc-public-profile .mc-public-profile__class strong{display:block;font-weight:650;}
+.mc-public-profile .mc-public-profile__socials{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;padding-top:18px;border-top:1px solid var(--mc-ui-border);}
+.mc-public-profile .mc-public-profile__socials p{flex:1 0 100%;margin:0;color:var(--mc-ui-muted);}
+.mc-public-profile .mc-public-profile__socials a{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:7px 9px;border:1px solid var(--mc-ui-border);border-radius:6px;font:650 13px/1.35 var(--mc-ui-body);text-decoration:none;}
+.mc-public-profile .mc-public-profile__social svg{width:20px;height:20px;flex:0 0 auto;}
+.mc-public-profile .mc-public-profile__socials .mc-public-profile__social--twitch{color:#7040b5;}
+.mc-public-profile .mc-public-profile__socials .mc-public-profile__social--youtube{color:#ad2637;}
+@media (max-width:560px){.mc-reader-ui.mc-public-profile{margin-block:24px;padding:24px;}
+.mc-public-profile [data-public-profile-content]{display:block;}
+.mc-public-profile [data-public-profile-avatar],.mc-public-profile [data-public-profile-placeholder]{width:72px;height:72px;margin-bottom:16px;}
+.mc-public-profile h1{font-size:26px;}
+}

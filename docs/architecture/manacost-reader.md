@@ -95,6 +95,25 @@ clear private data on failure/pagehide, discard stale responses, and show a
 retry action on network failure or after a seven-second browser deadline.
 Logout retry retries logout, not a profile read. There is no localStorage auth.
 
+### Surface asset boundary
+
+`wordpress/mu-plugins/hs-manacost-reader/assets.php` is the only registry for
+Reader handles, source files and dependencies. The loaders select logical assets
+for one surface; they do not construct URLs or duplicate cache versions:
+
+| Surface | CSS composition | JavaScript composition |
+| --- | --- | --- |
+| Private account | `ui.css`, `reader.css`, `tailwind.css` | profile editor, account runtime |
+| Public profile | `ui.css`, `public-profile.css`, `tailwind.css` | public profile runtime |
+| Eligible article | `ui.css`, `comments.css`, optional favorite CSS, `tailwind.css` | comments/community and optional favorite runtime |
+
+`ui.css` owns tokens, controls and the account page frame. `reader.css`,
+`comments.css`, `public-profile.css` and `article-favorite.css` each own one
+composition boundary. Tailwind remains a build-time, zero-runtime refinement;
+it cannot reintroduce shadows, oversized radii or a tile around favorite class.
+All files retain content-hash versions and the existing scoped optimizer
+exclusion. Public/private cache and authorization behavior are unchanged.
+
 ## Deployment prerequisites: not applied
 
 The existing release workflows run checks but **do not deploy the BFF**. A

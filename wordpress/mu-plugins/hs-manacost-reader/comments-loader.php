@@ -7,6 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/assets.php';
 require_once __DIR__ . '/comments-editorial.php';
 require_once __DIR__ . '/article-favorite.php';
 
@@ -84,46 +85,20 @@ function hs_reader_comments_assets(): void {
 	if ( ! $public && ! $thread && ! $favorite ) {
 		return;
 	}
-	$base = content_url( 'mu-plugins/hs-manacost-reader/' );
-	wp_enqueue_style( 'hs-manacost-reader-ui', $base . 'ui.css', array(), hs_manacost_reader_asset_version( 'ui.css' ) );
-	if ( $public || $thread ) {
-		wp_enqueue_style( 'hs-manacost-reader-comments', $base . 'comments.css', array( 'hs-manacost-reader-ui' ), hs_manacost_reader_asset_version( 'comments.css' ) );
+	hs_manacost_reader_enqueue_style( 'ui' );
+	if ( $public ) {
+		hs_manacost_reader_enqueue_style( 'public-profile' );
+	} elseif ( $thread ) {
+		hs_manacost_reader_enqueue_style( 'comments' );
 	}
 	if ( $favorite ) {
-		wp_enqueue_style( 'hs-manacost-reader-favorite', $base . 'article-favorite.css', array( 'hs-manacost-reader-ui' ), hs_manacost_reader_asset_version( 'article-favorite.css' ) );
-		wp_enqueue_script(
-			'hs-manacost-reader-favorite',
-			$base . 'article-favorite.js',
-			array(),
-			hs_manacost_reader_asset_version( 'article-favorite.js' ),
-			array(
-				'strategy'  => 'defer',
-				'in_footer' => true,
-			)
-		);
+		hs_manacost_reader_enqueue_style( 'favorite' );
+		hs_manacost_reader_enqueue_script( 'favorite' );
 	}
 	if ( $thread ) {
-		wp_enqueue_script(
-			'hs-manacost-reader-community-ui',
-			$base . 'community-ui.js',
-			array(),
-			hs_manacost_reader_asset_version( 'community-ui.js' ),
-			array(
-				'strategy'  => 'defer',
-				'in_footer' => true,
-			)
-		);
+		hs_manacost_reader_enqueue_script( 'community' );
 	}
 	if ( $public || $thread ) {
-		wp_enqueue_script(
-			$public ? 'hs-manacost-reader-public-profile' : 'hs-manacost-reader-comments',
-			$base . ( $public ? 'public-profile.js' : 'comments.js' ),
-			$public ? array() : array( 'hs-manacost-reader-community-ui' ),
-			hs_manacost_reader_asset_version( $public ? 'public-profile.js' : 'comments.js' ),
-			array(
-				'strategy'  => 'defer',
-				'in_footer' => true,
-			)
-		);
+		hs_manacost_reader_enqueue_script( $public ? 'public-profile' : 'comments' );
 	}
 }

@@ -162,8 +162,8 @@ try {
       'the comment composer uses the same neutral border on every side');
     assert.equal(composerAccents.noticeLeftStyle, 'none', 'the profile notice has no decorative left marker');
     assert.equal(composerAccents.noticeLeftWidth, '0px', 'the profile notice reserves no width for a left marker');
-    assert.equal(composerAccents.radius, '12px', 'the generated Reader Tailwind layer must be active on comments');
-    assert.notEqual(composerAccents.shadow, 'none', 'the generated Reader Tailwind layer must add restrained composer depth');
+    assert.equal(composerAccents.radius, '8px', 'the generated Reader Tailwind layer must preserve the shared surface geometry');
+    assert.equal(composerAccents.shadow, 'none', 'the comment composer must remain shadow-free');
     if (width === 390) {
       assert.ok(composerHeight < 610, `mobile composer remains compact: ${composerHeight}`);
       assert.ok(composerActions.attachment.width >= composerActions.contentWidth - 1, 'mobile attachment action spans the composer');
@@ -261,7 +261,7 @@ try {
   const uploadsBeforeFilePicker = attachmentUploads;
   const attachmentPicker = page.locator('[data-comments-attachment-picker]');
   await attachmentPicker.hover();
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-comments-attachment-picker]')).transform === 'matrix(1, 0, 0, 1, 0, -1)');
+  assert.equal(await attachmentPicker.evaluate(element => getComputedStyle(element).transform), 'none', 'hover keeps the attachment action geometrically stable');
   await page.mouse.down();
   await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-comments-attachment-picker]')).transform === 'matrix(1, 0, 0, 1, 0, 1)');
   await page.mouse.up();

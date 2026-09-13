@@ -117,6 +117,6 @@ echo json_encode(array($pilot, $pilot_assets, $outside, $outside_assets, $public
         self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite', 'hs-manacost-reader-favorite', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
         self.assertEqual(outside, '/native.php')
         self.assertEqual(outside_assets, [])
-        self.assertEqual(public_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader', 'hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-public-profile'])
+        self.assertEqual(public_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-public-profile', 'hs-manacost-reader-public-profile'])
         self.assertTrue(requested)
         self.assertEqual(invalid_id, '')
