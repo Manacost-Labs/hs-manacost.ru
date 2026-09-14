@@ -25,6 +25,7 @@ const shell = (file, call, extra = '') => execFileSync('php', ['-r', `define('AB
 const commentShell = shell(`${plugin}/comments.php`, 'hs_reader_comments_shell()');
 const profileShell = shell(`${plugin}/public-profile.php`, `hs_reader_public_profile_shell('${id}')`);
 const assets = new Map([
+  ['/bootstrap.js', ['text/javascript', readFileSync(`${plugin}/bootstrap.js`)]],
   ['/community-ui.js', ['text/javascript', readFileSync(`${plugin}/community-ui.js`)]],
   ['/comments.js', ['text/javascript', readFileSync(`${plugin}/comments.js`)]],
   ['/public-profile.js', ['text/javascript', readFileSync(`${plugin}/public-profile.js`)]],
@@ -69,7 +70,7 @@ const server = createServer(async (request, response) => {
   if (asset) { response.writeHead(200, { 'content-type': asset[0] }); response.end(asset[1]); return; }
   if (request.url === '/') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${commentShell}<script src=/community-ui.js></script><script src=/comments.js></script>`); return;
+    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${commentShell}<script src=/bootstrap.js></script><script src=/community-ui.js></script><script src=/comments.js></script>`); return;
   }
   if (request.url === '/profile') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
@@ -84,7 +85,7 @@ const server = createServer(async (request, response) => {
     })) });
     return;
   }
-  if (request.url === '/reader-api/v1/me') {
+  if (request.url === '/reader-api/v1/bootstrap') {
     if (hold.me) { request.resume(); held.me.push({ response }); return; }
     json(response, 200, me(meVersion)); return;
   }

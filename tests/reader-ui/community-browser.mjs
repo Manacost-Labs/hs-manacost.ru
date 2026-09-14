@@ -24,6 +24,7 @@ const json = (response, status, value) => {
 const php = "define('ABSPATH','/fixture/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$part){return '/article/';} require $argv[1]; echo hs_reader_comments_shell();";
 const shell = execFileSync('php', ['-r', php, `${plugin}/comments.php`], { encoding: 'utf8' });
 const assets = new Map([
+  ['/bootstrap.js', ['text/javascript', readFileSync(`${plugin}/bootstrap.js`)]],
   ['/community-ui.js', ['text/javascript', readFileSync(`${plugin}/community-ui.js`)]],
   ['/comments.js', ['text/javascript', readFileSync(`${plugin}/comments.js`)]],
   ['/comments.css', ['text/css', readFileSync(`${plugin}/comments.css`)]],
@@ -73,10 +74,10 @@ const server = createServer(async (request, response) => {
   if (asset) { response.writeHead(200, { 'content-type': asset[0] }); response.end(asset[1]); return; }
   if (request.url === '/') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${shell}<script src=/community-ui.js></script><script src=/comments.js></script>`);
+    response.end(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><link rel=stylesheet href=/ui.css><link rel=stylesheet href=/comments.css><body>${shell}<script src=/bootstrap.js></script><script src=/community-ui.js></script><script src=/comments.js></script>`);
     return;
   }
-  if (request.url === '/reader-api/v1/me') { json(response, 200, me()); return; }
+  if (request.url === '/reader-api/v1/bootstrap') { json(response, 200, me()); return; }
   if (request.url.startsWith('/reader-api/v1/threads/7/comments') && request.method === 'GET') { json(response, 200, { items: rows, nextCursor: null }); return; }
   if (request.url === '/reader-api/v1/community/me') {
     if (holdPermission) { request.resume(); heldPermissions.push(response); return; }

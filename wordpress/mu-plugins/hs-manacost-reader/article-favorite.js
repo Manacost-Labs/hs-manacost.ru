@@ -74,9 +74,7 @@
       if (!stopped && login.hidden) { busy = false; interactionPending = false; operation = ''; render(); }
     }
   });
-  const defer = () => { void load(false); };
-  if ('requestIdleCallback' in window) window.requestIdleCallback(defer, { timeout: 1200 });
-  else setTimeout(defer, 800);
   addEventListener('pagehide', () => { stopped = true; });
   render();
+  void load(false);
 })();

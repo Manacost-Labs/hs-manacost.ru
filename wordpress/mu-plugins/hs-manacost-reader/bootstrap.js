@@ -1,7 +1,8 @@
 (() => {
   'use strict';
   let current = null;
-  window.hsManacostReaderBootstrap = () => {
+  window.hsManacostReaderBootstrap = (refresh = false) => {
+    if (refresh) current = null;
     if (current) return current;
     const favorite = document.querySelector('[data-mc-article-favorite]');
     const postId = Number(favorite?.dataset.postId);
