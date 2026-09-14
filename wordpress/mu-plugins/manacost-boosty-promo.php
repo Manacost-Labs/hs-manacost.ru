@@ -75,11 +75,15 @@ final class Manacost_Boosty_Promo {
 	 * @return false|string
 	 */
 	public static function replace_homepage_pricing_card( $output, string $tag, array $attr ) {
-		if ( false !== $output || ! is_front_page() || 'tds_pricing1' !== $tag ) {
+		if ( false !== $output || ! is_front_page() || 'tdm_block_pricing' !== $tag ) {
 			return $output;
 		}
 
-		if ( ! isset( $attr['button_url'] ) || self::BOOSTY_URL !== $attr['button_url'] ) {
+		if (
+			! isset( $attr['button_url'], $attr['tds_pricing'] )
+			|| self::BOOSTY_URL !== $attr['button_url']
+			|| 'tds_pricing1' !== $attr['tds_pricing']
+		) {
 			return $output;
 		}
 
