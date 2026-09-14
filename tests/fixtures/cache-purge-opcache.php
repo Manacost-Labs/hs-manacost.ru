@@ -31,6 +31,7 @@ $GLOBALS['fixture'] = [
 	'rocket' => [],
 	'actions' => [],
 	'remote_posts' => [],
+	'remote_post_args' => [],
 	'reverse_should_fail' => false,
 	'options' => [],
 	'posts' => [],
@@ -54,12 +55,14 @@ function wp_parse_url( string $url, int $component = -1 ) { return parse_url( $u
 function esc_url_raw( string $url ): string { return $url; }
 function wp_json_encode( $value ): string { return json_encode( $value, JSON_THROW_ON_ERROR ); }
 function wp_cache_flush(): bool { $GLOBALS['fixture']['object_cache']++; return true; }
+function wp_delete_file( string $file ): bool { return unlink( $file ); }
 function rocket_clean_minify(): void { $GLOBALS['fixture']['rocket'][] = 'minify'; }
 function rocket_clean_cache_busting(): void { $GLOBALS['fixture']['rocket'][] = 'cache-busting'; }
 function rocket_clean_used_css(): void { $GLOBALS['fixture']['rocket'][] = 'used-css'; }
 function opcache_reset(): bool { $GLOBALS['fixture']['opcache']++; return true; }
 function wp_remote_post( string $url, array $args ): array {
 	$GLOBALS['fixture']['remote_posts'][] = $url;
+	$GLOBALS['fixture']['remote_post_args'][] = $args;
 	if ( str_contains( $url, 'cloudflare.com' ) ) {
 		return [ 'code' => 200, 'body' => '{"success":true}' ];
 	}
@@ -151,6 +154,7 @@ echo json_encode( [
 	'rocket' => $GLOBALS['fixture']['rocket'],
 	'actions' => $GLOBALS['fixture']['actions'],
 	'remote_posts' => $GLOBALS['fixture']['remote_posts'],
+	'remote_post_args' => $GLOBALS['fixture']['remote_post_args'],
 	'result_names' => array_column( $results, 'name' ),
 	'failed' => $last['failed'] ?? 0,
 	'local_cache_marker_exists' => file_exists( WP_CONTENT_DIR . '/cache/wp-rocket/marker' ),

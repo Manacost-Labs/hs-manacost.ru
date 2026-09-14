@@ -1359,22 +1359,22 @@
         "name": "cloudflare_api_email",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1070
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 282
       },
       {
         "name": "cloudflare_api_key",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1079
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 293
       },
       {
         "name": "cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1061
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 271
       },
       {
         "name": "date_format",
@@ -1752,42 +1752,42 @@
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 751
+        "line": 1038
       },
       {
         "name": "manacost_cloudflare_api_key",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1077
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 291
       },
       {
         "name": "manacost_cloudflare_api_token",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1096
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 311
       },
       {
         "name": "manacost_cloudflare_email",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1068
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 280
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1059
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 269
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "update_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1173
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 406
       },
       {
         "name": "manacost_ingest_logs",
@@ -1814,22 +1814,22 @@
         "name": "manacost_reverse_proxy_purge_endpoints",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 945
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 124
       },
       {
         "name": "manacost_reverse_proxy_purge_host",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 959
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 142
       },
       {
         "name": "manacost_reverse_proxy_purge_token",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 952
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 133
       },
       {
         "name": "spqi_descriptions",
@@ -2003,8 +2003,8 @@
         "name": "wp_rocket_settings",
         "resolved": true,
         "api": "get_option",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1044
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 250
       }
     ],
     "shortcodes": [
@@ -2418,14 +2418,14 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 558
+        "line": 778
       },
       {
         "name": "manacost_cache_purge_cron",
         "resolved": true,
         "api": "wp_schedule_event",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 170
+        "line": 231
       },
       {
         "name": "unified_hs_check_english_titles",
@@ -2903,28 +2903,21 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 591
+        "line": 817
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 614
+        "line": 845
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 639
-      },
-      {
-        "name": "manage_options",
-        "resolved": true,
-        "api": "current_user_can",
-        "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 664
+        "line": 997
       },
       {
         "name": "manage_options",

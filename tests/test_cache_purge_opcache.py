@@ -46,13 +46,23 @@ class CachePurgeOpcacheTest(unittest.TestCase):
         return json.loads(completed.stdout)
 
     def assert_full_purge_steps_remain(self, result: dict) -> None:
-        self.assertEqual(result["object_cache"], 1)
+        self.assertEqual(result["object_cache"], 0)
         self.assertEqual(result["rocket"], ["minify", "cache-busting", "used-css"])
         self.assertEqual(result["actions"], ["perfmatters_clear_cache", "perfmatters_clear_used_css"])
         self.assertEqual(len(result["remote_posts"]), 2)
         self.assertFalse(result["local_cache_marker_exists"])
         self.assertTrue(EXPECTED_NON_OPCACHE_STEPS.issubset(result["result_names"]))
         self.assertEqual(result["failed"], 0)
+
+    def test_purges_keep_tls_verification_and_target_only_the_canonical_home_url(self) -> None:
+        result = self.run_scenario("manual")
+        self.assertTrue(all(request.get("sslverify") is not False for request in result["remote_post_args"]))
+        cloudflare_request = next(
+            request
+            for url, request in zip(result["remote_posts"], result["remote_post_args"])
+            if "cloudflare.com" in url
+        )
+        self.assertEqual(json.loads(cloudflare_request["body"]), {"files": ["https://example.test/"]})
 
     def test_automatic_post_lifecycle_purges_skip_opcache_but_keep_other_purge_steps(self) -> None:
         for source in (
