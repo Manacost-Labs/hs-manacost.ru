@@ -13,6 +13,7 @@ function fixture() {
     authorizationUrl: attempt => { const url = new URL('https://identity.test/identity/auth'); Object.entries(attempt).forEach(([key, value]) => url.searchParams.set(key, value)); return url; },
     exchange: async () => ({ subject: 'reader-1', accessToken: 'private-access', expiresIn: 300 }),
     profile: async () => active ? { displayName: 'Читатель <script>' } : null,
+    verify: async () => active,
     revoke: async () => {},
   };
   const handle = createReaderHandler({ origin, store, identity, csrfKey: randomBytes(32) });
@@ -44,6 +45,28 @@ test('anonymous, browser-bound login, no-store profile and authoritative revocat
     f.block();
     assert.equal((await f.handle(new Request(`${origin}/reader-api/v1/me`, { headers }))).status, 401);
   } finally { f.store.close(); }
+});
+
+test('private ad status gives paid HearthPulse readers an ad-free fail-closed gate', async () => {
+  const store = new ReaderStore({ encryptionKey: randomBytes(32) });
+  let paid = true; let entitlementAvailable = true; let profileCalls = 0;
+  const identity = { profile: async () => { profileCalls += 1; return { displayName: 'Reader' }; }, verify: async () => true };
+  const handle = createReaderHandler({ origin, store, identity, csrfKey: randomBytes(32),
+    community: { entitlements: { get: async ids => entitlementAvailable ? new Map(ids.map(id => [id, paid])) : new Map() } } });
+  try {
+    const session = store.createSession({ userId: 'paid-reader', upstreamToken: 'token', ttlMs: 300000 });
+    const headers = { cookie: `__Host-manacost_reader=${session.id}` };
+    const anonymous = await handle(new Request(`${origin}/reader-api/v1/ad-status`));
+    assert.deepEqual(await anonymous.json(), { adFree: false });
+    const subscribed = await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }));
+    assert.equal(subscribed.status, 200); assert.match(subscribed.headers.get('cache-control'), /private, no-store/);
+    assert.deepEqual(await subscribed.json(), { adFree: true });
+    paid = false;
+    assert.deepEqual(await (await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }))).json(), { adFree: false });
+    entitlementAvailable = false;
+    assert.deepEqual(await (await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }))).json(), { adFree: true });
+    assert.equal(profileCalls, 0, 'the ad gate verifies only the active token, never userinfo');
+  } finally { store.close(); }
 });
 
 test('private bootstrap returns the existing profile DTO once and internal metrics stay aggregate-only', async () => {

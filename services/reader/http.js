@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { ReaderAuthorizationDenied, ReaderValidationError } from './core.js';
-import { createProfileRoutes, verifiedReader } from './profile-http.js';
+import { createProfileRoutes, verifiedReader, verifiedWriter } from './profile-http.js';
 import { createCommentRoutes } from './comments-http.js';
 import { createCommunityControlRoutes } from './community-controls-http.js';
 import { createCommentAttachmentRoutes } from './comment-attachments-http.js';
@@ -68,6 +68,22 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
     if (articles.get(numericPostId)?.allowed !== true) return json(404, { error: 'not_found' });
     return json(200, { ...body, favorite: { postId: numericPostId,
       saved: community.favorites.status(current.userId, profile.id, numericPostId) } });
+  }
+  /** A paid Reader subscription is private; provider trouble must not show ads. */
+  async function adStatus(id, signal) {
+    if (!store.getSession(id)) return json(200, { adFree: false });
+    try {
+      const verified = await verifiedWriter(store, identity, id, signal);
+      if (!verified) return json(200, { adFree: true });
+      const { session } = verified;
+      const entitlements = await community?.entitlements?.get([session.userId], signal);
+      const current = store.getSession(id);
+      if (!current || current.userId !== session.userId || current.upstreamToken !== session.upstreamToken) return json(200, { adFree: true });
+      // A valid unpaid result is explicit. Missing/invalid/provider-failed data
+      // fails closed so a subscriber cannot receive an ad during an outage.
+      return json(200, { adFree: !(entitlements instanceof Map) || !entitlements.has(session.userId)
+        || entitlements.get(session.userId) === true });
+    } catch { return json(200, { adFree: true }); }
   }
   async function dispatch(request) {
     const url = new URL(request.url);
@@ -142,6 +158,7 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       return json(200, { user: { displayName: profile?.displayName ?? verified.profile.displayName },
         csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) });
     }
+    if (url.pathname === '/reader-api/v1/ad-status' && request.method === 'GET') return await adStatus(id, signal);
     if (url.pathname === '/reader-api/v1/bootstrap' && request.method === 'GET') return await bootstrap(url, id, signal);
     if (url.pathname === '/reader-auth/logout' && request.method === 'POST') {
       if (!validWrite(request, id)) return json(403, { error: 'invalid_request' });
