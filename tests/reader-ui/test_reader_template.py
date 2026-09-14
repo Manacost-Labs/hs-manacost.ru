@@ -265,13 +265,18 @@ echo json_encode([
 ]);
 '''
         cases = (
-            ('hs-manacost.ru', '/account/', 'resolved', 200, False),
-            ('hs-manacost.ru', '/?pagename=account&lang=en', 'resolved', 404, True),
-            ('hs-manacost.ru', '/?page_id=42', 'resolved', 404, True),
-            ('hs-manacost.com', '/account/', 'resolved', 404, True),
-            ('hs-manacost.com', '/news/', 'other', 200, False),
+            ('hs-manacost.ru', '/account/', 'resolved', 200, False, True),
+            ('hs-manacost.ru', '/Account/', 'resolved', 200, False, True),
+            ('hs-manacost.ru', '/%61ccount/', 'resolved', 200, False, True),
+            ('hs-manacost.ru', '//account//', 'resolved', 200, False, True),
+            ('hs-manacost.ru', '/./account/', 'resolved', 200, False, True),
+            ('hs-manacost.ru', '/news/../account/', 'resolved', 200, False, True),
+            ('hs-manacost.ru', '/?pagename=account&lang=en', 'resolved', 404, True, True),
+            ('hs-manacost.ru', '/?page_id=42', 'resolved', 404, True, True),
+            ('hs-manacost.com', '/account/', 'resolved', 404, True, True),
+            ('hs-manacost.com', '/news/', 'other', 200, False, False),
         )
-        for host, uri, resolved, status, blocked in cases:
+        for host, uri, resolved, status, blocked, private in cases:
             with self.subTest(host=host, uri=uri):
                 result = subprocess.run(
                     ['php', '-r', fixture, str(LOADER), host, uri, resolved],
@@ -282,8 +287,8 @@ echo json_encode([
                 payload = json.loads(result.stdout)
                 self.assertEqual(payload['status'], status)
                 self.assertEqual(payload['is404'], blocked)
-                self.assertEqual(payload['nocache'], blocked)
-                self.assertEqual(payload['page'], blocked)
+                self.assertEqual(payload['nocache'], private)
+                self.assertEqual(payload['page'], private)
                 self.assertEqual(payload['canonical'], False if blocked else 'unfiltered')
 
     def test_account_cache_headers_are_private_and_not_indexable(self):
