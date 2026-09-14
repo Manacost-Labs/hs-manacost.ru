@@ -1,6 +1,7 @@
 import json
 import subprocess
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 from typing import cast
@@ -69,6 +70,110 @@ def budgets() -> dict[str, object]:
 
 
 class AdminPerformanceAutomationTests(unittest.TestCase):
+    def run_staging_preflight(
+        self, credentials: dict[str, str]
+    ) -> tuple[subprocess.CompletedProcess[str], str, str]:
+        workflow = (ROOT / ".github/workflows/admin-performance-staging.yml").read_text(
+            encoding="utf-8"
+        )
+        step = workflow.split(
+            "      - name: Check protected staging measurement credentials\n", 1
+        )[1].split("      - name:", 1)[0]
+        script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "output"
+            summary = Path(directory) / "summary"
+            result = subprocess.run(
+                [
+                    "/bin/bash", "--noprofile", "--norc",
+                    "-e", "-o", "pipefail", "-c", script,
+                ],
+                cwd=ROOT,
+                env={
+                    "PATH": "/usr/bin:/bin",
+                    "GITHUB_OUTPUT": str(output),
+                    "GITHUB_STEP_SUMMARY": str(summary),
+                    **credentials,
+                },
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return (
+                result,
+                output.read_text(encoding="utf-8") if output.exists() else "",
+                summary.read_text(encoding="utf-8") if summary.exists() else "",
+            )
+
+    def test_staging_missing_credentials_fail_without_exposing_values(self) -> None:
+        names = (
+            "WP_TEST_ADMIN_USER", "WP_TEST_ADMIN_PASSWORD",
+            "STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD",
+        )
+        complete = {
+            name: f"synthetic-private-value-{index}"
+            for index, name in enumerate(names)
+        }
+        for missing in (None, *names):
+            with self.subTest(missing=missing):
+                credentials = {} if missing is None else {**complete, missing: ""}
+                result, output, summary = self.run_staging_preflight(credentials)
+                self.assertNotEqual(0, result.returncode, "Missing access must not pass CI")
+                self.assertIn("enabled=false", output)
+                self.assertIn("BLOCKED", summary)
+                combined = result.stdout + result.stderr + output + summary
+                for value in complete.values():
+                    self.assertNotIn(value, combined)
+
+    def test_staging_complete_credentials_only_enable_measurement(self) -> None:
+        credentials = {
+            name: f"synthetic-private-value-{index}"
+            for index, name in enumerate((
+                "WP_TEST_ADMIN_USER", "WP_TEST_ADMIN_PASSWORD",
+                "STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD",
+            ))
+        }
+        result, output, summary = self.run_staging_preflight(credentials)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("enabled=true\n", output)
+        combined = result.stdout + result.stderr + output + summary
+        self.assertNotIn("PASS", combined)
+        for value in credentials.values():
+            self.assertNotIn(value, combined)
+
+    def test_staging_artifact_upload_requires_evidence(self) -> None:
+        workflow = (ROOT / ".github/workflows/admin-performance-staging.yml").read_text(
+            encoding="utf-8"
+        )
+        upload = workflow.split("      - name: Upload staging performance evidence", 1)[1]
+        self.assertIn("if-no-files-found: error", upload)
+
+    def test_staging_credentials_are_scoped_to_measurement_steps(self) -> None:
+        workflow = (ROOT / ".github/workflows/admin-performance-staging.yml").read_text(
+            encoding="utf-8"
+        )
+        job_config, steps = workflow.split("    steps:\n", 1)
+        self.assertNotIn("secrets.", job_config)
+        for step_name in (
+            "Check protected staging measurement credentials",
+            "Collect five comparable warm staging samples",
+        ):
+            step = steps.split(f"      - name: {step_name}\n", 1)[1].split(
+                "      - ", 1
+            )[0]
+            for secret_name in (
+                "STAGING_WP_ADMIN_USER", "STAGING_WP_ADMIN_PASSWORD",
+                "STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD",
+            ):
+                self.assertIn(f"secrets.{secret_name}", step)
+        self.assertLess(
+            steps.index("Check protected staging measurement credentials"),
+            steps.index("Install locked browser package"),
+        )
+        self.assertIn("run: npm ci --ignore-scripts", steps)
+        self.assertEqual(8, steps.count("secrets."))
+
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary = Path(temporary_directory)
