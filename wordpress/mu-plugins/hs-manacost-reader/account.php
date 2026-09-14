@@ -89,10 +89,12 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 	$comments_note    = $comments_enabled
 		? 'Комментарии публикуются сразу. Обновить данные автора в уже написанных комментариях можно здесь отдельным действием.'
 		: 'Комментарии сейчас недоступны.';
+	$default_avatar   = function_exists( 'hs_manacost_reader_default_avatar_url' ) ? hs_manacost_reader_default_avatar_url() : '';
 	return '<section class="mc-reader mc-reader-ui" aria-label="Кабинет читателя" data-mc-reader-root'
 		. ' data-me-endpoint="' . esc_attr( $public['me_endpoint'] ) . '"'
 		. ' data-profile-endpoint="' . esc_attr( $public['profile_endpoint'] ) . '"'
 		. ' data-avatar-endpoint="' . esc_attr( $public['avatar_endpoint'] ) . '"'
+		. ' data-default-avatar-url="' . esc_attr( $default_avatar ) . '"'
 		. ' data-class-icon-base="/wp-content/mu-plugins/hs-manacost-reader/class-icons/"'
 		. ' data-logout-endpoint="' . esc_attr( $public['logout_endpoint'] ) . '"'
 		. ' data-login-endpoint="' . esc_attr( $public['login_endpoint'] ) . '">'
@@ -105,7 +107,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<p class="mc-reader__profile-kicker">Ваш профиль</p>'
 		. '<div class="mc-reader__identity-wrap"><div class="mc-reader__avatar" role="img" aria-label="Фото профиля">'
 		. '<img data-reader-avatar-image alt="" hidden><span data-reader-avatar-placeholder aria-hidden="true">М</span></div>'
-		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2><span class="mc-reader__admin-badge" data-reader-administrator hidden>Администратор</span>' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div>'
+		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2><span class="mc-reader__paid-badge" data-reader-paid role="img" aria-label="Платный подписчик" title="Платный подписчик" hidden>' . hs_manacost_reader_account_icon( 'crown' ) . '<span>Платный подписчик</span></span><span class="mc-reader__admin-badge" data-reader-administrator hidden>Администратор</span>' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div>'
 		. '<p class="mc-reader__bio" data-reader-preview-bio></p><div class="mc-reader__profile-controls"><aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="36" height="36" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-open-editor type="button">' . hs_manacost_reader_account_icon( 'edit' ) . '<span>Изменить профиль</span></button></div><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p></div></div></section>'
 		. '<section class="mc-reader__favorites" aria-labelledby="mc-reader-favorites-title" data-reader-favorites hidden><header class="mc-reader__favorites-head"><div><p class="mc-reader__profile-kicker">Личная подборка</p><h2 id="mc-reader-favorites-title">Сохранённые статьи</h2><p class="mc-ui-help">Материалы, к которым вы хотите вернуться.</p></div></header><span class="mc-reader__favorites-sentinel" data-reader-favorites-sentinel aria-hidden="true"></span><p class="mc-reader__favorites-status" data-reader-favorites-status role="status" aria-live="polite"></p><ul class="mc-reader__favorites-list" data-reader-favorites-list></ul><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-favorites-more type="button" hidden>Показать ещё</button></section>'
 		. '<form class="mc-reader__workspace" data-reader-profile-editor hidden aria-labelledby="mc-reader-editor-title">'

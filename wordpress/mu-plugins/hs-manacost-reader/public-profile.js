@@ -3,6 +3,7 @@
   const root = document.querySelector('[data-mc-public-profile]');
   const id = root?.dataset.readerId;
   if (!root || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return;
+  const defaultAvatar = /^\/wp-content\/mu-plugins\/hs-manacost-reader\/default-avatar\.webp\?ver=[a-f0-9]{12}$/i.test(root.dataset.defaultAvatarUrl || '') ? root.dataset.defaultAvatarUrl : null;
   const $ = selector => root.querySelector(selector);
   const status = $('[data-public-profile-status]'), content = $('[data-public-profile-content]');
   const image = $('[data-public-profile-avatar]');
@@ -82,10 +83,9 @@
         else social.node.removeAttribute('href');
       }
       socials.hidden = socialCount === 0;
-      if (typeof profile.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(profile.avatarVersion)
-        && profile.avatarUrl === `/reader-api/v1/readers/${id}/avatar?v=${profile.avatarVersion}`) {
-        image.src = profile.avatarUrl; image.hidden = false; placeholder.hidden = true;
-      }
+      const avatar = typeof profile.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(profile.avatarVersion)
+        && profile.avatarUrl === `/reader-api/v1/readers/${id}/avatar?v=${profile.avatarVersion}` ? profile.avatarUrl : defaultAvatar;
+      if (avatar) { image.src = avatar; image.hidden = false; placeholder.hidden = true; }
       $('[data-public-profile-paid]').hidden = profile.paidSubscriber !== true;
       $('[data-public-profile-administrator]').hidden = profile.administrator !== true;
       status.textContent = ''; content.hidden = false;

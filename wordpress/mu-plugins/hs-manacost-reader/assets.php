@@ -93,12 +93,21 @@ function hs_manacost_reader_asset_version( string $asset ): string {
 	if ( isset( $versions[ $asset ] ) ) {
 		return $versions[ $asset ];
 	}
-	if ( 1 !== preg_match( '/\A[a-z0-9-]+\.(?:css|js)\z/', $asset ) ) {
+	if ( 1 !== preg_match( '/\A[a-z0-9-]+\.(?:css|js|webp)\z/', $asset ) ) {
 		return 'missing';
 	}
 	$hash               = hash_file( 'sha256', __DIR__ . '/' . $asset );
 	$versions[ $asset ] = is_string( $hash ) ? substr( $hash, 0, 12 ) : 'missing';
 	return $versions[ $asset ];
+}
+
+/**
+ * Return the cache-versioned neutral Reader avatar for profiles without a photo.
+ *
+ * @return string Same-origin public asset URL.
+ */
+function hs_manacost_reader_default_avatar_url(): string {
+	return '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=' . rawurlencode( hs_manacost_reader_asset_version( 'default-avatar.webp' ) );
 }
 
 /**

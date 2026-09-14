@@ -44,6 +44,7 @@
 		const accountMenu = root.querySelector( '[data-reader-account-menu]' );
 		const accountActions = root.querySelector( '[data-reader-account-actions]' );
 		const administrator = root.querySelector( '[data-reader-administrator]' );
+		const paid = root.querySelector( '[data-reader-paid]' );
 		const profileOverview = root.querySelector( '[data-reader-profile-overview]' );
 		const favoritesPanel = root.querySelector( '[data-reader-favorites]' );
 		const favoritesSentinel = root.querySelector( '[data-reader-favorites-sentinel]' );
@@ -76,6 +77,7 @@
 			permissionsController?.abort();
 			permissionsController = null;
 			if ( administrator ) administrator.hidden = true;
+			if ( paid ) paid.hidden = true;
 		}
 
 		function cancelDeferredFavoritesLoad() {
@@ -249,7 +251,7 @@
 
 		async function refreshAdministrator() {
 			clearAdministrator();
-			if ( ! administrator || ! sessionActive ) return;
+			if ( ! administrator || ! paid || ! sessionActive ) return;
 			const ticket = generation, token = currentCsrfToken;
 			const permissionRequest = new AbortController();
 			permissionsController = permissionRequest;
@@ -261,7 +263,10 @@
 				if ( response.status === 401 ) { guest( 'Сессия завершена. Войдите через HearthPulse снова.' ); return; }
 				if ( ! response.ok || body.length > 1024 ) return;
 				const data = JSON.parse( body );
-				administrator.hidden = data?.canModerateComments !== true;
+				if ( ( data?.canModerateComments !== true && data?.canModerateComments !== false )
+					|| ( data?.paidSubscriber !== true && data?.paidSubscriber !== false ) ) return;
+				administrator.hidden = data.canModerateComments !== true;
+				paid.hidden = data.paidSubscriber !== true;
 			} catch ( error ) { /* An unavailable role lookup never confers administrator UI. */ }
 			finally { window.clearTimeout( deadline ); }
 		}

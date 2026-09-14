@@ -76,6 +76,7 @@
 	}
 
 	function create( root, options ) {
+		const defaultAvatar = /^\/wp-content\/mu-plugins\/hs-manacost-reader\/default-avatar\.webp\?ver=[a-f0-9]{12}$/i.test( root.dataset.defaultAvatarUrl || '' ) ? root.dataset.defaultAvatarUrl : null;
 		const form = root.querySelector( '[data-reader-profile-editor]' );
 		const overview = root.querySelector( '[data-reader-profile-overview]' );
 		const openEditor = root.querySelector( '[data-reader-open-editor]' );
@@ -210,7 +211,7 @@
 				classCrest.hidden = true;
 			}
 			previewBio.textContent = current.bio || 'Описание пока не добавлено.';
-			const source = localAvatarUrl || serverProfile?.avatarUrl || '';
+			const source = localAvatarUrl || serverProfile?.avatarUrl || defaultAvatar || '';
 			for ( const view of avatarViews ) {
 				view.placeholder.textContent = initials( current.displayName );
 				if ( source ) {

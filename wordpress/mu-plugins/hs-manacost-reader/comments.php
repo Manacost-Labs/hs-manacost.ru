@@ -16,7 +16,7 @@ function hs_reader_comments_shell(): string {
 	$path      = is_string( $permalink ) ? wp_parse_url( $permalink, PHP_URL_PATH ) : null;
 	$path      = is_string( $path ) && str_starts_with( $path, '/' ) && ! str_starts_with( $path, '//' ) ? $path : '/';
 	$login     = '/reader-auth/start?returnTo=' . rawurlencode( $path . '#reader-comments' );
-	return '<section id="reader-comments" class="mc-reader-ui mc-comments" data-mc-comments data-post-id="' . esc_attr( (string) $post_id ) . '" aria-labelledby="reader-comments-title">'
+	return '<section id="reader-comments" class="mc-reader-ui mc-comments" data-mc-comments data-post-id="' . esc_attr( (string) $post_id ) . '" data-default-avatar-url="' . esc_attr( hs_manacost_reader_default_avatar_url() ) . '" aria-labelledby="reader-comments-title">'
 		. '<template data-comments-twitch-icon>' . hs_reader_platform_icon( 'twitch' ) . '</template><template data-comments-youtube-icon>' . hs_reader_platform_icon( 'youtube' ) . '</template>'
 		. '<header class="mc-comments__header"><p class="mc-comments__eyebrow">Обсуждение</p><h2 id="reader-comments-title">' . esc_html__( 'Комментарии', 'hs-manacost-reader' ) . '</h2></header>'
 		. '<p class="mc-comments__status" data-comments-status data-loading="true" role="status" aria-live="polite">' . esc_html__( 'Загружаем комментарии…', 'hs-manacost-reader' ) . '</p>'

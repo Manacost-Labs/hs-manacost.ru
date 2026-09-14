@@ -15,9 +15,11 @@ function fixture(t) {
   const comments = new ReaderComments({ db: store.db, issuer });
   const identity = { profile: async () => ({ displayName: 'Тестовый читатель' }), verify: async () => true };
   const admins = new Set(['admin']);
+  const paid = new Set(['admin']);
   const permissions = { get: async ids => new Map(ids.map(id => [id, admins.has(id)])) };
   const editorial = { get: async ids => new Map(ids.map(id => [id, { allowed: id === 17 }])) };
-  const community = { comments, permissions, editorial, entitlements: { get: async () => new Map() } };
+  const entitlements = { get: async ids => new Map(ids.map(id => [id, paid.has(id)])) };
+  const community = { comments, permissions, editorial, entitlements };
   const handle = createReaderHandler({ origin, store, profiles, identity, community, csrfKey: randomBytes(32) });
   const call = (path, { method = 'GET', headers = {}, body } = {}) => handle(new Request(origin + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }));
   async function reader(subject) {
@@ -28,7 +30,7 @@ function fixture(t) {
   }
   const submit = user => call('/reader-api/v1/threads/17/comments', { method: 'POST', headers: user.headers,
     body: { body: 'Тестовый комментарий', parentId: null, operationId: randomUUID(), profileVersion: user.me.profile.version, attachmentId: null } });
-  return { store, profiles, comments, identity, permissions, editorial, admins, call, reader, submit };
+  return { store, profiles, comments, identity, permissions, editorial, entitlements, admins, paid, call, reader, submit };
 }
 
 test('reaction HTTP boundary requires canonical reader, origin/CSRF and exact input', async t => {
@@ -74,11 +76,11 @@ test('reaction overlaps HearthPulse token verification with editorial access and
   }
 });
 
-test('HearthPulse role controls administrator badges, own permissions and moderation, never client flags', async t => {
+test('HearthPulse subscription and role control own and public identity badges, never client flags', async t => {
   const f = fixture(t); const admin = await f.reader('admin'); const alice = await f.reader('alice');
   const { comment } = await (await f.submit(admin)).json();
   const own = await (await f.call('/reader-api/v1/community/me', { headers: admin.headers })).json();
-  assert.deepEqual(own, { canModerateComments: true, commentingBlocked: false });
+  assert.deepEqual(own, { canModerateComments: true, paidSubscriber: true, commentingBlocked: false });
   const publicProfile = await (await f.call(`/reader-api/v1/readers/${admin.me.profile.id}`)).json();
   assert.equal(publicProfile.profile.administrator, true);
   const list = await (await f.call('/reader-api/v1/threads/17/comments')).json();
@@ -116,6 +118,14 @@ test('provider failure fails moderation closed but preserves public reading', as
   assert.equal(blocked.status, 503); assert.ok(!(await blocked.text()).includes('secret detail'));
   const page = await f.call('/reader-api/v1/threads/17/comments'); assert.equal(page.status, 200);
   assert.equal((await page.json()).items[0].author.administrator, false);
+});
+
+test('subscription decoration fails closed without withholding the canonical administrator role', async t => {
+  const f = fixture(t); const admin = await f.reader('admin');
+  f.entitlements.get = async () => { throw new Error('private subscription error'); };
+  const response = await f.call('/reader-api/v1/community/me', { headers: admin.headers });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { canModerateComments: true, paidSubscriber: false, commentingBlocked: false });
 });
 
 test('logout or session token replacement while permission work awaits cancels administrator writes', async t => {
