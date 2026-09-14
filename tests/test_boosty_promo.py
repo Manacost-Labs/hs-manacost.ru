@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PLUGIN = ROOT / "wordpress/mu-plugins/manacost-boosty-promo.php"
+BANNER = ROOT / "wordpress/mu-plugins/manacost-boosty-promo/banner.webp"
+PHP_BINARY = shutil.which("php") or "/usr/bin/php"
+
+
+class BoostyPromoTest(unittest.TestCase):
+    def test_banner_asset_is_versioned_webp(self) -> None:
+        self.assertTrue(BANNER.is_file())
+        self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
+
+    def run_plugin(self, is_front_page: bool) -> dict[str, str | bool]:
+        script = f"""
+        define('ABSPATH', '/');
+        $filters = [];
+        $actions = [];
+        $front_page = {str(is_front_page).lower()};
+        function add_filter($hook, $callback, $priority = 10, $accepted_args = 1) {{
+            $GLOBALS['filters'][$hook][] = [$callback, $priority, $accepted_args];
+        }}
+        function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {{
+            $GLOBALS['actions'][$hook][] = [$callback, $priority, $accepted_args];
+        }}
+        function is_admin() {{ return false; }}
+        function is_front_page() {{ return $GLOBALS['front_page']; }}
+        function esc_url($value) {{ return $value; }}
+        function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
+        function esc_html($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
+        function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
+        require {json.dumps(str(PLUGIN))};
+
+        $footer = '<li class="menu-item"><a href="/existing/">Existing</a></li>';
+        foreach ($filters['wp_nav_menu_items'] ?? [] as $entry) {{
+            $footer = call_user_func($entry[0], $footer, (object) ['theme_location' => 'footer-menu']);
+        }}
+
+        $other_menu = '<li class="menu-item"><a href="/existing/">Existing</a></li>';
+        foreach ($filters['wp_nav_menu_items'] ?? [] as $entry) {{
+            $other_menu = call_user_func($entry[0], $other_menu, (object) ['theme_location' => 'header-menu']);
+        }}
+
+        $shortcode = false;
+        foreach ($filters['pre_do_shortcode_tag'] ?? [] as $entry) {{
+            $shortcode = call_user_func(
+                $entry[0],
+                $shortcode,
+                'tds_pricing1',
+                ['button_url' => 'https://boosty.to/kolodahearthstone'],
+                []
+            );
+        }}
+
+        $other_shortcode = false;
+        foreach ($filters['pre_do_shortcode_tag'] ?? [] as $entry) {{
+            $other_shortcode = call_user_func(
+                $entry[0],
+                $other_shortcode,
+                'tds_pricing1',
+                ['button_url' => 'https://boosty.to/another'],
+                []
+            );
+        }}
+
+        echo json_encode([
+            'footer' => $footer,
+            'other_menu' => $other_menu,
+            'shortcode' => $shortcode,
+            'other_shortcode' => $other_shortcode,
+        ]);
+        """
+        completed = subprocess.run(
+            [PHP_BINARY, "-r", script],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout)
+
+    def test_adds_requested_links_only_to_the_footer_menu(self) -> None:
+        result = self.run_plugin(is_front_page=False)
+
+        self.assertIn('href="https://hs-manacost.ru/reklama-na-sajte/"', result["footer"])
+        self.assertIn('Реклама на сайте', result["footer"])
+        self.assertIn('href="https://t.me/manacostcard_bot"', result["footer"])
+        self.assertIn('Конструктор колод', result["footer"])
+        self.assertIn(
+            'href="https://hs-manacost.ru/hearthpulse-chto-eto-i-kak-polzovatsya-servisom-zametki-taverny-2/"',
+            result["footer"],
+        )
+        self.assertIn('Как пользоваться Hearthpulse', result["footer"])
+        self.assertEqual('<li class="menu-item"><a href="/existing/">Existing</a></li>', result["other_menu"])
+
+    def test_replaces_only_the_homepage_boosty_pricing_shortcode(self) -> None:
+        result = self.run_plugin(is_front_page=True)
+
+        self.assertIn('class="manacost-boosty-promo"', result["shortcode"])
+        self.assertIn('href="https://boosty.to/kolodahearthstone"', result["shortcode"])
+        self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/banner.webp"', result["shortcode"])
+        self.assertIn('aria-label="Поддержать Manacost на Boosty"', result["shortcode"])
+        self.assertFalse(result["other_shortcode"])
+
+    def test_keeps_pricing_shortcode_outside_the_homepage(self) -> None:
+        result = self.run_plugin(is_front_page=False)
+
+        self.assertFalse(result["shortcode"])
+
+
+if __name__ == "__main__":
+    unittest.main()

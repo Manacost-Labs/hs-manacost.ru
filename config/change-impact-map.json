@@ -150,6 +150,16 @@
       "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/manacost-boosty-promo.php", "wordpress/mu-plugins/manacost-boosty-promo.css", "wordpress/mu-plugins/manacost-boosty-promo/**", "tests/test_boosty_promo.py"],
+      "owner": "public-boosty-promo",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "responsive-ui", "accessibility", "ads"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-responsive-experience", "wordpress-accessibility", "wordpress-ads-analytics", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/**"],
       "owner": "first-party-generic",
       "classified": false,
