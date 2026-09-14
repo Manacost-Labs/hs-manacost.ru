@@ -8,6 +8,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/manacost-cache-purge/opcache.php';
+
 final class Manacost_Cache_Purge {
 	private const ACTION = 'manacost_purge_cache';
 	private const NONCE = 'manacost_purge_cache_nonce';
@@ -176,6 +178,8 @@ final class Manacost_Cache_Purge {
 		self::run_purge_and_store_results( 'scheduled' );
 	}
 
+	// Source prefixes content_, updated_, status_, after_update_, after_publish_,
+	// and delete_ are reserved for post lifecycle events, never PHP code changes.
 	public static function run_async_purge( string $source = 'auto' ): void {
 		if ( wp_installing() ) {
 			return;
@@ -573,7 +577,7 @@ final class Manacost_Cache_Purge {
 	}
 
 	private static function run_purge_and_store_results( string $source ): void {
-		$results = self::purge_all();
+		$results = self::purge_all( $source );
 		$failed  = self::failed_results( $results );
 
 		self::store_purge_results( $results, $source );
@@ -759,7 +763,7 @@ final class Manacost_Cache_Purge {
 	/**
 	 * @return array<int, array{name:string,status:string,message:string}>
 	 */
-	private static function purge_all(): array {
+	private static function purge_all( string $source = 'manual' ): array {
 		$results = [];
 
 		self::run_step( $results, 'WP Rocket', [ __CLASS__, 'purge_wp_rocket' ] );
@@ -768,7 +772,9 @@ final class Manacost_Cache_Purge {
 		self::run_step( $results, 'Perfmatters', [ __CLASS__, 'purge_perfmatters' ] );
 		self::run_step( $results, 'Known local cache folders', [ __CLASS__, 'purge_local_cache_folders' ] );
 		self::run_step( $results, 'WordPress object cache', [ __CLASS__, 'purge_object_cache' ] );
-		self::run_step( $results, 'PHP OPcache', [ __CLASS__, 'purge_opcache' ] );
+		if ( \Manacost\CachePurge\should_reset_opcache( $source ) ) {
+			self::run_step( $results, 'PHP OPcache', '\\Manacost\\CachePurge\\reset_opcache' );
+		}
 		self::run_step( $results, 'Reverse proxy cache', [ __CLASS__, 'purge_reverse_proxy_cache' ] );
 		self::run_step( $results, 'Cloudflare', [ __CLASS__, 'purge_cloudflare' ] );
 
@@ -846,15 +852,6 @@ final class Manacost_Cache_Purge {
 		if ( function_exists( 'wp_cache_flush' ) ) {
 			wp_cache_flush();
 			return 'wp_cache_flush';
-		}
-
-		return 'not available';
-	}
-
-	private static function purge_opcache(): string {
-		if ( function_exists( 'opcache_reset' ) ) {
-			opcache_reset();
-			return 'opcache_reset';
 		}
 
 		return 'not available';

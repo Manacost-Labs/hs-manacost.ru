@@ -110,7 +110,7 @@
       "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/manacost-cache-purge.php", "wordpress/mu-plugins/manacost-performance-optimizer.php", "wordpress/mu-plugins/hs-admin-load-trim.php", "wordpress/mu-plugins/hs-admin-aioseo-throttle.php", "wordpress/mu-plugins/hs-manacost-newspaper-trim.php", "wordpress/mu-plugins/hs-decks-cache-policy.php"],
+      "patterns": ["wordpress/mu-plugins/manacost-cache-purge.php", "wordpress/mu-plugins/manacost-cache-purge/**", "wordpress/mu-plugins/manacost-performance-optimizer.php", "wordpress/mu-plugins/hs-admin-load-trim.php", "wordpress/mu-plugins/hs-admin-aioseo-throttle.php", "wordpress/mu-plugins/hs-manacost-newspaper-trim.php", "wordpress/mu-plugins/hs-decks-cache-policy.php"],
       "owner": "runtime-performance",
       "classified": true,
       "risk": "high",
