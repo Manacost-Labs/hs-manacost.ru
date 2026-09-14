@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/manacost-cache-purge.php"
 FIXTURE = ROOT / "tests/fixtures/cache-purge-opcache.php"
+DEPLOY_SCRIPT = ROOT / "ops/ci/hs-manacost-ci-deploy"
 PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 
 EXPECTED_NON_OPCACHE_STEPS = {
@@ -89,6 +90,18 @@ class CachePurgeOpcacheTest(unittest.TestCase):
                 self.assertEqual(result["opcache"], 1)
                 self.assertIn("PHP OPcache", result["result_names"])
                 self.assert_full_purge_steps_remain(result)
+
+    def test_deployment_purge_reports_its_own_results_without_reading_shared_option_state(self) -> None:
+        result = self.run_scenario("async_ci_deploy")
+        deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertEqual(result["direct_failed"], 0)
+        self.assertNotIn("option pluck manacost_cache_purge_last_results", deploy_script)
+
+    def test_deployment_purge_returns_a_failure_to_its_caller(self) -> None:
+        result = self.run_scenario("async_ci_deploy_reverse_failure")
+
+        self.assertEqual(result["direct_failed"], 1)
 
     def test_automatic_post_purge_records_a_reverse_proxy_failure_and_runs_later_steps(self) -> None:
         result = self.run_scenario("content_post_reverse_failure")
