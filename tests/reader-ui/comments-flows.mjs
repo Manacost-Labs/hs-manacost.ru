@@ -103,7 +103,10 @@ const server = createServer(async (request, response) => {
     }
     if (postStatus === 401) { json(response, 401, { error: 'not_authenticated' }); return; }
     if (postStatus === 409) { json(response, 409, { error: 'profile_conflict' }); return; }
-    json(response, postStatus, { comment: row({ status: 'published', body: writes.at(-1).body }) }); return;
+    json(response, postStatus, { comment: row({ status: 'published', body: writes.at(-1).body, reactions: [
+      { kind: 'like', count: 0, selected: false }, { kind: 'thanks', count: 0, selected: false },
+      { kind: 'fire', count: 0, selected: false },
+    ] }) }); return;
   }
   if (request.url.startsWith('/reader-api/v1/community/export') && request.method === 'GET') {
     const cursor = new URL(request.url, 'http://fixture').searchParams.get('cursor');
@@ -218,6 +221,8 @@ try {
   assert.equal(await page.getByLabel('Комментарий').inputValue(), 'Сохранённый после конфликта');
   postStatus = 201; await submit('После новой версии');
   await page.getByText('Комментарий опубликован.').waitFor();
+  assert.equal(await page.locator(`[data-comment-id="${commentId}"] [data-reaction]`).count(), 3,
+    'the canonical publish response renders reaction controls without waiting for reconciliation');
   assert.equal(writes.at(-1).profileVersion, 2);
   assert.notEqual(writes.at(-1).operationId, writes.at(-2).operationId);
 
