@@ -25,6 +25,7 @@ class HomepageVisibilityTest(unittest.TestCase):
         autosave: bool = False,
         revision: bool = False,
         tagdiv_ajax: bool = False,
+		block_editor: bool = False,
     ) -> dict:
         post_data = post_data or {}
         script = f"""
@@ -42,6 +43,7 @@ class HomepageVisibilityTest(unittest.TestCase):
         $GLOBALS['autosave'] = {json.dumps(autosave)};
         $GLOBALS['revision'] = {json.dumps(revision)};
 		$GLOBALS['tagdiv_ajax'] = {json.dumps(tagdiv_ajax)};
+		$GLOBALS['block_editor'] = {json.dumps(block_editor)};
         $_POST = json_decode({json.dumps(json.dumps(post_data))}, true);
 
         class WP_Post {{
@@ -53,6 +55,10 @@ class HomepageVisibilityTest(unittest.TestCase):
             }}
         }}
 
+        class Screen {{
+            public function is_block_editor() {{ return $GLOBALS['block_editor']; }}
+        }}
+
         function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {{
             $GLOBALS['actions'][$hook][] = [$callback, $priority, $accepted_args];
         }}
@@ -62,6 +68,7 @@ class HomepageVisibilityTest(unittest.TestCase):
         function add_meta_box($id, $title, $callback, $screen, $context, $priority) {{
             $GLOBALS['meta_boxes'][$id] = [$title, $callback, $screen, $context, $priority];
         }}
+		function get_current_screen() {{ return new Screen(); }}
 		function wp_nonce_field($action, $name) {{
 			$GLOBALS['nonce_fields'][] = [$action, $name];
             echo '<input type="hidden" name="' . $name . '" value="nonce">';
@@ -103,16 +110,18 @@ class HomepageVisibilityTest(unittest.TestCase):
         foreach ($actions['add_meta_boxes_post'] ?? [] as $entry) {{
             call_user_func($entry[0]);
         }}
+		$post = new WP_Post(77);
+		ob_start();
+		foreach ($actions['post_submitbox_misc_actions'] ?? [] as $entry) {{
+			call_user_func($entry[0], $post);
+		}}
+		$publish_html = ob_get_clean();
 		ob_start();
 		foreach ($actions['wp_footer'] ?? [] as $entry) {{
 			call_user_func($entry[0]);
 		}}
 		$footer_html = ob_get_clean();
 
-        $post = new WP_Post(77);
-        ob_start();
-        HS_Homepage_Visibility::render_meta_box($post);
-        $box_html = ob_get_clean();
         HS_Homepage_Visibility::save_meta_box(77, $post);
         $post_query = HS_Homepage_Visibility::filter_block_query([
             'post_type' => 'post',
@@ -138,7 +147,7 @@ class HomepageVisibilityTest(unittest.TestCase):
             'meta_boxes' => $GLOBALS['meta_boxes'],
 			'nonce_fields' => $GLOBALS['nonce_fields'],
 			'footer_html' => $footer_html,
-            'box_html' => $box_html,
+			'publish_html' => $publish_html,
             'meta' => $GLOBALS['meta'],
             'updates' => $GLOBALS['updates'],
             'deletes' => $GLOBALS['deletes'],
@@ -158,16 +167,17 @@ class HomepageVisibilityTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
-    def test_registers_a_post_editor_checkbox_and_a_scoped_tagdiv_filter(self) -> None:
+    def test_registers_a_publish_box_checkbox_and_a_scoped_tagdiv_filter(self) -> None:
         result = self.run_plugin()
 
-        self.assertIn("add_meta_boxes_post", result["actions"])
+        self.assertIn("post_submitbox_misc_actions", result["actions"])
         self.assertIn("save_post_post", result["actions"])
         self.assertIn("wp_footer", result["actions"])
         self.assertIn("td_data_source_blocks_query_args", result["filters"])
-        self.assertIn("hs-homepage-visibility", result["meta_boxes"])
-        self.assertIn('name="hs_show_on_homepage"', result["box_html"])
-        self.assertIn('checked="checked"', result["box_html"])
+        self.assertNotIn("hs-homepage-visibility", result["meta_boxes"])
+        self.assertIn('class="misc-pub-section hs-homepage-visibility"', result["publish_html"])
+        self.assertIn('name="hs_show_on_homepage"', result["publish_html"])
+        self.assertIn('checked="checked"', result["publish_html"])
         self.assertEqual(
             [["hs_homepage_visibility_save_77", "hs_homepage_visibility_nonce"]],
             result["nonce_fields"],
@@ -179,7 +189,13 @@ class HomepageVisibilityTest(unittest.TestCase):
     def test_hidden_article_renders_with_the_control_unchecked(self) -> None:
         result = self.run_plugin(stored_meta="0")
 
-        self.assertNotIn('checked="checked"', result["box_html"])
+        self.assertNotIn('checked="checked"', result["publish_html"])
+
+    def test_block_editor_keeps_the_standard_meta_box_fallback(self) -> None:
+        result = self.run_plugin(block_editor=True)
+
+        self.assertIn("hs-homepage-visibility", result["meta_boxes"])
+        self.assertEqual("", result["publish_html"])
 
     def test_front_page_post_queries_keep_existing_constraints_and_exclude_hidden_posts(self) -> None:
         result = self.run_plugin()

@@ -91,6 +91,46 @@ echo json_encode(array($disabled, $enabled, HS_Reader_Comments_Editorial_Control
 '''
         self.assertEqual(self.evaluate(code), [True, True, False])
 
+    def test_editorial_control_uses_the_publish_box_in_the_classic_editor(self):
+        code = '''
+class Screen { function is_block_editor() { return false; } }
+function get_current_screen() { return new Screen(); }
+function add_action($hook, $callback, $priority = 10, $accepted_args = 1) { global $actions; $actions[$hook][] = $callback; }
+function add_meta_box($id, $title, $callback, $screen, $context, $priority) { global $meta_boxes; $meta_boxes[$id] = $title; }
+function wp_nonce_field($action, $name) { global $nonces; $nonces[] = array($action, $name); echo '<input type="hidden" name="' . $name . '">'; }
+function checked($checked, $current = true, $display = true) { $result = $checked === $current ? 'checked="checked"' : ''; if ($display) { echo $result; } return $result; }
+function esc_attr($value) { return $value; }
+function esc_html__($value, $domain = '') { return $value; }
+$actions = array(); $meta_boxes = array(); $nonces = array();
+HS_Reader_Comments_Editorial_Control::boot();
+foreach ($actions['add_meta_boxes_post'] as $callback) { call_user_func($callback); }
+ob_start();
+foreach ($actions['post_submitbox_misc_actions'] as $callback) { call_user_func($callback, $post); }
+$html = ob_get_clean();
+echo json_encode(array($meta_boxes, $nonces, $html));
+'''
+        meta_boxes, nonces, html = self.evaluate(code)
+        self.assertEqual([], meta_boxes)
+        self.assertEqual([['hs_reader_comments_editorial_control:17', 'hs_reader_comments_editorial_nonce']], nonces)
+        self.assertIn('class="misc-pub-section hs-reader-comments-editorial-control"', html)
+        self.assertIn('name="hs_reader_comments_disabled"', html)
+
+    def test_editorial_control_keeps_a_gutenberg_meta_box_fallback(self):
+        code = '''
+class Screen { function is_block_editor() { return true; } }
+function get_current_screen() { return new Screen(); }
+function add_action($hook, $callback, $priority = 10, $accepted_args = 1) { global $actions; $actions[$hook][] = $callback; }
+function add_meta_box($id, $title, $callback, $screen, $context, $priority) { global $meta_boxes; $meta_boxes[$id] = $title; }
+$actions = array(); $meta_boxes = array();
+HS_Reader_Comments_Editorial_Control::boot();
+foreach ($actions['add_meta_boxes_post'] as $callback) { call_user_func($callback); }
+echo json_encode($meta_boxes);
+'''
+        self.assertEqual(
+            {"hs-reader-comments-editorial-control": "HearthPulse: комментарии"},
+            self.evaluate(code),
+        )
+
     def test_signed_batch_is_strict_no_cache_and_does_not_leak_rejected_article(self):
         code = '''$request = new WP_REST_Request();
 $time = (string) time();

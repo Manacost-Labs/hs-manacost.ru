@@ -20,6 +20,7 @@ final class HS_Homepage_Visibility {
 	/** Registers the editor UI and the TagDiv query adapter. */
 	public static function boot(): void {
 		add_action( 'add_meta_boxes_post', array( __CLASS__, 'add_meta_box' ) );
+		add_action( 'post_submitbox_misc_actions', array( __CLASS__, 'render_submit_box_control' ) );
 		add_action( 'save_post_post', array( __CLASS__, 'save_meta_box' ), 10, 2 );
 		add_action( 'wp_footer', array( __CLASS__, 'mark_front_page_ajax_blocks' ), 100 );
 		add_filter( 'td_data_source_blocks_query_args', array( __CLASS__, 'filter_block_query' ), 20, 2 );
@@ -27,6 +28,10 @@ final class HS_Homepage_Visibility {
 
 	/** Adds the visibility control to the article editor sidebar. */
 	public static function add_meta_box(): void {
+		if ( self::rendering_in_submit_box() ) {
+			return;
+		}
+
 		add_meta_box(
 			'hs-homepage-visibility',
 			'Главная страница',
@@ -35,6 +40,24 @@ final class HS_Homepage_Visibility {
 			'side',
 			'high'
 		);
+	}
+
+	/**
+	 * Renders the visibility control in the native Classic Editor publish box.
+	 *
+	 * The Gutenberg fallback remains a standard meta box because its publish
+	 * panel does not execute the Classic Editor submit-box hook.
+	 *
+	 * @param WP_Post $post Current article.
+	 */
+	public static function render_submit_box_control( WP_Post $post ): void {
+		if ( 'post' !== $post->post_type || ! self::rendering_in_submit_box() ) {
+			return;
+		}
+
+		echo '<div class="misc-pub-section hs-homepage-visibility">';
+		self::render_meta_box( $post );
+		echo '</div>';
 	}
 
 	/**
@@ -199,6 +222,24 @@ final class HS_Homepage_Visibility {
 	 */
 	private static function is_hidden( int $post_id ): bool {
 		return '0' === get_post_meta( $post_id, self::META_KEY, true );
+	}
+
+	/**
+	 * Determines whether the current editor uses the Classic Editor publish box.
+	 *
+	 * @return bool Whether to render through post_submitbox_misc_actions.
+	 */
+	private static function rendering_in_submit_box(): bool {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return true;
+		}
+
+		$screen = get_current_screen();
+		if ( null === $screen ) {
+			return true;
+		}
+
+		return ! $screen->is_block_editor();
 	}
 
 	/**
