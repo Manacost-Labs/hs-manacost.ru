@@ -42,6 +42,11 @@ function hs_manacost_reader_asset_manifest(): array {
 			),
 		),
 		'scripts' => array(
+			'bootstrap'      => array(
+				'handle'       => 'hs-manacost-reader-bootstrap',
+				'file'         => 'bootstrap.js',
+				'dependencies' => array(),
+			),
 			'profile-editor' => array(
 				'handle'       => 'hs-manacost-reader-profile-editor',
 				'file'         => 'profile-editor.js',
@@ -50,12 +55,12 @@ function hs_manacost_reader_asset_manifest(): array {
 			'reader'         => array(
 				'handle'       => 'hs-manacost-reader',
 				'file'         => 'reader.js',
-				'dependencies' => array( 'hs-manacost-reader-profile-editor' ),
+				'dependencies' => array( 'hs-manacost-reader-profile-editor', 'hs-manacost-reader-bootstrap' ),
 			),
 			'favorite'       => array(
 				'handle'       => 'hs-manacost-reader-favorite',
 				'file'         => 'article-favorite.js',
-				'dependencies' => array(),
+				'dependencies' => array( 'hs-manacost-reader-bootstrap' ),
 			),
 			'community'      => array(
 				'handle'       => 'hs-manacost-reader-community-ui',
@@ -65,7 +70,7 @@ function hs_manacost_reader_asset_manifest(): array {
 			'comments'       => array(
 				'handle'       => 'hs-manacost-reader-comments',
 				'file'         => 'comments.js',
-				'dependencies' => array( 'hs-manacost-reader-community-ui' ),
+				'dependencies' => array( 'hs-manacost-reader-community-ui', 'hs-manacost-reader-bootstrap' ),
 			),
 			'public-profile' => array(
 				'handle'       => 'hs-manacost-reader-public-profile',

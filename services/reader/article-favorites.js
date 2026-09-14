@@ -32,7 +32,9 @@ export class ReaderArticleFavorites {
         post_id INTEGER NOT NULL, title TEXT NOT NULL, path TEXT NOT NULL, created_at INTEGER NOT NULL,
         UNIQUE(issuer, profile_id, post_id)
       ); CREATE INDEX IF NOT EXISTS reader_article_favorites_list
-        ON reader_article_favorites(issuer, subject, profile_id, created_at DESC, id DESC);`);
+        ON reader_article_favorites(issuer, subject, profile_id, created_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS reader_article_favorites_status
+        ON reader_article_favorites(issuer, subject, profile_id, post_id);`);
       db.exec('COMMIT');
     } catch (error) {
       try { db.exec('ROLLBACK'); } catch {}

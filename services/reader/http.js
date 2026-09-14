@@ -6,6 +6,7 @@ import { createCommunityControlRoutes } from './community-controls-http.js';
 import { createCommentAttachmentRoutes } from './comment-attachments-http.js';
 import { createFavoriteRoutes } from './favorites-http.js';
 import { ReaderSessionEnded, SESSION_TTL } from './session-tokens.js';
+import { ReaderMetrics } from './metrics.js';
 
 const SESSION_COOKIE = '__Host-manacost_reader';
 const ATTEMPT_COOKIE = '__Host-manacost_reader_login';
@@ -32,7 +33,7 @@ function queueUnusedTokens(store, result, ttlMs) {
 }
 
 /** Same-origin HTTP boundary; refresh credentials stay encrypted on the server. */
-export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community, communityProductionEnabled = false }) {
+export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community, communityProductionEnabled = false, metrics = new ReaderMetrics() }) {
   if (new URL(origin).origin !== origin || !origin.startsWith('https://') || csrfKey?.length !== 32) throw new Error('Invalid reader HTTP configuration');
   const csrf = id => createHmac('sha256', csrfKey).update(id).digest('base64url');
   const validWrite = (request, id) => request.headers.get('origin') === origin
@@ -50,6 +51,24 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
   const favoriteRoutes = createFavoriteRoutes({ community, store, profiles, identity, validWrite, json, csrf });
   let windowStart = Date.now();
   const buckets = new Map();
+  async function bootstrap(url, id, signal) {
+    if ([...url.searchParams.keys()].some(key => key !== 'postId') || url.searchParams.getAll('postId').length > 1) return json(400, { error: 'invalid_request' });
+    const verified = await verifiedReader(store, identity, id, signal);
+    if (!verified) return json(401, { error: 'not_authenticated' });
+    const profile = profiles?.getOrCreate(verified.session.userId, verified.profile.displayName);
+    const body = { user: { displayName: profile?.displayName ?? verified.profile.displayName }, csrfToken: csrf(id),
+      profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) };
+    const postId = url.searchParams.get('postId');
+    if (postId === null) return json(200, body);
+    const numericPostId = Number(postId);
+    if (!Number.isSafeInteger(numericPostId) || numericPostId < 1 || !community?.favorites || !community.favoriteEditorial) return json(404, { error: 'not_found' });
+    const [articles] = await Promise.all([community.favoriteEditorial.get([numericPostId], signal)]);
+    const current = store.getSession(id);
+    if (!current || current.userId !== verified.session.userId || current.upstreamToken !== verified.session.upstreamToken) return json(401, { error: 'not_authenticated' });
+    if (articles.get(numericPostId)?.allowed !== true) return json(404, { error: 'not_found' });
+    return json(200, { ...body, favorite: { postId: numericPostId,
+      saved: community.favorites.status(current.userId, profile.id, numericPostId) } });
+  }
   async function dispatch(request) {
     const url = new URL(request.url);
     if (url.origin !== origin || url.href.length > 8192) return json(400, { error: 'invalid_request' });
@@ -58,6 +77,9 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
     const imageUpload = request.method === 'PUT'
       && ['/reader-api/v1/comment-attachments', '/reader-api/v1/profile/avatar'].includes(url.pathname);
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(imageUpload ? 9000 : 5000)]);
+
+    // This path is not proxied by Nginx and the BFF only binds loopback.
+    if (url.pathname === '/reader-internal/metrics' && request.method === 'GET') return json(200, metrics.snapshot());
     const id = readCookie(request, SESSION_COOKIE);
     const localSession = store.getSession(id);
     // Anonymous overload must never prevent a valid reader from ending their own session.
@@ -120,6 +142,7 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       return json(200, { user: { displayName: profile?.displayName ?? verified.profile.displayName },
         csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) });
     }
+    if (url.pathname === '/reader-api/v1/bootstrap' && request.method === 'GET') return await bootstrap(url, id, signal);
     if (url.pathname === '/reader-auth/logout' && request.method === 'POST') {
       if (!validWrite(request, id)) return json(403, { error: 'invalid_request' });
       store.revokeAndQueue(id);
@@ -134,8 +157,10 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       ?? await commentRoutes(request, url, id, signal) ?? json(404, { error: 'not_found' });
   }
   return async request => {
+    const startedAt = metrics.start();
     try {
       const response = await dispatch(request);
+      metrics.record(new URL(request.url).pathname, response.status, startedAt);
       if (response.status === 401 && readCookie(request, SESSION_COOKIE)) response.headers.append('Set-Cookie', store.serializeCookie('', 0));
       return response;
     }

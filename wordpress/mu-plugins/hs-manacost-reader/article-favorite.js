@@ -34,18 +34,18 @@
     say('Войдите через HearthPulse, чтобы сохранять статьи.'); render();
   }
   function validStatus(data) {
-    return data && typeof data.saved === 'boolean' && typeof data.csrfToken === 'string' && /^[A-Za-z0-9_-]{43}$/.test(data.csrfToken);
+    return data?.favorite?.postId === postId && typeof data.favorite.saved === 'boolean' && typeof data.csrfToken === 'string' && /^[A-Za-z0-9_-]{43}$/.test(data.csrfToken);
   }
   async function load(showFailure = false) {
     if (stopped) return false;
     if (statusRequest) return statusRequest;
     statusRequest = (async () => {
       try {
-        const { response, data } = await request(endpoint);
+        const { response, data } = await window.hsManacostReaderBootstrap();
         if (stopped) return false;
         if (response.status === 401) { unavailable(); return false; }
         if (!response.ok || !validStatus(data)) throw new Error('favorite_status');
-        saved = data.saved; csrf = data.csrfToken; known = true; hydrating = false; login.hidden = true; say(''); render(); return true;
+        saved = data.favorite.saved; csrf = data.csrfToken; known = true; hydrating = false; login.hidden = true; say(''); render(); return true;
       } catch {
         hydrating = false;
         if (!stopped && showFailure) say('Не удалось проверить избранное. Повторите попытку.');

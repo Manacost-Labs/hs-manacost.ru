@@ -125,7 +125,7 @@ echo json_encode($GLOBALS['assets']);'''
         community = (PHP.parent / 'community-ui.js').read_text()
         self.assertIn("hs_manacost_reader_enqueue_script( 'community' )", loader)
         self.assertIn("hs_manacost_reader_enqueue_script( $public ? 'public-profile' : 'comments' )", loader)
-        self.assertIn("'dependencies' => array( 'hs-manacost-reader-community-ui' )", registry)
+        self.assertIn("'dependencies' => array( 'hs-manacost-reader-community-ui', 'hs-manacost-reader-bootstrap' )", registry)
         self.assertLess(loader.index("hs_manacost_reader_enqueue_script( 'community' )"), loader.index("hs_manacost_reader_enqueue_script( $public ? 'public-profile' : 'comments' )"))
         self.assertIn("'/reader-api/v1/community/me'", community)
         self.assertIn('/reaction', community)
