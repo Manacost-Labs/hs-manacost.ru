@@ -174,11 +174,15 @@ function hs_manacost_reader_account_route_policy(): void {
 	$resolves_account = $page && is_page( $page->ID );
 	$is_account_path  = hs_manacost_reader_is_account_request();
 
-	if ( ( ! $is_account_path && ! $resolves_account ) || ( hs_manacost_reader_is_application_host() && $is_account_path ) ) {
+	if ( ! $is_account_path && ! $resolves_account ) {
+		return;
+	}
+	// Core can redirect path aliases next, so seal the response before it runs.
+	hs_manacost_reader_send_private_headers();
+	if ( hs_manacost_reader_is_application_host() && $is_account_path ) {
 		return;
 	}
 
-	hs_manacost_reader_send_private_headers();
 	add_filter( 'redirect_canonical', '__return_false', PHP_INT_MAX );
 	global $wp_query;
 	if ( is_object( $wp_query ) && method_exists( $wp_query, 'set_404' ) ) {
