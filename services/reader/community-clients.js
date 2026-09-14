@@ -4,6 +4,10 @@ const EDITORIAL_ORIGINS = new Map([
   ['https://test.hs-manacost.ru', 'test.hs-manacost.ru'],
   ['https://hs-manacost.ru', 'hs-manacost.ru'],
 ]);
+const LOCAL_EDITORIAL_ORIGINS = new Map([
+  ['https://test.hs-manacost.ru', 'http://127.0.0.1:18185'],
+  ['https://hs-manacost.ru', 'http://127.0.0.1:18184'],
+]);
 const ENTITLEMENTS_URL = 'https://hearthpulse.net/identity/reader-entitlements';
 const PERMISSIONS_URL = 'https://hearthpulse.net/identity/reader-permissions';
 const basic = (name, password) => `Basic ${Buffer.from(`${name}:${password}`).toString('base64')}`;
@@ -35,11 +39,12 @@ function batch(values, valid) {
 }
 
 /** Only an authenticated, freshly checked editorial response can permit article data. */
-function createArticleClient({ key, username, password, origin }, route, transport = fetch) {
+function createArticleClient({ key, username, password, origin, editorialOrigin }, route, transport = fetch) {
   const site = EDITORIAL_ORIGINS.get(origin);
   if (typeof key !== 'string' || key.length < 43 || typeof username !== 'string' || !/^[a-z0-9-]{1,64}$/.test(username)
-    || typeof password !== 'string' || password.length < 43 || !site || typeof route !== 'string') throw new Error('Editorial configuration invalid');
-  const url = `${origin}/wp-json${route}`;
+    || typeof password !== 'string' || password.length < 43 || !site || typeof route !== 'string'
+    || (editorialOrigin !== undefined && editorialOrigin !== LOCAL_EDITORIAL_ORIGINS.get(origin))) throw new Error('Editorial configuration invalid');
+  const url = `${editorialOrigin ?? origin}/wp-json${route}`;
   return {
     async get(ids, parent = AbortSignal.timeout(2000)) {
       batch(ids, id => Number.isSafeInteger(id) && id > 0);
