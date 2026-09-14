@@ -45,6 +45,8 @@
 .mc-reader .mc-reader__author-mark:hover { border-color: currentColor; background: var(--mc-r-surface-subtle); }
 .mc-reader .mc-platform-icon { flex: 0 0 auto; fill: currentColor; stroke: none; }
 .mc-reader .mc-reader__admin-badge { min-height: 24px; padding: 4px 8px; border: 1px solid #9bb1c4; border-radius: 999px; background: #e8f0f7; color: #214d7a; font: 650 12px/1.25 var(--mc-ui-body); }
+.mc-reader .mc-reader__paid-badge { display: inline-flex; align-items: center; min-height: 28px; gap: 4px; padding: 4px 8px; border: 1px solid #ead6aa; border-radius: 999px; background: #fbf3e2; color: #875b13; font: 650 12px/1.2 var(--mc-ui-body); }
+.mc-reader .mc-reader__paid-badge .mc-reader__icon { width: 16px; height: 16px; fill: currentColor; stroke-width: 1.2; }
 .mc-reader .mc-reader__bio { max-width: 640px; margin: 0 0 16px; color: var(--mc-reader-muted); font: 400 16px/1.58 var(--mc-ui-body); white-space: pre-wrap; }
 .mc-reader .mc-reader__draft-note { margin: 0 0 12px; color: var(--mc-r-success); font-size: 13px; }
 .mc-reader .mc-reader__profile-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }

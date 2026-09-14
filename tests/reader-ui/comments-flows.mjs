@@ -22,8 +22,10 @@ const json = (response, status, value) => {
   response.end(JSON.stringify(value));
 };
 const shell = (file, call, extra = '') => execFileSync('php', ['-r', `define('ABSPATH','/fixture/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function esc_html($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$p){return '/article/';} require $argv[1]; ${extra} echo ${call};`, file], { encoding: 'utf8' });
-const commentShell = shell(`${plugin}/comments.php`, 'hs_reader_comments_shell()');
-const profileShell = shell(`${plugin}/public-profile.php`, `hs_reader_public_profile_shell('${id}')`);
+const defaultAvatarPath = '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=a1b2c3d4e5f6';
+const avatarUrl = `${defaultAvatarPath}`;
+const commentShell = shell(`${plugin}/comments.php`, 'hs_reader_comments_shell()', `function hs_manacost_reader_default_avatar_url(){return '${defaultAvatarPath}';}`);
+const profileShell = shell(`${plugin}/public-profile.php`, `hs_reader_public_profile_shell('${id}')`, `function hs_manacost_reader_default_avatar_url(){return '${defaultAvatarPath}';}`);
 const assets = new Map([
   ['/bootstrap.js', ['text/javascript', readFileSync(`${plugin}/bootstrap.js`)]],
   ['/community-ui.js', ['text/javascript', readFileSync(`${plugin}/community-ui.js`)]],
@@ -34,6 +36,7 @@ const assets = new Map([
   ['/ui.css', ['text/css', readFileSync(sharedUi)]],
   ['/theme.css', ['text/css', readFileSync(`${root}/wordpress/themes/Newspaper_new/style.css`)]],
   ['/theme-boxed.css', ['text/css', readFileSync(`${root}/wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]],
+  [defaultAvatarPath, ['image/webp', readFileSync(`${plugin}/default-avatar.webp`)]],
 ]);
 
 const author = (overrides = {}) => ({
@@ -300,9 +303,9 @@ try {
   publicProfile = author({ twitchUrl: 'https://evil.test/channel', youtubeUrl: 'https://youtube.com/watch?v=not-a-channel' });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
   assert.equal(await page.locator('[data-public-profile-socials]').isHidden(), true, 'unrecognised public URLs must never become outbound links');
-  publicProfile = author({ avatarUrl: `/reader-api/v1/readers/${otherId}/avatar?v=${avatarVersion}` });
+  publicProfile = author({ avatarVersion: null, avatarUrl: null });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
-  assert.equal(await page.locator('[data-public-profile-avatar]').isHidden(), true);
+  await expect(page.locator('[data-public-profile-avatar]')).toHaveAttribute('src', avatarUrl);
   for (const status of [404, 503]) {
     publicStatus = status; await page.reload(); await page.getByText(status === 503 ? /Сервис профилей/ : 'Профиль недоступен.').waitFor();
     assert.equal(await page.locator('[data-public-profile-content]').isHidden(), true);
@@ -395,7 +398,7 @@ try {
   await expect(page.locator('[data-comments-me] img')).toHaveAttribute('src', meFields.avatarUrl);
   assert.equal(await refresh.isDisabled(), false, 'an explicit profile refresh action needs no additional checkbox');
   assert.equal(refreshCalls.length, 0, 'reading must not publish private profile data');
-  assert.equal(await page.locator('[data-comments-list] img').count(), 0, 'private preview is not an optimistic public avatar');
+  await expect(page.locator('[data-comments-list] img.mc-comments__avatar')).toHaveAttribute('src', avatarUrl);
   await page.getByLabel('Комментарий', { exact: true }).fill('Черновик останется здесь');
   await expect(page.locator('[data-comments-count]')).toHaveText('24 / 1000');
   await refresh.click();
@@ -419,7 +422,7 @@ try {
   await refresh.click();
   await page.getByText('Не удалось обновить профиль в комментариях. Повторите попытку.').waitFor();
   assert.equal(refreshCalls.at(-1).body.profileVersion, 10);
-  assert.equal(await page.locator('[data-comments-list] img').count(), 0);
+  await expect(page.locator('[data-comments-list] img.mc-comments__avatar')).toHaveAttribute('src', avatarUrl);
   refreshStatus = 401;
   await refresh.click();
   await page.getByRole('link', { name: 'Войти через HearthPulse', exact: true }).waitFor();
@@ -428,7 +431,7 @@ try {
   meFields.avatarUrl = 'https://evil.test/photo.png';
   await loadComments();
   await expect(page.locator('[data-comments-me]')).toContainText('Зулут');
-  assert.equal(await page.locator('[data-comments-me] img').count(), 0, 'composer rejects arbitrary private avatar URLs');
+  await expect(page.locator('[data-comments-me] img')).toHaveAttribute('src', avatarUrl);
   console.log('comments-flows: pass (9 focused flows)');
 } finally {
   for (const values of Object.values(held)) for (const request of values) request.response.destroy();

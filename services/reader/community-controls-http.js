@@ -30,7 +30,7 @@ async function input(request, key) {
 
 export function createCommunityControlRoutes({ community, store, identity, validWrite, json }) {
   if (!community) return async () => null;
-  const { comments, editorial, permissions } = community;
+  const { comments, editorial, entitlements, permissions } = community;
   return async (request, url, id, signal) => {
     const me = url.pathname === '/reader-api/v1/community/me';
     const reactionSelections = url.pathname === '/reader-api/v1/community/reactions';
@@ -94,10 +94,13 @@ export function createCommunityControlRoutes({ community, store, identity, valid
         return json(200, { reactions: comments.reactions.set(session.userId, reaction[1], body.reaction) });
       }
       if (!permissions) fail(503, 'comments_unavailable');
-      const result = await permissions.get([session.userId], signal);
+      const paid = me && entitlements ? entitlements.get([session.userId], AbortSignal.any([signal, AbortSignal.timeout(350)]))
+        .catch(() => new Map()) : Promise.resolve(new Map());
+      const [result, paidResult] = await Promise.all([permissions.get([session.userId], signal), paid]);
       requireSameSession(store, id, session, signal);
       const admin = result.get(session.userId) === true;
-      if (me) return json(200, { canModerateComments: admin, commentingBlocked: comments.bans.isBlocked(session.userId) });
+      if (me) return json(200, { canModerateComments: admin, paidSubscriber: paidResult.get(session.userId) === true,
+        commentingBlocked: comments.bans.isBlocked(session.userId) });
       if (!admin) fail(403, 'moderation_forbidden');
       if (list) return json(200, comments.bans.list({ cursor: url.searchParams.get('cursor') }));
       // Actor is always canonical and pseudonymized; no browser field can set it.

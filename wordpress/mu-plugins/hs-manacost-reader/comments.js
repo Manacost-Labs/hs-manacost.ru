@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const root = document.querySelector('[data-mc-comments]');
+  const defaultAvatar = /^\/wp-content\/mu-plugins\/hs-manacost-reader\/default-avatar\.webp\?ver=[a-f0-9]{12}$/i.test(root?.dataset.defaultAvatarUrl || '') ? root.dataset.defaultAvatarUrl : null;
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!root || !/^[1-9][0-9]*$/.test(root.dataset.postId || '')) return;
   const postId = Number(root.dataset.postId);
@@ -169,8 +170,9 @@
     say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.some(visibleRow) ? '' : 'Комментариев пока нет. Начните обсуждение.');
   }
   function avatar(author) {
-    return typeof author.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(author.avatarVersion)
-      && author.avatarUrl === `/reader-api/v1/readers/${author.id}/avatar?v=${author.avatarVersion}` ? author.avatarUrl : null;
+    if (typeof author.avatarVersion === 'string' && /^[A-Za-z0-9_-]{32}$/.test(author.avatarVersion)
+      && author.avatarUrl === `/reader-api/v1/readers/${author.id}/avatar?v=${author.avatarVersion}`) return author.avatarUrl;
+    return defaultAvatar;
   }
   function element(tag, className, text) {
     const node = document.createElement(tag); if (className) node.className = className;
@@ -202,7 +204,7 @@
     text.append(element('span', 'mc-comments__name', name));
     if (typeof me.twitchUrl === 'string') text.append(authorBadge('twitch', 'Ваш Twitch'));
     if (typeof me.youtubeUrl === 'string') text.append(authorBadge('youtube', 'Ваш YouTube'));
-    composerIdentity.replaceChildren(avatarNode(name, privateAvatar()), text);
+    composerIdentity.replaceChildren(avatarNode(name, privateAvatar() || defaultAvatar), text);
   }
   function authorBadge(service, label) {
     const badge = element('span', `mc-comments__author-badge mc-comments__author-badge--${service}`);

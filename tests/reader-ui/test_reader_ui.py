@@ -150,8 +150,10 @@ echo json_encode($GLOBALS['assets']);'''
                 'article-favorite.css', 'article-favorite.js',
             )
         )
-        self.assertLessEqual(sum(path.stat().st_size for path in assets), 151_000)
-        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 35_500)
+        # The neutral fallback avatar adds small, dependency-free client handling
+        # on each Reader surface; keep the regression guard below 153 KiB.
+        self.assertLessEqual(sum(path.stat().st_size for path in assets), 153_000)
+        self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 35_700)
         self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
 
     @classmethod

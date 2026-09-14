@@ -9,9 +9,10 @@ import { chromium } from 'playwright';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const plugin = `${root}wordpress/mu-plugins/hs-manacost-reader/`;
 const renderShell = enabled => execFileSync('php', ['-r',
-  "define('ABSPATH','/fixture/'); function hs_reader_comments_enabled(){return $GLOBALS['argv'][2] === '1';} function hs_manacost_reader_is_account_request(){return true;} function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
+  "define('ABSPATH','/fixture/'); function hs_reader_comments_enabled(){return $GLOBALS['argv'][2] === '1';} function hs_manacost_reader_is_account_request(){return true;} function hs_manacost_reader_default_avatar_url(){return '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=a1b2c3d4e5f6';} function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
   `${plugin}account.php`, enabled ? '1' : '0'], { encoding: 'utf8' });
 let shell = renderShell(true);
+let communityIdentity = { canModerateComments: false, paidSubscriber: false, commentingBlocked: false };
 const assets = new Map([
   ['/ui.css', ['text/css', readFileSync(`${plugin}ui.css`)]],
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
@@ -25,6 +26,9 @@ let heldRequest = null;
 const heldResponses = new Set();
 const nativeDeadlineCalls = [];
 const server = createServer((request, response) => {
+	if (request.url === '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=a1b2c3d4e5f6') {
+		response.writeHead(200, { 'Content-Type': 'image/webp' }); response.end(readFileSync(`${plugin}default-avatar.webp`)); return;
+	}
 	if (request.url?.startsWith('/wp-content/mu-plugins/hs-manacost-reader/class-icons/')) {
 		const name = request.url.split('/').at(-1);
 		if (/^(deathknight|demonhunter|druid|hunter|mage|paladin|priest|rogue|shaman|warlock|warrior)\.png$/.test(name || '')) {
@@ -43,7 +47,7 @@ const server = createServer((request, response) => {
     }
     return;
   }
-  if (request.url === '/reader-api/v1/community/me') { response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify({ canModerateComments: false, commentingBlocked: false })); return; }
+	if (request.url === '/reader-api/v1/community/me') { response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(communityIdentity)); return; }
   const asset = assets.get(request.url);
   if (asset) { response.writeHead(200, { 'Content-Type': asset[0] }); response.end(asset[1]); return; }
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }
@@ -225,11 +229,16 @@ try {
       youtubeUrl: 'https://youtube.com/@Manacost',
     }),
   });
+  communityIdentity = { canModerateComments: true, paidSubscriber: true, commentingBlocked: false };
   for (const width of [1440, 1024, 768, 560, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
     assert.equal(await page.locator('[data-reader-identity]').textContent(), 'Читатель Манакоста');
+    await page.locator('[data-reader-paid]').waitFor({ state: 'visible' });
+    await page.locator('[data-reader-administrator]').waitFor({ state: 'visible' });
+    await page.locator('[data-reader-avatar-image]').waitFor({ state: 'visible' });
+    assert.match(await page.locator('[data-reader-avatar-image]').getAttribute('src'), /default-avatar\.webp\?ver=a1b2c3d4e5f6$/);
     await assertFits();
     const sectionOrder = await page.evaluate(() => {
       const rect = selector => document.querySelector(selector).getBoundingClientRect();
@@ -576,12 +585,12 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Фотография профиля обновлена'));
   assert.equal(avatarWrites.at(-1).method, 'DELETE');
   assert.equal(avatarWrites.at(-1).headers['x-reader-profile-version'], '4');
-  assert.equal(await page.locator('[data-reader-avatar-image]').isVisible(), false);
-  assert.equal(await page.locator('[data-reader-editor-avatar-placeholder]').isVisible(), true);
+	  assert.equal(await page.locator('[data-reader-editor-avatar-image]').isVisible(), true);
+	  assert.match(await page.locator('[data-reader-editor-avatar-image]').getAttribute('src'), /default-avatar\.webp\?ver=a1b2c3d4e5f6$/);
   profile = sessionDto({ csrfToken: 'csrf-after-403', profile: profileDto({ version: 4, avatarUrl: '/reader-api/v1/profile/avatar?v=stale4' }) });
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await page.waitForTimeout(100);
-  assert.equal(await page.locator('[data-reader-editor-avatar-image]').isVisible(), false, 'stale GET must not roll back a newer avatar response');
+	  assert.equal(await page.locator('[data-reader-editor-avatar-image]').isVisible(), true, 'stale GET must not roll back the default avatar after removal');
   assert.equal(await bioField.inputValue(), 'Этот текст нельзя потерять при загрузке фото.');
 
   profileWriteStatus = 0;
@@ -660,7 +669,7 @@ try {
   profile = sessionDto({ user: { displayName: '<img src=x onerror=alert(1)> Читатель' }, profileUrl: null, profile: profileDto({ displayName: '<img src=x onerror=alert(1)> Читатель' }) });
   await ready();
   assert.equal(await page.locator('[data-reader-identity]').textContent(), profile.profile.displayName);
-  assert.equal(await page.locator('[data-reader-avatar-image]:visible').count(), 0);
+  assert.match(await page.locator('[data-reader-avatar-image]').getAttribute('src'), /default-avatar\.webp\?ver=a1b2c3d4e5f6$/);
   assert.equal(await page.getByRole('link', { name: 'Профиль HearthPulse' }).count(), 0);
   await accountSummary.click();
   logoutStatus = 503;
