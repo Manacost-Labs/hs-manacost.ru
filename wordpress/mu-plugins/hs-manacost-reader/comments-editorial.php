@@ -20,6 +20,25 @@ function hs_reader_comments_enabled(): bool {
 }
 
 /**
+ * Reject shortcode-controlled access while allowing the reviewed quote shortcode.
+ *
+ * @param string $content Stored article content.
+ */
+function hs_reader_comment_content_is_safe( string $content ): bool {
+	if ( ! str_contains( $content, '[' ) ) {
+		return true;
+	}
+	$remaining = preg_replace_callback(
+		'/\[(\/)?([A-Za-z][A-Za-z0-9_-]*)(?:\s+[^\[\]]*)?\]/',
+		static function ( array $shortcode ): string {
+			return 'su_quote' === $shortcode[2] ? '' : $shortcode[0];
+		},
+		$content
+	);
+	return is_string( $remaining ) && ! str_contains( $remaining, '[' );
+}
+
+/**
  * Recheck public article safety once per request; no visitor/WP-admin role grants access.
  *
  * A single page can ask for the same article through the discussion template,
@@ -45,8 +64,8 @@ function hs_reader_public_article( int $post_id ): array {
 	}
 	$post = get_post( $post_id );
 	if ( ! $post || 'post' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password
-		|| str_contains( $post->post_content, '[' ) ) {
-		// Shortcode-controlled access is deliberately unsupported until its owner is integrated.
+		|| ! hs_reader_comment_content_is_safe( $post->post_content ) ) {
+		// Only the reviewed presentation shortcode is permitted in the discussion pilot.
 		$articles[ $post_id ] = $denied;
 		return $articles[ $post_id ];
 	}
