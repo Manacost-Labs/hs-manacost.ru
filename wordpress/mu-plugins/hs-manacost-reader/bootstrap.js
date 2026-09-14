@@ -1,5 +1,11 @@
 (() => {
   'use strict';
+  const mirrorHosts = new Set(['hs-manacost.com', 'www.hs-manacost.com']);
+  if (mirrorHosts.has(window.location.hostname)) {
+    const { pathname, search, hash } = window.location;
+    window.location.replace(`https://hs-manacost.ru${pathname}${search}${hash}`);
+    return;
+  }
   let current = null;
   window.hsManacostReaderBootstrap = (refresh = false) => {
     if (refresh) current = null;
