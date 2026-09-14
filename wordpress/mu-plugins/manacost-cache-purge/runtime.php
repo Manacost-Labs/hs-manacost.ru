@@ -95,20 +95,7 @@ trait Manacost_Cache_Purge_Runtime {
 		$cluster = count( $config['endpoints'] ) > 1 ? '0' : '1';
 
 		foreach ( $config['endpoints'] as $endpoint ) {
-			$response = wp_remote_post(
-				$endpoint,
-				array(
-					'timeout'   => 20,
-					'sslverify' => true,
-					'headers'   => array(
-						'Host' => $config['host'],
-					),
-					'body'      => array(
-						'token'   => $config['token'],
-						'cluster' => $cluster,
-					),
-				)
-			);
+			$response = self::post_reverse_proxy_purge( $endpoint, $config, $cluster );
 
 			if ( is_wp_error( $response ) ) {
 				throw new RuntimeException( 'Reverse proxy request failed' );
@@ -128,9 +115,110 @@ trait Manacost_Cache_Purge_Runtime {
 	}
 
 	/**
+	 * Sends one proxy purge request while retaining TLS verification for IP endpoints.
+	 *
+	 * Proxy endpoints are intentionally stored as IP addresses so each regional edge
+	 * is invalidated directly. Their certificate is issued to the configured TLS host,
+	 * so cURL pins that hostname to the endpoint IP instead of disabling verification.
+	 *
+	 * @param string $endpoint Purge endpoint.
+	 * @param array  $config Proxy configuration.
+	 * @param string $cluster Cluster selector.
+	 * @return array{response:array{code:int},body:string}|WP_Error HTTP response.
+	 * @throws RuntimeException When the endpoint cannot be safely addressed.
+	 */
+	private static function post_reverse_proxy_purge( string $endpoint, array $config, string $cluster ) {
+		$endpoint_host = (string) wp_parse_url( $endpoint, PHP_URL_HOST );
+
+		if ( ! filter_var( $endpoint_host, FILTER_VALIDATE_IP ) ) {
+			return wp_remote_post(
+				$endpoint,
+				array(
+					'timeout'   => 20,
+					'sslverify' => true,
+					'headers'   => array(
+						'Host' => $config['host'],
+					),
+					'body'      => array(
+						'token'   => $config['token'],
+						'cluster' => $cluster,
+					),
+				)
+			);
+		}
+
+		if ( ! function_exists( 'curl_init' ) || ! function_exists( 'curl_setopt_array' ) || ! function_exists( 'curl_exec' ) ) {
+			throw new RuntimeException( 'cURL is required to verify the regional proxy certificate' );
+		}
+
+		$tls_host = $config['tls_host'];
+		if ( '' === $tls_host || ! preg_match( '/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i', $tls_host ) ) {
+			throw new RuntimeException( 'Reverse proxy TLS host is not configured' );
+		}
+
+		$scheme = strtolower( (string) wp_parse_url( $endpoint, PHP_URL_SCHEME ) );
+		$path   = (string) wp_parse_url( $endpoint, PHP_URL_PATH );
+		$query  = (string) wp_parse_url( $endpoint, PHP_URL_QUERY );
+		$port   = (int) wp_parse_url( $endpoint, PHP_URL_PORT );
+		$port   = $port > 0 ? $port : 443;
+
+		if ( 'https' !== $scheme || '' === $path ) {
+			throw new RuntimeException( 'Reverse proxy endpoint must use HTTPS and a path' );
+		}
+
+		$url = 'https://' . $tls_host . ( 443 === $port ? '' : ':' . $port ) . $path;
+		if ( '' !== $query ) {
+			$url .= '?' . $query;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- CURLOPT_RESOLVE pins verified TLS to the configured edge IP.
+		$handle = curl_init( $url );
+		if ( false === $handle ) {
+			throw new RuntimeException( 'Reverse proxy cURL initialization failed' );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array -- CURLOPT_RESOLVE is not available through wp_remote_post().
+		curl_setopt_array(
+			$handle,
+			array(
+				CURLOPT_POST           => true,
+				CURLOPT_POSTFIELDS     => http_build_query(
+					array(
+						'token'   => $config['token'],
+						'cluster' => $cluster,
+					)
+				),
+				CURLOPT_HTTPHEADER     => array( 'Host: ' . $config['host'] ),
+				CURLOPT_RESOLVE        => array( $tls_host . ':' . $port . ':' . $endpoint_host ),
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_TIMEOUT        => 20,
+				CURLOPT_CONNECTTIMEOUT => 5,
+				CURLOPT_SSL_VERIFYPEER => true,
+				CURLOPT_SSL_VERIFYHOST => 2,
+			)
+		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec -- See CURLOPT_RESOLVE rationale above.
+		$body = curl_exec( $handle );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_getinfo -- Reads only the HTTP response code.
+		$code = (int) curl_getinfo( $handle, CURLINFO_RESPONSE_CODE );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_close -- Closes the direct edge request handle.
+		curl_close( $handle );
+
+		if ( false === $body ) {
+			throw new RuntimeException( 'Reverse proxy request failed' );
+		}
+
+		return array(
+			'response' => array( 'code' => $code ),
+			'body'     => $body,
+		);
+	}
+
+	/**
 	 * Reads the reverse-proxy purge configuration from trusted runtime sources.
 	 *
-	 * @return array{endpoints:array<int,string>,token:string,host:string} Proxy configuration.
+	 * @return array{endpoints:array<int,string>,token:string,host:string,tls_host:string} Proxy configuration.
 	 */
 	private static function reverse_proxy_config(): array {
 		$domain      = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
@@ -166,6 +254,16 @@ trait Manacost_Cache_Purge_Runtime {
 				)
 			);
 
+		$tls_host = defined( 'MANACOST_REVERSE_PROXY_PURGE_TLS_HOST' )
+			? (string) MANACOST_REVERSE_PROXY_PURGE_TLS_HOST
+			: self::first_nonempty_string(
+				array(
+					getenv( 'MANACOST_REVERSE_PROXY_PURGE_TLS_HOST' ),
+					get_option( 'manacost_reverse_proxy_purge_tls_host', '' ),
+					'job.' . $host,
+				)
+			);
+
 		$endpoints = preg_split( '/[\s,]+/', $endpoints_value );
 		if ( false === $endpoints ) {
 			$endpoints = array();
@@ -176,6 +274,7 @@ trait Manacost_Cache_Purge_Runtime {
 			'endpoints' => $endpoints,
 			'token'     => $token,
 			'host'      => '' !== $host ? $host : $domain,
+			'tls_host'  => strtolower( trim( $tls_host ) ),
 		);
 	}
 

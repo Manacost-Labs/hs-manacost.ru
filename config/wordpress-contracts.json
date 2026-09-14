@@ -1381,21 +1381,21 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 305
+        "line": 404
       },
       {
         "name": "cloudflare_api_key",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 316
+        "line": 415
       },
       {
         "name": "cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 294
+        "line": 393
       },
       {
         "name": "date_format",
@@ -1780,35 +1780,35 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 314
+        "line": 413
       },
       {
         "name": "manacost_cloudflare_api_token",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 334
+        "line": 433
       },
       {
         "name": "manacost_cloudflare_email",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 303
+        "line": 402
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 292
+        "line": 391
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 429
+        "line": 528
       },
       {
         "name": "manacost_ingest_logs",
@@ -1836,21 +1836,28 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 147
+        "line": 235
       },
       {
         "name": "manacost_reverse_proxy_purge_host",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 165
+        "line": 253
+      },
+      {
+        "name": "manacost_reverse_proxy_purge_tls_host",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+        "line": 262
       },
       {
         "name": "manacost_reverse_proxy_purge_token",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 156
+        "line": 244
       },
       {
         "name": "spqi_descriptions",
@@ -2025,7 +2032,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 273
+        "line": 372
       }
     ],
     "shortcodes": [
