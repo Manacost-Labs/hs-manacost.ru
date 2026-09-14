@@ -139,18 +139,21 @@ function hs_manacost_reader_page(): ?WP_Post {
  * @return bool
  */
 function hs_manacost_reader_resolves_account_page( ?WP_Post $page ): bool {
-	if ( ! $page ) {
-		return false;
-	}
-	if ( is_page( $page->ID ) ) {
+	if ( $page && is_page( $page->ID ) ) {
 		return true;
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only route classification before a fail-closed 404.
 	$page_id_raw = isset( $_GET['page_id'] ) && is_scalar( $_GET['page_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['page_id'] ) ) : '';
 	$page_id     = filter_var( $page_id_raw, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
-	if ( false !== $page_id && (int) $page->ID === $page_id ) {
-		return true;
+	if ( false !== $page_id ) {
+		if ( $page && (int) $page->ID === $page_id ) {
+			return true;
+		}
+		$requested_page = get_post( $page_id );
+		if ( $requested_page instanceof WP_Post && 'publish' === $requested_page->post_status && has_shortcode( $requested_page->post_content, 'hs_manacost_reader_account' ) ) {
+			return true;
+		}
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only route classification before a fail-closed 404.

@@ -245,12 +245,14 @@ function add_filter($name, $callback, ...$args) { $GLOBALS['filters'][$name][] =
 function __return_false() { return false; }
 function wp_unslash($value) { return stripslashes($value); }
 function sanitize_text_field($value) { return trim(strip_tags($value)); }
-function get_page_by_path($path) { return new WP_Post(); }
+function get_page_by_path($path) { return $GLOBALS['slug_lookup'] ? new WP_Post() : null; }
+function get_post($id) { return (int) $id === 42 ? new WP_Post() : null; }
 function has_shortcode($content, $name) { return true; }
 function is_page($id) { return $GLOBALS['resolved']; }
 function nocache_headers() { $GLOBALS['nocache'] = true; }
 function status_header($status) { $GLOBALS['status'] = $status; }
 $GLOBALS['resolved'] = $argv[4] === 'resolved';
+$GLOBALS['slug_lookup'] = $argv[4] !== 'missing';
 require $argv[1];
 hs_manacost_reader_account_route_policy();
 $canonical = 'unfiltered';
@@ -280,6 +282,8 @@ echo json_encode([
             ('hs-manacost.com', '/account/', 'resolved', 404, True, True),
             ('hs-manacost.com', '/?pagename=account&lang=en', 'other', 404, True, True),
             ('hs-manacost.com', '/?page_id=42', 'other', 404, True, True),
+            ('hs-manacost.com', '/?pagename=account&lang=en', 'missing', 404, True, True),
+            ('hs-manacost.com', '/?page_id=42', 'missing', 404, True, True),
             ('hs-manacost.ru', '/?page_id=43', 'other', 200, False, False),
             ('hs-manacost.com', '/?pagename=accounting', 'other', 200, False, False),
             ('hs-manacost.com', '/news/', 'other', 200, False, False),
