@@ -1001,14 +1001,14 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
-        "line": 73
+        "line": 96
       },
       {
         "name": "_hs_reader_comments_disabled",
         "resolved": true,
         "api": "delete_post_meta",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
-        "line": 77
+        "line": 100
       },
       {
         "name": "_hs_reader_comments_disabled",
@@ -1022,21 +1022,21 @@
         "resolved": true,
         "api": "delete_post_meta",
         "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
-        "line": 99
+        "line": 122
       },
       {
         "name": "_hs_show_on_homepage",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
-        "line": 104
+        "line": 127
       },
       {
         "name": "_hs_show_on_homepage",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
-        "line": 201
+        "line": 224
       },
       {
         "name": "_hs_tooltips_enabled",
@@ -2728,14 +2728,14 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
-        "line": 79
+        "line": 102
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
-        "line": 63
+        "line": 86
       },
       {
         "name": "edit_post",
