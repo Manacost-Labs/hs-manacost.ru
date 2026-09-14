@@ -55,6 +55,12 @@ require ADAPTER;
         for mutation in ("$post->post_status='draft';", "$post->post_status='private';", "$post->post_status='future';", "$post->post_password='private';", "$post->post_type='page';", "$post->post_content='[private]hidden[/private]';"):
             self.assertEqual(self.evaluate(mutation + 'echo json_encode(hs_reader_comment_article(17));'), {'postId': 17, 'allowed': False})
 
+    def test_reviewed_quote_shortcode_is_eligible_but_other_shortcodes_are_rejected(self):
+        allowed = self.evaluate("$post->post_content='[su_quote style=\\\"default\\\"]Цитата[/su_quote]'; echo json_encode(hs_reader_comment_article(17));")
+        rejected = self.evaluate("$post->post_content='[su_quote]Цитата[/su_quote][private]Скрыто[/private]'; echo json_encode(hs_reader_comment_article(17));")
+        self.assertTrue(allowed['allowed'])
+        self.assertEqual(rejected, {'postId': 17, 'allowed': False})
+
     def test_signed_batch_is_strict_no_cache_and_does_not_leak_rejected_article(self):
         code = '''$request = new WP_REST_Request();
 $time = (string) time();
