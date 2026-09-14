@@ -10,13 +10,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/manacost-rsya-inline.php"
+EDITOR_PLUGIN = ROOT / "wordpress/mu-plugins/manacost-rsya-inline/editor.js"
+PUBLIC_PROFILE = ROOT / "wordpress/mu-plugins/hs-manacost-reader/public-profile.php"
 PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 NODE_BINARY = shutil.which("node") or "/usr/bin/node"
 RECENT_SLUG = "kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti"
 FIRST_ENABLED_POST_GMT = "2026-08-31 09:00:39"
+LEGACY_AUTOMATIC_UNTIL_GMT = "2026-09-14 20:00:00"
 INTRO_BLOCK_ID = "R-A-16113237-6"
 FOOTER_BLOCK_ID = "R-A-16113237-5"
 FLOOR_BLOCK_ID = "R-A-16113237-7"
+EDITOR_BANNER_BLOCK_ID = "R-A-16113237-12"
+EDITOR_FEED_BLOCK_ID = "R-A-16113237-10"
 
 
 class RsyaInlineBannerTest(unittest.TestCase):
@@ -32,6 +37,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         content_in_loop: bool = True,
         content_main_query: bool = True,
         rsya_enabled: bool = True,
+        public_profile: bool = False,
         content: str | None = None,
     ) -> dict:
         content = content or (
@@ -51,15 +57,19 @@ class RsyaInlineBannerTest(unittest.TestCase):
             public string $post_name;
             public string $post_date_gmt;
             public string $post_status;
-            public function __construct($slug, $published_at, $status) {{
+            public string $post_content;
+            public function __construct($slug, $published_at, $status, $post_content) {{
                 $this->post_name = $slug;
                 $this->post_date_gmt = $published_at;
                 $this->post_status = $status;
+                $this->post_content = $post_content;
             }}
         }}
         $phase = 'head';
+        $public_profile = {json.dumps(public_profile)};
         $actions = [];
         $filters = [];
+        $shortcodes = [];
         $scripts = [];
         $inline_scripts = [];
         $script_data = [];
@@ -69,6 +79,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {{
             $GLOBALS['filters'][$tag][] = [$callback, $priority, $accepted_args];
         }}
+        function add_shortcode($tag, $callback) {{ $GLOBALS['shortcodes'][$tag] = $callback; }}
         function is_admin() {{ return {json.dumps(admin)}; }}
         function is_singular($type = null) {{ return {json.dumps(singular)}; }}
         function in_the_loop() {{ return 'content' === $GLOBALS['phase'] ? {json.dumps(content_in_loop)} : false; }}
@@ -77,13 +88,17 @@ class RsyaInlineBannerTest(unittest.TestCase):
         function is_preview() {{ return false; }}
         function wp_doing_ajax() {{ return false; }}
         function is_user_logged_in() {{ return {json.dumps(logged_in)}; }}
-        function get_queried_object() {{ return new WP_Post({json.dumps(slug)}, {json.dumps(published_at)}, {json.dumps(status)}); }}
+        function hs_reader_public_profile_request() {{ return $GLOBALS['public_profile']; }}
+        function get_queried_object() {{ return new WP_Post({json.dumps(slug)}, {json.dumps(published_at)}, {json.dumps(status)}, {json.dumps(content, ensure_ascii=False)}); }}
+        function has_shortcode($content, $tag) {{ return false !== strpos($content, '[' . $tag); }}
         function wp_strip_all_tags($value) {{ return trim(strip_tags($value)); }}
+        function sanitize_key($value) {{ return strtolower(preg_replace('/[^a-z0-9_-]/', '', $value)); }}
         function wp_json_encode($value) {{ return json_encode($value); }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
 		function esc_js($value) {{ return $value; }}
         function esc_url($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function get_privacy_policy_url() {{ return 'https://hs-manacost.ru/privacy-policy/'; }}
+        function content_url($path = '') {{ return 'https://hs-manacost.ru/wp-content/' . ltrim($path, '/'); }}
         function wp_register_script($handle, $source = '', $dependencies = [], $version = false, $args = false) {{
             $GLOBALS['scripts'][$handle] = [$source, $dependencies, $version, $args];
         }}
@@ -114,12 +129,18 @@ class RsyaInlineBannerTest(unittest.TestCase):
         foreach ($actions['wp_footer'] ?? [] as $registered) {{ call_user_func($registered[0]); }}
         $footer = ob_get_clean();
         $phase = 'content';
+        $manual_banner = call_user_func($shortcodes['manacost_rsya'], ['format' => 'banner']);
+        $manual_feed = call_user_func($shortcodes['manacost_rsya'], ['format' => 'feed']);
+        $profile_banner = Manacost_Rsya_Inline_Banner::render_public_profile_banner();
         echo json_encode([
             'content' => apply_test_filter('the_content', {json.dumps(content, ensure_ascii=False)}),
             'head' => $head,
             'footer' => $footer,
             'scripts' => $scripts,
             'inline_scripts' => $inline_scripts,
+            'manual_banner' => $manual_banner,
+            'manual_feed' => $manual_feed,
+            'profile_banner' => $profile_banner,
         ], JSON_UNESCAPED_UNICODE);
         """
         completed = subprocess.run(
@@ -147,7 +168,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
 
         content = result["content"]
         self.assertEqual(content.count(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'), 1)
-        self.assertEqual(content.count('<div class="manacost-rsya-inline" data-manacost-rsya-unit'), 2)
+        self.assertEqual(content.count('class="manacost-rsya-inline manacost-rsya-inline--banner"'), 2)
         self.assertIn(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"', content)
         self.assertIn('data-manacost-rsya-unit', content)
         self.assertNotIn("manacost-rsya-consent", content)
@@ -169,15 +190,57 @@ class RsyaInlineBannerTest(unittest.TestCase):
             content.index(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'),
         )
 
-    def test_banner_covers_the_initial_ten_and_all_future_articles(self) -> None:
-        for kwargs in (
-            {"slug": "tenth-latest-post", "published_at": FIRST_ENABLED_POST_GMT},
-            {"slug": "future-post", "published_at": "2026-10-01 00:00:00"},
-        ):
-            with self.subTest(**kwargs):
-                result = self.render_result(**kwargs)
-                self.assertIn("yandex_rtb", result["content"])
-                self.assertIn("manacost-rsya-gate", result["scripts"])
+    def test_legacy_posts_keep_automatic_placements_but_new_posts_are_manual(self) -> None:
+        legacy = self.render_result(slug="tenth-latest-post", published_at=FIRST_ENABLED_POST_GMT)
+        self.assertIn("yandex_rtb", legacy["content"])
+        self.assertIn("manacost-rsya-gate", legacy["scripts"])
+
+        future = self.render_result(slug="future-post", published_at="2026-10-01 00:00:00")
+        self.assertNotIn("yandex_rtb", future["content"])
+        self.assertEqual(future["scripts"], [])
+        self.assertEqual(future["footer"], "")
+
+    def test_editor_shortcodes_render_only_supported_manual_formats(self) -> None:
+        result = self.render_result(published_at="2026-10-01 00:00:00")
+
+        self.assertIn(EDITOR_BANNER_BLOCK_ID, result["manual_banner"])
+        self.assertIn('data-manacost-rsya-slot="editor-banner"', result["manual_banner"])
+        self.assertIn(EDITOR_FEED_BLOCK_ID, result["manual_feed"])
+        self.assertIn('"type": "feed"', result["manual_feed"])
+        self.assertIn('class="manacost-rsya-inline__label">Реклама</p>', result["manual_banner"])
+
+    def test_explicit_shortcode_loads_the_gate_for_a_new_article(self) -> None:
+        result = self.render_result(
+            published_at="2026-10-01 00:00:00",
+            content='<p>Текст.</p>[manacost_rsya format="banner"]',
+        )
+
+        self.assertIn("manacost-rsya-gate", result["scripts"])
+        self.assertNotIn("yandex_rtb", result["content"])
+        self.assertEqual(result["footer"], "")
+
+    def test_public_profile_has_one_viewer_gated_banner_but_private_pages_do_not(self) -> None:
+        public = self.render_result(
+            published_at="2026-10-01 00:00:00",
+            public_profile=True,
+        )
+        private = self.render_result(published_at="2026-10-01 00:00:00")
+
+        self.assertIn("R-A-16113237-13", public["profile_banner"])
+        self.assertIn('data-manacost-rsya-slot="public-profile"', public["profile_banner"])
+        self.assertIn("manacost-rsya-gate", public["scripts"])
+        self.assertEqual(private["profile_banner"], "")
+        self.assertIn("render_public_profile_banner", PUBLIC_PROFILE.read_text(encoding="utf-8"))
+
+    def test_classic_editor_offers_only_manual_banner_and_feed_controls(self) -> None:
+        editor = EDITOR_PLUGIN.read_text(encoding="utf-8")
+
+        self.assertIn('insertContent(\'[manacost_rsya format="\' + format + \'"]\')', editor)
+        self.assertIn('text: "Баннер РСЯ"', editor)
+        self.assertIn('text: "Лента РСЯ"', editor)
+        self.assertIn("editor.addButton", editor)
+        self.assertNotIn("fullscreen", editor.lower())
+        self.assertNotIn("prebid", editor.lower())
 
     def test_paid_gate_never_requests_yandex_and_unpaid_gate_loads_once(self) -> None:
         gate = self.render_result()["inline_scripts"][0][1]
@@ -187,7 +250,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 const units = [{{ hidden: false }}, {{ hidden: false }}];
                 let requested = 0;
                 const head = {{ appendChild: loader => {{ requested += 1; loader.onload(); }} }};
-                global.window = {{ yaContextCb: [], addEventListener: () => {{}} }};
+                global.window = {{ yaContextCb: [], location: {{ hostname: 'hs-manacost.ru' }}, addEventListener: () => {{}} }};
                 global.document = {{
                     querySelectorAll: () => units,
                     createElement: () => ({{}}),
@@ -210,10 +273,32 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 self.assertEqual(result["requested"], expected_loader)
                 self.assertEqual(result["hidden"], ad_free)
 
+    def test_mirror_never_loads_yandex_without_a_same_host_reader_cookie(self) -> None:
+        gate = self.render_result()["inline_scripts"][0][1]
+        node_script = f"""
+        const units = [{{ hidden: false }}];
+        let requested = 0;
+        global.window = {{ yaContextCb: [], location: {{ hostname: 'hs-manacost.com' }}, addEventListener: () => {{}} }};
+        global.document = {{
+            querySelectorAll: () => units,
+            createElement: () => ({{}}),
+            head: {{ appendChild: () => {{ requested += 1; }} }},
+        }};
+        global.fetch = async () => {{ throw new Error('mirror must not check or load ads'); }};
+        (async () => {{
+            {gate}
+            const allowed = await window.manacostRsyaReady;
+            process.stdout.write(JSON.stringify({{ allowed, requested, hidden: units[0].hidden }}));
+        }})().catch(error => {{ console.error(error); process.exitCode = 1; }});
+        """
+        completed = subprocess.run([NODE_BINARY, "-e", node_script], check=False, capture_output=True, text=True)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout), {"allowed": False, "requested": 0, "hidden": True})
+
     def test_short_article_keeps_the_intro_placement_separate_from_the_footer(self) -> None:
         result = self.render_result(
             slug="future-short-post",
-            published_at="2026-10-01 00:00:00",
+            published_at="2026-09-07 00:00:00",
             content="<p>Короткий, но полноценный материал.</p>",
         )
 
@@ -232,7 +317,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
     def test_article_without_paragraph_tags_still_has_both_placements(self) -> None:
         result = self.render_result(
             slug="future-embed-only-post",
-            published_at="2026-10-01 00:00:00",
+            published_at="2026-09-07 00:00:00",
             content="<figure><img src=\"cover.jpg\" alt=\"Обложка\"></figure>",
         )
 
@@ -263,7 +348,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
 
     def test_mentioning_an_ad_identifier_is_not_a_placement(self) -> None:
         result = self.render_result(content=f'<p>Example: yandex_rtb_{INTRO_BLOCK_ID}</p>')
-        self.assertEqual(result["content"].count('data-manacost-rsya-unit data-'), 2)
+        self.assertEqual(result["content"].count('data-manacost-rsya-slot='), 2)
 
     def test_banner_does_not_run_before_the_coverage_cutoff_or_admin(self) -> None:
         for kwargs in (
@@ -292,7 +377,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertIn("height: 90px", result["head"])
         self.assertIn("max-width: 320px", result["head"])
         self.assertIn("height: 100px", result["head"])
-        self.assertNotIn("min-height", result["head"])
+        self.assertIn("min-height: 180px", result["head"])
+        self.assertIn("border-radius: 12px", result["head"])
         self.assertIn("onError", result["content"])
         self.assertIn("onRender", result["content"])
         self.assertIn("data-manacost-rsya-rendered", result["content"])

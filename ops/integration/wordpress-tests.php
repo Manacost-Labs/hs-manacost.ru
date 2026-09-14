@@ -45,6 +45,15 @@ hs_integration_assert(!is_wp_error($postId), 'article publication failed');
 $postId = (int) $postId;
 update_option('hs_integration_post_id', $postId, false);
 
+$rsyaPostId = wp_insert_post([
+    'post_title'   => 'RSYA manual page',
+    'post_name'    => 'rsya-manual-page',
+    'post_content' => '<p>Рекламный тестовый материал.</p>[manacost_rsya format="banner"]<p>Продолжение материала.</p>',
+    'post_status'  => 'publish',
+    'post_type'    => 'page',
+], true);
+hs_integration_assert(!is_wp_error($rsyaPostId), 'manual RSYA page publication failed');
+
 // Historical comments stay stored even when public submissions and rendering close.
 wp_update_post(['ID' => $postId, 'comment_status' => 'open', 'ping_status' => 'open']);
 $historicalCommentId = wp_insert_comment([
