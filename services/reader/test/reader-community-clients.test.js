@@ -53,6 +53,25 @@ test('editorial clients use only the exact configured Manacost origin', async ()
     Response.json({ site: 'test.hs-manacost.ru', threads: [{ postId: 17, allowed: false }] })).get([17]));
 });
 
+test('editorial clients may use only their matching loopback transport endpoint', async () => {
+  for (const [origin, editorialOrigin] of [
+    ['https://test.hs-manacost.ru', 'http://127.0.0.1:18185'],
+    ['https://hs-manacost.ru', 'http://127.0.0.1:18184'],
+  ]) {
+    let called;
+    const client = createEditorialClient({ ...editorial, origin, editorialOrigin }, async url => {
+      called = url;
+      return Response.json({ site: new URL(origin).host, threads: [{ postId: 17, allowed: false }] });
+    });
+    assert.equal((await client.get([17])).get(17).allowed, false);
+    assert.equal(called, `${editorialOrigin}/wp-json/manacost-reader/v1/threads`);
+  }
+  for (const editorialOrigin of ['http://127.0.0.1:18184/', 'https://127.0.0.1:18184',
+    'http://127.0.0.1:18185', 'http://localhost:18184', 'https://hs-manacost.ru']) {
+    assert.throws(() => createEditorialClient({ ...editorial, origin: 'https://hs-manacost.ru', editorialOrigin }));
+  }
+});
+
 test('editorial failures never grant visibility and oversized responses are bounded', async () => {
   for (const response of [new Response('', { status: 401 }), new Response('', { status: 429 }), new Response('', { status: 503 }), new Response('not json'), Response.json({ enormous: 'x'.repeat(33000) })]) {
     await assert.rejects(createEditorialClient(editorial, async () => response).get([17]));

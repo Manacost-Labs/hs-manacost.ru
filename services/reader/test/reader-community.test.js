@@ -47,3 +47,15 @@ test('production community requires the exact production bridge and a separate e
   assert.throws(() => createReaderHandler(handlerConfig));
   assert.doesNotThrow(() => createReaderHandler({ ...handlerConfig, communityProductionEnabled: true }));
 });
+
+test('community passes only the configured matching loopback editorial endpoint', t => {
+  const store = new ReaderStore({ encryptionKey: randomBytes(32) }); t.after(() => store.close());
+  new ReaderProfiles({ db: store.db, issuer: options.issuer });
+  const community = createCommunity({ options, db: store.db, env: {
+    ...config, READER_EDITORIAL_ORIGIN: 'http://127.0.0.1:18185',
+  } });
+  assert.ok(community.editorial);
+  assert.throws(() => createCommunity({ options, db: store.db, env: {
+    ...config, READER_EDITORIAL_ORIGIN: 'http://127.0.0.1:18184',
+  } }));
+});

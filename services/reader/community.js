@@ -13,9 +13,11 @@ export function createCommunity({ options, db, env = process.env, transport = fe
     && options.issuer === 'https://hearthpulse.net/identity' && options.clientId === 'manacost-reader-production';
   if (!staging && !production) throw new Error('Community requires an explicit Manacost identity boundary');
   const editorial = createEditorialClient({ key: env.READER_EDITORIAL_KEY,
-    username: env.READER_EDITORIAL_USERNAME, password: env.READER_EDITORIAL_PASSWORD, origin: options.origin }, transport);
+    username: env.READER_EDITORIAL_USERNAME, password: env.READER_EDITORIAL_PASSWORD,
+    origin: options.origin, editorialOrigin: env.READER_EDITORIAL_ORIGIN }, transport);
   const favoriteEditorial = createFavoriteEditorialClient({ key: env.READER_EDITORIAL_KEY,
-    username: env.READER_EDITORIAL_USERNAME, password: env.READER_EDITORIAL_PASSWORD, origin: options.origin }, transport);
+    username: env.READER_EDITORIAL_USERNAME, password: env.READER_EDITORIAL_PASSWORD,
+    origin: options.origin, editorialOrigin: env.READER_EDITORIAL_ORIGIN }, transport);
   const entitlements = createPaidTitleClient(options, transport);
   const permissions = createReaderPermissionsClient(options, transport);
   const attachments = new ReaderCommentAttachments({ db, issuer: options.issuer });
