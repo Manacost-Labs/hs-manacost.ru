@@ -131,15 +131,19 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
-    def test_enabled_article_loads_yandex_once_and_places_banner_after_intro(self) -> None:
+    def test_enabled_article_gates_yandex_before_placing_banners_after_intro(self) -> None:
         result = self.render_result()
 
         self.assertEqual(
-            result["scripts"]["manacost-rsya-loader"],
-            ["https://yandex.ru/ads/system/context.js", [], INTRO_BLOCK_ID, {"strategy": "async"}],
+            result["scripts"]["manacost-rsya-gate"],
+            ["", [], INTRO_BLOCK_ID, {"strategy": "async"}],
         )
         self.assertEqual(result["inline_scripts"][0][2], "before")
         self.assertIn("window.yaContextCb = window.yaContextCb || []", result["inline_scripts"][0][1])
+        self.assertIn('/reader-api/v1/ad-status', result["inline_scripts"][0][1])
+        self.assertIn('status.adFree !== false', result["inline_scripts"][0][1])
+        self.assertIn('loader.src = "https://yandex.ru/ads/system/context.js"', result["inline_scripts"][0][1])
+        self.assertIn('credentials: "same-origin"', result["inline_scripts"][0][1])
 
         content = result["content"]
         self.assertEqual(content.count(f'id="yandex_rtb_{INTRO_BLOCK_ID}"'), 1)
@@ -173,7 +177,38 @@ class RsyaInlineBannerTest(unittest.TestCase):
             with self.subTest(**kwargs):
                 result = self.render_result(**kwargs)
                 self.assertIn("yandex_rtb", result["content"])
-                self.assertIn("manacost-rsya-loader", result["scripts"])
+                self.assertIn("manacost-rsya-gate", result["scripts"])
+
+    def test_paid_gate_never_requests_yandex_and_unpaid_gate_loads_once(self) -> None:
+        gate = self.render_result()["inline_scripts"][0][1]
+        for ad_free, expected_loader in ((True, 0), (False, 1)):
+            with self.subTest(ad_free=ad_free):
+                node_script = f"""
+                const units = [{{ hidden: false }}, {{ hidden: false }}];
+                let requested = 0;
+                const head = {{ appendChild: loader => {{ requested += 1; loader.onload(); }} }};
+                global.window = {{ yaContextCb: [], addEventListener: () => {{}} }};
+                global.document = {{
+                    querySelectorAll: () => units,
+                    createElement: () => ({{}}),
+                    head,
+                }};
+                global.fetch = async (url, options) => {{
+                    if (url !== '/reader-api/v1/ad-status' || options.credentials !== 'same-origin' || options.cache !== 'no-store') throw new Error('bad Reader gate request');
+                    return {{ ok: true, json: async () => ({{ adFree: {str(ad_free).lower()} }}) }};
+                }};
+                (async () => {{
+                    {gate}
+                    const allowed = await window.manacostRsyaReady;
+                    process.stdout.write(JSON.stringify({{ allowed, requested, hidden: units.every(unit => unit.hidden) }}));
+                }})().catch(error => {{ console.error(error); process.exitCode = 1; }});
+                """
+                completed = subprocess.run([NODE_BINARY, "-e", node_script], check=False, capture_output=True, text=True)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                result = json.loads(completed.stdout)
+                self.assertEqual(result["allowed"], not ad_free)
+                self.assertEqual(result["requested"], expected_loader)
+                self.assertEqual(result["hidden"], ad_free)
 
     def test_short_article_keeps_the_intro_placement_separate_from_the_footer(self) -> None:
         result = self.render_result(
@@ -248,7 +283,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
             with self.subTest(**kwargs):
                 result = self.render_result(**kwargs)
                 self.assertNotIn("yandex_rtb", result["content"])
-                self.assertIn("manacost-rsya-loader", result["scripts"])
+                self.assertIn("manacost-rsya-gate", result["scripts"])
 
     def test_banner_uses_bounded_responsive_sizes_and_collapses_on_error(self) -> None:
         result = self.render_result()
@@ -292,6 +327,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         global.window = {{
             yaContextCb: callbacks,
             manacostRsyaLoaderFailed: {loader_failed},
+            manacostRsyaReady: Promise.resolve(true),
         }};
         global.document = {{ getElementById: () => targetContainer }};
         global.Ya = {{
@@ -305,16 +341,19 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 }},
             }},
         }};
-        {script_matches[script_index]}
-        if (!window.manacostRsyaLoaderFailed) {{
-            callbacks[0]();
-        }}
-        {actions[scenario]}
-        process.stdout.write(JSON.stringify({{
-            hidden: bannerUnit.hidden,
-            rendered: attributes["data-manacost-rsya-rendered"] || null,
-            renderCalls,
-        }}));
+        (async () => {{
+            {script_matches[script_index]}
+            await Promise.resolve();
+            if (!window.manacostRsyaLoaderFailed) {{
+                callbacks[0]();
+            }}
+            {actions[scenario]}
+            process.stdout.write(JSON.stringify({{
+                hidden: bannerUnit.hidden,
+                rendered: attributes["data-manacost-rsya-rendered"] || null,
+                renderCalls,
+            }}));
+        }})().catch(error => {{ console.error(error); process.exitCode = 1; }});
         """
         completed = subprocess.run(
             [NODE_BINARY, "-e", node_script],

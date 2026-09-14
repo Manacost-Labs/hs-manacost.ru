@@ -22,7 +22,7 @@ final class Manacost_Rsya_Inline_Banner {
 	private const INTRO_BLOCK_ID          = 'R-A-16113237-6';
 	private const FOOTER_BLOCK_ID         = 'R-A-16113237-5';
 	private const FLOOR_BLOCK_ID          = 'R-A-16113237-7';
-	private const SCRIPT_HANDLE           = 'manacost-rsya-loader';
+	private const GATE_HANDLE             = 'manacost-rsya-gate';
 	private const TEXT_PARAGRAPH_POSITION = 3;
 
 	/**
@@ -31,7 +31,7 @@ final class Manacost_Rsya_Inline_Banner {
 	 * @return void
 	 */
 	public static function boot(): void {
-		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_loader' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_gate' ) );
 		add_action( 'wp_head', array( __CLASS__, 'render_styles' ), 39 );
 		add_action( 'wp_footer', array( __CLASS__, 'render_floor_ad' ), 90 );
 		add_filter( 'the_content', array( __CLASS__, 'insert_banner' ), 30 );
@@ -48,10 +48,12 @@ final class Manacost_Rsya_Inline_Banner {
 		}
 		?>
 		<script id="manacost-rsya-floor-ad" data-manacost-rsya-state="queued">
-			window.yaContextCb = window.yaContextCb || [];
-			if (!window.manacostRsyaFloorQueued) {
+			if (!window.manacostRsyaFloorQueued && window.manacostRsyaReady) {
 			window.manacostRsyaFloorQueued = true;
-			window.yaContextCb.push(() => {
+			window.manacostRsyaReady.then((allowed) => {
+				if (!allowed) { return; }
+				window.yaContextCb = window.yaContextCb || [];
+				window.yaContextCb.push(() => {
 				const unit = document.getElementById('manacost-rsya-floor-ad');
 				const state = value => unit.setAttribute('data-manacost-rsya-state', value);
 				if (window.manacostRsyaLoaderFailed) { state('loader-error'); return; }
@@ -68,32 +70,34 @@ final class Manacost_Rsya_Inline_Banner {
 					"onRender": () => state('rendered')
 				}, () => state('no-fill'));
 			});
+			});
 			}
 		</script>
 		<?php
 	}
 
 	/**
-	 * Enqueues the Yandex RTB loader once in the document head.
+	 * Loads the Yandex RTB loader only after the private Reader ad gate.
 	 *
 	 * @return void
 	 */
-	public static function enqueue_loader(): void {
+	public static function enqueue_gate(): void {
 		if ( ! self::should_render() ) {
 			return;
 		}
-		wp_enqueue_script(
-			self::SCRIPT_HANDLE,
-			'https://yandex.ru/ads/system/context.js',
+		wp_register_script(
+			self::GATE_HANDLE,
+			'',
 			array(),
 			self::INTRO_BLOCK_ID,
 			array(
 				'strategy' => 'async',
 			)
 		);
+		wp_enqueue_script( self::GATE_HANDLE );
 		wp_add_inline_script(
-			self::SCRIPT_HANDLE,
-			'window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); } }, true);',
+			self::GATE_HANDLE,
+			'(function () { var hide = function () { document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); }; window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; hide(); } }, true); window.manacostRsyaReady = (async function () { try { var response = await fetch("/reader-api/v1/ad-status", { credentials: "same-origin", cache: "no-store", headers: { "accept": "application/json" } }); var status = await response.json(); if (!response.ok || !status || status.adFree !== false) { hide(); return false; } } catch (error) { hide(); return false; } return await new Promise(function (resolve) { var loader = document.createElement("script"); loader.id = "manacost-rsya-loader-js"; loader.async = true; loader.src = "https://yandex.ru/ads/system/context.js"; loader.onload = function () { resolve(true); }; loader.onerror = function () { window.manacostRsyaLoaderFailed = true; hide(); resolve(false); }; document.head.appendChild(loader); }); }()); }());',
 			'before'
 		);
 	}
@@ -221,14 +225,14 @@ final class Manacost_Rsya_Inline_Banner {
 	 */
 	private static function render_banner( string $slot, string $block_id, string $container_suffix = '' ): string {
 		return sprintf(
-			'<div class="manacost-rsya-inline" data-manacost-rsya-unit data-manacost-rsya-slot="%3$s"><div id="%1$s"></div></div><script>(function () {
+			'<div class="manacost-rsya-inline" data-manacost-rsya-unit data-manacost-rsya-slot="%3$s" hidden><div id="%1$s"></div></div><script>(function () {
 				var container = document.getElementById("%1$s");
 				var unit = container ? container.closest("[data-manacost-rsya-unit]") : null;
 				if (!unit || unit.getAttribute("data-manacost-rsya-state")) { return; }
 				var state = function (value) { unit.setAttribute("data-manacost-rsya-state", value); };
 				var collapse = function (value) { unit.hidden = true; state(value); };
 				state("queued");
-				if (window.manacostRsyaLoaderFailed) { collapse("loader-error"); return; }
+				if (!window.manacostRsyaReady) { collapse("gate-unavailable"); return; }
 				var start = function () {
 					// A paragraph inside a collapsed shortcode is not a visible ad slot.
 					var wrapper = unit.closest(".mtp-spoiler-wrapper, .su-spoiler, details");
@@ -236,6 +240,7 @@ final class Manacost_Rsya_Inline_Banner {
 						wrapper.after(unit);
 						wrapper = unit.closest(".mtp-spoiler-wrapper, .su-spoiler, details");
 					}
+				if (window.manacostRsyaLoaderFailed) { collapse("loader-error"); return; }
 				window.yaContextCb = window.yaContextCb || [];
 				window.yaContextCb.push(function () {
 					if (window.manacostRsyaLoaderFailed) { collapse("loader-error"); return; }
@@ -255,9 +260,12 @@ final class Manacost_Rsya_Inline_Banner {
 					}, function () { collapse("no-fill"); });
 				});
 				};
-				if (document.readyState === "loading") {
-					document.addEventListener("DOMContentLoaded", start, { once: true });
-				} else { start(); }
+				window.manacostRsyaReady.then(function (allowed) {
+					if (!allowed) { collapse("subscriber"); return; }
+					if (document.readyState === "loading") {
+						document.addEventListener("DOMContentLoaded", start, { once: true });
+					} else { start(); }
+				});
 			}());</script>',
 			esc_attr( 'yandex_rtb_' . $block_id . $container_suffix ),
 			esc_attr( $block_id ),
