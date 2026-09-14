@@ -31,6 +31,8 @@ export class ReaderStore {
   constructor({ filename = ':memory:', encryptionKey, now = () => Date.now() } = {}) {
     if (!Buffer.isBuffer(encryptionKey) || encryptionKey.length !== 32) throw new ReaderValidationError('32-byte encryption key required');
     this.db = new DatabaseSync(filename); this.key = Buffer.from(encryptionKey); this.now = now;
+	// Keep user writes durable while bounding lock waits under concurrent requests.
+	this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=2500;');
     this.db.exec(`CREATE TABLE IF NOT EXISTS login_attempts (
       state_hash TEXT PRIMARY KEY, browser_nonce_hash TEXT NOT NULL, payload_ciphertext TEXT NOT NULL,
       expires_at INTEGER NOT NULL, consumed_at INTEGER

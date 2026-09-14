@@ -46,6 +46,23 @@ test('anonymous, browser-bound login, no-store profile and authoritative revocat
   } finally { f.store.close(); }
 });
 
+test('private bootstrap returns the existing profile DTO once and internal metrics stay aggregate-only', async () => {
+  const f = fixture();
+  try {
+    const { headers } = await login(f);
+    const bootstrap = await f.handle(new Request(`${origin}/reader-api/v1/bootstrap`, { headers }));
+    assert.equal(bootstrap.status, 200);
+    assert.match(bootstrap.headers.get('cache-control'), /private, no-store/);
+    const body = await bootstrap.json();
+    assert.equal(body.user.displayName, 'Читатель <script>');
+    assert.ok(body.csrfToken);
+    assert.equal((await f.handle(new Request(`${origin}/reader-api/v1/bootstrap?postId=not-a-number`, { headers }))).status, 404);
+    const metrics = await (await f.handle(new Request(`${origin}/reader-internal/metrics`))).json();
+    assert.ok(metrics.routes['/reader-api/v1/bootstrap'].requests >= 1);
+    assert.equal(JSON.stringify(metrics).includes('private-access'), false);
+  } finally { f.store.close(); }
+});
+
 test('state requires its browser cookie, replay and cross-origin logout are denied', async () => {
   const f = fixture();
   try {

@@ -34,7 +34,7 @@ export class ReaderComments {
       request_digest TEXT, public_consent INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
       attachment_id TEXT,
       UNIQUE(issuer, author_profile_id, operation_id)
-    ); CREATE INDEX IF NOT EXISTS reader_comments_post_created ON reader_comments(post_id, created_at, id);
+      ); CREATE INDEX IF NOT EXISTS reader_comments_post_created ON reader_comments(issuer, post_id, status, created_at, id);
     CREATE INDEX IF NOT EXISTS reader_comments_owner_created ON reader_comments(issuer, subject, created_at, id);
     CREATE TABLE IF NOT EXISTS reader_comment_public_profiles (
       profile_id TEXT NOT NULL, issuer TEXT NOT NULL, name TEXT NOT NULL, bio TEXT NOT NULL, favorite_class TEXT,

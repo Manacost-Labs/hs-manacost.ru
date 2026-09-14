@@ -276,7 +276,7 @@
     community?.render();
   }
   async function loadMe(initial = false) {
-    const { response, data } = await request('/reader-api/v1/me');
+    const { response, data } = await window.hsManacostReaderBootstrap();
     // An anonymous initial visit is not a lost session. Keep its prefetched public read.
     if (response.status === 401 && initial) { resetPrivate(); return; }
     if (response.status === 401) { expired(); throw stale; }

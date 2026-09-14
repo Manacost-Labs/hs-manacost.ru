@@ -52,7 +52,7 @@
 		const favoritesMore = root.querySelector( '[data-reader-favorites-more]' );
 		const loginEndpoint = endpoint( root, 'loginEndpoint', '/reader-auth/start?returnTo=%2Faccount%2F' );
 		const logoutEndpoint = endpoint( root, 'logoutEndpoint', '/reader-auth/logout' );
-		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/me' );
+		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/bootstrap' );
 		const profileEndpoint = endpoint( root, 'profileEndpoint', '/reader-api/v1/profile' );
 		const avatarEndpoint = endpoint( root, 'avatarEndpoint', '/reader-api/v1/profile/avatar' );
 		let controller = null;
