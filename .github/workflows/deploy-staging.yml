@@ -4,6 +4,12 @@ on:
   workflow_run:
     workflows: [Quality]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Full 40-character SHA currently at main, for the temporary self-hosted fallback
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,22 +22,30 @@ concurrency:
 jobs:
   deploy:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: [self-hosted, linux, x64, hs-manacost-production]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha }}
           clean: true
 
-      - name: Verify checked-out revision
+      - name: Verify authorized revision
         env:
-          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          EXPECTED_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_sha || github.event.workflow_run.head_sha }}
+          REQUESTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == 'workflow_dispatch' ]]; then
+            [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+            test "$REQUESTED_SHA" = "$(git rev-parse origin/main)"
+          fi
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - uses: actions/setup-node@v4
         with:
@@ -48,7 +62,7 @@ jobs:
 
       - name: Deploy isolated staging
         env:
-          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_sha || github.event.workflow_run.head_sha }}
         run: sudo /usr/local/sbin/hs-manacost-ci-deploy staging "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
 
       - name: Verify staging and both RU proxies
@@ -57,7 +71,7 @@ jobs:
       - name: Record successful staging deployment
         uses: actions/github-script@v8
         env:
-          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_sha || github.event.workflow_run.head_sha }}
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({

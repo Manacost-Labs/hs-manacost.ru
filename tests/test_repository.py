@@ -86,8 +86,17 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("workflow_run:", staging)
         self.assertIn("workflow_run.event == 'push'", staging)
         self.assertIn("head_repository.full_name == github.repository", staging)
+        self.assertIn("workflow_dispatch:", staging)
+        self.assertIn("Full 40-character SHA currently at main", staging)
+        self.assertIn("REQUESTED_SHA", staging)
+        self.assertIn("git rev-parse origin/main", staging)
         self.assertIn("smoke-check.sh staging", staging)
         self.assertIn("workflow_dispatch:", production)
+        self.assertIn(
+            "verify-staging:\n    runs-on: [self-hosted, linux, x64, hs-manacost-production]",
+            production,
+        )
+        self.assertNotIn("verify-staging:\n    runs-on: ubuntu-latest", production)
         self.assertIn("successful staging deployment", production)
         self.assertIn("smoke-check.sh production", production)
 
