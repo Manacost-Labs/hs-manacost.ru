@@ -171,6 +171,7 @@ if [[ "$environment" == staging ]]; then
 fi
 
 if [[ "$environment" == production ]]; then
+  # shellcheck disable=SC2016 # Keep PHP variables literal for WP-CLI.
   run_wp eval '
     $results = Manacost_Cache_Purge::run_async_purge( "ci_deploy" );
     foreach ( $results as $result ) {
