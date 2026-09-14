@@ -200,6 +200,12 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertIn(value, self.js)
         scripts = self.js + self.profile_js
         self.assertNotIn('innerHTML', scripts); self.assertNotIn('localStorage', scripts)
+
+    def test_article_favorite_bootstrap_starts_without_an_idle_delay(self):
+        favorite = (PHP.parent / 'article-favorite.js').read_text()
+        self.assertIn('void load(false);', favorite)
+        self.assertNotIn('requestIdleCallback', favorite)
+
     def test_profile_editor_contract_is_explicit_and_same_origin(self):
         for value in ('data-profile-endpoint', 'data-avatar-endpoint', 'data-reader-profile-editor',
                       'data-reader-display-name', 'data-reader-bio', 'data-reader-favorite-class',

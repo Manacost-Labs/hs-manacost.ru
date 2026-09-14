@@ -29,7 +29,7 @@
   more.className = 'mc-comments__more mc-ui-button mc-ui-button--secondary'; list.after(more);
   const requests = new Set();
   const stale = new Error('stale');
-  let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null, threadLoaded = false;
+  let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null, threadLoaded = false, refreshBootstrap = false;
   let activationObserver = null, activated = false;
   let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
   let stagedAttachment = null, attachmentPreviewUrl = null, attachmentUploading = false;
@@ -274,8 +274,8 @@
     more.hidden = !cursor; controls();
     community?.render();
   }
-  async function loadMe(initial = false) {
-    const { response, data } = await window.hsManacostReaderBootstrap();
+  async function loadMe(initial = false, refresh = false) {
+    const { response, data } = await window.hsManacostReaderBootstrap(refresh);
     // An anonymous initial visit is not a lost session. Keep its prefetched public read.
     if (response.status === 401 && initial) { resetPrivate(); return; }
     if (response.status === 401) { expired(); throw stale; }
@@ -325,7 +325,7 @@
       });
       if (response.status === 401) { expired(); return; }
       if (response.status === 409) {
-        await loadMe(); say('Профиль изменился. Проверьте его и обновите комментарии ещё раз.'); return;
+        await loadMe(false, true); say('Профиль изменился. Проверьте его и обновите комментарии ещё раз.'); return;
       }
       if (!response.ok || data?.profile?.id !== profileId || data.profile.version !== profileVersion) throw new Error('profile_refresh_failed');
       if (await loadComments()) say('Фото и значки в комментариях обновлены.');
@@ -444,7 +444,7 @@
       }
       if (response.status === 409) {
         retryPayload = null;
-        await loadMe(); say('Профиль или обсуждение изменились. Проверьте текст и отправьте комментарий ещё раз.'); return;
+        await loadMe(false, true); say('Профиль или обсуждение изменились. Проверьте текст и отправьте комментарий ещё раз.'); return;
       }
       if (response.status >= 400 && response.status < 500) {
         retryPayload = null;
@@ -537,7 +537,8 @@
     // Public rows can render as soon as the thread arrives. Pending rows remain
     // hidden until the independently loaded viewer identity is validated.
     const commentsReady = loadComments();
-    try { await loadMe(true); }
+    const refreshIdentity = refreshBootstrap; refreshBootstrap = false;
+    try { await loadMe(true, refreshIdentity); }
     catch (error) {
       if (error !== stale && current(ticket)) resetPrivate();
     }
@@ -559,7 +560,7 @@
     }, { rootMargin: '640px 0px' });
     activationObserver.observe(root);
   }
-  addEventListener('pagehide', () => { visible = false; activationObserver?.disconnect(); activationObserver = null; invalidate(); resetPrivate(); rows = []; cursor = null; render(); });
+  addEventListener('pagehide', () => { visible = false; activationObserver?.disconnect(); activationObserver = null; invalidate(); resetPrivate(); rows = []; cursor = null; refreshBootstrap = true; render(); });
   addEventListener('pageshow', event => { if (event.persisted) scheduleStart(); });
   scheduleStart();
 })();
