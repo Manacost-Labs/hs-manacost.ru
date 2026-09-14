@@ -12,6 +12,29 @@ defined( 'ABSPATH' ) || exit;
  */
 trait Manacost_Cache_Purge_Runtime {
 	/**
+	 * Runs the periodic purge outside WordPress installation requests.
+	 *
+	 * @return void
+	 */
+	public static function run_scheduled_purge(): void {
+		if ( wp_installing() ) {
+			return;
+		}
+
+		self::run_purge_and_store_results( 'scheduled' );
+	}
+
+	/**
+	 * Runs the asynchronous purge from the WordPress action hook.
+	 *
+	 * @param string $source Purge origin.
+	 * @return void
+	 */
+	public static function run_async_purge_hook( string $source = 'auto' ): void {
+		self::run_async_purge( $source );
+	}
+
+	/**
 	 * Clears the configured WordPress object cache.
 	 *
 	 * @return string Step diagnostic.

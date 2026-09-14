@@ -1360,21 +1360,21 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 282
+        "line": 305
       },
       {
         "name": "cloudflare_api_key",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 293
+        "line": 316
       },
       {
         "name": "cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 271
+        "line": 294
       },
       {
         "name": "date_format",
@@ -1752,42 +1752,42 @@
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1038
+        "line": 1027
       },
       {
         "name": "manacost_cloudflare_api_key",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 291
+        "line": 314
       },
       {
         "name": "manacost_cloudflare_api_token",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 311
+        "line": 334
       },
       {
         "name": "manacost_cloudflare_email",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 280
+        "line": 303
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 269
+        "line": 292
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 406
+        "line": 429
       },
       {
         "name": "manacost_ingest_logs",
@@ -1815,21 +1815,21 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 124
+        "line": 147
       },
       {
         "name": "manacost_reverse_proxy_purge_host",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 142
+        "line": 165
       },
       {
         "name": "manacost_reverse_proxy_purge_token",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 133
+        "line": 156
       },
       {
         "name": "spqi_descriptions",
@@ -2004,7 +2004,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 250
+        "line": 273
       }
     ],
     "shortcodes": [
@@ -2418,7 +2418,7 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 778
+        "line": 765
       },
       {
         "name": "manacost_cache_purge_cron",
@@ -2903,21 +2903,21 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 817
+        "line": 806
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 845
+        "line": 834
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 997
+        "line": 986
       },
       {
         "name": "manage_options",

@@ -90,6 +90,7 @@ $published_post = new WP_Post( 'post', 'publish' );
 $published_page = new WP_Post( 'page', 'publish' );
 $published_custom = new WP_Post( 'event', 'publish' );
 $draft_post = new WP_Post( 'post', 'draft' );
+$direct_results = null;
 
 switch ( $scenario ) {
 	case 'content_post':
@@ -125,7 +126,11 @@ switch ( $scenario ) {
 		Manacost_Cache_Purge::purge_after_content_change( 13, $published_custom, true );
 		break;
 	case 'async_ci_deploy':
-		Manacost_Cache_Purge::run_async_purge( 'ci_deploy' );
+		$direct_results = Manacost_Cache_Purge::run_async_purge( 'ci_deploy' );
+		break;
+	case 'async_ci_deploy_reverse_failure':
+		$GLOBALS['fixture']['reverse_should_fail'] = true;
+		$direct_results = Manacost_Cache_Purge::run_async_purge( 'ci_deploy' );
 		break;
 	case 'async_unknown':
 		Manacost_Cache_Purge::run_async_purge( 'unrecognised_origin' );
@@ -157,5 +162,8 @@ echo json_encode( [
 	'remote_post_args' => $GLOBALS['fixture']['remote_post_args'],
 	'result_names' => array_column( $results, 'name' ),
 	'failed' => $last['failed'] ?? 0,
+	'direct_failed' => is_array( $direct_results )
+		? count( array_filter( $direct_results, static fn( array $result ): bool => ( $result['status'] ?? '' ) !== 'ok' ) )
+		: null,
 	'local_cache_marker_exists' => file_exists( WP_CONTENT_DIR . '/cache/wp-rocket/marker' ),
 ], JSON_THROW_ON_ERROR );

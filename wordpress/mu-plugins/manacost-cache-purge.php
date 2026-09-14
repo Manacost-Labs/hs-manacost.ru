@@ -43,7 +43,7 @@ final class Manacost_Cache_Purge {
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedule' ) );
 		add_action( 'init', array( __CLASS__, 'ensure_cron_scheduled' ) );
 		add_action( self::CRON_HOOK, array( __CLASS__, 'run_scheduled_purge' ) );
-		add_action( self::ASYNC_PURGE_HOOK, array( __CLASS__, 'run_async_purge' ), 10, 1 );
+		add_action( self::ASYNC_PURGE_HOOK, array( __CLASS__, 'run_async_purge_hook' ), 10, 1 );
 		add_action( 'save_post_hs_deck', array( __CLASS__, 'purge_decks_listing_cache' ), 100, 3 );
 		add_action( 'before_delete_post', array( __CLASS__, 'purge_decks_listing_cache_on_delete' ), 100 );
 		add_action( 'added_post_meta', array( __CLASS__, 'purge_after_deck_meta_change' ), 200, 4 );
@@ -232,32 +232,19 @@ final class Manacost_Cache_Purge {
 	}
 
 	/**
-	 * Runs the periodic purge outside WordPress installation requests.
-	 *
-	 * @return void
-	 */
-	public static function run_scheduled_purge(): void {
-		if ( wp_installing() ) {
-			return;
-		}
-
-		self::run_purge_and_store_results( 'scheduled' );
-	}
-
-	/**
 	 * Runs an asynchronous purge for a sanitized source family.
 	 *
 	 * Content lifecycle prefixes are reserved for content events and never code changes.
 	 *
 	 * @param string $source Purge origin.
-	 * @return void
+	 * @return array<int, array{name:string,status:string,message:string}> Purge results.
 	 */
-	public static function run_async_purge( string $source = 'auto' ): void {
+	public static function run_async_purge( string $source = 'auto' ): array {
 		if ( wp_installing() ) {
-			return;
+			return array();
 		}
 
-		self::run_purge_and_store_results( 'auto:' . sanitize_key( $source ) );
+		return self::run_purge_and_store_results( 'auto:' . sanitize_key( $source ) );
 	}
 
 	/**
@@ -799,12 +786,14 @@ final class Manacost_Cache_Purge {
 	 * Runs a purge and persists its bounded diagnostic result.
 	 *
 	 * @param string $source Purge origin.
-	 * @return void
+	 * @return array<int, array{name:string,status:string,message:string}> Purge results.
 	 */
-	private static function run_purge_and_store_results( string $source ): void {
+	private static function run_purge_and_store_results( string $source ): array {
 		$results = self::purge_all( $source );
 
 		self::store_purge_results( $results, $source );
+
+		return $results;
 	}
 
 	/**

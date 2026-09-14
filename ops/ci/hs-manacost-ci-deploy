@@ -171,12 +171,14 @@ if [[ "$environment" == staging ]]; then
 fi
 
 if [[ "$environment" == production ]]; then
-  run_wp eval 'Manacost_Cache_Purge::run_async_purge("ci_deploy");'
-  purge_failures="$(run_wp option pluck manacost_cache_purge_last_results failed 2>/dev/null || printf '1')"
-  if [[ "$purge_failures" != '0' ]]; then
-    echo 'Production cache purge reported a failure.' >&2
-    exit 1
-  fi
+  run_wp eval '
+    $results = Manacost_Cache_Purge::run_async_purge( "ci_deploy" );
+    foreach ( $results as $result ) {
+      if ( ( $result["status"] ?? "" ) !== "ok" ) {
+        WP_CLI::error( "Production cache purge reported a failure." );
+      }
+    }
+  '
 fi
 
 release_staging_refresh
