@@ -129,6 +129,20 @@ function hs_manacost_reader_enqueue_script( string $name ): void {
 	if ( ! is_array( $asset ) ) {
 		return;
 	}
+
+	/*
+	 * wp_enqueue_script() only receives a source URL for the requested handle.
+	 * Register each first-party dependency itself before its consumer: otherwise
+	 * WordPress drops the consumer when it cannot resolve that dependency.
+	 */
+	foreach ( $asset['dependencies'] as $dependency_handle ) {
+		foreach ( hs_manacost_reader_asset_manifest()['scripts'] as $dependency_name => $dependency ) {
+			if ( $dependency_handle === $dependency['handle'] ) {
+				hs_manacost_reader_enqueue_script( $dependency_name );
+				break;
+			}
+		}
+	}
 	wp_enqueue_script(
 		$asset['handle'],
 		content_url( 'mu-plugins/hs-manacost-reader/' . $asset['file'] ),
