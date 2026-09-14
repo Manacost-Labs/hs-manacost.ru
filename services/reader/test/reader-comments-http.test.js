@@ -57,6 +57,11 @@ test('new posts are immediately public with server-derived author links and paid
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments', { headers: user.headers })).json()).items[0].status, 'published');
   assert.equal((await f.call(`/reader-api/v1/readers/${user.me.profile.id}`)).status, 200);
   assert.equal(comment.author.paidSubscriber, false, 'POST does not fetch decoration; the subsequent GET verifies it');
+  assert.deepEqual(comment.reactions, [
+    { kind: 'like', count: 0, selected: false },
+    { kind: 'thanks', count: 0, selected: false },
+    { kind: 'fire', count: 0, selected: false },
+  ], 'POST includes zero-count reaction controls without waiting for decoration');
   assert.equal(comment.author.hasTwitch, true);
   assert.equal(comment.author.hasYoutube, true);
   assert.equal(Object.hasOwn(comment.author, 'twitchUrl'), false);
@@ -110,6 +115,22 @@ test('payment decoration failure does not prevent immediate publication', async 
   assert.equal(comment.author.paidSubscriber, false);
   assert.equal(comment.author.profileUrl, `/account/?reader=${user.me.profile.id}`);
   assert.equal((await (await f.call('/reader-api/v1/threads/17/comments')).json()).items[0].id, comment.id);
+});
+
+test('slow optional titles cannot hold the public thread response', async t => {
+  const f = fixture(t); const user = await f.reader('paid-reader');
+  await f.submit(user);
+  let aborted = false;
+  f.entitlements.get = (_ids, signal) => new Promise(resolve => {
+    signal.addEventListener('abort', () => { aborted = true; resolve(new Map()); }, { once: true });
+  });
+  const response = await Promise.race([
+    f.call('/reader-api/v1/threads/17/comments'),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('optional title exceeded its response budget')), 750)),
+  ]);
+  assert.equal(response.status, 200);
+  assert.equal(aborted, true);
+  assert.equal((await response.json()).items[0].author.paidSubscriber, false);
 });
 
 test('POST never looks up entitlements, including disallowed articles and revoked identities', async t => {

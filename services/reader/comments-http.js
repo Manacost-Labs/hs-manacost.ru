@@ -4,6 +4,7 @@ import { requireSameSession } from './community-session.js';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 const UUID_VALUE = new RegExp(`^${UUID}$`, 'i');
+const DECORATION_TIMEOUT_MS = 350;
 const publicRoute = new RegExp(`^/reader-api/v1/readers/(${UUID})(/avatar)?$`, 'i');
 const commentRoute = new RegExp(`^/reader-api/v1/comments/(${UUID})$`, 'i');
 const fail = (status, code) => { throw new ReaderCommentError(status, code); };
@@ -64,7 +65,7 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     if (!ids.length) return new Map();
     const subjects = comments.subjectsForProfiles([...new Set(ids)]);
     try {
-      const result = await entitlements.get([...new Set(subjects.values())], signal);
+      const result = await entitlements.get([...new Set(subjects.values())], AbortSignal.any([signal, AbortSignal.timeout(DECORATION_TIMEOUT_MS)]));
       return new Map([...subjects].map(([id, subject]) => [id, result.get(subject) === true]));
     } catch { return new Map(); }
   }
@@ -73,7 +74,7 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
     if (!ids.length || !permissions) return new Map();
     const subjects = comments.subjectsForProfiles([...new Set(ids)]);
     try {
-      const result = await permissions.get([...new Set(subjects.values())], signal);
+      const result = await permissions.get([...new Set(subjects.values())], AbortSignal.any([signal, AbortSignal.timeout(DECORATION_TIMEOUT_MS)]));
       return new Map([...subjects].map(([id, subject]) => [id, result.get(subject) === true]));
     } catch { return new Map(); }
   }
@@ -124,7 +125,7 @@ export function createCommentRoutes({ community, store, profiles, identity, vali
       requireSameSession(store, id, session, signal);
       signal.throwIfAborted();
       const comment = comments.submit(session.userId, { postId, ...body });
-      return json(201, { comment: commentDTO(comment) });
+      return json(201, { comment: { ...commentDTO(comment), reactions: comments.reactions.summaries([comment.id]).get(comment.id) } });
     }
     if (request.method !== 'GET') return null;
     if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1) fail(400, 'invalid_input');
