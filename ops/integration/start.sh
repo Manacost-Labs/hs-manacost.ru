@@ -30,6 +30,7 @@ done
 cp -a "$ROOT_DIR/wordpress/themes/Newspaper_new" "$SITE_DIR/wp-content/themes/Newspaper_new"
 mkdir -p "$SITE_DIR/.integration"
 cp "$ROOT_DIR/ops/integration/wordpress-tests.php" "$SITE_DIR/.integration/wordpress-tests.php"
+cp "$ROOT_DIR/tests/fixtures/admin-meta-key-cache-integration.php" "$SITE_DIR/.integration/admin-meta-key-cache.php"
 mkdir -p "$SITE_DIR/wp-content/uploads"
 mkdir -p "$SITE_DIR/wp-content/cache"
 find "$SITE_DIR" -type d -exec chmod 0755 {} +

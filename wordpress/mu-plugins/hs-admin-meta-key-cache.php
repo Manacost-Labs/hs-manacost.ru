@@ -47,6 +47,7 @@ final class HS_Admin_Meta_Key_Cache {
 		}
 
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Core has no key-list API; cache the exact meta_form() query without loading metadata values.
 		$keys = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT meta_key
