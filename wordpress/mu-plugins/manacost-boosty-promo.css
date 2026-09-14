@@ -1,6 +1,7 @@
 .manacost-boosty-promo {
 	display: block;
 	max-width: 100%;
+	margin: 0 0 48px;
 	border-radius: 12px;
 	overflow: hidden;
 	box-shadow: 0 10px 26px rgba(15, 40, 70, 0.14);
@@ -21,6 +22,12 @@
 	display: block;
 	width: 100%;
 	height: auto;
+}
+
+@media (max-width: 767px) {
+	.manacost-boosty-promo {
+		margin-bottom: 28px;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -282,6 +282,9 @@ final class Manacost_Rsya_Inline_Banner {
 				window.yaContextCb = window.yaContextCb || [];
 				window.yaContextCb.push(function () {
 					if (window.manacostRsyaLoaderFailed) { collapse("loader-error"); return; }
+					// RTB does not guarantee an onRender callback for every placement type.
+					// Reveal the eligible slot before rendering; no-fill and errors collapse it again.
+					unit.hidden = false;
 					state("requested");
 					Ya.Context.AdvManager.render({
 						"blockId": "%2$s", "renderTo": "%1$s"%5$s,

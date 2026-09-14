@@ -18,17 +18,21 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertTrue(BANNER.is_file())
         self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
 
-    def run_plugin(self, is_front_page: bool) -> dict[str, str | bool]:
+    def run_plugin(self, is_front_page: bool) -> dict[str, object]:
         script = f"""
         define('ABSPATH', '/');
         $filters = [];
         $actions = [];
+        $styles = [];
         $front_page = {str(is_front_page).lower()};
         function add_filter($hook, $callback, $priority = 10, $accepted_args = 1) {{
             $GLOBALS['filters'][$hook][] = [$callback, $priority, $accepted_args];
         }}
         function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {{
             $GLOBALS['actions'][$hook][] = [$callback, $priority, $accepted_args];
+        }}
+        function wp_enqueue_style($handle, $src, $dependencies = [], $version = false) {{
+            $GLOBALS['styles'][$handle] = [$src, $dependencies, $version];
         }}
         function is_admin() {{ return false; }}
         function is_front_page() {{ return $GLOBALS['front_page']; }}
@@ -37,6 +41,10 @@ class BoostyPromoTest(unittest.TestCase):
         function esc_html($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
         require {json.dumps(str(PLUGIN))};
+
+        foreach ($actions['wp_enqueue_scripts'] ?? [] as $entry) {{
+            call_user_func($entry[0]);
+        }}
 
         $footer = '<li class="menu-item"><a href="/existing/">Existing</a></li>';
         foreach ($filters['wp_nav_menu_items'] ?? [] as $entry) {{
@@ -81,6 +89,7 @@ class BoostyPromoTest(unittest.TestCase):
             'other_menu' => $other_menu,
             'shortcode' => $shortcode,
             'other_shortcode' => $other_shortcode,
+            'styles' => $styles,
         ]);
         """
         completed = subprocess.run(
@@ -114,6 +123,14 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/banner.webp"', result["shortcode"])
         self.assertIn('aria-label="Поддержать Manacost на Boosty"', result["shortcode"])
         self.assertFalse(result["other_shortcode"])
+        self.assertIn("manacost-site-navigation", result["styles"])
+        self.assertIn("manacost-boosty-promo", result["styles"])
+
+    def test_navigation_typography_loads_beyond_the_homepage(self) -> None:
+        result = self.run_plugin(is_front_page=False)
+
+        self.assertIn("manacost-site-navigation", result["styles"])
+        self.assertNotIn("manacost-boosty-promo", result["styles"])
 
     def test_keeps_pricing_shortcode_outside_the_homepage(self) -> None:
         result = self.run_plugin(is_front_page=False)

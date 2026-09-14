@@ -1,0 +1,23 @@
+/* Composer's generated menu font has no fallback on some visitor devices. */
+@media (min-width: 1019px) {
+	.td-header-wrap .td-header-menu-wrap .sf-menu > li > a {
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+		font-size: 15px;
+		font-weight: 700;
+		letter-spacing: 0;
+		white-space: nowrap;
+	}
+
+	.td-header-wrap .td-header-menu-wrap .sf-menu > li > a {
+		padding-right: 12px;
+		padding-left: 12px;
+	}
+}
+
+@media (min-width: 1019px) and (max-width: 1210px) {
+	.td-header-wrap .td-header-menu-wrap .sf-menu > li > a {
+		font-size: 14px;
+		padding-right: 9px;
+		padding-left: 9px;
+	}
+}

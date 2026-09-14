@@ -150,7 +150,7 @@
       "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/manacost-boosty-promo.php", "wordpress/mu-plugins/manacost-boosty-promo.css", "wordpress/mu-plugins/manacost-boosty-promo/**", "tests/test_boosty_promo.py"],
+      "patterns": ["wordpress/mu-plugins/manacost-boosty-promo.php", "wordpress/mu-plugins/manacost-boosty-promo.css", "wordpress/mu-plugins/manacost-boosty-promo/**", "wordpress/mu-plugins/manacost-site-navigation.css", "tests/test_boosty_promo.py"],
       "owner": "public-boosty-promo",
       "classified": true,
       "risk": "high",
