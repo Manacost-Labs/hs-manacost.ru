@@ -163,7 +163,7 @@
     return true;
   }
   function visibleRow(item) {
-    return valid(item) && (item.status !== 'pending' || (me && item.author.id === me.id));
+    return valid(item) && item.status !== 'deleted' && (item.status !== 'pending' || (me && item.author.id === me.id));
   }
   function showThreadStatus() {
     say(commentingBlocked ? 'Вам запрещено комментировать. Черновик сохранён.' : rows.some(visibleRow) ? '' : 'Комментариев пока нет. Начните обсуждение.');
@@ -222,7 +222,6 @@
   function commentNode(item) {
     const node = element('article', `mc-comments__comment${item.parentId ? ' mc-comments__reply' : ''}`);
     node.dataset.pending = String(item.status === 'pending'); node.dataset.commentId = item.id;
-    if (item.status === 'deleted') { node.textContent = 'Комментарий удалён.'; return node; }
     if (item.status === 'pending') node.append(element('strong', 'mc-comments__pending', 'Ваш комментарий · На проверке'));
     else {
       const header = element('header', 'mc-comments__identity');

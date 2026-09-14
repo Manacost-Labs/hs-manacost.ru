@@ -136,6 +136,11 @@ echo json_encode($GLOBALS['assets']);'''
             self.assertIn(label, community)
         self.assertIn('Администратор', (PHP.parent / 'comments.js').read_text())
 
+    def test_deleted_comments_are_not_rendered_in_a_thread(self):
+        comments = (PHP.parent / 'comments.js').read_text()
+        self.assertIn("item.status !== 'deleted'", comments)
+        self.assertIn('rows.filter(visibleRow).map(commentNode)', comments)
+
     def test_reader_frontend_stays_inside_its_dependency_free_size_budget(self):
         assets = tuple(
             PHP.parent / name
