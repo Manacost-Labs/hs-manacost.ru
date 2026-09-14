@@ -41,10 +41,11 @@ function batch(values, valid) {
 /** Only an authenticated, freshly checked editorial response can permit article data. */
 function createArticleClient({ key, username, password, origin, editorialOrigin }, route, transport = fetch) {
   const site = EDITORIAL_ORIGINS.get(origin);
+  const localOrigin = LOCAL_EDITORIAL_ORIGINS.get(origin);
   if (typeof key !== 'string' || key.length < 43 || typeof username !== 'string' || !/^[a-z0-9-]{1,64}$/.test(username)
     || typeof password !== 'string' || password.length < 43 || !site || typeof route !== 'string'
-    || (editorialOrigin !== undefined && editorialOrigin !== LOCAL_EDITORIAL_ORIGINS.get(origin))) throw new Error('Editorial configuration invalid');
-  const url = `${editorialOrigin ?? origin}/wp-json${route}`;
+    || (editorialOrigin !== undefined && editorialOrigin !== localOrigin)) throw new Error('Editorial configuration invalid');
+  const url = `${localOrigin}/wp-json${route}`;
   return {
     async get(ids, parent = AbortSignal.timeout(2000)) {
       batch(ids, id => Number.isSafeInteger(id) && id > 0);

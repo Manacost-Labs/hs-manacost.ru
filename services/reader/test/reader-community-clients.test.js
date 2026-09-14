@@ -24,7 +24,7 @@ test('editorial request is signed, fixed-destination and rejects mismatched meta
     return Response.json({ site: 'test.hs-manacost.ru', threads: [{ postId: 17, allowed: true, title: 'Статья', path: '/article/' }] });
   });
   assert.equal((await client.get([17])).get(17).path, '/article/');
-  assert.equal(called.url, 'https://test.hs-manacost.ru/wp-json/manacost-reader/v1/threads');
+  assert.equal(called.url, 'http://127.0.0.1:18185/wp-json/manacost-reader/v1/threads');
   assert.equal(called.options.redirect, 'error');
   assert.equal(called.options.headers['x-reader-signature'], createHmac('sha256', editorial.key).update(`POST\n/manacost-reader/v1/threads\n${called.options.headers['x-reader-time']}\n${called.options.body}`).digest('hex'));
   for (const body of [
@@ -36,7 +36,7 @@ test('editorial request is signed, fixed-destination and rejects mismatched meta
   await assert.rejects(client.get([17, 17]));
 });
 
-test('editorial clients use only the exact configured Manacost origin', async () => {
+test('editorial clients always use the matching loopback transport endpoint', async () => {
   for (const [create, route] of [[createEditorialClient, 'threads'], [createFavoriteEditorialClient, 'favorites']]) {
     let called;
     const client = create({ ...editorial, origin: 'https://hs-manacost.ru' }, async (url) => {
@@ -44,7 +44,7 @@ test('editorial clients use only the exact configured Manacost origin', async ()
       return Response.json({ site: 'hs-manacost.ru', threads: [{ postId: 17, allowed: false }] });
     });
     assert.equal((await client.get([17])).get(17).allowed, false);
-    assert.equal(called, `https://hs-manacost.ru/wp-json/manacost-reader/v1/${route}`);
+    assert.equal(called, `http://127.0.0.1:18184/wp-json/manacost-reader/v1/${route}`);
   }
   for (const origin of ['https://hs-manacost.com', 'https://evil.test', 'https://hs-manacost.ru.evil.test']) {
     assert.throws(() => createEditorialClient({ ...editorial, origin }));
