@@ -65,6 +65,14 @@ class CachePurgeOpcacheTest(unittest.TestCase):
         )
         self.assertEqual(json.loads(cloudflare_request["body"]), {"files": ["https://example.test/"]})
 
+    def test_ip_proxy_endpoints_keep_hostname_verification_when_pinned_to_an_edge(self) -> None:
+        runtime = (ROOT / "wordpress/mu-plugins/manacost-cache-purge/runtime.php").read_text(encoding="utf-8")
+
+        self.assertIn("CURLOPT_RESOLVE", runtime)
+        self.assertIn("CURLOPT_SSL_VERIFYPEER => true", runtime)
+        self.assertIn("CURLOPT_SSL_VERIFYHOST => 2", runtime)
+        self.assertNotIn("CURLOPT_SSL_VERIFYPEER => false", runtime)
+
     def test_automatic_post_lifecycle_purges_skip_opcache_but_keep_other_purge_steps(self) -> None:
         for source in (
             "content_post",
