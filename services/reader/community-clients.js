@@ -38,6 +38,13 @@ function batch(values, valid) {
     || new Set(values).size !== values.length || !values.every(valid)) throw new Error('Invalid community batch');
 }
 
+/** A WordPress permalink may percent-encode non-ASCII slug characters. */
+function validPublicArticlePath(path) {
+  return typeof path === 'string' && path.length <= 2000 && /^\/(?!\/)/.test(path)
+    && !/[\\\s?#]/.test(path) && !/%(?![0-9a-f]{2})/i.test(path)
+    && !/%(?:2f|5c|3f|23)/i.test(path) && !/^\/(?:wp-|reader-|account(?:\/|$))/i.test(path);
+}
+
 /** Only an authenticated, freshly checked editorial response can permit article data. */
 function createArticleClient({ key, username, password, origin, editorialOrigin }, route, transport = fetch) {
   const site = EDITORIAL_ORIGINS.get(origin);
@@ -64,8 +71,7 @@ function createArticleClient({ key, username, password, origin, editorialOrigin 
         if (item?.postId !== ids[index] || typeof item.allowed !== 'boolean'
           || !exactKeys(item, item.allowed ? ['postId', 'allowed', 'title', 'path'] : ['postId', 'allowed'])) throw new Error('Invalid editorial record');
         if (item.allowed && (typeof item.title !== 'string' || item.title.length > 1000
-          || typeof item.path !== 'string' || item.path.length > 2000 || !/^\/(?!\/)/.test(item.path)
-          || /[\\\s?#%]/.test(item.path) || /^\/(?:wp-|reader-|account(?:\/|$))/i.test(item.path))) throw new Error('Invalid article location');
+          || !validPublicArticlePath(item.path))) throw new Error('Invalid article location');
         result.set(item.postId, item);
       }
       return result;

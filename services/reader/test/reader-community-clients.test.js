@@ -36,6 +36,24 @@ test('editorial request is signed, fixed-destination and rejects mismatched meta
   await assert.rejects(client.get([17, 17]));
 });
 
+test('editorial metadata accepts a canonical percent-encoded WordPress path', async () => {
+  const path = '/novoe-dopolnenie-hearthstone-%c2%abvlast-temnoj-imperii%c2%bb/';
+  const client = createEditorialClient(editorial, async () => Response.json({
+    site: 'test.hs-manacost.ru', threads: [{ postId: 17, allowed: true, title: 'Статья', path }],
+  }));
+
+  assert.equal((await client.get([17])).get(17).path, path);
+});
+
+test('editorial metadata still rejects malformed and encoded route delimiters', async () => {
+  for (const path of ['/article/%zz/', '/article/%2fprivate/', '/article/%3fquery/']) {
+    const client = createEditorialClient(editorial, async () => Response.json({
+      site: 'test.hs-manacost.ru', threads: [{ postId: 17, allowed: true, title: 'Статья', path }],
+    }));
+    await assert.rejects(client.get([17]));
+  }
+});
+
 test('editorial clients always use the matching loopback transport endpoint', async () => {
   for (const [create, route] of [[createEditorialClient, 'threads'], [createFavoriteEditorialClient, 'favorites']]) {
     let called;
