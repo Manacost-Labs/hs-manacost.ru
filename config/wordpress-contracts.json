@@ -997,6 +997,27 @@
         "line": 290
       },
       {
+        "name": "_hs_reader_comments_disabled",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
+        "line": 73
+      },
+      {
+        "name": "_hs_reader_comments_disabled",
+        "resolved": true,
+        "api": "delete_post_meta",
+        "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
+        "line": 77
+      },
+      {
+        "name": "_hs_reader_comments_disabled",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
+        "line": 47
+      },
+      {
         "name": "_hs_show_on_homepage",
         "resolved": true,
         "api": "delete_post_meta",
@@ -2318,14 +2339,14 @@
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 219
+        "line": 238
       },
       {
         "name": "manacost-reader/v1/threads",
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 210
+        "line": 229
       },
       {
         "name": "manacost/v1/article-versions/(?P<post_id>\\d+)/(?P<version>\\d+)",
@@ -2708,6 +2729,13 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
         "line": 79
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
+        "line": 63
       },
       {
         "name": "edit_post",
