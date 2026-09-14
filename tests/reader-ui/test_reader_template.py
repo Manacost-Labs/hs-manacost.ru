@@ -229,6 +229,7 @@ define('ABSPATH', '/fixture/');
 define('HS_MANACOST_READER_ENABLED', true);
 $_SERVER['HTTP_HOST'] = $argv[2];
 $_SERVER['REQUEST_URI'] = $argv[3];
+parse_str((string) parse_url($argv[3], PHP_URL_QUERY), $_GET);
 class WP_Post {
     public $ID = 42;
     public $post_status = 'publish';
@@ -243,6 +244,7 @@ function add_action(...$args) {}
 function add_filter($name, $callback, ...$args) { $GLOBALS['filters'][$name][] = $callback; }
 function __return_false() { return false; }
 function wp_unslash($value) { return stripslashes($value); }
+function sanitize_text_field($value) { return trim(strip_tags($value)); }
 function get_page_by_path($path) { return new WP_Post(); }
 function has_shortcode($content, $name) { return true; }
 function is_page($id) { return $GLOBALS['resolved']; }
@@ -273,7 +275,13 @@ echo json_encode([
             ('hs-manacost.ru', '/news/../account/', 'resolved', 200, False, True),
             ('hs-manacost.ru', '/?pagename=account&lang=en', 'resolved', 404, True, True),
             ('hs-manacost.ru', '/?page_id=42', 'resolved', 404, True, True),
+            ('hs-manacost.ru', '/?pagename=account&lang=en', 'other', 404, True, True),
+            ('hs-manacost.ru', '/?page_id=42', 'other', 404, True, True),
             ('hs-manacost.com', '/account/', 'resolved', 404, True, True),
+            ('hs-manacost.com', '/?pagename=account&lang=en', 'other', 404, True, True),
+            ('hs-manacost.com', '/?page_id=42', 'other', 404, True, True),
+            ('hs-manacost.ru', '/?page_id=43', 'other', 200, False, False),
+            ('hs-manacost.com', '/?pagename=accounting', 'other', 200, False, False),
             ('hs-manacost.com', '/news/', 'other', 200, False, False),
         )
         for host, uri, resolved, status, blocked, private in cases:
@@ -289,7 +297,7 @@ echo json_encode([
                 self.assertEqual(payload['is404'], blocked)
                 self.assertEqual(payload['nocache'], private)
                 self.assertEqual(payload['page'], private)
-                self.assertEqual(payload['canonical'], False if blocked else 'unfiltered')
+                self.assertEqual(payload['canonical'], False if private else 'unfiltered')
 
     def test_account_cache_headers_are_private_and_not_indexable(self):
         fixture = r'''
