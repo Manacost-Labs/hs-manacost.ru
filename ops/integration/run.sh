@@ -14,7 +14,8 @@ if [[ "${RUN_VISUAL:-0}" == "1" || "${RUN_PERFORMANCE:-0}" == "1" ]]; then
     fi
     playwright_image='mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e'
     if [[ "${RUN_VISUAL:-0}" == "1" ]]; then
-        visual_command=(npx playwright test tests/visual)
+        # Authenticated cases share one WordPress user and its session-token store.
+        visual_command=(npx playwright test tests/visual --workers=1)
         if [[ "${UPDATE_VISUAL:-0}" == "1" ]]; then
             visual_command+=(--update-snapshots)
         fi
