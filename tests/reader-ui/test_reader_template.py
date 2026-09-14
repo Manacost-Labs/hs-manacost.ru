@@ -77,6 +77,32 @@ echo hs_manacost_reader_is_application_host() ? 'yes' : 'no';
                 )
                 self.assertEqual(result.stdout, expected)
 
+    def test_account_marker_detection_does_not_require_shortcode_registration(self):
+        fixture = r'''
+define('ABSPATH', '/fixture/');
+function add_action(...$args) {}
+function add_filter(...$args) {}
+require $argv[1];
+echo hs_manacost_reader_content_has_account_shortcode($argv[2]) ? 'yes' : 'no';
+'''
+        cases = {
+            '[hs_manacost_reader_account]': 'yes',
+            '[hs_manacost_reader_account /]': 'yes',
+            '[hs_manacost_reader_account mode="compact"]': 'yes',
+            '[[hs_manacost_reader_account]]': 'no',
+            '[hs_manacost_reader_accounting]': 'no',
+            'hs_manacost_reader_account': 'no',
+        }
+        for content, expected in cases.items():
+            with self.subTest(content=content):
+                result = subprocess.run(
+                    ['php', '-r', fixture, str(LOADER), content],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.stdout, expected)
+
     def test_account_is_a_permanent_wp_rocket_cache_reject(self):
         fixture = r'''
 define('ABSPATH', '/fixture/');
@@ -247,12 +273,13 @@ function wp_unslash($value) { return stripslashes($value); }
 function sanitize_text_field($value) { return trim(strip_tags($value)); }
 function get_page_by_path($path) { return $GLOBALS['slug_lookup'] ? new WP_Post() : null; }
 function get_post($id) { return (int) $id === 42 ? new WP_Post() : null; }
-function has_shortcode($content, $name) { return true; }
+function has_shortcode($content, $name) { return $GLOBALS['shortcode_registered']; }
 function is_page($id) { return $GLOBALS['resolved']; }
 function nocache_headers() { $GLOBALS['nocache'] = true; }
 function status_header($status) { $GLOBALS['status'] = $status; }
 $GLOBALS['resolved'] = $argv[4] === 'resolved';
 $GLOBALS['slug_lookup'] = $argv[4] !== 'missing';
+$GLOBALS['shortcode_registered'] = $argv[4] !== 'missing';
 require $argv[1];
 hs_manacost_reader_account_route_policy();
 $canonical = 'unfiltered';

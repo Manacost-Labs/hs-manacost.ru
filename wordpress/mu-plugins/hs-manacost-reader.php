@@ -133,6 +133,18 @@ function hs_manacost_reader_page(): ?WP_Post {
 }
 
 /**
+ * Detect the account marker in stored page content without shortcode registration.
+ *
+ * The mirror intentionally does not register or render Reader shortcodes, but it
+ * still has to classify a direct page_id alias as private and fail closed.
+ *
+ * @param string $content Stored page content.
+ */
+function hs_manacost_reader_content_has_account_shortcode( string $content ): bool {
+	return 1 === preg_match( '/(?<!\[)\[hs_manacost_reader_account(?:\s+[^\]]*)?\s*\/?\](?!\])/', $content );
+}
+
+/**
  * Resolve direct account query aliases without relying on host-sensitive query flags.
  *
  * @param WP_Post|null $page Published account page, when provisioned.
@@ -151,7 +163,7 @@ function hs_manacost_reader_resolves_account_page( ?WP_Post $page ): bool {
 			return true;
 		}
 		$requested_page = get_post( $page_id );
-		if ( $requested_page instanceof WP_Post && 'publish' === $requested_page->post_status && has_shortcode( $requested_page->post_content, 'hs_manacost_reader_account' ) ) {
+		if ( $requested_page instanceof WP_Post && 'publish' === $requested_page->post_status && hs_manacost_reader_content_has_account_shortcode( $requested_page->post_content ) ) {
 			return true;
 		}
 	}
