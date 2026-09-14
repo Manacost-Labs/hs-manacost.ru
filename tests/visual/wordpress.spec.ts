@@ -113,6 +113,7 @@ test('article editor', async ({ page }) => {
   if (!editUrl) throw new Error('Seed article edit link not found');
   await page.goto(editUrl, { waitUntil: 'domcontentloaded' });
   await removeDynamicEditorNotices(page);
+  await expect(page.locator('.mce-btn button', { hasText: 'Реклама' })).toBeVisible();
   await stabilize(page);
   await expect(page).toHaveScreenshot('editor.png');
 });

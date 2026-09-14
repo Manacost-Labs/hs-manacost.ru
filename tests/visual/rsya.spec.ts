@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const intro = 'R-A-16113237-6';
-const footer = 'R-A-16113237-5';
-const floor = 'R-A-16113237-7';
+const banner = 'R-A-16113237-12';
+const manualArticlePath = '/rsya-manual-page/';
 
 // Replace only the paid SDK at the HTTP boundary. No ad impressions or
 // third-party measurement requests leave this disposable WordPress fixture.
@@ -34,6 +33,15 @@ async function interceptSdk(page: Page, emptyBlock = '', delayed = false) {
     if (url.hostname === 'yandex.ru' && url.pathname === '/ads/system/context.js') {
       if (delayed) await ready;
       await route.fulfill({ contentType: 'application/javascript', body: script });
+    } else if (
+      ['127.0.0.1', 'localhost'].includes(url.hostname)
+      && url.pathname === '/reader-api/v1/ad-status'
+    ) {
+      await route.fulfill({
+        contentType: 'application/json',
+        headers: { 'Cache-Control': 'private, no-store' },
+        body: JSON.stringify({ adFree: false }),
+      });
     } else if (['127.0.0.1', 'localhost'].includes(url.hostname)) {
       await route.continue();
     } else {
@@ -45,7 +53,7 @@ async function interceptSdk(page: Page, emptyBlock = '', delayed = false) {
 
 async function verifyPlacements(page: Page) {
   const units = page.locator('[data-manacost-rsya-unit]');
-  await expect(units).toHaveCount(2);
+  await expect(units).toHaveCount(1);
   for (const unit of await units.all()) {
     await expect(unit).toHaveAttribute('data-manacost-rsya-state', 'rendered');
     await expect(unit).toBeVisible();
@@ -59,19 +67,18 @@ async function verifyPlacements(page: Page) {
     expect(geometry.left).toBeGreaterThanOrEqual(0);
     expect(geometry.right).toBeLessThanOrEqual(geometry.viewport + 1);
   }
-  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveAttribute('data-manacost-rsya-state', 'rendered');
+  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveCount(0);
   const calls = await page.evaluate(() => (window as any).rsyaTestCalls);
-  expect(calls.map((call: any) => call.blockId).sort()).toEqual([intro, footer, floor].sort());
-  expect(calls.find((call: any) => call.blockId === floor).platform).toBe('desktop');
+  expect(calls.map((call: any) => call.blockId)).toEqual([banner]);
   await expect(page.locator('script[src*="yandex.ru/ads/system/context.js"]')).toHaveCount(1);
 }
 
-test('both article placements survive reload, resize and slow SDK without duplicate calls', async ({ page }) => {
+test('manual article placement survives reload, resize and slow SDK without duplicate calls', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   const release = await interceptSdk(page, '', true);
-  await page.goto('/integration-article/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('[data-manacost-rsya-unit]')).toHaveCount(2);
+  await page.goto(manualArticlePath, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('[data-manacost-rsya-unit]')).toHaveCount(1);
   release();
   await verifyPlacements(page);
   for (const width of [320, 390, 768, 1024, 1440]) {
@@ -80,7 +87,7 @@ test('both article placements survive reload, resize and slow SDK without duplic
   }
   // Running an emitted tag twice must not start a second auction for a slot.
   for (const script of await page.locator('script').allTextContents()) {
-    if (script.includes('var container = document.getElementById("yandex_rtb_') || script.includes('window.manacostRsyaFloorQueued')) {
+    if (script.includes('var container = document.getElementById("yandex_rtb_')) {
       await page.addScriptTag({ content: script });
     }
   }
@@ -92,20 +99,15 @@ test('both article placements survive reload, resize and slow SDK without duplic
   expect(errors).toEqual([]);
 });
 
-for (const empty of [intro, footer]) {
-  test(`no-fill at ${empty} does not hide the other placement`, async ({ page }) => {
-    await interceptSdk(page, empty);
-    await page.goto('/integration-article/', { waitUntil: 'domcontentloaded' });
-    const emptySlot = page.locator(`[data-manacost-rsya-unit]:has([id^="yandex_rtb_${empty}"])`);
-    const filledSlot = page.locator(`[data-manacost-rsya-unit]:has([id^="yandex_rtb_${empty === intro ? footer : intro}"])`);
-    await expect(emptySlot).toHaveAttribute('data-manacost-rsya-state', 'no-fill');
-    await expect(emptySlot).toBeHidden();
-    await expect(filledSlot).toHaveAttribute('data-manacost-rsya-state', 'rendered');
-    await expect(filledSlot).toBeVisible();
-  });
-}
+test(`no-fill at ${banner} hides only the manual placement`, async ({ page }) => {
+  await interceptSdk(page, banner);
+  await page.goto(manualArticlePath, { waitUntil: 'domcontentloaded' });
+  const emptySlot = page.locator(`[data-manacost-rsya-unit]:has([id^="yandex_rtb_${banner}"])`);
+  await expect(emptySlot).toHaveAttribute('data-manacost-rsya-state', 'no-fill');
+  await expect(emptySlot).toBeHidden();
+});
 
-test('authenticated visitor gets both placements and the same desktop Floor Ad configuration', async ({ page }) => {
+test('authenticated non-subscriber gets the manual placement without a Floor Ad', async ({ page }) => {
   await interceptSdk(page);
   const username = process.env.WP_TEST_ADMIN_USER;
   const password = process.env.WP_TEST_ADMIN_PASSWORD;
@@ -115,6 +117,12 @@ test('authenticated visitor gets both placements and the same desktop Floor Ad c
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: 'Log In' }).click();
   await page.waitForURL(/\/wp-admin\//);
-  await page.goto('/integration-article/', { waitUntil: 'domcontentloaded' });
+  await page.goto(manualArticlePath, { waitUntil: 'domcontentloaded' });
   await verifyPlacements(page);
+});
+
+test('new article without an editor block has no automatic placement', async ({ page }) => {
+  await page.goto('/integration-article/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('[data-manacost-rsya-unit]')).toHaveCount(0);
+  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveCount(0);
 });
