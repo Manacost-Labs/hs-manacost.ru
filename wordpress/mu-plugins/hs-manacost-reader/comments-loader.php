@@ -1,6 +1,6 @@
 <?php
 /**
- * Staging-only discussion integration. Native comments and WP identities stay disabled.
+ * Opt-in Reader discussion integration. Native comments and WP identities stay disabled.
  *
  * @package Manacost
  */
@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/assets.php';
 require_once __DIR__ . '/comments-editorial.php';
+require_once __DIR__ . '/comments-editorial-control.php';
 require_once __DIR__ . '/article-favorite.php';
 
 /** Register opt-in public shells, never a WordPress authentication adapter. */
@@ -16,6 +17,7 @@ function hs_reader_comments_bootstrap(): void {
 	if ( ! hs_reader_comments_enabled() ) {
 		return;
 	}
+	HS_Reader_Comments_Editorial_Control::boot();
 	require_once __DIR__ . '/comments.php';
 	require_once __DIR__ . '/public-profile.php';
 	add_action( 'rest_api_init', 'hs_reader_editorial_routes' );

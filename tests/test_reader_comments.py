@@ -6,6 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 ADAPTER = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php'
+CONTROL = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php'
 
 
 class ReaderCommentsEditorialTests(unittest.TestCase):
@@ -31,13 +32,19 @@ class WP_REST_Request {
     function get_route() { return '/manacost-reader/v1/threads'; }
 }
 $post = new WP_Post();
-function get_post($id) { global $post; return $id === 17 ? $post : null; }
+$post_18 = clone $post;
+$post_18->ID = 18;
+$post_18->post_title = 'Вторая статья';
+$posts = array(17 => $post, 18 => $post_18);
+$comment_meta = array();
+function get_post($id) { global $posts; return $posts[$id] ?? null; }
+function get_post_meta($post_id, $key, $single = true) { global $comment_meta; return $comment_meta[$post_id][$key] ?? ''; }
 $permalink = ORIGIN . '/test-article/';
 function get_permalink($post) { global $permalink; return $permalink; }
 function wp_strip_all_tags($text) { return strip_tags($text); }
 function __($text, $domain = '') { return $text; }
 require ADAPTER;
-'''.replace('ENABLED);', ('true' if enabled else 'false') + ');').replace('PRODUCTION_GATE);', ('true' if production_gate else 'false') + ');').replace('ENVIRONMENT;', json.dumps(environment) + ';').replace('ORIGIN', json.dumps(origin)).replace('require ADAPTER;', 'require ' + json.dumps(str(ADAPTER)) + ';')
+'''.replace('ENABLED);', ('true' if enabled else 'false') + ');').replace('PRODUCTION_GATE);', ('true' if production_gate else 'false') + ');').replace('ENVIRONMENT;', json.dumps(environment) + ';').replace('ORIGIN', json.dumps(origin)).replace('require ADAPTER;', 'require ' + json.dumps(str(ADAPTER)) + '; require ' + json.dumps(str(CONTROL)) + ';')
         result = subprocess.run(['php'], input=fixture + code, text=True, capture_output=True, check=True)
         return json.loads(result.stdout)
 
@@ -49,17 +56,40 @@ require ADAPTER;
         self.assertTrue(self.evaluate('echo json_encode(hs_reader_comments_enabled());', environment='production', origin='https://hs-manacost.ru', production_gate=True))
         self.assertFalse(self.evaluate('echo json_encode(hs_reader_comments_enabled());', environment='production', origin='https://hs-manacost.com', production_gate=True))
 
-    def test_only_reviewed_published_plain_article_is_eligible(self):
+    def test_every_published_public_article_is_eligible_by_default(self):
         result = self.evaluate('echo json_encode(array(hs_reader_comment_article(17), hs_reader_comment_article(18)));')
-        self.assertEqual(result, [{'postId': 17, 'allowed': True, 'title': 'Тестовая статья', 'path': '/test-article/'}, {'postId': 18, 'allowed': False}])
-        for mutation in ("$post->post_status='draft';", "$post->post_status='private';", "$post->post_status='future';", "$post->post_password='private';", "$post->post_type='page';", "$post->post_content='[private]hidden[/private]';"):
+        self.assertEqual(result, [{'postId': 17, 'allowed': True, 'title': 'Тестовая статья', 'path': '/test-article/'}, {'postId': 18, 'allowed': True, 'title': 'Вторая статья', 'path': '/test-article/'}])
+        for mutation in ("$post->post_status='draft';", "$post->post_status='private';", "$post->post_status='future';", "$post->post_password='private';", "$post->post_type='page';"):
             self.assertEqual(self.evaluate(mutation + 'echo json_encode(hs_reader_comment_article(17));'), {'postId': 17, 'allowed': False})
+        self.assertTrue(self.evaluate("$post->post_content='[private]Скрытый фрагмент[/private]'; echo json_encode(hs_reader_comment_article(17));")['allowed'])
+        self.assertEqual(self.evaluate("$post->post_content='[private]Скрытый фрагмент[/private]'; echo json_encode(hs_reader_favorite_article(17));"), {'postId': 17, 'allowed': False})
 
-    def test_reviewed_quote_shortcode_is_eligible_but_other_shortcodes_are_rejected(self):
-        allowed = self.evaluate("$post->post_content='[su_quote style=\\\"default\\\"]Цитата[/su_quote]'; echo json_encode(hs_reader_comment_article(17));")
-        rejected = self.evaluate("$post->post_content='[su_quote]Цитата[/su_quote][private]Скрыто[/private]'; echo json_encode(hs_reader_comment_article(17));")
-        self.assertTrue(allowed['allowed'])
-        self.assertEqual(rejected, {'postId': 17, 'allowed': False})
+    def test_editorial_disable_flag_overrides_the_default_for_one_article(self):
+        result = self.evaluate("$comment_meta[17]['_hs_reader_comments_disabled']='1'; echo json_encode(array(hs_reader_comment_article(17), hs_reader_comment_article(18))); ")
+        self.assertEqual(result, [{'postId': 17, 'allowed': False}, {'postId': 18, 'allowed': True, 'title': 'Вторая статья', 'path': '/test-article/'}])
+
+    def test_editorial_control_only_saves_an_authorized_explicit_choice(self):
+        code = '''
+function wp_is_post_autosave($post_id) { return false; }
+function wp_is_post_revision($post_id) { return false; }
+function wp_unslash($value) { return $value; }
+function sanitize_text_field($value) { return $value; }
+function wp_verify_nonce($nonce, $action) { return 'valid' === $nonce; }
+function current_user_can($capability, $post_id) { global $can_edit; return $can_edit; }
+function update_post_meta($post_id, $key, $value) { global $comment_meta; $comment_meta[$post_id][$key]=$value; }
+function delete_post_meta($post_id, $key) { global $comment_meta; unset($comment_meta[$post_id][$key]); }
+$can_edit=true;
+$_POST=array('hs_reader_comments_editorial_nonce'=>'valid','hs_reader_comments_disabled'=>'1');
+HS_Reader_Comments_Editorial_Control::save_meta_box(17, $post);
+$disabled=HS_Reader_Comments_Editorial_Control::is_disabled(17);
+$_POST=array('hs_reader_comments_editorial_nonce'=>'valid');
+HS_Reader_Comments_Editorial_Control::save_meta_box(17, $post);
+$enabled=!HS_Reader_Comments_Editorial_Control::is_disabled(17);
+$_POST=array('hs_reader_comments_editorial_nonce'=>'valid','hs_reader_comments_disabled'=>'1'); $can_edit=false;
+HS_Reader_Comments_Editorial_Control::save_meta_box(17, $post);
+echo json_encode(array($disabled, $enabled, HS_Reader_Comments_Editorial_Control::is_disabled(17)));
+'''
+        self.assertEqual(self.evaluate(code), [True, True, False])
 
     def test_signed_batch_is_strict_no_cache_and_does_not_leak_rejected_article(self):
         code = '''$request = new WP_REST_Request();
@@ -71,7 +101,7 @@ echo json_encode(array(hs_reader_editorial_permission($request), hs_reader_edito
         self.assertTrue(permitted)
         self.assertEqual(response['data']['site'], 'test.hs-manacost.ru')
         self.assertEqual(response['headers']['Cache-Control'], 'private, no-store')
-        self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': False})
+        self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': True, 'title': 'Вторая статья', 'path': '/test-article/'})
 
     def test_production_editorial_response_is_bound_to_the_exact_live_site(self):
         code = '''$request = new WP_REST_Request();
@@ -94,7 +124,7 @@ echo json_encode(array(hs_reader_editorial_permission($request), hs_reader_edito
         permitted, response = self.evaluate(code)
         self.assertTrue(permitted)
         self.assertEqual(response['data']['threads'][0], {'postId': 17, 'allowed': True, 'title': 'Тестовая статья', 'path': '/test-article/'})
-        self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': False})
+        self.assertEqual(response['data']['threads'][1], {'postId': 18, 'allowed': True, 'title': 'Вторая статья', 'path': '/test-article/'})
 
     def test_false_or_malformed_permalink_is_an_indistinguishable_denial(self):
         for value in ('false', 'null', '17', "'https://evil.test/hidden/'", "'not a URL'"):
@@ -127,17 +157,17 @@ $account=false; $article_id=17; $assets=array(); $scripts=array();
 ''' + 'require ' + loader + '; require ' + community + ';'
         code = setup + '''
 $pilot=hs_reader_comments_template('/native.php'); hs_reader_comments_assets(); $pilot_assets=$assets;
-$article_id=18; $assets=array(); $scripts=array(); $outside=hs_reader_comments_template('/native.php'); hs_reader_comments_assets(); $outside_assets=$assets;
+$article_id=18; $assets=array(); $scripts=array(); $second=hs_reader_comments_template('/native.php'); hs_reader_comments_assets(); $second_assets=$assets;
 $account=true; $_GET['reader']='123e4567-e89b-42d3-a456-426614174000'; $assets=array(); $scripts=array();
 hs_manacost_reader_assets(); hs_reader_comments_assets();
 $public_assets=$assets; $_GET['reader']=array('malformed');
-echo json_encode(array($pilot, $pilot_assets, $outside, $outside_assets, $public_assets, hs_reader_public_profile_request(), hs_reader_public_profile_id()));
+echo json_encode(array($pilot, $pilot_assets, $second, $second_assets, $public_assets, hs_reader_public_profile_request(), hs_reader_public_profile_id()));
 '''
-        pilot, assets, outside, outside_assets, public_assets, requested, invalid_id = self.evaluate(code)
+        pilot, assets, second, second_assets, public_assets, requested, invalid_id = self.evaluate(code)
         self.assertTrue(pilot.endswith('/reader-comments-page.php'))
         self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite', 'hs-manacost-reader-bootstrap', 'hs-manacost-reader-favorite', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
-        self.assertEqual(outside, '/native.php')
-        self.assertEqual(outside_assets, [])
+        self.assertTrue(second.endswith('/reader-comments-page.php'))
+        self.assertEqual(second_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite', 'hs-manacost-reader-bootstrap', 'hs-manacost-reader-favorite', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
         self.assertEqual(public_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-public-profile', 'hs-manacost-reader-public-profile'])
         self.assertTrue(requested)
         self.assertEqual(invalid_id, '')

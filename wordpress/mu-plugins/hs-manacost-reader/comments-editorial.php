@@ -20,7 +20,7 @@ function hs_reader_comments_enabled(): bool {
 }
 
 /**
- * Reject shortcode-controlled access while allowing the reviewed quote shortcode.
+ * Keep favorite eligibility conservative without limiting the separate discussion shell.
  *
  * @param string $content Stored article content.
  */
@@ -39,37 +39,47 @@ function hs_reader_comment_content_is_safe( string $content ): bool {
 }
 
 /**
- * Recheck public article safety once per request; no visitor/WP-admin role grants access.
+ * Whether an editor excluded this one article from the Reader discussion shell.
+ *
+ * @param int $post_id Editorial post identifier.
+ */
+function hs_reader_comment_article_is_disabled( int $post_id ): bool {
+	return function_exists( 'get_post_meta' ) && '1' === get_post_meta( $post_id, '_hs_reader_comments_disabled', true );
+}
+
+/**
+ * Recheck published public article metadata once per request; no visitor/WP-admin role grants access.
  *
  * A single page can ask for the same article through the discussion template,
  * favorite control and asset loader. This intentionally stays request-local:
  * it avoids duplicate WordPress lookups without retaining visibility metadata
  * between visitors or requests.
  *
- * @param int $post_id Editorial identifier.
+ * @param int  $post_id Editorial identifier.
+ * @param bool $allow_shortcodes Whether the caller is the independent discussion shell.
  * @return array<string, bool|int|string>
  */
-function hs_reader_public_article( int $post_id ): array {
-	static $articles = array();
-	if ( isset( $articles[ $post_id ] ) ) {
-		return $articles[ $post_id ];
-	}
-	$denied = array(
+function hs_reader_public_article( int $post_id, bool $allow_shortcodes = false ): array {
+	static $articles      = array();
+	static $favorite_safe = array();
+	$denied               = array(
 		'postId'  => $post_id,
 		'allowed' => false,
 	);
+	if ( isset( $articles[ $post_id ] ) ) {
+		return ! $allow_shortcodes && empty( $favorite_safe[ $post_id ] ) ? $denied : $articles[ $post_id ];
+	}
 	if ( ! hs_reader_comments_enabled() ) {
 		$articles[ $post_id ] = $denied;
 		return $articles[ $post_id ];
 	}
 	$post = get_post( $post_id );
-	if ( ! $post || 'post' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password
-		|| ! hs_reader_comment_content_is_safe( $post->post_content ) ) {
-		// Only the reviewed presentation shortcode is permitted in the discussion pilot.
+	if ( ! $post || 'post' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password ) {
 		$articles[ $post_id ] = $denied;
 		return $articles[ $post_id ];
 	}
-	$url = filter_var( get_permalink( $post ), FILTER_VALIDATE_URL );
+	$favorite_safe[ $post_id ] = hs_reader_comment_content_is_safe( $post->post_content );
+	$url                       = filter_var( get_permalink( $post ), FILTER_VALIDATE_URL );
 	if ( ! is_string( $url ) || ! str_starts_with( $url, home_url() . '/' ) ) {
 		$articles[ $post_id ] = $denied;
 		return $articles[ $post_id ];
@@ -85,25 +95,34 @@ function hs_reader_public_article( int $post_id ): array {
 		'title'   => wp_strip_all_tags( $post->post_title ),
 		'path'    => $path,
 	);
-	return $articles[ $post_id ];
+	return ! $allow_shortcodes && ! $favorite_safe[ $post_id ] ? $denied : $articles[ $post_id ];
 }
 
 /**
- * A configured ID certifies a manually reviewed discussion pilot, not all legacy VIP posts.
+ * Reader discussion is available on every safe published article by default.
+ * An editor can exclude an individual article with the dedicated metabox.
  *
  * @param int $post_id Editorial post identifier.
  * @return array<string, bool|int|string>
  */
 function hs_reader_comment_article( int $post_id ): array {
+	static $articles = array();
+	if ( isset( $articles[ $post_id ] ) ) {
+		return $articles[ $post_id ];
+	}
+
 	$denied  = array(
 		'postId'  => $post_id,
 		'allowed' => false,
 	);
-	$allowed = defined( 'HS_MANACOST_READER_COMMENT_POSTS' ) ? HS_MANACOST_READER_COMMENT_POSTS : array();
-	if ( ! is_array( $allowed ) || ! in_array( $post_id, $allowed, true ) ) {
-		return $denied;
+	$article = hs_reader_public_article( $post_id, true );
+	if ( ! $article['allowed'] || hs_reader_comment_article_is_disabled( $post_id ) ) {
+		$articles[ $post_id ] = $denied;
+		return $articles[ $post_id ];
 	}
-	return hs_reader_public_article( $post_id );
+
+	$articles[ $post_id ] = $article;
+	return $articles[ $post_id ];
 }
 
 /**
