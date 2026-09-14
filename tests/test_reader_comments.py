@@ -122,20 +122,20 @@ function content_url($path) { return '/wp-content/' . $path; }
 function wp_unslash($value) { return $value; }
 function sanitize_text_field($value) { return strip_tags($value); }
 function wp_enqueue_style($name, ...$args) { global $assets; $assets[]=$name; }
-function wp_enqueue_script($name, ...$args) { global $assets; $assets[]=$name; }
-$account=false; $article_id=17; $assets=array();
+function wp_enqueue_script($name, ...$args) { global $assets, $scripts; if (empty($scripts[$name])) { $scripts[$name]=true; $assets[]=$name; } }
+$account=false; $article_id=17; $assets=array(); $scripts=array();
 ''' + 'require ' + loader + '; require ' + community + ';'
         code = setup + '''
 $pilot=hs_reader_comments_template('/native.php'); hs_reader_comments_assets(); $pilot_assets=$assets;
-$article_id=18; $assets=array(); $outside=hs_reader_comments_template('/native.php'); hs_reader_comments_assets(); $outside_assets=$assets;
-$account=true; $_GET['reader']='123e4567-e89b-42d3-a456-426614174000'; $assets=array();
+$article_id=18; $assets=array(); $scripts=array(); $outside=hs_reader_comments_template('/native.php'); hs_reader_comments_assets(); $outside_assets=$assets;
+$account=true; $_GET['reader']='123e4567-e89b-42d3-a456-426614174000'; $assets=array(); $scripts=array();
 hs_manacost_reader_assets(); hs_reader_comments_assets();
 $public_assets=$assets; $_GET['reader']=array('malformed');
 echo json_encode(array($pilot, $pilot_assets, $outside, $outside_assets, $public_assets, hs_reader_public_profile_request(), hs_reader_public_profile_id()));
 '''
         pilot, assets, outside, outside_assets, public_assets, requested, invalid_id = self.evaluate(code)
         self.assertTrue(pilot.endswith('/reader-comments-page.php'))
-        self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite', 'hs-manacost-reader-favorite', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
+        self.assertEqual(assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-comments', 'hs-manacost-reader-favorite', 'hs-manacost-reader-bootstrap', 'hs-manacost-reader-favorite', 'hs-manacost-reader-community-ui', 'hs-manacost-reader-comments'])
         self.assertEqual(outside, '/native.php')
         self.assertEqual(outside_assets, [])
         self.assertEqual(public_assets, ['hs-manacost-reader-ui', 'hs-manacost-reader-public-profile', 'hs-manacost-reader-public-profile'])

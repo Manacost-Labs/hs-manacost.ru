@@ -108,7 +108,7 @@ echo json_encode($GLOBALS['assets']);'''
         expected = {
             file.name: hashlib.sha256(file.read_bytes()).hexdigest()[:12]
             for file in (PHP.parent / name for name in (
-                'ui.css', 'reader.css', 'tailwind.css', 'comments.css', 'public-profile.css', 'profile-editor.js',
+                'ui.css', 'reader.css', 'tailwind.css', 'comments.css', 'public-profile.css', 'bootstrap.js', 'profile-editor.js',
                 'reader.js', 'community-ui.js', 'comments.js', 'public-profile.js',
                 'article-favorite.css', 'article-favorite.js',
             ))
