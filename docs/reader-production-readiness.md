@@ -34,6 +34,13 @@ staging ids and isolated test issuers are rejected before community schema
 creation. The UI flag `HS_MANACOST_READER_ENABLED` is independent and is enabled
 last.
 
+The WordPress Reader shell is registered only when the normalized request host
+is exactly `hs-manacost.ru` or `test.hs-manacost.ru`. The shared production
+runtime therefore keeps `hs-manacost.com` as a public noindex content mirror,
+not a second Reader application origin. With the UI flag enabled, an account
+path on the mirror and any query-string alias which resolves to the account
+page fail closed as a private, non-cacheable 404 before template rendering.
+
 ## Preconditions
 
 1. Merge a clean reviewed SHA. Quality, integration, browser, security and
@@ -103,6 +110,37 @@ the Reader location in the canonical production HTTPS vhost. Run `nginx -t`
 before reload, then canary Novosibirsk before Moscow. The normal WordPress
 upstream remains unchanged.
 
+The account HTML has two independent cache guards. WordPress defines
+`DONOTCACHEPAGE`, `DONOTCDN` and `DONOTCACHEOBJECT` for the `/account/` route,
+including case, percent-encoded, repeated-slash and dot-segment aliases which
+can share its WP Rocket cache key, and emits explicit private/no-store and
+noindex headers. Query-string aliases never render the Reader shell and fail
+closed as 404. Each public `.ru` edge sends account paths through the
+TLS-verified Reader origin pool with proxy caching disabled; origin response
+headers remain authoritative.
+
+WP Rocket config files are host-specific. Keep the account page in draft and
+the Reader UI flag off while running `rocket_generate_config_file()` in two
+separate WP-CLI boots: one with the exact `https://hs-manacost.ru` URL/host and
+one with the exact `https://hs-manacost.com` URL/host. Verify the resulting
+`hs-manacost.ru.php` and `hs-manacost.com.php` files without printing their
+contents: load each through WP Rocket's `Buffer\Config` and require
+`Buffer\Tests::can_process_uri()` to be false for `/account/`, `/Account/`,
+`/%61ccount/`, `//account//`, `/./account/` and `/news/../account/`.
+
+The earlier failed canary may have populated cache keys through aliases that
+cannot be enumerated safely. Immediately before the first corrected activation,
+perform a one-time full WP Rocket *page-cache* purge in each of those two host
+contexts and invalidate the corresponding `.ru` and `.com` regional HTML cache
+namespaces. Do not flush Redis and do not clear unrelated media/object storage.
+Publish the account page only after the generated guards and empty page-cache
+directories are verified. Then require two consecutive requests through origin
+and each edge to remain non-HIT and private/no-store. The mirror must return 404
+with no Reader marker on both requests. If any route stores or exposes the page,
+disable the UI flag, return the page to draft, repeat the same two-host page-cache
+and edge invalidation, and verify every Reader route is unavailable before
+investigating further.
+
 Certificate rotation is a two-phase operation: first deploy a trust bundle
 containing both the current and next public origin certificates to both edges,
 verify and reload them, then rotate the origin certificate. After all six
@@ -143,16 +181,27 @@ copy comments into `wp_comments`, or expose HearthPulse subjects and tokens.
 2. Validate the production environment with community flags absent. Start or
    restart the profile-only service and check guest/401/no-store behavior.
 3. Apply proxy routing and verify direct origin plus every normal delivery path.
-4. Enable `READER_COMMENTS_ENABLED=1` and
-   `READER_ALLOW_PRODUCTION_COMMUNITY=1` together only after the database backup
-   and HearthPulse private endpoints pass. Recheck schema ownership and service
-   health before exposing UI.
-5. Promote the same SHA through the protected `Promote production` workflow;
-   it requires a successful staging deployment. Set both WordPress community
-   constants only after the BFF canaries pass, enable the Reader UI last, then
-   purge only affected HTML/assets and warm their content-hash URLs.
-6. Run the manual flow again on `.ru`. The `.com` mirror must not become a
-   second private application origin.
+4. Promote the same SHA through the protected `Promote production` workflow;
+   it requires a successful staging deployment. Keep the Reader UI off, the
+   account page in draft and both WordPress community constants absent.
+5. Regenerate and verify both host-specific WP Rocket configs as described
+   above. With the UI off and page still draft, perform the one-time full
+   `.ru`/`.com` WP Rocket page-cache purge and matching regional HTML namespace
+   invalidation. Do not flush Redis.
+6. Publish the account page and enable the Reader UI only after those checks
+   pass, then warm only its content-hash assets. For the profile-only release,
+   keep `READER_COMMENTS_ENABLED` and `READER_ALLOW_PRODUCTION_COMMUNITY`
+   disabled. A later community release may enable both together only after its
+   database backup, HearthPulse private endpoints, schema ownership and service
+   health checks pass.
+7. Verify `/account/`, `/Account/`, `/%61ccount/`, `//account//`,
+   `/./account/`, `/news/../account/` and the resolved query alias twice on the
+   `.ru` public route, origin, Moscow and Novosibirsk routes. Canonical account
+   paths must stay private/no-store and non-HIT; the query alias must remain a
+   private 404 without a Reader marker. Repeat the mirror set twice and require
+   404, no Reader marker and no shared-cache HIT.
+8. Run the manual authenticated flow again only on `.ru`. The `.com` mirror
+   must remain unavailable as a private application origin.
 
 ## Canary and performance evidence
 
@@ -171,11 +220,14 @@ only.
 
 ## Rollback
 
-Disable the WordPress UI first, then both production community flags. Restore
-the preceding immutable BFF and WordPress artifacts; validate origin and regional
-delivery before reopening UI. Preserve the live SQLite database, current
-sessions, encryption keys and backups. Never restore an older database over
-comments, reactions, favorites or profile changes created after activation.
+Disable the WordPress UI first, return the account page to draft, then disable
+both production community flags. Regenerate both host-specific WP Rocket
+configs, purge the `.ru` and `.com` page-cache domains and invalidate their
+regional HTML namespaces before proving the account unavailable. Restore the
+preceding immutable BFF and WordPress artifacts; validate `.ru`, `.com`, origin
+and regional delivery before reopening UI. Preserve the live SQLite database,
+current sessions, encryption keys and backups. Never restore an older database
+over comments, reactions, favorites or profile changes created after activation.
 
 Rollback of code is not erasure. User-data removal continues through the Reader
 API and its existing tombstone/retention rules. If HearthPulse or editorial

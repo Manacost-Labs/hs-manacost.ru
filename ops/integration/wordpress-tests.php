@@ -191,6 +191,58 @@ $readerUsersBefore = count_users()['total_users'];
 hs_manacost_reader_bootstrap();
 hs_integration_assert(count_users()['total_users'] === $readerUsersBefore, 'reader bootstrap created a WordPress user');
 hs_integration_assert(!shortcode_exists('hs_manacost_reader_account'), 'disabled reader registered an account shell');
+
+// Recreate the enabled Reader lifecycle state needed by the route policy.
+add_shortcode('hs_manacost_reader_account', static fn (): string => '');
+$readerAccountId = wp_insert_post([
+    'post_title' => 'Integration reader account',
+    'post_name' => 'account',
+    'post_content' => '[hs_manacost_reader_account]',
+    'post_status' => 'publish',
+    'post_type' => 'page',
+], true);
+hs_integration_assert(!is_wp_error($readerAccountId), 'reader account fixture creation failed');
+$readerAccountId = (int) $readerAccountId;
+$previousQuery = $GLOBALS['wp_query'];
+$previousHost = $_SERVER['HTTP_HOST'] ?? null;
+$previousUri = $_SERVER['REQUEST_URI'] ?? null;
+$_SERVER['HTTP_HOST'] = 'hs-manacost.ru';
+$_SERVER['REQUEST_URI'] = '/?page_id=' . $readerAccountId;
+$GLOBALS['wp_query'] = new WP_Query(['page_id' => $readerAccountId]);
+hs_integration_assert(is_page($readerAccountId), 'reader numeric alias did not resolve to the account page');
+hs_manacost_reader_account_route_policy();
+hs_integration_assert($GLOBALS['wp_query']->is_404(), 'reader numeric alias was not rejected as 404');
+hs_integration_assert(
+    PHP_INT_MAX === has_filter('redirect_canonical', '__return_false'),
+    'reader route policy did not install the canonical redirect guard'
+);
+hs_integration_assert(
+    false === apply_filters(
+        'redirect_canonical',
+        home_url('/account/'),
+        home_url('/?page_id=' . $readerAccountId)
+    ),
+    'reader canonical redirect guard did not cancel the redirect URL'
+);
+hs_integration_assert(
+    null === redirect_canonical(home_url('/?page_id=' . $readerAccountId), false),
+    'core canonical redirect escaped the reader alias 404'
+);
+remove_filter('redirect_canonical', '__return_false', PHP_INT_MAX);
+$GLOBALS['wp_query'] = $previousQuery;
+if ($previousHost === null) {
+    unset($_SERVER['HTTP_HOST']);
+} else {
+    $_SERVER['HTTP_HOST'] = $previousHost;
+}
+if ($previousUri === null) {
+    unset($_SERVER['REQUEST_URI']);
+} else {
+    $_SERVER['REQUEST_URI'] = $previousUri;
+}
+remove_shortcode('hs_manacost_reader_account');
+wp_delete_post($readerAccountId, true);
+
 require_once WPMU_PLUGIN_DIR . '/hs-manacost-reader/comments-editorial.php';
 $readerRequest = new WP_REST_Request('POST', '/manacost-reader/v1/threads');
 hs_integration_assert($readerRequest->get_header('origin') === null, 'fixture must preserve the actual nullable REST header contract');

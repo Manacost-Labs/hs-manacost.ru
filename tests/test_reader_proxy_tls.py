@@ -71,3 +71,33 @@ class ReaderProxyTlsTests(unittest.TestCase):
             "proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;",
             proxy,
         )
+
+    def test_production_account_bypasses_every_shared_edge_cache(self):
+        proxy = directives("proxy-production-reader.conf")
+        self.assertIn("location ~* ^/account/?$ {", proxy)
+        account = proxy.split("location ~* ^/account/?$ {", 1)[1].split(
+            "location ~ ^/(?:reader-auth|reader-api)/ {", 1
+        )[0]
+        for expected in (
+            "proxy_pass https://hs_manacost_reader_production_origin;",
+            "rewrite ^ /account/ break;",
+            "proxy_cache off;",
+            "proxy_cache_bypass 1;",
+            "proxy_no_cache 1;",
+            "proxy_buffering off;",
+            "proxy_ssl_verify on;",
+            "proxy_ssl_name hs-manacost.ru;",
+            "proxy_ssl_trusted_certificate /etc/nginx/ssl/hs-manacost-reader-origin-ca.pem;",
+            "proxy_set_header Host hs-manacost.ru;",
+            'proxy_set_header Authorization "";',
+            "proxy_set_header X-Forwarded-Host hs-manacost.ru;",
+        ):
+            self.assertIn(expected, account)
+        self.assertNotIn("proxy_hide_header Cache-Control;", account)
+        self.assertNotIn("proxy_hide_header X-Robots-Tag;", account)
+        self.assertNotIn("https://hs_manacost_origin;", account)
+        self.assertNotIn("location = /account/ {", proxy)
+        self.assertLess(
+            proxy.index("location ~* ^/account/?$ {"),
+            proxy.index("location ~ ^/(?:reader-auth|reader-api)/ {"),
+        )

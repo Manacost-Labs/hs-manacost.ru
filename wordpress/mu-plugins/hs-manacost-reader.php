@@ -9,10 +9,107 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** Return the normalized HTTP host without accepting aliases or suffix matches. */
+function hs_manacost_reader_request_host(): string {
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared only with an exact static allowlist.
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( trim( (string) wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
+	$host = preg_replace( '/:\d+\z/', '', $host );
+
+	return rtrim( is_string( $host ) ? $host : '', '.' );
+}
+
+/** Reader UI is available only on the canonical production and staging hosts. */
+function hs_manacost_reader_is_application_host(): bool {
+	return in_array( hs_manacost_reader_request_host(), array( 'hs-manacost.ru', 'test.hs-manacost.ru' ), true );
+}
+
+/** Whether the current request resolves to the Reader account route. */
+function hs_manacost_reader_is_account_request(): bool {
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Used only for a normalized static path comparison.
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+	$query_start = strpos( $request_uri, '?' );
+	$path        = false === $query_start ? $request_uri : substr( $request_uri, 0, $query_start );
+	$path        = rawurldecode( $path );
+	$segments    = array();
+
+	foreach ( explode( '/', $path ) as $segment ) {
+		if ( '' === $segment || '.' === $segment ) {
+			continue;
+		}
+		if ( '..' === $segment ) {
+			array_pop( $segments );
+			continue;
+		}
+		$segments[] = $segment;
+	}
+	$path = '/' . implode( '/', $segments );
+
+	return 0 === strcasecmp( '/account', $path );
+}
+
+/** Mark the account response private before cache plugins decide to store it. */
+function hs_manacost_reader_disable_shared_cache(): void {
+	foreach ( array( 'DONOTCACHEPAGE', 'DONOTCDN', 'DONOTCACHEOBJECT' ) as $constant ) {
+		if ( ! defined( $constant ) ) {
+			define( $constant, true );
+		}
+	}
+}
+
+/**
+ * Headers which keep the account shell private and out of search indexes.
+ *
+ * @return array<string, string>
+ */
+function hs_manacost_reader_private_headers(): array {
+	return array(
+		'Cache-Control'     => 'private, no-store, no-cache, must-revalidate, max-age=0',
+		'Pragma'            => 'no-cache',
+		'Expires'           => 'Wed, 11 Jan 1984 05:00:00 GMT',
+		'Surrogate-Control' => 'no-store',
+		'X-Robots-Tag'      => 'noindex, nofollow',
+	);
+}
+
+/** Send the complete private response policy while headers are still mutable. */
+function hs_manacost_reader_send_private_headers(): void {
+	hs_manacost_reader_disable_shared_cache();
+	if ( headers_sent() ) {
+		return;
+	}
+
+	nocache_headers();
+	foreach ( hs_manacost_reader_private_headers() as $name => $value ) {
+		header( $name . ': ' . $value, true );
+	}
+}
+
+/**
+ * Keep every WordPress-resolvable account alias out of WP Rocket's early cache.
+ *
+ * WP Rocket evaluates this generated pattern before must-use plugins load, so
+ * the production runbook regenerates its config before the page is published.
+ *
+ * @param array<int, string> $uris Existing rejected URI patterns.
+ * @return array<int, string>
+ */
+function hs_manacost_reader_rocket_cache_reject_uri( array $uris ): array {
+	$uris[] = '/+(?:.+/)?(?:a|%41|%61)(?:c|%43|%63)(?:c|%43|%63)(?:o|%4f|%6f)(?:u|%55|%75)(?:n|%4e|%6e)(?:t|%54|%74)(?:(?:/|%2f).*)?';
+
+	return array_values( array_unique( $uris ) );
+}
+
 /** No page creation, user mapping or authentication happens inside WordPress. */
 function hs_manacost_reader_bootstrap(): void {
 	if ( ! defined( 'HS_MANACOST_READER_ENABLED' ) || true !== HS_MANACOST_READER_ENABLED ) {
 		return;
+	}
+	add_action( 'template_redirect', 'hs_manacost_reader_account_route_policy', 0 );
+	if ( ! hs_manacost_reader_is_application_host() ) {
+		return;
+	}
+	if ( hs_manacost_reader_is_account_request() ) {
+		hs_manacost_reader_disable_shared_cache();
 	}
 	require_once __DIR__ . '/hs-manacost-reader/assets.php';
 	require_once __DIR__ . '/hs-manacost-reader/account.php';
@@ -42,7 +139,9 @@ function hs_manacost_reader_page(): ?WP_Post {
  */
 function hs_manacost_reader_template( string $template ): string {
 	$page = hs_manacost_reader_page();
-	return $page && is_page( $page->ID ) ? __DIR__ . '/hs-manacost-reader/reader-account-page.php' : $template;
+	return $page && is_page( $page->ID ) && hs_manacost_reader_is_account_request()
+		? __DIR__ . '/hs-manacost-reader/reader-account-page.php'
+		: $template;
 }
 
 /**
@@ -64,13 +163,43 @@ function hs_manacost_reader_menu( string $items, stdClass $args ): string {
 		. esc_url( $url ) . '">Кабинет</a></li>';
 }
 
-/** Keep the account page out of shared caches and search indexes. */
-function hs_manacost_reader_cache_policy(): void {
-	$page = hs_manacost_reader_page();
-	if ( $page && is_page( $page->ID ) ) {
-		nocache_headers();
-		header( 'X-Robots-Tag: noindex, nofollow', true );
+/**
+ * Fail closed for query aliases and for the production mirror.
+ *
+ * Only a normalized account path on an explicitly allowed host may render the
+ * Reader shell. Resolved aliases still receive private headers before the 404.
+ */
+function hs_manacost_reader_account_route_policy(): void {
+	$page             = hs_manacost_reader_page();
+	$resolves_account = $page && is_page( $page->ID );
+	$is_account_path  = hs_manacost_reader_is_account_request();
+
+	if ( ( ! $is_account_path && ! $resolves_account ) || ( hs_manacost_reader_is_application_host() && $is_account_path ) ) {
+		return;
 	}
+
+	hs_manacost_reader_send_private_headers();
+	add_filter( 'redirect_canonical', '__return_false', PHP_INT_MAX );
+	global $wp_query;
+	if ( is_object( $wp_query ) && method_exists( $wp_query, 'set_404' ) ) {
+		$wp_query->set_404();
+	}
+	status_header( 404 );
 }
 
+/** Keep the account page out of shared caches and search indexes. */
+function hs_manacost_reader_cache_policy(): void {
+	$is_account = hs_manacost_reader_is_account_request();
+	if ( ! $is_account ) {
+		$page       = hs_manacost_reader_page();
+		$is_account = $page && is_page( $page->ID );
+	}
+	if ( ! $is_account ) {
+		return;
+	}
+
+	hs_manacost_reader_send_private_headers();
+}
+
+add_filter( 'rocket_cache_reject_uri', 'hs_manacost_reader_rocket_cache_reject_uri' );
 add_action( 'init', 'hs_manacost_reader_bootstrap' );
