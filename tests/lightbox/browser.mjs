@@ -11,7 +11,7 @@ const longCaption = 'Подробное описание изображения 
 const assets = new Map([
   ['/lightbox.css', ['text/css', readFileSync(`${plugin}lightbox.css`)]],
   ['/lightbox.js', ['text/javascript', readFileSync(`${plugin}lightbox.js`)]],
-  ['/images/one.jpg', ['image/svg+xml', image('ONE')]],
+  ['/images/one.jpg', ['image/svg+xml', image('ONE', 2400, 1200)]],
   ['/images/two.webp', ['image/svg+xml', image('TWO')]],
   ['/images/bare.png', ['image/svg+xml', image('BARE')]],
   ['/images/portrait.jpg', ['image/svg+xml', image('PORTRAIT', 640, 960)]],
@@ -141,6 +141,20 @@ try {
   assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('src'), `${origin}/images/one.jpg`);
   assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('fetchpriority'), 'high');
   await dialog.locator('.hs-lightbox__image.is-ready').waitFor();
+  const presentation = await dialog.evaluate(element => {
+    const surface = element.querySelector('.hs-lightbox__surface');
+    const image = element.querySelector('.hs-lightbox__image');
+    return {
+      backdrop: getComputedStyle(element, '::backdrop').backgroundColor,
+      imageWidth: image.getBoundingClientRect().width,
+      surfaceAnimation: getComputedStyle(surface).animationName,
+      surfaceBackground: getComputedStyle(surface).backgroundColor,
+    };
+  });
+  assert.equal(presentation.backdrop, 'rgba(0, 0, 0, 0)', 'the page remains visible behind the lightbox');
+  assert.equal(presentation.surfaceBackground, 'rgba(0, 0, 0, 0)', 'the lightbox surface has no opaque background');
+  assert.equal(presentation.surfaceAnimation, 'hs-lightbox-open', 'the surface uses the opening animation');
+  assert.ok(presentation.imageWidth >= 1240, `the image uses the available desktop viewport: ${presentation.imageWidth}px`);
   assert.equal(await page.evaluate(() => window.lightboxPreloadAllocations), 1, 'a two-image gallery preloads its one neighbour once');
   assert.equal(await dialog.getByText('1 из 2').isVisible(), true);
   assert.equal(await dialog.getByText('Первая карта', { exact: true }).last().isVisible(), true);
@@ -154,6 +168,17 @@ try {
   await dialog.waitFor({ state: 'hidden' });
   assert.equal(await first.evaluate(element => document.activeElement === element), true, 'focus returns to the opener');
   assert.equal(await page.locator('html').getAttribute('data-hs-lightbox-open'), null);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await first.click();
+  await dialog.waitFor({ state: 'visible' });
+  assert.equal(
+    await dialog.locator('.hs-lightbox__surface').evaluate(element => getComputedStyle(element).animationName),
+    'none',
+    'reduced-motion preference disables the opening animation',
+  );
+  await page.keyboard.press('Escape');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   const bare = page.locator('#bare-image');
   assert.equal(await bare.getAttribute('role'), 'button');

@@ -40,7 +40,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 }
 
 .hs-lightbox::backdrop {
-  background: rgba(3, 9, 13, 0.92);
+  background: transparent;
 }
 
 .hs-lightbox__surface {
@@ -50,11 +50,24 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   width: 100%;
   height: 100%;
   padding:
-    max(12px, env(safe-area-inset-top))
-    max(16px, env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom))
-    max(16px, env(safe-area-inset-left));
-  background: var(--hs-lightbox-bg);
+    max(8px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  background: transparent;
+  animation: hs-lightbox-open 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hs-lightbox-open {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hs-lightbox__title {
@@ -75,7 +88,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-height: 52px;
+  min-height: 44px;
   gap: 8px;
   padding-block-end: 8px;
 }
@@ -167,7 +180,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   min-width: 0;
   min-height: 0;
   place-items: center;
-  padding: 8px clamp(72px, 8vw, 112px) 16px;
+  padding: 0 clamp(48px, 4vw, 72px) 8px;
   touch-action: pan-y pinch-zoom;
 }
 
@@ -181,7 +194,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  max-width: min(100%, 1600px);
+  max-width: min(100%, 1920px);
   max-height: 100%;
   margin: 0;
   overflow: hidden;
@@ -200,11 +213,13 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   object-fit: contain;
   opacity: 0;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.36);
-  transition: opacity 120ms ease;
+  transform: scale(0.982);
+  transition: opacity 160ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .hs-lightbox__image.is-ready {
   opacity: 1;
+  transform: scale(1);
 }
 
 .hs-lightbox__caption {
@@ -296,7 +311,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   }
 
   .hs-lightbox__stage {
-    padding: 6px 0 62px;
+    padding: 4px 0 56px;
   }
 
   .hs-lightbox__image {
@@ -345,8 +360,10 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .hs-lightbox__original,
   .hs-lightbox__control,
-  .hs-lightbox__image {
+  .hs-lightbox__image,
+  .hs-lightbox__surface {
     transition: none;
+    animation: none;
   }
 }
 
