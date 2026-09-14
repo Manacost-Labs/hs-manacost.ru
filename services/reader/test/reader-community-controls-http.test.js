@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { setImmediate } from 'node:timers/promises';
 import test from 'node:test';
 import { ReaderStore } from '../core.js';
 import { ReaderProfiles } from '../profiles.js';
@@ -12,7 +13,7 @@ function fixture(t) {
   const issuer = 'https://hearthpulse.net/identity';
   const profiles = new ReaderProfiles({ db: store.db, issuer });
   const comments = new ReaderComments({ db: store.db, issuer });
-  const identity = { profile: async () => ({ displayName: 'Тестовый читатель' }) };
+  const identity = { profile: async () => ({ displayName: 'Тестовый читатель' }), verify: async () => true };
   const admins = new Set(['admin']);
   const permissions = { get: async ids => new Map(ids.map(id => [id, admins.has(id)])) };
   const editorial = { get: async ids => new Map(ids.map(id => [id, { allowed: id === 17 }])) };
@@ -48,8 +49,29 @@ test('reaction HTTP boundary requires canonical reader, origin/CSRF and exact in
   f.editorial.get = async ids => new Map(ids.map(id => [id, { allowed: false }]));
   assert.equal((await f.call(path, { method: 'PUT', headers: alice.headers, body: { reaction: 'fire' } })).status, 404);
   assert.equal((await f.call(selectedPath, { headers: alice.headers })).status, 404);
-  f.identity.profile = async () => null;
+  f.identity.verify = async () => false;
   assert.equal((await f.call(selectedPath, { headers: alice.headers })).status, 401);
+});
+
+test('reaction overlaps HearthPulse token verification with editorial access and never fetches a profile', async t => {
+  const f = fixture(t); const alice = await f.reader('alice'); const { comment } = await (await f.submit(alice)).json();
+  let enterIdentity; let releaseIdentity; let enterEditorial; let releaseEditorial;
+  const identityStarted = new Promise(resolve => { enterIdentity = resolve; });
+  const identityWait = new Promise(resolve => { releaseIdentity = resolve; });
+  const editorialStarted = new Promise(resolve => { enterEditorial = resolve; });
+  const editorialWait = new Promise(resolve => { releaseEditorial = resolve; });
+  f.identity.profile = async () => { throw new Error('reaction must not fetch HearthPulse userinfo'); };
+  f.identity.verify = async () => { enterIdentity(); await identityWait; return true; };
+  f.editorial.get = async ids => { enterEditorial(); await editorialWait; return new Map(ids.map(id => [id, { allowed: true }])); };
+  const response = f.call(`/reader-api/v1/comments/${comment.id}/reaction`, { method: 'PUT', headers: alice.headers, body: { reaction: 'like' } });
+  try {
+    await Promise.all([identityStarted, editorialStarted]);
+    await setImmediate();
+    releaseIdentity(); releaseEditorial();
+    assert.equal((await response).status, 200);
+  } finally {
+    releaseIdentity?.(); releaseEditorial?.();
+  }
 });
 
 test('HearthPulse role controls administrator badges, own permissions and moderation, never client flags', async t => {
