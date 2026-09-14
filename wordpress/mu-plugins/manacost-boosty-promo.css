@@ -1,0 +1,30 @@
+.manacost-boosty-promo {
+	display: block;
+	max-width: 100%;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: 0 10px 26px rgba(15, 40, 70, 0.14);
+	transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.manacost-boosty-promo:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 14px 30px rgba(15, 40, 70, 0.2);
+}
+
+.manacost-boosty-promo:focus-visible {
+	outline: 3px solid var(--td_theme_color, #4db2ec);
+	outline-offset: 3px;
+}
+
+.manacost-boosty-promo img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.manacost-boosty-promo {
+		transition: none;
+	}
+}
