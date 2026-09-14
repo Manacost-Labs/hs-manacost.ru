@@ -53,8 +53,11 @@ class BoostyPromoTest(unittest.TestCase):
             $shortcode = call_user_func(
                 $entry[0],
                 $shortcode,
-                'tds_pricing1',
-                ['button_url' => 'https://boosty.to/kolodahearthstone'],
+                'tdm_block_pricing',
+                [
+                    'button_url' => 'https://boosty.to/kolodahearthstone',
+                    'tds_pricing' => 'tds_pricing1',
+                ],
                 []
             );
         }}
@@ -64,8 +67,11 @@ class BoostyPromoTest(unittest.TestCase):
             $other_shortcode = call_user_func(
                 $entry[0],
                 $other_shortcode,
-                'tds_pricing1',
-                ['button_url' => 'https://boosty.to/another'],
+                'tdm_block_pricing',
+                [
+                    'button_url' => 'https://boosty.to/another',
+                    'tds_pricing' => 'tds_pricing1',
+                ],
                 []
             );
         }}
