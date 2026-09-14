@@ -133,6 +133,34 @@ function hs_manacost_reader_page(): ?WP_Post {
 }
 
 /**
+ * Resolve direct account query aliases without relying on host-sensitive query flags.
+ *
+ * @param WP_Post|null $page Published account page, when provisioned.
+ * @return bool
+ */
+function hs_manacost_reader_resolves_account_page( ?WP_Post $page ): bool {
+	if ( ! $page ) {
+		return false;
+	}
+	if ( is_page( $page->ID ) ) {
+		return true;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only route classification before a fail-closed 404.
+	$page_id_raw = isset( $_GET['page_id'] ) && is_scalar( $_GET['page_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['page_id'] ) ) : '';
+	$page_id     = filter_var( $page_id_raw, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+	if ( false !== $page_id && (int) $page->ID === $page_id ) {
+		return true;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only route classification before a fail-closed 404.
+	$pagename_raw = isset( $_GET['pagename'] ) && is_scalar( $_GET['pagename'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['pagename'] ) ) : '';
+	$pagename     = trim( rawurldecode( (string) $pagename_raw ), '/' );
+
+	return '' !== $pagename && 0 === strcasecmp( 'account', $pagename );
+}
+
+/**
  * Give the account a uniquely named template that Composer does not remap.
  *
  * @param string $template Theme template selected by WordPress.
@@ -171,7 +199,7 @@ function hs_manacost_reader_menu( string $items, stdClass $args ): string {
  */
 function hs_manacost_reader_account_route_policy(): void {
 	$page             = hs_manacost_reader_page();
-	$resolves_account = $page && is_page( $page->ID );
+	$resolves_account = hs_manacost_reader_resolves_account_page( $page );
 	$is_account_path  = hs_manacost_reader_is_account_request();
 
 	if ( ! $is_account_path && ! $resolves_account ) {
@@ -179,11 +207,11 @@ function hs_manacost_reader_account_route_policy(): void {
 	}
 	// Core can redirect path aliases next, so seal the response before it runs.
 	hs_manacost_reader_send_private_headers();
+	add_filter( 'redirect_canonical', '__return_false', PHP_INT_MAX );
 	if ( hs_manacost_reader_is_application_host() && $is_account_path ) {
 		return;
 	}
 
-	add_filter( 'redirect_canonical', '__return_false', PHP_INT_MAX );
 	global $wp_query;
 	if ( is_object( $wp_query ) && method_exists( $wp_query, 'set_404' ) ) {
 		$wp_query->set_404();
