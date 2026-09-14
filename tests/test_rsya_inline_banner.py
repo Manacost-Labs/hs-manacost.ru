@@ -394,6 +394,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
             "rendered": "renderOptions.onRender({ product: \"direct\" });",
             "recovered": 'renderOptions.onError({ type: "error" }); renderOptions.onRender({ product: "rtb" });',
             "loader_failure": "",
+            "silent": "",
         }
         self.assertIn(scenario, actions)
         loader_failed = "true" if scenario == "loader_failure" else "false"
@@ -401,7 +402,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         const callbacks = [];
         const attributes = {{}};
         const bannerUnit = {{
-            hidden: false,
+            hidden: true,
             closest: () => null,
             getAttribute: (name) => attributes[name] || null,
             setAttribute: (name, value) => {{ attributes[name] = value; }},
@@ -494,6 +495,10 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertEqual(
             {"hidden": False, "rendered": None, "renderCalls": 1},
             self.run_banner_script(content, "warning"),
+        )
+        self.assertEqual(
+            {"hidden": False, "rendered": None, "renderCalls": 1},
+            self.run_banner_script(content, "silent"),
         )
         self.assertEqual(
             {"hidden": False, "rendered": "true", "renderCalls": 1},

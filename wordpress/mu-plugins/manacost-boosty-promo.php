@@ -31,7 +31,19 @@ final class Manacost_Boosty_Promo {
 	 * @return void
 	 */
 	public static function enqueue_styles(): void {
-		if ( is_admin() || ! is_front_page() ) {
+		if ( is_admin() ) {
+			return;
+		}
+
+		/* Composer emits a font declaration after stylesheet assets. Keep navigation legible with a local system stack. */
+		wp_enqueue_style(
+			'manacost-site-navigation',
+			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
+			array(),
+			'1.0.0'
+		);
+
+		if ( ! is_front_page() ) {
 			return;
 		}
 
@@ -39,7 +51,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-boosty-promo',
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
-			'1.0.0'
+			'1.1.0'
 		);
 	}
 
