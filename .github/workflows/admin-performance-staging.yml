@@ -23,10 +23,6 @@ jobs:
     environment: staging
     env:
       WP_TEST_BASE_URL: https://test.hs-manacost.ru
-      WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
-      WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
-      STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
-      STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
       WP_TEST_DATASET_SIZE: ${{ vars.STAGING_PERFORMANCE_DATASET_SIZE || '1000' }}
       HS_ADMIN_PERF_ENVIRONMENT: staging
       HS_ADMIN_PERF_CACHE_STATE: warm
@@ -38,20 +34,32 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Install locked browser package
-        run: npm ci
       - name: Check protected staging measurement credentials
         id: credentials
         shell: bash
+        env:
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: |
           if [[ -n "$WP_TEST_ADMIN_USER" && -n "$WP_TEST_ADMIN_PASSWORD" && -n "$STAGING_HTTP_USER" && -n "$STAGING_HTTP_PASSWORD" ]]; then
             echo 'enabled=true' >> "$GITHUB_OUTPUT"
           else
             echo 'enabled=false' >> "$GITHUB_OUTPUT"
-            echo 'Staging admin performance skipped: configure the four protected staging secrets.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'BLOCKED: staging admin performance requires all four protected staging secrets; no measurement was performed.' >> "$GITHUB_STEP_SUMMARY"
+            echo '::error::Staging performance credentials are incomplete. Configure the four protected staging secrets before retrying.'
+            exit 1
           fi
+      - name: Install locked browser package
+        run: npm ci --ignore-scripts
       - name: Collect five comparable warm staging samples
         if: steps.credentials.outputs.enabled == 'true'
+        env:
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: |
           mkdir -p .artifacts/admin-performance/raw .artifacts/admin-performance/reports
           docker run --rm --network host --ipc=host \
@@ -75,4 +83,5 @@ jobs:
         with:
           name: admin-performance-staging
           path: .artifacts/admin-performance/reports/
+          if-no-files-found: error
           retention-days: 30

@@ -40,6 +40,16 @@
       "checks": ["make reader-test", "make check"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/manacost-boosty-icon.php", "tests/test_boosty_icon.py"],
+      "owner": "public-social-icon",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "accessibility"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-accessibility", "wp-plugin-development"],
+      "checks": ["make code-quality", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["services/web-v2/**", "ops/web-v2/**", "ops/systemd/hs-manacost-v2.service", "ops/nginx/v2.conf", "config/headless-v2-design-contract.json", "tests/test_headless_v2_contract.py"],
       "owner": "headless-v2-sandbox",
       "classified": true,
@@ -110,7 +120,7 @@
       "checks": ["make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/manacost-cache-purge.php", "wordpress/mu-plugins/manacost-performance-optimizer.php", "wordpress/mu-plugins/hs-admin-load-trim.php", "wordpress/mu-plugins/hs-admin-aioseo-throttle.php", "wordpress/mu-plugins/hs-manacost-newspaper-trim.php", "wordpress/mu-plugins/hs-decks-cache-policy.php"],
+      "patterns": ["wordpress/mu-plugins/manacost-cache-purge.php", "wordpress/mu-plugins/manacost-cache-purge/**", "wordpress/mu-plugins/manacost-performance-optimizer.php", "wordpress/mu-plugins/hs-admin-load-trim.php", "wordpress/mu-plugins/hs-admin-aioseo-throttle.php", "wordpress/mu-plugins/hs-manacost-newspaper-trim.php", "wordpress/mu-plugins/hs-decks-cache-policy.php"],
       "owner": "runtime-performance",
       "classified": true,
       "risk": "high",
