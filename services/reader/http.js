@@ -46,7 +46,7 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
     && community?.boundary?.origin === origin && community.boundary.deployment === 'production';
   if (community && !stagingCommunity && !productionCommunity) throw new Error('Community boundary invalid');
   const commentRoutes = createCommentRoutes({ community, store, identity, profiles, validWrite, json, securityHeaders });
-  const communityControls = createCommunityControlRoutes({ community, store, identity, profiles, validWrite, json });
+  const communityControls = createCommunityControlRoutes({ community, store, identity, validWrite, json });
   const attachmentRoutes = createCommentAttachmentRoutes({ community, store, profiles, identity, validWrite, json, securityHeaders });
   const favoriteRoutes = createFavoriteRoutes({ community, store, profiles, identity, validWrite, json, csrf });
   let windowStart = Date.now();
