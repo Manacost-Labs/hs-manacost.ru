@@ -169,6 +169,8 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   place-items: center;
   padding: 8px clamp(72px, 8vw, 112px) 16px;
   touch-action: pan-y pinch-zoom;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .hs-lightbox__figure {
@@ -201,6 +203,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   opacity: 0;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.36);
   transition: opacity 120ms ease;
+  -webkit-user-drag: none;
 }
 
 .hs-lightbox__image.is-ready {

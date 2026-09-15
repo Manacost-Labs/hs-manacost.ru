@@ -13,8 +13,6 @@
   const submit = $('[data-comments-submit]');
   const retry = $('[data-comments-retry]'), login = $('[data-comments-login]');
   const reply = $('[data-comments-reply]'), cancel = $('[data-comments-cancel]');
-  const dataTools = $('[data-comments-data]'), exportButton = $('[data-comments-export]');
-  const eraseButton = $('[data-comments-erase]');
   const composerIdentity = $('[data-comments-me]'), count = $('[data-comments-count]');
   const profileNotice = $('[data-comments-profile-notice]'), refreshProfile = $('[data-comments-refresh-profile]');
   const attachmentInput = $('[data-comments-attachment-input]');
@@ -64,7 +62,6 @@
     if (attachmentRemove) attachmentRemove.disabled = locked || attachmentUploading || !stagedAttachment;
     submit.disabled = locked || commentingBlocked || attachmentUploading;
     retry.disabled = busy || commentingBlocked || attachmentUploading;
-    exportButton.disabled = eraseButton.disabled = busy;
     submit.hidden = Boolean(retryPayload); retry.hidden = !retryPayload;
     root.querySelectorAll('[data-comment-action]').forEach(button => { button.disabled = busy || Boolean(retryPayload); });
     cancel.disabled = busy || Boolean(retryPayload);
@@ -103,7 +100,7 @@
   function resetPrivate() {
     me = null; csrf = ''; busy = false; attachmentUploading = false; commentingBlocked = false; community?.reset(); clearDraft();
     composerIdentity?.replaceChildren();
-    form.hidden = dataTools.hidden = true; login.hidden = false;
+    form.hidden = true; login.hidden = false;
     rows = rows.filter(item => item.status !== 'pending'); render();
   }
   function invalidate() {
@@ -285,7 +282,7 @@
       || data.profile.version < 1 || typeof data.csrfToken !== 'string' || !data.csrfToken) throw new Error('profile_unavailable');
     me = data.profile; csrf = data.csrfToken;
     renderComposer();
-    form.hidden = dataTools.hidden = false; login.hidden = true;
+    form.hidden = false; login.hidden = true;
     render();
     if (threadLoaded) showThreadStatus();
   }
@@ -492,44 +489,6 @@
   attachmentRemove?.addEventListener('click', () => { void removeAttachment(); });
   cancel.addEventListener('click', () => { if (!busy && !retryPayload) { parentId = null; reply.hidden = cancel.hidden = true; body.focus(); } });
   more.addEventListener('click', () => { void loadComments(true); });
-
-  exportButton.addEventListener('click', async () => {
-    if (!me || busy) return;
-    const ticket = generation, items = [], seen = new Set(); let next = null, complete = false, reactions = [];
-    busy = true; controls();
-    try {
-      for (let page = 0; page < 50; page++) {
-        const { response, data } = await request(`/reader-api/v1/community/export${next ? `?cursor=${next}` : ''}`);
-        if (response.status === 401) { expired(); return; }
-        if (!response.ok || !Array.isArray(data?.items) || data.items.length > 100) throw new Error('export_failed');
-        if (page === 0 && data.reactions !== undefined) {
-          if (!Array.isArray(data.reactions) || data.reactions.length > 1000) throw new Error('export_failed');
-          reactions = data.reactions;
-        }
-        items.push(...data.items);
-        if (data.nextCursor === null) { complete = true; break; }
-        if (!uuid.test(data.nextCursor) || seen.has(data.nextCursor)) throw new Error('export_cursor');
-        next = data.nextCursor; seen.add(next);
-      }
-      if (!complete || !current(ticket)) throw new Error('export_incomplete');
-      const url = URL.createObjectURL(new Blob([JSON.stringify({ items, reactions }, null, 2)], { type: 'application/json' }));
-      const link = element('a'); link.href = url; link.download = 'manacost-comments.json'; link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000); say('Выгрузка подготовлена.');
-    } catch (error) { if (error !== stale && current(ticket)) say('Не удалось подготовить полную выгрузку. Ничего не скачано.'); }
-    finally { if (current(ticket)) { busy = false; controls(); } }
-  });
-  eraseButton.addEventListener('click', async () => {
-    if (!me || busy || !confirm('Удалить все мои комментарии и публичный профиль? Кабинет читателя останется без изменений.')) return;
-    const ticket = generation, profileId = me.id; busy = true; controls();
-    try {
-      const { response, data } = await request('/reader-api/v1/community/profile', { method: 'DELETE', headers: write(), body: JSON.stringify({ profileId, confirm: 'erase-community' }) });
-      if (response.status === 401) { expired(); return; }
-      if (!response.ok || data?.erased !== true) throw new Error('erase_failed');
-      clearDraft(); clearReconcile(); rows = rows.filter(item => item.author?.id !== profileId); render();
-      await loadComments(); if (current(ticket)) say('Комментарии и публичный профиль удалены. Кабинет сохранён.');
-    } catch (error) { if (error !== stale && current(ticket)) say('Не удалось удалить данные. Повторите попытку позже.'); }
-    finally { if (current(ticket)) { busy = false; controls(); } }
-  });
 
   async function start() {
     visible = true; invalidate(); resetPrivate();

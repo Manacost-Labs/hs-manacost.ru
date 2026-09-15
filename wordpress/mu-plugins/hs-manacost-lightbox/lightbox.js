@@ -200,7 +200,7 @@
           <button class="hs-lightbox__control hs-lightbox__nav hs-lightbox__previous" type="button">${icon('m15 18-6-6 6-6')}</button>
           <figure class="hs-lightbox__figure">
             <span class="hs-lightbox__loading" role="status"></span>
-            <img class="hs-lightbox__image" alt="" decoding="async" fetchpriority="high">
+			<img class="hs-lightbox__image" alt="" decoding="async" fetchpriority="high" draggable="false">
             <figcaption class="hs-lightbox__caption"></figcaption>
             <p class="hs-lightbox__error" role="alert"></p>
           </figure>
@@ -301,6 +301,7 @@
 
   function showRelative(offset) {
     if (activeItems.length < 2) return;
+    window.getSelection?.()?.removeAllRanges();
     activeIndex = (activeIndex + offset + activeItems.length) % activeItems.length;
     renderItem();
   }

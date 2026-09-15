@@ -140,6 +140,8 @@ try {
   assert.equal(await page.locator('html').getAttribute('data-hs-lightbox-open'), 'true');
   assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('src'), `${origin}/images/one.jpg`);
   assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('fetchpriority'), 'high');
+	assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('draggable'), 'false');
+	assert.equal(await dialog.locator('.hs-lightbox__stage').evaluate(element => getComputedStyle(element).userSelect), 'none');
   await dialog.locator('.hs-lightbox__image.is-ready').waitFor();
   assert.equal(await page.evaluate(() => window.lightboxPreloadAllocations), 1, 'a two-image gallery preloads its one neighbour once');
   assert.equal(await dialog.getByText('1 из 2').isVisible(), true);
@@ -150,6 +152,7 @@ try {
   await page.keyboard.press('ArrowRight');
   assert.equal(await dialog.getByRole('img', { name: 'Вторая карта' }).getAttribute('src'), `${origin}/images/two.webp`);
   assert.equal(await dialog.getByText('2 из 2').isVisible(), true);
+	assert.equal(await page.evaluate(() => window.getSelection()?.isCollapsed ?? true), true, 'gallery navigation must not select the page');
   await page.keyboard.press('Escape');
   await dialog.waitFor({ state: 'hidden' });
   assert.equal(await first.evaluate(element => document.activeElement === element), true, 'focus returns to the opener');

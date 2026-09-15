@@ -51,6 +51,10 @@
 		const favoritesStatus = root.querySelector( '[data-reader-favorites-status]' );
 		const favoritesList = root.querySelector( '[data-reader-favorites-list]' );
 		const favoritesMore = root.querySelector( '[data-reader-favorites-more]' );
+		const communityData = root.querySelector( '[data-reader-community-data]' );
+		const communityDataStatus = root.querySelector( '[data-reader-community-data-status]' );
+		const commentsExport = root.querySelector( '[data-reader-comments-export]' );
+		const commentsErase = root.querySelector( '[data-reader-comments-erase]' );
 		const loginEndpoint = endpoint( root, 'loginEndpoint', '/reader-auth/start?returnTo=%2Faccount%2F' );
 		const logoutEndpoint = endpoint( root, 'logoutEndpoint', '/reader-auth/logout' );
 		const meEndpoint = endpoint( root, 'meEndpoint', '/reader-api/v1/bootstrap' );
@@ -72,6 +76,9 @@
 		let favoritesOwnerId = '';
 		let favoritesObserver = null;
 		let favoritesScheduleCancel = null;
+		let communityDataController = null;
+		let communityDataBusy = false;
+		let currentProfileId = '';
 
 		function clearAdministrator() {
 			permissionsController?.abort();
@@ -136,6 +143,74 @@
 				favoritesMore.textContent = 'Показать ещё';
 			}
 			if ( favoritesPanel ) favoritesPanel.hidden = true;
+		}
+
+		function setCommunityDataBusy( busy ) {
+			communityDataBusy = busy;
+			if ( commentsExport ) commentsExport.disabled = busy;
+			if ( commentsErase ) commentsErase.disabled = busy;
+			communityData?.setAttribute( 'aria-busy', String( busy ) );
+		}
+
+		async function communityDataRequest( url, options = {} ) {
+			communityDataController?.abort();
+			const requestController = new AbortController();
+			communityDataController = requestController;
+			const deadline = window.setTimeout( () => requestController.abort(), requestTimeoutMs );
+			try {
+				const response = await fetch( url, { ...options, credentials: 'same-origin', cache: 'no-store', signal: requestController.signal } );
+				const body = await response.text();
+				if ( body.length > 524288 ) throw new Error( 'response_too_large' );
+				return { response, data: body ? JSON.parse( body ) : null };
+			} finally { window.clearTimeout( deadline ); if ( communityDataController === requestController ) communityDataController = null; }
+		}
+
+		async function exportComments() {
+			if ( ! sessionActive || communityDataBusy ) return;
+			const ticket = generation, items = [], seen = new Set();
+			let next = null, complete = false, reactions = [];
+			setCommunityDataBusy( true );
+			communityDataStatus.textContent = 'Готовим выгрузку…';
+			try {
+				for ( let page = 0; page < 50; page++ ) {
+					const { response, data } = await communityDataRequest( `/reader-api/v1/community/export${ next ? `?cursor=${ encodeURIComponent( next ) }` : '' }`, { headers: { Accept: 'application/json' } } );
+					if ( response.status === 401 ) { guest( 'Сессия завершена. Войдите через HearthPulse снова.' ); return; }
+					if ( ! response.ok || ! Array.isArray( data?.items ) || data.items.length > 100 ) throw new Error( 'export_failed' );
+					if ( 0 === page && data.reactions !== undefined ) {
+						if ( ! Array.isArray( data.reactions ) || data.reactions.length > 1000 ) throw new Error( 'export_failed' );
+						reactions = data.reactions;
+					}
+					items.push( ...data.items );
+					if ( data.nextCursor === null ) { complete = true; break; }
+					if ( ! favoriteId.test( data.nextCursor || '' ) || seen.has( data.nextCursor ) ) throw new Error( 'export_cursor' );
+					next = data.nextCursor;
+					seen.add( next );
+				}
+				if ( ! complete || ticket !== generation || ! sessionActive ) throw new Error( 'export_incomplete' );
+				const url = URL.createObjectURL( new Blob( [ JSON.stringify( { items, reactions }, null, 2 ) ], { type: 'application/json' } ) );
+				const download = document.createElement( 'a' );
+				download.href = url; download.download = 'manacost-comments.json'; download.click();
+				window.setTimeout( () => URL.revokeObjectURL( url ), 1000 );
+				communityDataStatus.textContent = 'Выгрузка подготовлена.';
+			} catch ( error ) { if ( 'AbortError' !== error.name && ticket === generation && sessionActive ) communityDataStatus.textContent = 'Не удалось подготовить полную выгрузку. Ничего не скачано.'; }
+			finally { if ( ticket === generation && sessionActive ) setCommunityDataBusy( false ); }
+		}
+
+		async function eraseComments() {
+			if ( ! sessionActive || communityDataBusy || ! currentProfileId || ! window.confirm( 'Удалить все мои комментарии и публичный профиль? Кабинет читателя останется без изменений.' ) ) return;
+			const ticket = generation, profileId = currentProfileId;
+			setCommunityDataBusy( true );
+			communityDataStatus.textContent = 'Удаляем данные обсуждений…';
+			try {
+				const { response, data } = await communityDataRequest( '/reader-api/v1/community/profile', {
+					method: 'DELETE', body: JSON.stringify( { profileId, confirm: 'erase-community' } ),
+					headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Reader-CSRF': currentCsrfToken },
+				} );
+				if ( response.status === 401 ) { guest( 'Сессия завершена. Войдите через HearthPulse снова.' ); return; }
+				if ( ! response.ok || data?.erased !== true ) throw new Error( 'erase_failed' );
+				if ( ticket === generation && sessionActive ) communityDataStatus.textContent = 'Комментарии и публичный профиль удалены. Кабинет сохранён.';
+			} catch ( error ) { if ( 'AbortError' !== error.name && ticket === generation && sessionActive ) communityDataStatus.textContent = 'Не удалось удалить данные. Повторите попытку позже.'; }
+			finally { if ( ticket === generation && sessionActive ) setCommunityDataBusy( false ); }
 		}
 
 		function favoriteRow( item ) {
@@ -281,6 +356,12 @@
 			accountMenu.open = false;
 			accountMenu.hidden = true;
 			profileEditor?.clear();
+			communityDataController?.abort();
+			communityDataController = null;
+			setCommunityDataBusy( false );
+			if ( communityData ) communityData.hidden = true;
+			if ( communityDataStatus ) communityDataStatus.textContent = '';
+			currentProfileId = '';
 			currentCsrfToken = '';
 			sessionActive = false;
 		}
@@ -336,6 +417,7 @@
 				acceptVersion: refreshOptions.acceptVersion,
 			} );
 			favoritesOwnerId = nextFavoritesOwnerId;
+			currentProfileId = nextFavoritesOwnerId;
 			currentCsrfToken = data.csrfToken;
 			identity.hidden = false;
 			actions.replaceChildren();
@@ -354,6 +436,7 @@
 			logout.addEventListener( 'click', () => logoutRequest( currentCsrfToken ) );
 			accountActions.append( logout );
 			sessionActive = true;
+			if ( communityData ) communityData.hidden = false;
 			if ( profileOverview && ! profileOverview.hidden ) revealFavorites();
 			void refreshAdministrator();
 		}
@@ -454,6 +537,8 @@
 			if ( sessionActive ) revealFavorites();
 		} );
 		favoritesMore?.addEventListener( 'click', () => { void loadFavorites( favoritesLoaded ); } );
+		commentsExport?.addEventListener( 'click', () => { void exportComments(); } );
+		commentsErase?.addEventListener( 'click', () => { void eraseComments(); } );
 		accountMenu.addEventListener( 'keydown', ( event ) => {
 			if ( 'Escape' !== event.key || ! accountMenu.open ) return;
 			event.preventDefault();
