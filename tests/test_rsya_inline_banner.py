@@ -40,6 +40,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         rsya_enabled: bool = True,
         public_profile: bool = False,
         sidebar_ad: bool = False,
+        sidebar_bottom_only: bool = False,
         content: str | None = None,
     ) -> dict:
         content = content or (
@@ -69,7 +70,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         }}
         $phase = 'head';
         $public_profile = {json.dumps(public_profile)};
-        $sidebar_widgets = json_decode({json.dumps(json.dumps({"td-default": [SIDEBAR_INSERT_BEFORE_WIDGET]} if sidebar_ad else {}))}, true);
+        $sidebar_widgets = json_decode({json.dumps(json.dumps({"td-default": [SIDEBAR_INSERT_BEFORE_WIDGET] if sidebar_ad else (["td_block_popular_categories_widget-5"] if sidebar_bottom_only else [])}))}, true);
         $actions = [];
         $filters = [];
         $shortcodes = [];
@@ -124,6 +125,11 @@ class RsyaInlineBannerTest(unittest.TestCase):
             }}
             return $value;
         }}
+        function run_test_action($tag, ...$args) {{
+            foreach ($GLOBALS['actions'][$tag] ?? [] as $registered) {{
+                call_user_func_array($registered[0], array_slice($args, 0, $registered[2]));
+            }}
+        }}
         require {json.dumps(str(PLUGIN))};
         foreach ($actions['wp_enqueue_scripts'] ?? [] as $registered) {{ call_user_func($registered[0]); }}
         ob_start();
@@ -147,6 +153,12 @@ class RsyaInlineBannerTest(unittest.TestCase):
             'widget_id' => {json.dumps(SIDEBAR_INSERT_BEFORE_WIDGET)},
             'before_widget' => '<aside class="widget">',
         ]]);
+        ob_start();
+        run_test_action('dynamic_sidebar_after', 'td-default', true);
+        $sidebar_footer = ob_get_clean();
+        ob_start();
+        run_test_action('dynamic_sidebar_after', 'td-default', true);
+        $sidebar_footer_second = ob_get_clean();
         echo json_encode([
             'content' => apply_test_filter('the_content', {json.dumps(content, ensure_ascii=False)}),
             'head' => $head,
@@ -158,6 +170,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
             'profile_banner' => $profile_banner,
             'sidebar_params' => $sidebar_params,
             'sidebar_params_second' => $sidebar_params_second,
+            'sidebar_footer' => $sidebar_footer,
+            'sidebar_footer_second' => $sidebar_footer_second,
         ], JSON_UNESCAPED_UNICODE);
         """
         completed = subprocess.run(
@@ -264,6 +278,22 @@ class RsyaInlineBannerTest(unittest.TestCase):
 
         absent = self.render_result(sidebar_ad=False)
         self.assertEqual(absent["sidebar_params"][0]["before_widget"], '<aside class="widget">')
+
+    def test_article_sidebar_appends_one_compact_viewer_gated_unit_after_its_last_widget(self) -> None:
+        result = self.render_result(sidebar_ad=True)
+
+        self.assertIn("manacost-rsya-gate", result["scripts"])
+        self.assertIn(SIDEBAR_BLOCK_ID, result["sidebar_footer"])
+        self.assertIn('data-manacost-rsya-slot="sidebar-bottom"', result["sidebar_footer"])
+        self.assertIn('manacost-rsya-inline--sidebar', result["sidebar_footer"])
+        self.assertEqual(result["sidebar_footer_second"], "")
+
+        absent = self.render_result(sidebar_ad=False)
+        self.assertEqual(absent["sidebar_footer"], "")
+
+        bottom_only = self.render_result(sidebar_bottom_only=True)
+        self.assertEqual(bottom_only["sidebar_params"][0]["before_widget"], '<aside class="widget">')
+        self.assertIn('data-manacost-rsya-slot="sidebar-bottom"', bottom_only["sidebar_footer"])
 
     def test_classic_editor_offers_only_compact_manual_banner_controls(self) -> None:
         editor = EDITOR_PLUGIN.read_text(encoding="utf-8")

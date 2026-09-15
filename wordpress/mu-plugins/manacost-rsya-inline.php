@@ -47,6 +47,13 @@ final class Manacost_Rsya_Inline_Banner {
 	private static bool $sidebar_unit_rendered = false;
 
 	/**
+	 * Prevents the bottom-of-sidebar callback from adding another unit.
+	 *
+	 * @var bool
+	 */
+	private static bool $sidebar_footer_unit_rendered = false;
+
+	/**
 	 * Registers the page hooks.
 	 *
 	 * @return void
@@ -55,6 +62,7 @@ final class Manacost_Rsya_Inline_Banner {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_gate' ) );
 		add_action( 'wp_head', array( __CLASS__, 'render_styles' ), 39 );
 		add_action( 'wp_footer', array( __CLASS__, 'render_floor_ad' ), 90 );
+		add_action( 'dynamic_sidebar_after', array( __CLASS__, 'render_sidebar_footer_banner' ), 10, 2 );
 		add_filter( 'the_content', array( __CLASS__, 'insert_banner' ), 30 );
 		add_filter( 'dynamic_sidebar_params', array( __CLASS__, 'insert_sidebar_banner' ) );
 		add_shortcode( self::SHORTCODE, array( __CLASS__, 'render_shortcode' ) );
@@ -207,7 +215,7 @@ final class Manacost_Rsya_Inline_Banner {
 	public static function insert_sidebar_banner( array $params ): array {
 		if (
 			self::$sidebar_unit_rendered
-			|| ! self::should_render_sidebar_ad()
+			|| ! self::should_render_sidebar_top_ad()
 			|| ! isset( $params[0]['id'], $params[0]['widget_id'], $params[0]['before_widget'] )
 			|| self::SIDEBAR_ID !== $params[0]['id']
 			|| self::SIDEBAR_INSERT_BEFORE !== $params[0]['widget_id']
@@ -219,6 +227,27 @@ final class Manacost_Rsya_Inline_Banner {
 		$params[0]['before_widget']  = self::render_unit( 'sidebar', self::SIDEBAR_BLOCK_ID, 'sidebar', '-sidebar' ) . $params[0]['before_widget'];
 
 		return $params;
+	}
+
+	/**
+	 * Appends one compact unit after the final article-sidebar widget.
+	 *
+	 * @param int|string $sidebar_id Sidebar identifier supplied by WordPress.
+	 * @param bool       $has_widgets Whether that sidebar rendered widgets.
+	 * @return void
+	 */
+	public static function render_sidebar_footer_banner( $sidebar_id, bool $has_widgets ): void {
+		if (
+			self::$sidebar_footer_unit_rendered
+			|| ! $has_widgets
+			|| self::SIDEBAR_ID !== $sidebar_id
+			|| ! self::should_render_sidebar_ads()
+		) {
+			return;
+		}
+
+		self::$sidebar_footer_unit_rendered = true;
+		echo self::render_unit( 'sidebar-bottom', self::SIDEBAR_BLOCK_ID, 'sidebar', '-sidebar-bottom' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Rendered by the internal fixed unit template.
 	}
 
 	/**
@@ -451,16 +480,16 @@ final class Manacost_Rsya_Inline_Banner {
 	private static function should_render_gate(): bool {
 		return self::should_render_legacy_article()
 			|| self::should_render_public_profile()
-			|| self::should_render_sidebar_ad()
+			|| self::should_render_sidebar_ads()
 			|| self::document_has_shortcode();
 	}
 
 	/**
-	 * Limits the sidebar unit to its single configured article-sidebar position.
+	 * Limits sidebar units to the populated article sidebar on published posts.
 	 *
 	 * @return bool
 	 */
-	private static function should_render_sidebar_ad(): bool {
+	private static function should_render_sidebar_ads(): bool {
 		if ( ! self::should_render_public_document() || ! is_singular( 'post' ) ) {
 			return false;
 		}
@@ -469,7 +498,22 @@ final class Manacost_Rsya_Inline_Banner {
 
 		return isset( $sidebars[ self::SIDEBAR_ID ] )
 			&& is_array( $sidebars[ self::SIDEBAR_ID ] )
-			&& in_array( self::SIDEBAR_INSERT_BEFORE, $sidebars[ self::SIDEBAR_ID ], true );
+			&& ! empty( $sidebars[ self::SIDEBAR_ID ] );
+	}
+
+	/**
+	 * Checks that the widget which anchors the upper sidebar unit still exists.
+	 *
+	 * @return bool
+	 */
+	private static function should_render_sidebar_top_ad(): bool {
+		if ( ! self::should_render_sidebar_ads() ) {
+			return false;
+		}
+
+		$sidebars = wp_get_sidebars_widgets();
+
+		return in_array( self::SIDEBAR_INSERT_BEFORE, $sidebars[ self::SIDEBAR_ID ], true );
 	}
 
 	/**
