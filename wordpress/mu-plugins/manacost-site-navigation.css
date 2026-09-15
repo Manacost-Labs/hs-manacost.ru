@@ -29,6 +29,16 @@
 }
 
 @media (min-width: 1019px) {
+	/* TagDiv positions these arrows outside their anchors by default. */
+	.td-header-wrap .td-header-menu-wrap .sf-menu > li.menu-item-has-children > a {
+		padding-right: 26px !important;
+	}
+
+	.td-header-wrap .td-header-menu-wrap .sf-menu > li.menu-item-has-children > a > i.td-icon-menu-down {
+		left: auto !important;
+		right: 6px !important;
+	}
+
 	/* Reader adds this entry after the theme menu has been rendered. */
 	.td-header-wrap .td-header-menu-wrap .sf-menu > li.mc-reader-entry > a {
 		display: block;
