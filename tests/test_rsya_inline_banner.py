@@ -21,7 +21,6 @@ INTRO_BLOCK_ID = "R-A-16113237-6"
 FOOTER_BLOCK_ID = "R-A-16113237-5"
 FLOOR_BLOCK_ID = "R-A-16113237-7"
 EDITOR_BANNER_BLOCK_ID = "R-A-16113237-12"
-EDITOR_FEED_BLOCK_ID = "R-A-16113237-10"
 
 
 class RsyaInlineBannerTest(unittest.TestCase):
@@ -200,13 +199,15 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertEqual(future["scripts"], [])
         self.assertEqual(future["footer"], "")
 
-    def test_editor_shortcodes_render_only_supported_manual_formats(self) -> None:
+    def test_editor_shortcodes_render_only_supported_compact_manual_formats(self) -> None:
         result = self.render_result(published_at="2026-10-01 00:00:00")
 
         self.assertIn(EDITOR_BANNER_BLOCK_ID, result["manual_banner"])
         self.assertIn('data-manacost-rsya-slot="editor-banner"', result["manual_banner"])
-        self.assertIn(EDITOR_FEED_BLOCK_ID, result["manual_feed"])
-        self.assertIn('"type": "feed"', result["manual_feed"])
+        self.assertIn(EDITOR_BANNER_BLOCK_ID, result["manual_feed"])
+        self.assertIn('data-manacost-rsya-slot="editor-horizontal"', result["manual_feed"])
+        self.assertNotIn('"type": "feed"', result["manual_feed"])
+        self.assertIn('manacost-rsya-inline--banner', result["manual_feed"])
         self.assertIn('class="manacost-rsya-inline__label">Реклама</p>', result["manual_banner"])
 
     def test_explicit_shortcode_loads_the_gate_for_a_new_article(self) -> None:
@@ -232,12 +233,12 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertEqual(private["profile_banner"], "")
         self.assertIn("render_public_profile_banner", PUBLIC_PROFILE.read_text(encoding="utf-8"))
 
-    def test_classic_editor_offers_only_manual_banner_and_feed_controls(self) -> None:
+    def test_classic_editor_offers_only_compact_manual_banner_controls(self) -> None:
         editor = EDITOR_PLUGIN.read_text(encoding="utf-8")
 
         self.assertIn('insertContent(\'[manacost_rsya format="\' + format + \'"]\')', editor)
         self.assertIn('text: "Баннер РСЯ"', editor)
-        self.assertIn('text: "Лента РСЯ"', editor)
+        self.assertIn('text: "Горизонтальная лента РСЯ"', editor)
         self.assertIn("editor.addButton", editor)
         self.assertNotIn("fullscreen", editor.lower())
         self.assertNotIn("prebid", editor.lower())
