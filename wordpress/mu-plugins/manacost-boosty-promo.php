@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Manacost Boosty Promo
- * Description: Renders the managed Boosty banner on the homepage and footer support links.
+ * Description: Renders the managed Boosty banner on the homepage and article sidebar, plus footer support links.
  *
  * @package Manacost
  */
@@ -9,10 +9,13 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Keeps the homepage support promotion and footer help links update-safe.
+ * Keeps the managed support promotion and footer help links update-safe.
  */
 final class Manacost_Boosty_Promo {
-	private const BOOSTY_URL = 'https://boosty.to/kolodahearthstone';
+	private const BOOSTY_URL               = 'https://boosty.to/kolodahearthstone';
+	private const LEGACY_SIDEBAR_WIDGET_ID = 'block-37';
+	private const LEGACY_SIDEBAR_IMAGE     = '/wp-content/uploads/2026/01/64b4112a-4bbb-4093-a12a-1f92b1b1defc.jpg';
+	private const LEGACY_SIDEBAR_URL       = 'https://web.tribute.tg/s/xz9';
 
 	/**
 	 * Registers public WordPress extension points.
@@ -23,12 +26,13 @@ final class Manacost_Boosty_Promo {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 		add_filter( 'wp_nav_menu_items', array( __CLASS__, 'append_footer_links' ), 10, 2 );
 		add_filter( 'pre_do_shortcode_tag', array( __CLASS__, 'replace_homepage_pricing_card' ), 10, 3 );
+		add_filter( 'widget_block_content', array( __CLASS__, 'replace_legacy_sidebar_banner' ), 10, 3 );
 		add_filter( 'style_loader_tag', array( __CLASS__, 'exclude_layout_styles_from_minification' ), 10, 4 );
 		add_filter( 'perfmatters_minify_css_exclusions', array( __CLASS__, 'exclude_layout_styles_from_perfmatters' ) );
 	}
 
 	/**
-	 * Loads the banner presentation only where it can render.
+	 * Loads the navigation and managed banner presentation on public pages.
 	 *
 	 * @return void
 	 */
@@ -42,18 +46,14 @@ final class Manacost_Boosty_Promo {
 			'manacost-site-navigation',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
 			array(),
-			'1.5.0'
+			'1.5.1'
 		);
-
-		if ( ! is_front_page() ) {
-			return;
-		}
 
 		wp_enqueue_style(
 			'manacost-boosty-promo',
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
-			'1.3.0'
+			'1.3.1'
 		);
 	}
 
@@ -135,6 +135,34 @@ final class Manacost_Boosty_Promo {
 			|| 'tds_pricing1' !== $attr['tds_pricing']
 		) {
 			return $output;
+		}
+
+		return self::render_banner();
+	}
+
+	/**
+	 * Replaces only the known legacy Telegram image widget in article sidebars.
+	 *
+	 * Matching both the widget identity and its legacy content means an editor can
+	 * replace the block later without this compatibility layer taking it over.
+	 *
+	 * @param string          $content  Rendered block widget content.
+	 * @param array<mixed>    $instance Widget settings.
+	 * @param WP_Widget_Block $widget   Block widget instance.
+	 * @return string
+	 */
+	public static function replace_legacy_sidebar_banner( string $content, array $instance, WP_Widget_Block $widget ): string {
+		unset( $instance );
+
+		if ( self::LEGACY_SIDEBAR_WIDGET_ID !== $widget->id ) {
+			return $content;
+		}
+
+		if (
+			false === strpos( $content, self::LEGACY_SIDEBAR_IMAGE )
+			&& false === strpos( $content, self::LEGACY_SIDEBAR_URL )
+		) {
+			return $content;
 		}
 
 		return self::render_banner();

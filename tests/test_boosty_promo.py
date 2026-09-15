@@ -67,6 +67,10 @@ class BoostyPromoTest(unittest.TestCase):
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function esc_html($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
+        class WP_Widget_Block {{
+            public $id;
+            public function __construct($id) {{ $this->id = $id; }}
+        }}
         require {json.dumps(str(PLUGIN))};
 
         foreach ($actions['wp_enqueue_scripts'] ?? [] as $entry) {{
@@ -126,6 +130,17 @@ class BoostyPromoTest(unittest.TestCase):
             );
         }}
 
+        $legacy_sidebar = '<figure><a href="https://web.tribute.tg/s/xz9"><img src="/wp-content/uploads/2026/01/64b4112a-4bbb-4093-a12a-1f92b1b1defc.jpg"></a></figure>';
+        $other_sidebar = '<figure><a href="/editorial/"><img src="/editorial.jpg"></a></figure>';
+        $sidebar = $legacy_sidebar;
+        $untargeted_sidebar = $legacy_sidebar;
+        $updated_target_sidebar = $other_sidebar;
+        foreach ($filters['widget_block_content'] ?? [] as $entry) {{
+            $sidebar = call_user_func($entry[0], $sidebar, [], new WP_Widget_Block('block-37'));
+            $untargeted_sidebar = call_user_func($entry[0], $untargeted_sidebar, [], new WP_Widget_Block('block-99'));
+            $updated_target_sidebar = call_user_func($entry[0], $updated_target_sidebar, [], new WP_Widget_Block('block-37'));
+        }}
+
         echo json_encode([
             'footer' => $footer,
             'other_menu' => $other_menu,
@@ -135,6 +150,11 @@ class BoostyPromoTest(unittest.TestCase):
             'navigation_tag' => $navigation_tag,
             'other_tag' => $other_tag,
             'perfmatters_exclusions' => $perfmatters_exclusions,
+            'sidebar' => $sidebar,
+            'legacy_sidebar' => $legacy_sidebar,
+            'untargeted_sidebar' => $untargeted_sidebar,
+            'updated_target_sidebar' => $updated_target_sidebar,
+            'other_sidebar' => $other_sidebar,
         ]);
         """
         completed = subprocess.run(
@@ -176,11 +196,22 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn("manacost-site-navigation.css", result["perfmatters_exclusions"])
         self.assertIn("manacost-boosty-promo.css", result["perfmatters_exclusions"])
 
-    def test_navigation_typography_loads_beyond_the_homepage(self) -> None:
+    def test_navigation_and_sidebar_promo_styles_load_beyond_the_homepage(self) -> None:
         result = self.run_plugin(is_front_page=False)
 
         self.assertIn("manacost-site-navigation", result["styles"])
-        self.assertNotIn("manacost-boosty-promo", result["styles"])
+        self.assertIn("manacost-boosty-promo", result["styles"])
+
+    def test_replaces_only_the_legacy_article_sidebar_banner(self) -> None:
+        result = self.run_plugin(is_front_page=False)
+
+        self.assertIn('class="manacost-boosty-promo"', result["sidebar"])
+        self.assertIn('href="https://boosty.to/kolodahearthstone"', result["sidebar"])
+        self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/banner.webp?ver=5247cc0c54b8"', result["sidebar"])
+        self.assertNotIn("web.tribute.tg", result["sidebar"])
+        self.assertNotIn("64b4112a-4bbb-4093-a12a-1f92b1b1defc.jpg", result["sidebar"])
+        self.assertEqual(result["legacy_sidebar"], result["untargeted_sidebar"])
+        self.assertEqual(result["other_sidebar"], result["updated_target_sidebar"])
 
     def test_keeps_pricing_shortcode_outside_the_homepage(self) -> None:
         result = self.run_plugin(is_front_page=False)
