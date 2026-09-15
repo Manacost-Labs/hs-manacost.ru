@@ -21,6 +21,8 @@ INTRO_BLOCK_ID = "R-A-16113237-6"
 FOOTER_BLOCK_ID = "R-A-16113237-5"
 FLOOR_BLOCK_ID = "R-A-16113237-7"
 EDITOR_BANNER_BLOCK_ID = "R-A-16113237-12"
+SIDEBAR_BLOCK_ID = "R-A-16113237-13"
+SIDEBAR_INSERT_BEFORE_WIDGET = "td_block_8_widget-9"
 
 
 class RsyaInlineBannerTest(unittest.TestCase):
@@ -37,6 +39,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         content_main_query: bool = True,
         rsya_enabled: bool = True,
         public_profile: bool = False,
+        sidebar_ad: bool = False,
         content: str | None = None,
     ) -> dict:
         content = content or (
@@ -66,6 +69,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         }}
         $phase = 'head';
         $public_profile = {json.dumps(public_profile)};
+        $sidebar_widgets = json_decode({json.dumps(json.dumps({"td-default": [SIDEBAR_INSERT_BEFORE_WIDGET]} if sidebar_ad else {}))}, true);
         $actions = [];
         $filters = [];
         $shortcodes = [];
@@ -88,6 +92,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         function wp_doing_ajax() {{ return false; }}
         function is_user_logged_in() {{ return {json.dumps(logged_in)}; }}
         function hs_reader_public_profile_request() {{ return $GLOBALS['public_profile']; }}
+        function wp_get_sidebars_widgets() {{ return $GLOBALS['sidebar_widgets']; }}
         function get_queried_object() {{ return new WP_Post({json.dumps(slug)}, {json.dumps(published_at)}, {json.dumps(status)}, {json.dumps(content, ensure_ascii=False)}); }}
         function has_shortcode($content, $tag) {{ return false !== strpos($content, '[' . $tag); }}
         function wp_strip_all_tags($value) {{ return trim(strip_tags($value)); }}
@@ -131,6 +136,17 @@ class RsyaInlineBannerTest(unittest.TestCase):
         $manual_banner = call_user_func($shortcodes['manacost_rsya'], ['format' => 'banner']);
         $manual_feed = call_user_func($shortcodes['manacost_rsya'], ['format' => 'feed']);
         $profile_banner = Manacost_Rsya_Inline_Banner::render_public_profile_banner();
+
+        $sidebar_params = apply_test_filter('dynamic_sidebar_params', [[
+            'id' => 'td-default',
+            'widget_id' => {json.dumps(SIDEBAR_INSERT_BEFORE_WIDGET)},
+            'before_widget' => '<aside class="widget">',
+        ]]);
+        $sidebar_params_second = apply_test_filter('dynamic_sidebar_params', [[
+            'id' => 'td-default',
+            'widget_id' => {json.dumps(SIDEBAR_INSERT_BEFORE_WIDGET)},
+            'before_widget' => '<aside class="widget">',
+        ]]);
         echo json_encode([
             'content' => apply_test_filter('the_content', {json.dumps(content, ensure_ascii=False)}),
             'head' => $head,
@@ -140,6 +156,8 @@ class RsyaInlineBannerTest(unittest.TestCase):
             'manual_banner' => $manual_banner,
             'manual_feed' => $manual_feed,
             'profile_banner' => $profile_banner,
+            'sidebar_params' => $sidebar_params,
+            'sidebar_params_second' => $sidebar_params_second,
         ], JSON_UNESCAPED_UNICODE);
         """
         completed = subprocess.run(
@@ -232,6 +250,20 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertIn("manacost-rsya-gate", public["scripts"])
         self.assertEqual(private["profile_banner"], "")
         self.assertIn("render_public_profile_banner", PUBLIC_PROFILE.read_text(encoding="utf-8"))
+
+    def test_article_sidebar_inserts_one_compact_viewer_gated_unit_before_latest_posts(self) -> None:
+        result = self.render_result(sidebar_ad=True)
+
+        self.assertIn("manacost-rsya-gate", result["scripts"])
+        sidebar_html = result["sidebar_params"][0]["before_widget"]
+        self.assertIn(SIDEBAR_BLOCK_ID, sidebar_html)
+        self.assertIn('data-manacost-rsya-slot="sidebar"', sidebar_html)
+        self.assertIn('manacost-rsya-inline--sidebar', sidebar_html)
+        self.assertIn('class="widget"', sidebar_html)
+        self.assertEqual(result["sidebar_params_second"][0]["before_widget"], '<aside class="widget">')
+
+        absent = self.render_result(sidebar_ad=False)
+        self.assertEqual(absent["sidebar_params"][0]["before_widget"], '<aside class="widget">')
 
     def test_classic_editor_offers_only_compact_manual_banner_controls(self) -> None:
         editor = EDITOR_PLUGIN.read_text(encoding="utf-8")

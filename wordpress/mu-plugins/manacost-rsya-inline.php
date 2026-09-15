@@ -25,9 +25,12 @@ final class Manacost_Rsya_Inline_Banner {
 	private const FLOOR_BLOCK_ID             = 'R-A-16113237-7';
 	private const EDITOR_BANNER_BLOCK_ID     = 'R-A-16113237-12';
 	private const PUBLIC_PROFILE_BLOCK_ID    = 'R-A-16113237-13';
+	private const SIDEBAR_BLOCK_ID           = 'R-A-16113237-13';
 	private const GATE_HANDLE                = 'manacost-rsya-gate';
 	private const TEXT_PARAGRAPH_POSITION    = 3;
 	private const SHORTCODE                  = 'manacost_rsya';
+	private const SIDEBAR_ID                 = 'td-default';
+	private const SIDEBAR_INSERT_BEFORE      = 'td_block_8_widget-9';
 
 	/**
 	 * Tracks manually placed units on the current document.
@@ -35,6 +38,13 @@ final class Manacost_Rsya_Inline_Banner {
 	 * @var int
 	 */
 	private static int $manual_unit_index = 0;
+
+	/**
+	 * Prevents a repeated sidebar-widget callback from adding another unit.
+	 *
+	 * @var bool
+	 */
+	private static bool $sidebar_unit_rendered = false;
 
 	/**
 	 * Registers the page hooks.
@@ -46,6 +56,7 @@ final class Manacost_Rsya_Inline_Banner {
 		add_action( 'wp_head', array( __CLASS__, 'render_styles' ), 39 );
 		add_action( 'wp_footer', array( __CLASS__, 'render_floor_ad' ), 90 );
 		add_filter( 'the_content', array( __CLASS__, 'insert_banner' ), 30 );
+		add_filter( 'dynamic_sidebar_params', array( __CLASS__, 'insert_sidebar_banner' ) );
 		add_shortcode( self::SHORTCODE, array( __CLASS__, 'render_shortcode' ) );
 		add_filter( 'mce_external_plugins', array( __CLASS__, 'register_editor_plugin' ) );
 		add_filter( 'mce_buttons', array( __CLASS__, 'register_editor_button' ) );
@@ -159,6 +170,16 @@ final class Manacost_Rsya_Inline_Banner {
 				min-height: 180px;
 			}
 
+			.manacost-rsya-inline--sidebar {
+				width: min(100%, 300px);
+				max-width: 300px;
+				margin: 28px auto;
+			}
+
+			.manacost-rsya-inline--sidebar .manacost-rsya-inline__canvas {
+				height: 250px;
+			}
+
 			@media (max-width: 767px) {
 				.manacost-rsya-inline {
 					width: min(100%, 320px);
@@ -171,6 +192,33 @@ final class Manacost_Rsya_Inline_Banner {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Adds one compact unit between the configured VIP and latest-article widgets.
+	 *
+	 * The placement stays anchored to the latest-article widget rather than a
+	 * fragile position number, so unrelated widget changes cannot move it above
+	 * the VIP section.
+	 *
+	 * @param array<int, array<string, string>> $params Current widget parameters.
+	 * @return array<int, array<string, string>>
+	 */
+	public static function insert_sidebar_banner( array $params ): array {
+		if (
+			self::$sidebar_unit_rendered
+			|| ! self::should_render_sidebar_ad()
+			|| ! isset( $params[0]['id'], $params[0]['widget_id'], $params[0]['before_widget'] )
+			|| self::SIDEBAR_ID !== $params[0]['id']
+			|| self::SIDEBAR_INSERT_BEFORE !== $params[0]['widget_id']
+		) {
+			return $params;
+		}
+
+		self::$sidebar_unit_rendered = true;
+		$params[0]['before_widget']  = self::render_unit( 'sidebar', self::SIDEBAR_BLOCK_ID, 'sidebar', '-sidebar' ) . $params[0]['before_widget'];
+
+		return $params;
 	}
 
 	/**
@@ -403,7 +451,25 @@ final class Manacost_Rsya_Inline_Banner {
 	private static function should_render_gate(): bool {
 		return self::should_render_legacy_article()
 			|| self::should_render_public_profile()
+			|| self::should_render_sidebar_ad()
 			|| self::document_has_shortcode();
+	}
+
+	/**
+	 * Limits the sidebar unit to its single configured article-sidebar position.
+	 *
+	 * @return bool
+	 */
+	private static function should_render_sidebar_ad(): bool {
+		if ( ! self::should_render_public_document() || ! is_singular( 'post' ) ) {
+			return false;
+		}
+
+		$sidebars = wp_get_sidebars_widgets();
+
+		return isset( $sidebars[ self::SIDEBAR_ID ] )
+			&& is_array( $sidebars[ self::SIDEBAR_ID ] )
+			&& in_array( self::SIDEBAR_INSERT_BEFORE, $sidebars[ self::SIDEBAR_ID ], true );
 	}
 
 	/**
