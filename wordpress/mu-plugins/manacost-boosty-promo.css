@@ -2,15 +2,15 @@
 	display: block;
 	max-width: 100%;
 	margin: 0 0 48px;
-	border-radius: 12px;
+	border-radius: 16px;
 	overflow: hidden;
-	box-shadow: 0 10px 26px rgba(15, 40, 70, 0.14);
+	box-shadow: 0 14px 34px rgba(15, 40, 70, 0.22);
 	transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .manacost-boosty-promo:hover {
 	transform: translateY(-1px);
-	box-shadow: 0 14px 30px rgba(15, 40, 70, 0.2);
+	box-shadow: 0 18px 40px rgba(15, 40, 70, 0.28);
 }
 
 .manacost-boosty-promo:focus-visible {

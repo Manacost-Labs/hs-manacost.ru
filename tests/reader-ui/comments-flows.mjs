@@ -151,7 +151,6 @@ try {
   page.setDefaultTimeout(4000);
   const loadComments = async () => { await page.goto(`${origin}/`); await page.getByLabel('Комментарий').waitFor(); };
   const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
-  const openCommunityData = async () => { if (!await page.locator('[data-comments-data]').evaluate(element => element.open)) await page.locator('[data-comments-data] summary').click(); };
 
   // Reading starts alongside identity verification, but private pending rows wait for identity.
   hold.me = hold.comments = true;
@@ -318,69 +317,14 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-public-profile-content]').hidden === true);
   hold.profile = false;
 
-  // 6. Export follows cursors to completion before creating one JSON download; malformed cursors and 503 never leak a partial file.
-  await loadComments();
-  const cursor = '523e4567-e89b-42d3-a456-426614174000';
-  exportPages = [
-    { cursor: null, value: { items: Array.from({ length: 100 }, (_, n) => ({ id: n })), nextCursor: cursor } },
-    { cursor, value: { items: [{ id: 100 }], nextCursor: null } },
-  ];
-  await openCommunityData();
-  let successfulDownload = null;
-  page.once('download', download => { successfulDownload = download; });
-  await page.getByRole('button', { name: 'Скачать мои комментарии' }).click();
-  await page.getByText('Выгрузка подготовлена.').waitFor();
-  assert.ok(successfulDownload, 'a complete cursor chain must create one download');
-  const stream = await successfulDownload.createReadStream(); let downloadedText = '';
-  for await (const part of stream) downloadedText += part;
-  assert.equal(JSON.parse(downloadedText).items.length, 101);
-  assert.deepEqual(exportCalls.slice(-2), [null, cursor]);
-  let downloads = 0; page.on('download', () => { downloads++; });
-  exportPages = [
-    { cursor: null, value: { items: [{ id: 'first' }], nextCursor: cursor } },
-    { cursor, value: { items: [{ id: 'second' }], nextCursor: cursor } },
-  ];
-  await page.getByRole('button', { name: 'Скачать мои комментарии' }).click();
-  await page.getByText('Не удалось подготовить полную выгрузку. Ничего не скачано.').waitFor();
-  assert.equal(downloads, 0, 'a repeated cursor must not create a partial download');
-  exportPages = [{ cursor: null, value: { items: [{ id: 'first' }], nextCursor: 'not-a-cursor' } }];
-  await page.getByRole('button', { name: 'Скачать мои комментарии' }).click();
-  await page.getByText('Не удалось подготовить полную выгрузку. Ничего не скачано.').waitFor();
-  assert.equal(downloads, 0, 'a malformed cursor must not create a partial download');
-  exportPages = [{ cursor: null, status: 503, value: { error: 'comments_unavailable' } }];
-  await page.getByRole('button', { name: 'Скачать мои комментарии' }).click();
-  await page.getByText('Не удалось подготовить полную выгрузку. Ничего не скачано.').waitFor();
-  assert.equal(downloads, 0, 'a 503 must not create a partial download');
-
-  // 7. Community erasure sends the exact authenticated request, clears only community state on success, and leaves data intact on failure.
-  comments = [row({ body: 'Мой публичный след' })]; meVersion = 12; eraseStatus = 200;
-  await loadComments(); await page.getByLabel('Комментарий').fill('Черновик перед удалением');
-  await openCommunityData();
-  page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Удалить мои комментарии и публичный профиль' }).click();
-  await page.getByText('Комментарии и публичный профиль удалены. Кабинет сохранён.').waitFor();
-  assert.deepEqual(eraseCalls.at(-1).body, { profileId: id, confirm: 'erase-community' });
-  assert.equal(eraseCalls.at(-1).headers['x-reader-csrf'], 'csrf-12');
-  assert.equal(await page.getByLabel('Комментарий').inputValue(), '');
-  assert.equal(await page.locator('[data-comments-list]').textContent(), '');
-  assert.equal(await page.locator('[data-comments-form]').isVisible(), true, 'the private account composer remains available');
-  comments = [row({ body: 'Данные не потеряны' })]; eraseStatus = 503;
-  await loadComments(); await page.getByLabel('Комментарий').fill('Сохранить при ошибке');
-  await openCommunityData();
-  page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Удалить мои комментарии и публичный профиль' }).click();
-  await page.getByText('Не удалось удалить данные. Повторите попытку позже.').waitFor();
-  assert.equal(await page.getByLabel('Комментарий').inputValue(), 'Сохранить при ошибке');
-  assert.equal(await page.getByText('Данные не потеряны').count(), 1);
-
-  // 8. A real 201 whose JSON body never finishes reaches the request deadline, locks retry state, then retries the exact operation once.
+	// 6. A real 201 whose JSON body never finishes reaches the request deadline, locks retry state, then retries the exact operation once.
   postPartial = true; postStatus = 201;
   await loadComments(); await submit('Неполный ответ сервера');
   await page.getByText('Результат отправки неизвестен. Повторите тот же комментарий — повторная попытка не создаст дубликат.').waitFor({ timeout: 9000 });
   assert.equal(held.post.length, 1, 'the 201 response must have sent headers but hold its JSON body');
   assert.equal(await page.getByLabel('Комментарий').isDisabled(), true);
   const unknown = writes.at(-1);
-  assert.equal(postHeaders.at(-1)['x-reader-csrf'], 'csrf-12');
+	assert.equal(postHeaders.at(-1)['x-reader-csrf'], `csrf-${meVersion}`);
   postPartial = false;
   await page.getByRole('button', { name: 'Повторить отправку' }).click();
   await page.getByText('Комментарий опубликован.').waitFor();

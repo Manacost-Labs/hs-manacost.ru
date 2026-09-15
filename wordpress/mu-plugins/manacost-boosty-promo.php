@@ -159,10 +159,10 @@ final class Manacost_Boosty_Promo {
 	 * @return string
 	 */
 	private static function render_banner(): string {
-		$banner_url = plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo/banner.webp';
+		$banner_url = plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo/banner.webp?ver=5247cc0c54b8';
 
 		return sprintf(
-			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="1172" height="1342" alt="" decoding="async"></a>',
+			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="1173" height="1341" alt="" decoding="async"></a>',
 			esc_url( self::BOOSTY_URL ),
 			esc_attr( 'Поддержать Manacost на Boosty' ),
 			esc_url( $banner_url )

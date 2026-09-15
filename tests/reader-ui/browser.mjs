@@ -86,7 +86,9 @@ try {
   let avatarDelay = 0;
   const profileWrites = [];
   const avatarWrites = [];
-  const publicationWrites = [];
+	const publicationWrites = [];
+	const communityErasures = [];
+	const communityExportCalls = [];
   const favoriteCalls = [];
   let favorites = [{ id: '523e4567-e89b-42d3-a456-426614174000', postId: 17, title: 'Гайд по старту игры на Полях сражений', path: '/guides/battlegrounds/', createdAt: 1700000000000 }];
   let holdFavoriteRead = false;
@@ -112,10 +114,18 @@ try {
     if (avatarDelay) await new Promise(resolve => setTimeout(resolve, avatarDelay));
     return route.fulfill({ status: avatarWriteStatus, json: avatarWriteStatus === 200 ? { profile: avatarWriteResponse } : { code: 'invalid_avatar' } });
   });
-  await page.route('**/reader-api/v1/community/profile', route => {
-    publicationWrites.push({ headers: route.request().headers(), body: route.request().postDataJSON() });
-    return route.fulfill({ status: publicationStatus, json: publicationStatus === 200 ? { profile: profileWriteResponse } : { error: 'public_profile_not_found' } });
-  });
+	await page.route('**/reader-api/v1/community/export*', route => {
+		communityExportCalls.push(new URL(route.request().url()).searchParams.get('cursor'));
+		return route.fulfill({ status: 200, json: { items: [{ id: 'synthetic-comment' }], reactions: [], nextCursor: null } });
+	});
+	await page.route('**/reader-api/v1/community/profile', route => {
+		if (route.request().method() === 'DELETE') {
+			communityErasures.push({ headers: route.request().headers(), body: route.request().postDataJSON() });
+			return route.fulfill({ status: 200, json: { erased: true } });
+		}
+		publicationWrites.push({ headers: route.request().headers(), body: route.request().postDataJSON() });
+		return route.fulfill({ status: publicationStatus, json: publicationStatus === 200 ? { profile: profileWriteResponse } : { error: 'public_profile_not_found' } });
+	});
   await page.route('**/reader-api/v1/favorites**', async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -230,7 +240,7 @@ try {
     }),
   });
   communityIdentity = { canModerateComments: true, paidSubscriber: true, commentingBlocked: false };
-  for (const width of [1440, 1024, 768, 560, 390, 320]) {
+	for (const width of [1440, 1024, 768, 560, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await ready();
     await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
@@ -256,7 +266,22 @@ try {
       `class and edit action need a deliberate gap at ${width}px: ${JSON.stringify(geometry)}`);
     assert.ok(favorite.height <= 48, 'favorite class must stay compact instead of becoming a large control tile');
     await capture(`authenticated-${width}`);
-  }
+	}
+
+	await page.setViewportSize({ width: 1024, height: 900 });
+	await ready();
+	await page.locator('[data-reader-community-data]').waitFor({ state: 'visible' });
+	let communityDownload = null;
+	page.once('download', download => { communityDownload = download; });
+	await page.getByRole('button', { name: 'Скачать мои комментарии' }).click();
+	await page.getByText('Выгрузка подготовлена.').waitFor();
+	assert.ok(communityDownload, 'account privacy section creates the complete download');
+	assert.deepEqual(communityExportCalls.at(-1), null);
+	page.once('dialog', dialog => dialog.accept());
+	await page.getByRole('button', { name: 'Удалить комментарии и публичный профиль' }).click();
+	await page.getByText('Комментарии и публичный профиль удалены. Кабинет сохранён.').waitFor();
+	assert.deepEqual(communityErasures.at(-1).body, { profileId, confirm: 'erase-community' });
+	assert.equal(communityErasures.at(-1).headers['x-reader-csrf'], 'synthetic-only');
 
   const favoriteReadsBefore = favoriteCalls.filter(call => call.method === 'GET').length;
   holdFavoriteRead = true;
@@ -294,7 +319,9 @@ try {
   assert.match(await page.locator('[data-reader-social-help]').textContent(), /не публикует ссылки/);
   assert.equal(publicationWrites.length, 0);
   // Reproduce an older cached shell receiving the new script during deployment.
-  shell = renderShell(true).replace(/<section class="mc-reader__publication"[\s\S]*?<\/section>/u, '');
+	shell = renderShell(true)
+		.replace(/<section class="mc-reader__publication"[\s\S]*?<\/section>/u, '')
+		.replace(/<section class="mc-reader__community-data"[\s\S]*?<\/section>/u, '');
   await ready();
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
   assert.equal(await page.locator('.mc-reader__publication').count(), 0);
@@ -653,11 +680,11 @@ try {
   await page.setViewportSize({ width: 1024, height: 900 });
   await ready();
   let sections = await assertFits();
-  assert.equal(sections.sections.length, 2, 'profile and saved articles remain visible in one reading flow');
+	assert.equal(sections.sections.length, 3, 'profile, saved articles, and privacy tools remain visible in one reading flow');
   await page.setViewportSize({ width: 560, height: 900 });
   await ready();
   sections = await assertFits();
-  assert.equal(sections.sections.length, 2, 'narrow layouts keep profile and saved articles as stacked sections');
+	assert.equal(sections.sections.length, 3, 'narrow layouts keep profile, saved articles, and privacy tools as stacked sections');
   const identitySize = () => page.locator('[data-reader-identity]').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
   const originalIdentitySize = await identitySize();
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });

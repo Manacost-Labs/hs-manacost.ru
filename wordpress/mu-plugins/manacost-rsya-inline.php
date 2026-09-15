@@ -153,9 +153,10 @@ final class Manacost_Rsya_Inline_Banner {
 				margin: 28px auto;
 				padding: 10px;
 				border: 1px solid #dce6ea;
-				border-radius: 12px;
-				background: #f8fbfc;
-				box-shadow: 0 6px 18px rgba(18, 51, 67, .06);
+					border-radius: 16px;
+					background: #fff;
+					box-shadow: 0 14px 34px rgba(15, 40, 70, .14);
+					overflow: hidden;
 			}
 
 			.manacost-rsya-inline__label {
@@ -168,9 +169,11 @@ final class Manacost_Rsya_Inline_Banner {
 				text-transform: uppercase;
 			}
 
-			.manacost-rsya-inline__canvas {
-				width: 100%;
-				height: 90px;
+				.manacost-rsya-inline__canvas {
+					width: 100%;
+					height: 90px;
+					border-radius: 12px;
+					overflow: hidden;
 			}
 
 			.manacost-rsya-inline--feed .manacost-rsya-inline__canvas {

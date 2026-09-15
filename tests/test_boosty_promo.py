@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import struct
 import shutil
 import subprocess
 import unittest
@@ -19,6 +20,10 @@ class BoostyPromoTest(unittest.TestCase):
     def test_banner_asset_is_versioned_webp(self) -> None:
         self.assertTrue(BANNER.is_file())
         self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
+        data = BANNER.read_bytes()
+        self.assertEqual(b"VP8 ", data[12:16])
+        width, height = struct.unpack("<HH", data[26:30])
+        self.assertEqual((1173, 1341), (width & 0x3FFF, height & 0x3FFF))
 
     def test_homepage_geometry_keeps_the_promo_and_navigation_in_one_flow(self) -> None:
         promo_css = PROMO_CSS.read_text(encoding="utf-8")
@@ -27,13 +32,14 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn(".manacost-boosty-promo + .td_block_wrap", promo_css)
         self.assertIn("margin-top: 48px", promo_css)
         self.assertIn("margin-top: 28px", promo_css)
-        self.assertIn("font-size: 14px", navigation_css)
-        self.assertIn("padding-right: 6px", navigation_css)
-        self.assertIn("padding-left: 6px", navigation_css)
-        self.assertIn("width: 1116px", navigation_css)
+        self.assertIn("font-size: 13px", navigation_css)
+        self.assertIn("padding-right: 9px", navigation_css)
+        self.assertIn("padding-left: 9px", navigation_css)
+        self.assertIn("width: calc(100% - 144px)", navigation_css)
+        self.assertIn("column-gap: 6px", navigation_css)
         self.assertIn("li.mc-reader-entry > a", navigation_css)
         self.assertIn("li.menu-item-has-children > a", navigation_css)
-        self.assertIn("right: 6px", navigation_css)
+        self.assertIn("right: 8px", navigation_css)
         self.assertIn("border-radius: 8px", navigation_css)
         self.assertIn(":focus-visible", navigation_css)
         self.assertIn("prefers-reduced-motion", navigation_css)
@@ -158,7 +164,8 @@ class BoostyPromoTest(unittest.TestCase):
 
         self.assertIn('class="manacost-boosty-promo"', result["shortcode"])
         self.assertIn('href="https://boosty.to/kolodahearthstone"', result["shortcode"])
-        self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/banner.webp"', result["shortcode"])
+        self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/banner.webp?ver=5247cc0c54b8"', result["shortcode"])
+        self.assertIn('width="1173" height="1341"', result["shortcode"])
         self.assertIn('aria-label="Поддержать Manacost на Boosty"', result["shortcode"])
         self.assertFalse(result["other_shortcode"])
         self.assertIn("manacost-site-navigation", result["styles"])

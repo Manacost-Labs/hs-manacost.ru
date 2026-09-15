@@ -21,7 +21,7 @@ const json = (response, status, value) => {
   response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
   response.end(JSON.stringify(value));
 };
-const php = "define('ABSPATH','/fixture/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$part){return '/article/';} require $argv[1]; echo hs_reader_comments_shell();";
+const php = "define('ABSPATH','/fixture/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$part){return '/article/';} function hs_manacost_reader_default_avatar_url(){return '/default-avatar.webp';} require $argv[1]; echo hs_reader_comments_shell();";
 const shell = execFileSync('php', ['-r', php, `${plugin}/comments.php`], { encoding: 'utf8' });
 const assets = new Map([
   ['/bootstrap.js', ['text/javascript', readFileSync(`${plugin}/bootstrap.js`)]],
@@ -177,9 +177,18 @@ try {
   assert.equal(await reaction('like').getAttribute('aria-pressed'), 'false', 'retry restores the authoritative reaction state');
 
   reset(); await load();
-  holdReaction = true; await reaction('like').click();
+	holdReaction = true;
+	const optimisticMs = await page.evaluate(async () => {
+		const started = performance.now();
+		document.querySelector('[data-reaction="like"]').click();
+		await new Promise(requestAnimationFrame);
+		return performance.now() - started;
+	});
+	assert.ok(optimisticMs < 100, `reaction feedback must appear within 100ms, got ${optimisticMs}ms`);
   await page.waitForFunction(() => document.querySelector('[data-reaction="like"]').disabled);
   assert.equal(await reaction('like').getAttribute('aria-pressed'), 'true', 'a reaction changes locally before the server response returns');
+	assert.equal(await reaction('like').evaluate(element => getComputedStyle(element).opacity), '1', 'pending optimistic state remains fully visible');
+	assert.equal(await page.locator('.mc-comments__reactions').getAttribute('aria-busy'), 'true', 'pending reaction is exposed without dimming the choice');
   await reaction('like').dispatchEvent('click');
   assert.equal(reactionWrites.length, 1, 'pending reaction cannot duplicate request');
   holdReaction = false; const pendingLike = heldReactions.shift(); json(pendingLike.response, 200, reactionReply(pendingLike.write.reaction));
@@ -226,9 +235,7 @@ try {
   await page.getByRole('button', { name: 'Ответить' }).click();
   assert.equal(await page.getByRole('button', { name: 'Отменить ответ' }).isHidden(), true, 'blocked user cannot reply');
   assert.equal(await draft().inputValue(), 'Черновик заблокированного читателя');
-  await page.locator('[data-comments-data] summary').click();
-  assert.equal(await page.getByRole('button', { name: 'Скачать мои комментарии' }).isDisabled(), false, 'export remains available');
-  assert.equal(await page.getByRole('button', { name: 'Удалить мои комментарии и публичный профиль' }).isDisabled(), false, 'erasure remains available');
+	assert.equal(await page.locator('[data-comments-data]').count(), 0, 'privacy tools do not clutter every article composer');
   assert.equal(commentPosts, 0);
 
   reset({ moderator: true }); holdPermission = true;

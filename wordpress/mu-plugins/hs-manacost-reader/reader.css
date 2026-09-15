@@ -62,6 +62,11 @@
 .mc-reader .mc-reader__favorites-status { min-height: 24px; margin: 18px 0 0; color: var(--mc-reader-muted); font-size: 14px; line-height: 1.5; }
 .mc-reader .mc-reader__favorites-status:empty { display: none; }
 .mc-reader .mc-reader__favorites-list { margin: 0; padding: 0; list-style: none; }
+.mc-reader .mc-reader__community-data { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--mc-reader-line); }
+.mc-reader .mc-reader__community-data h2 { margin: 4px 0 0; color: var(--mc-reader-ink); font: 700 clamp(1.35rem, 3vw, 1.7rem)/1.2 var(--mc-ui-body); }
+.mc-reader .mc-reader__community-data .mc-ui-help { max-width: 760px; margin: 8px 0 0; }
+.mc-reader .mc-reader__community-data-actions { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 18px; }
+.mc-reader .mc-reader__community-data-status { min-height: 22px; margin: 12px 0 0; color: var(--mc-reader-muted); font-size: 14px; line-height: 1.5; }
 .mc-reader .mc-reader__favorite { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 16px 0; border-bottom: 1px solid var(--mc-reader-line); }
 .mc-reader .mc-reader__favorite-link { min-width: 0; color: var(--mc-reader-ink); font: 650 16px/1.45 var(--mc-ui-body); text-decoration: none; }
 .mc-reader .mc-reader__favorite-link:hover { color: var(--mc-reader-ember); text-decoration: underline; text-underline-offset: 3px; }

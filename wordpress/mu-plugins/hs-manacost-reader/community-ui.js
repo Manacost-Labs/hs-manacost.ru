@@ -84,6 +84,7 @@
       if (!validReactions(item.reactions)) return null;
       const group = element('div', 'mc-comments__reactions'); group.setAttribute('role', 'group');
       group.setAttribute('aria-label', 'Реакции на комментарий');
+      group.setAttribute('aria-busy', String(reacting.has(item.id)));
       group.append(...kinds.map(args => reactionButton(item, ...args)));
       return group;
     }

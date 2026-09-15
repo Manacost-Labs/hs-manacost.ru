@@ -164,9 +164,9 @@ echo json_encode($GLOBALS['assets']);'''
                 'article-favorite.css', 'article-favorite.js',
             )
         )
-        # The neutral fallback avatar adds small, dependency-free client handling
-        # on each Reader surface; keep the regression guard below 153 KiB.
-        self.assertLessEqual(sum(path.stat().st_size for path in assets), 153_000)
+        # Privacy controls now live only in the account bundle instead of every
+        # article; keep the aggregate source guard below 156 KiB.
+        self.assertLessEqual(sum(path.stat().st_size for path in assets), 156_000)
         self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 35_700)
         self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
 
@@ -211,6 +211,17 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertLess(self.php.index('data-reader-profile-overview'), self.php.index('data-reader-favorites'))
         for obsolete_tab_markup in ('data-reader-tabs', 'data-reader-tab-profile', 'data-reader-tab-favorites', 'role="tablist"', 'role="tabpanel"'):
             self.assertNotIn(obsolete_tab_markup, self.php)
+
+    def test_comment_data_controls_live_in_account_not_article_composer(self):
+        comments_php = (PHP.parent / 'comments.php').read_text()
+        self.assertNotIn('data-comments-data', comments_php)
+        self.assertNotIn('Мои данные в комментариях', comments_php)
+        self.assertIn('data-reader-community-data', self.php)
+        self.assertIn('data-reader-comments-export', self.php)
+        self.assertIn('data-reader-comments-erase', self.php)
+        self.assertIn('/reader-api/v1/community/export', self.js)
+        self.assertIn("confirm: 'erase-community'", self.js)
+
     def test_auth_contract_and_no_private_html_injection(self):
         for value in ("credentials: 'same-origin'", "cache: 'no-store'", 'response.status === 200', 'response.status === 401', 'response.status === 503', 'response.status !== 204', 'X-Reader-CSRF', 'textContent'):
             self.assertIn(value, self.js)

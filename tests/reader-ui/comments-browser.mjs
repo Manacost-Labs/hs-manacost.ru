@@ -336,14 +336,7 @@ try {
     'confirmed deletion removes a reconciled comment even when it is beyond the first page');
   assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий A' }).count(), 1,
     'deleting one reconciled comment keeps the other publication');
-  await page.locator('[data-comments-data] summary').click();
-  page.once('dialog', dialog => dialog.accept());
-  await Promise.all([
-    page.waitForResponse(response => response.request().method() === 'DELETE' && response.url().endsWith('/community/profile')),
-    page.locator('[data-comments-erase]').click(),
-  ]);
-  assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий A' }).count(), 0,
-    'community erasure clears retained own comments outside the first page');
+	assert.equal(await page.locator('[data-comments-data]').count(), 0, 'account data controls are not repeated below the article composer');
   paginated = false;
   comments = [originalRow];
   await page.reload();
