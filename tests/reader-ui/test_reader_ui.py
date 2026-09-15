@@ -141,6 +141,20 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn("item.status !== 'deleted'", comments)
         self.assertIn('rows.filter(visibleRow).map(commentNode)', comments)
 
+    def test_comment_composer_uses_a_compact_named_image_attachment_action(self):
+        shell = (PHP.parent / 'comments.php').read_text()
+        comments_css = (PHP.parent / 'comments.css').read_text()
+
+        self.assertNotIn("Публикуется сразу", shell)
+        self.assertIn('data-comments-attachment-picker aria-label="', shell)
+        self.assertIn('title="', shell)
+        self.assertIn('mc-comments__attachment-picker-label', shell)
+        self.assertIn('M5 5h14v14H5z', shell)
+        self.assertIn('.mc-comments .mc-comments__attachment-picker{width:44px;', comments_css)
+        self.assertIn('.mc-comments .mc-comments__attachment-picker-label{', comments_css)
+        self.assertNotIn('.mc-comments .mc-comments__attachment-picker{width:100%;}', comments_css)
+        self.assertIn('.mc-comments .mc-comments__field-meta{grid-area:meta;display:flex;justify-content:flex-end;', comments_css)
+
     def test_reader_frontend_stays_inside_its_dependency_free_size_budget(self):
         assets = tuple(
             PHP.parent / name
