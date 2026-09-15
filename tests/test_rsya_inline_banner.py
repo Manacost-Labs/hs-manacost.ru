@@ -16,7 +16,6 @@ PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 NODE_BINARY = shutil.which("node") or "/usr/bin/node"
 RECENT_SLUG = "kvest-zhrecz-odna-iz-luchshih-kolod-v-mete-ametistovoj-kreposti"
 FIRST_ENABLED_POST_GMT = "2026-08-31 09:00:39"
-LEGACY_AUTOMATIC_UNTIL_GMT = "2026-09-14 20:00:00"
 INTRO_BLOCK_ID = "R-A-16113237-6"
 FOOTER_BLOCK_ID = "R-A-16113237-5"
 FLOOR_BLOCK_ID = "R-A-16113237-7"
@@ -35,6 +34,9 @@ class RsyaInlineBannerTest(unittest.TestCase):
         logged_in: bool = False,
         admin: bool = False,
         singular: bool = True,
+        post_type: str = "post",
+        not_found: bool = False,
+        account_request: bool = False,
         content_in_loop: bool = True,
         content_main_query: bool = True,
         rsya_enabled: bool = True,
@@ -85,7 +87,11 @@ class RsyaInlineBannerTest(unittest.TestCase):
         }}
         function add_shortcode($tag, $callback) {{ $GLOBALS['shortcodes'][$tag] = $callback; }}
         function is_admin() {{ return {json.dumps(admin)}; }}
-        function is_singular($type = null) {{ return {json.dumps(singular)}; }}
+        function is_singular($type = null) {{
+            if (!{json.dumps(singular)}) {{ return false; }}
+            return null === $type || {json.dumps(post_type)} === $type;
+        }}
+        function is_404() {{ return {json.dumps(not_found)}; }}
         function in_the_loop() {{ return 'content' === $GLOBALS['phase'] ? {json.dumps(content_in_loop)} : false; }}
         function is_main_query() {{ return 'content' === $GLOBALS['phase'] ? {json.dumps(content_main_query)} : true; }}
         function is_feed() {{ return false; }}
@@ -93,6 +99,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         function wp_doing_ajax() {{ return false; }}
         function is_user_logged_in() {{ return {json.dumps(logged_in)}; }}
         function hs_reader_public_profile_request() {{ return $GLOBALS['public_profile']; }}
+        function hs_manacost_reader_is_account_request() {{ return {json.dumps(account_request)}; }}
         function wp_get_sidebars_widgets() {{ return $GLOBALS['sidebar_widgets']; }}
         function get_queried_object() {{ return new WP_Post({json.dumps(slug)}, {json.dumps(published_at)}, {json.dumps(status)}, {json.dumps(content, ensure_ascii=False)}); }}
         function has_shortcode($content, $tag) {{ return false !== strpos($content, '[' . $tag); }}
@@ -221,15 +228,21 @@ class RsyaInlineBannerTest(unittest.TestCase):
             content.index(f'id="yandex_rtb_{FOOTER_BLOCK_ID}-after-telegram"'),
         )
 
-    def test_legacy_posts_keep_automatic_placements_but_new_posts_are_manual(self) -> None:
-        legacy = self.render_result(slug="tenth-latest-post", published_at=FIRST_ENABLED_POST_GMT)
-        self.assertIn("yandex_rtb", legacy["content"])
-        self.assertIn("manacost-rsya-gate", legacy["scripts"])
+    def test_all_published_articles_get_automatic_placements(self) -> None:
+        for published_at in ("2020-01-01 00:00:00", FIRST_ENABLED_POST_GMT, "2026-10-01 00:00:00"):
+            with self.subTest(published_at=published_at):
+                result = self.render_result(published_at=published_at)
+                self.assertEqual(result["content"].count('data-manacost-rsya-slot='), 2)
+                self.assertIn("manacost-rsya-gate", result["scripts"])
+                self.assertIn(FLOOR_BLOCK_ID, result["footer"])
 
-        future = self.render_result(slug="future-post", published_at="2026-10-01 00:00:00")
-        self.assertNotIn("yandex_rtb", future["content"])
-        self.assertEqual(future["scripts"], [])
-        self.assertEqual(future["footer"], "")
+    def test_public_non_article_pages_get_the_loader_and_floor_ad(self) -> None:
+        for kwargs in ({"singular": False}, {"post_type": "page"}):
+            with self.subTest(**kwargs):
+                result = self.render_result(**kwargs)
+                self.assertIn("manacost-rsya-gate", result["scripts"])
+                self.assertIn(FLOOR_BLOCK_ID, result["footer"])
+                self.assertNotIn("data-manacost-rsya-slot=", result["content"])
 
     def test_editor_shortcodes_render_only_supported_compact_manual_formats(self) -> None:
         result = self.render_result(published_at="2026-10-01 00:00:00")
@@ -242,15 +255,15 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertIn('manacost-rsya-inline--banner', result["manual_feed"])
         self.assertIn('class="manacost-rsya-inline__label">Реклама</p>', result["manual_banner"])
 
-    def test_explicit_shortcode_loads_the_gate_for_a_new_article(self) -> None:
+    def test_explicit_shortcode_coexists_with_automatic_article_placements(self) -> None:
         result = self.render_result(
             published_at="2026-10-01 00:00:00",
             content='<p>Текст.</p>[manacost_rsya format="banner"]',
         )
 
         self.assertIn("manacost-rsya-gate", result["scripts"])
-        self.assertNotIn("yandex_rtb", result["content"])
-        self.assertEqual(result["footer"], "")
+        self.assertEqual(result["content"].count('data-manacost-rsya-slot='), 2)
+        self.assertIn(FLOOR_BLOCK_ID, result["footer"])
 
     def test_public_profile_has_one_viewer_gated_banner_but_private_pages_do_not(self) -> None:
         public = self.render_result(
@@ -336,7 +349,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
                 self.assertEqual(result["requested"], expected_loader)
                 self.assertEqual(result["hidden"], ad_free)
 
-    def test_mirror_never_loads_yandex_without_a_same_host_reader_cookie(self) -> None:
+    def test_mirror_loads_yandex_without_calling_the_ru_subscriber_gate(self) -> None:
         gate = self.render_result()["inline_scripts"][0][1]
         node_script = f"""
         const units = [{{ hidden: false }}];
@@ -345,9 +358,9 @@ class RsyaInlineBannerTest(unittest.TestCase):
         global.document = {{
             querySelectorAll: () => units,
             createElement: () => ({{}}),
-            head: {{ appendChild: () => {{ requested += 1; }} }},
+            head: {{ appendChild: loader => {{ requested += 1; loader.onload(); }} }},
         }};
-        global.fetch = async () => {{ throw new Error('mirror must not check or load ads'); }};
+        global.fetch = async () => {{ throw new Error('mirror must not call the RU subscriber gate'); }};
         (async () => {{
             {gate}
             const allowed = await window.manacostRsyaReady;
@@ -356,7 +369,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         """
         completed = subprocess.run([NODE_BINARY, "-e", node_script], check=False, capture_output=True, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(json.loads(completed.stdout), {"allowed": False, "requested": 0, "hidden": True})
+        self.assertEqual(json.loads(completed.stdout), {"allowed": True, "requested": 1, "hidden": False})
 
     def test_short_article_keeps_the_intro_placement_separate_from_the_footer(self) -> None:
         result = self.render_result(
@@ -413,12 +426,13 @@ class RsyaInlineBannerTest(unittest.TestCase):
         result = self.render_result(content=f'<p>Example: yandex_rtb_{INTRO_BLOCK_ID}</p>')
         self.assertEqual(result["content"].count('data-manacost-rsya-slot='), 2)
 
-    def test_banner_does_not_run_before_the_coverage_cutoff_or_admin(self) -> None:
+    def test_ads_do_not_run_on_private_or_non_public_requests(self) -> None:
         for kwargs in (
-            {"slug": RECENT_SLUG, "published_at": "2026-08-31 09:00:38"},
             {"status": "private"},
             {"admin": True},
-            {"rsya_enabled": False},
+            {"not_found": True},
+            {"post_type": "page", "account_request": True},
+            {"rsya_enabled": False, "singular": False},
         ):
             with self.subTest(**kwargs):
                 result = self.render_result(**kwargs)

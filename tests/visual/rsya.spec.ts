@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const banner = 'R-A-16113237-12';
+const introBanner = 'R-A-16113237-6';
+const footerBanner = 'R-A-16113237-5';
+const manualBanner = 'R-A-16113237-12';
+const floorAd = 'R-A-16113237-7';
 const manualArticlePath = '/rsya-manual-page/';
 
 // Replace only the paid SDK at the HTTP boundary. No ad impressions or
@@ -67,13 +70,13 @@ async function verifyPlacements(page: Page) {
     expect(geometry.left).toBeGreaterThanOrEqual(0);
     expect(geometry.right).toBeLessThanOrEqual(geometry.viewport + 1);
   }
-  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveCount(0);
+  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveAttribute('data-manacost-rsya-state', 'rendered');
   const calls = await page.evaluate(() => (window as any).rsyaTestCalls);
-  expect(calls.map((call: any) => call.blockId)).toEqual([banner]);
+  expect(calls.map((call: any) => call.blockId)).toEqual([manualBanner, floorAd]);
   await expect(page.locator('script[src*="yandex.ru/ads/system/context.js"]')).toHaveCount(1);
 }
 
-test('manual article placement survives reload, resize and slow SDK without duplicate calls', async ({ page }) => {
+test('manual page placement survives reload, resize and slow SDK without duplicate calls', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   const release = await interceptSdk(page, '', true);
@@ -99,15 +102,16 @@ test('manual article placement survives reload, resize and slow SDK without dupl
   expect(errors).toEqual([]);
 });
 
-test(`no-fill at ${banner} hides only the manual placement`, async ({ page }) => {
-  await interceptSdk(page, banner);
+test(`no-fill at ${manualBanner} hides only the manual placement`, async ({ page }) => {
+  await interceptSdk(page, manualBanner);
   await page.goto(manualArticlePath, { waitUntil: 'domcontentloaded' });
-  const emptySlot = page.locator(`[data-manacost-rsya-unit]:has([id^="yandex_rtb_${banner}"])`);
+  const emptySlot = page.locator(`[data-manacost-rsya-unit]:has([id^="yandex_rtb_${manualBanner}"])`);
   await expect(emptySlot).toHaveAttribute('data-manacost-rsya-state', 'no-fill');
   await expect(emptySlot).toBeHidden();
+  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveAttribute('data-manacost-rsya-state', 'rendered');
 });
 
-test('authenticated non-subscriber gets the manual placement without a Floor Ad', async ({ page }) => {
+test('authenticated non-subscriber gets the manual and Floor placements', async ({ page }) => {
   await interceptSdk(page);
   const username = process.env.WP_TEST_ADMIN_USER;
   const password = process.env.WP_TEST_ADMIN_PASSWORD;
@@ -121,8 +125,19 @@ test('authenticated non-subscriber gets the manual placement without a Floor Ad'
   await verifyPlacements(page);
 });
 
-test('new article without an editor block has no automatic placement', async ({ page }) => {
+test('article without an editor block gets automatic inline and Floor placements', async ({ page }) => {
+  await interceptSdk(page);
   await page.goto('/integration-article/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('[data-manacost-rsya-unit]')).toHaveCount(0);
-  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveCount(0);
+  await expect(page.locator('[data-manacost-rsya-unit]')).toHaveCount(2);
+  await expect(page.locator('[data-manacost-rsya-unit][data-manacost-rsya-state="rendered"]')).toHaveCount(2);
+  await expect(page.locator('#manacost-rsya-floor-ad')).toHaveAttribute('data-manacost-rsya-state', 'rendered');
+});
+
+test('homepage and search load only the sitewide Floor placement', async ({ page }) => {
+  await interceptSdk(page);
+  for (const path of ['/', '/?s=integration']) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('[data-manacost-rsya-unit]')).toHaveCount(0);
+    await expect(page.locator('#manacost-rsya-floor-ad')).toHaveAttribute('data-manacost-rsya-state', 'rendered');
+  }
 });

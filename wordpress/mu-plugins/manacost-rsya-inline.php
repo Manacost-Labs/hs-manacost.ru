@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Manacost RСЯ Inline Banner
- * Description: Renders privacy-gated Yandex RTB placements.
+ * Description: Renders Yandex RTB placements with the Reader subscriber gate where available.
  *
  * @package Manacost
  */
@@ -9,17 +9,9 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Renders the Yandex RTB loader and inline article unit.
+ * Renders the Yandex RTB loader and public-site placements.
  */
 final class Manacost_Rsya_Inline_Banner {
-	/**
-	 * Publication time of the tenth latest post when the placements were enabled.
-	 *
-	 * The inclusive cutoff keeps those ten articles covered and automatically
-	 * includes every normally published article that followed them.
-	 */
-	private const ENABLED_FROM_GMT           = '2026-08-31 09:00:39';
-	private const LEGACY_AUTOMATIC_UNTIL_GMT = '2026-09-14 20:00:00';
 	private const INTRO_BLOCK_ID             = 'R-A-16113237-6';
 	private const FOOTER_BLOCK_ID            = 'R-A-16113237-5';
 	private const FLOOR_BLOCK_ID             = 'R-A-16113237-7';
@@ -71,12 +63,12 @@ final class Manacost_Rsya_Inline_Banner {
 	}
 
 	/**
-	 * Renders the desktop-only fixed Floor Ad after article content.
+	 * Renders the desktop-only fixed Floor Ad on public frontend pages.
 	 *
 	 * @return void
 	 */
 	public static function render_floor_ad(): void {
-		if ( ! self::should_render_legacy_article() ) {
+		if ( ! self::should_render_public_request() ) {
 			return;
 		}
 		?>
@@ -130,7 +122,7 @@ final class Manacost_Rsya_Inline_Banner {
 		wp_enqueue_script( self::GATE_HANDLE );
 		wp_add_inline_script(
 			self::GATE_HANDLE,
-			'(function () { var hide = function () { document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); }; var host = window.location ? window.location.hostname : ""; window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; if ("hs-manacost.com" === host || "www.hs-manacost.com" === host) { hide(); window.manacostRsyaReady = Promise.resolve(false); return; } window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; hide(); } }, true); window.manacostRsyaReady = (async function () { try { var response = await fetch("/reader-api/v1/ad-status", { credentials: "same-origin", cache: "no-store", headers: { "accept": "application/json" } }); var status = await response.json(); if (!response.ok || !status || status.adFree !== false) { hide(); return false; } } catch (error) { hide(); return false; } return await new Promise(function (resolve) { var loader = document.createElement("script"); loader.id = "manacost-rsya-loader-js"; loader.async = true; loader.src = "https://yandex.ru/ads/system/context.js"; loader.onload = function () { resolve(true); }; loader.onerror = function () { window.manacostRsyaLoaderFailed = true; hide(); resolve(false); }; document.head.appendChild(loader); }); }()); }());',
+			'(function () { var hide = function () { document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); }; var host = window.location ? window.location.hostname : ""; var mirror = "hs-manacost.com" === host || "www.hs-manacost.com" === host; window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; hide(); } }, true); var load = function () { return new Promise(function (resolve) { var loader = document.createElement("script"); loader.id = "manacost-rsya-loader-js"; loader.async = true; loader.src = "https://yandex.ru/ads/system/context.js"; loader.onload = function () { resolve(true); }; loader.onerror = function () { window.manacostRsyaLoaderFailed = true; hide(); resolve(false); }; document.head.appendChild(loader); }); }; if (mirror) { window.manacostRsyaReady = load(); return; } window.manacostRsyaReady = (async function () { try { var response = await fetch("/reader-api/v1/ad-status", { credentials: "same-origin", cache: "no-store", headers: { "accept": "application/json" } }); var status = await response.json(); if (!response.ok || !status || status.adFree !== false) { hide(); return false; } } catch (error) { hide(); return false; } return await load(); }()); }());',
 			'before'
 		);
 	}
@@ -261,7 +253,7 @@ final class Manacost_Rsya_Inline_Banner {
 	 */
 	public static function insert_banner( string $content ): string {
 		if (
-			! self::should_render_legacy_article()
+			! self::should_render_automatic_article()
 			|| ! in_the_loop()
 			|| ! is_main_query()
 		) {
@@ -396,7 +388,7 @@ final class Manacost_Rsya_Inline_Banner {
 	}
 
 	/**
-	 * Renders an editor-selected placement. New articles never get automatic ads.
+	 * Renders an editor-selected placement.
 	 *
 	 * @param array<string, string> $attributes Shortcode attributes.
 	 * @return string
@@ -476,15 +468,12 @@ final class Manacost_Rsya_Inline_Banner {
 	}
 
 	/**
-	 * Checks whether this request may render any privacy-gated RTB unit.
+	 * Checks whether this request may render any RTB unit.
 	 *
 	 * @return bool
 	 */
 	private static function should_render_gate(): bool {
-		return self::should_render_legacy_article()
-			|| self::should_render_public_profile()
-			|| self::should_render_sidebar_ads()
-			|| self::document_has_shortcode();
+		return self::should_render_public_request();
 	}
 
 	/**
@@ -520,38 +509,47 @@ final class Manacost_Rsya_Inline_Banner {
 	}
 
 	/**
-	 * Keeps automatic legacy placements fixed to content published before the cutoff.
+	 * Limits automatic inline placements to published articles.
 	 *
 	 * @return bool
 	 */
-	private static function should_render_legacy_article(): bool {
+	private static function should_render_automatic_article(): bool {
 		if ( ! self::should_render_public_document() || ! is_singular( 'post' ) ) {
 			return false;
 		}
 
-		$post = get_queried_object();
-
-		return $post instanceof WP_Post
-			&& self::ENABLED_FROM_GMT <= $post->post_date_gmt
-			&& self::LEGACY_AUTOMATIC_UNTIL_GMT > $post->post_date_gmt;
+		return true;
 	}
 
 	/**
-	 * Checks whether the requested document is a public, rendered WordPress post.
+	 * Checks whether the current request is a public frontend surface.
 	 *
 	 * @return bool
 	 */
-	private static function should_render_public_document(): bool {
+	private static function should_render_public_request(): bool {
 		if (
 			( defined( 'MANACOST_RSYA_INLINE_ENABLED' ) && ! MANACOST_RSYA_INLINE_ENABLED )
 			|| is_admin()
-			|| ! is_singular()
 			|| is_feed()
 			|| is_preview()
 			|| wp_doing_ajax()
+			|| is_404()
+			|| ( function_exists( 'is_login' ) && is_login() )
 			|| defined( 'MANACOST_GUIDE_PDF_RENDERING' )
 		) {
 			return false;
+		}
+
+		$is_private_reader_workspace = function_exists( 'hs_manacost_reader_is_account_request' )
+			&& hs_manacost_reader_is_account_request()
+			&& ! ( function_exists( 'hs_reader_public_profile_request' ) && hs_reader_public_profile_request() );
+
+		if ( $is_private_reader_workspace ) {
+			return false;
+		}
+
+		if ( ! is_singular() ) {
+			return true;
 		}
 
 		$post = get_queried_object();
@@ -560,18 +558,18 @@ final class Manacost_Rsya_Inline_Banner {
 	}
 
 	/**
-	 * Detects an explicit editor placement before WordPress processes shortcodes.
+	 * Checks whether the requested document is a public, rendered WordPress post.
 	 *
 	 * @return bool
 	 */
-	private static function document_has_shortcode(): bool {
-		if ( ! self::should_render_public_document() ) {
+	private static function should_render_public_document(): bool {
+		if ( ! self::should_render_public_request() || ! is_singular() ) {
 			return false;
 		}
 
 		$post = get_queried_object();
 
-		return $post instanceof WP_Post && has_shortcode( $post->post_content, self::SHORTCODE );
+		return $post instanceof WP_Post && 'publish' === $post->post_status;
 	}
 
 	/**
