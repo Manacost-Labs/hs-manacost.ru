@@ -119,6 +119,28 @@ class CachePurgeOpcacheTest(unittest.TestCase):
         self.assertTrue(result["remote_posts"][-1].startswith("https://api.cloudflare.com/"))
         self.assertIn("Cloudflare", result["result_names"])
 
+    def test_newspaper_theme_option_changes_invalidate_every_public_cache_layer(self) -> None:
+        result = self.run_scenario("theme_options_changed")
+
+        self.assertIn(["update_option_td_011", 200, 3], result["registered_actions"])
+        self.assertEqual(result["opcache"], 0)
+        self.assertNotIn("PHP OPcache", result["result_names"])
+        self.assert_full_purge_steps_remain(result)
+
+    def test_unchanged_newspaper_theme_options_do_not_purge(self) -> None:
+        result = self.run_scenario("theme_options_unchanged")
+
+        self.assertEqual(result["remote_posts"], [])
+        self.assertEqual(result["result_names"], [])
+        self.assertEqual(result["scheduled_events"], [])
+
+    def test_throttled_theme_option_change_is_deferred_instead_of_dropped(self) -> None:
+        result = self.run_scenario("theme_options_throttled")
+
+        self.assertEqual(result["remote_posts"], [])
+        self.assertEqual(len(result["scheduled_events"]), 1)
+        self.assertEqual(result["scheduled_events"][0][1:], ["manacost_cache_async_purge", ["deferred_change"]])
+
 
 if __name__ == "__main__":
     unittest.main()

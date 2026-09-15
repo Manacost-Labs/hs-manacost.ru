@@ -20,7 +20,10 @@ defined( 'ABSPATH' ) || exit;
  * @return bool Whether the existing full bytecode reset should run.
  */
 function should_reset_opcache( string $source ): bool {
-	return 1 !== preg_match( '/^auto:(?:content_|updated_|status_|after_update_|after_publish_|delete_).+$/D', $source );
+	return 1 !== preg_match(
+		'/^auto:(?:(?:content_|updated_|status_|after_update_|after_publish_|delete_).+|newspaper_theme_options|deferred_change)$/D',
+		$source
+	);
 }
 
 /**
