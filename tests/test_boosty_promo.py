@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/manacost-boosty-promo.php"
 BANNER = ROOT / "wordpress/mu-plugins/manacost-boosty-promo/banner.webp"
+PROMO_CSS = ROOT / "wordpress/mu-plugins/manacost-boosty-promo.css"
+NAVIGATION_CSS = ROOT / "wordpress/mu-plugins/manacost-site-navigation.css"
 PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 
 
@@ -17,6 +19,19 @@ class BoostyPromoTest(unittest.TestCase):
     def test_banner_asset_is_versioned_webp(self) -> None:
         self.assertTrue(BANNER.is_file())
         self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
+
+    def test_homepage_geometry_keeps_the_promo_and_navigation_in_one_flow(self) -> None:
+        promo_css = PROMO_CSS.read_text(encoding="utf-8")
+        navigation_css = NAVIGATION_CSS.read_text(encoding="utf-8")
+
+        self.assertIn(".manacost-boosty-promo + .td_block_wrap", promo_css)
+        self.assertIn("margin-top: 48px", promo_css)
+        self.assertIn("margin-top: 28px", promo_css)
+        self.assertIn("font-size: 14px", navigation_css)
+        self.assertIn("padding-right: 6px", navigation_css)
+        self.assertIn("padding-left: 6px", navigation_css)
+        self.assertIn("width: 1116px", navigation_css)
+        self.assertIn("li.mc-reader-entry > a", navigation_css)
 
     def run_plugin(self, is_front_page: bool) -> dict[str, object]:
         script = f"""
