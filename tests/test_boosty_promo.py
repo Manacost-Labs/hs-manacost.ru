@@ -11,13 +11,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/manacost-boosty-promo.php"
 BANNER = ROOT / "wordpress/mu-plugins/manacost-boosty-promo/banner.webp"
+HOMEPAGE_BANNER = ROOT / "wordpress/mu-plugins/manacost-boosty-promo/homepage-banner.webp"
 PROMO_CSS = ROOT / "wordpress/mu-plugins/manacost-boosty-promo.css"
 NAVIGATION_CSS = ROOT / "wordpress/mu-plugins/manacost-site-navigation.css"
 PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 
 
 class BoostyPromoTest(unittest.TestCase):
-    def test_banner_asset_is_versioned_webp(self) -> None:
+    def test_banner_assets_are_versioned_webp_files(self) -> None:
         self.assertTrue(BANNER.is_file())
         self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
         data = BANNER.read_bytes()
@@ -25,11 +26,22 @@ class BoostyPromoTest(unittest.TestCase):
         width, height = struct.unpack("<HH", data[26:30])
         self.assertEqual((1173, 1341), (width & 0x3FFF, height & 0x3FFF))
 
+        self.assertTrue(HOMEPAGE_BANNER.is_file())
+        self.assertEqual(b"RIFF", HOMEPAGE_BANNER.read_bytes()[:4])
+        homepage_data = HOMEPAGE_BANNER.read_bytes()
+        self.assertEqual(b"VP8 ", homepage_data[12:16])
+        width, height = struct.unpack("<HH", homepage_data[26:30])
+        self.assertEqual((1172, 1342), (width & 0x3FFF, height & 0x3FFF))
+
     def test_homepage_geometry_keeps_the_promo_and_navigation_in_one_flow(self) -> None:
         promo_css = PROMO_CSS.read_text(encoding="utf-8")
         navigation_css = NAVIGATION_CSS.read_text(encoding="utf-8")
 
         self.assertIn(".manacost-boosty-promo + .td_block_wrap", promo_css)
+        self.assertIn(".manacost-banner-rotator", promo_css)
+        self.assertIn("border-radius: 14px", promo_css)
+        self.assertIn("0 22px 60px rgba(15, 40, 70, 0.1)", promo_css)
+        self.assertNotIn("0 14px 34px rgba(15, 40, 70, 0.22)", promo_css)
         self.assertIn("margin-top: 48px", promo_css)
         self.assertIn("margin-top: 28px", promo_css)
         self.assertIn("font-size: 13px", navigation_css)
@@ -185,8 +197,8 @@ class BoostyPromoTest(unittest.TestCase):
 
         self.assertIn('class="manacost-boosty-promo"', result["shortcode"])
         self.assertIn('href="https://boosty.to/kolodahearthstone"', result["shortcode"])
-        self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/banner.webp?ver=5247cc0c54b8"', result["shortcode"])
-        self.assertIn('width="1173" height="1341"', result["shortcode"])
+        self.assertIn('src="/wp-content/mu-plugins/manacost-boosty-promo/homepage-banner.webp?ver=44d5f1f12b09"', result["shortcode"])
+        self.assertIn('width="1172" height="1342"', result["shortcode"])
         self.assertIn('aria-label="Поддержать Manacost на Boosty"', result["shortcode"])
         self.assertFalse(result["other_shortcode"])
         self.assertIn("manacost-site-navigation", result["styles"])

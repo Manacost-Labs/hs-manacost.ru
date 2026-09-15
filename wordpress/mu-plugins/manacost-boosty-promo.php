@@ -53,7 +53,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-boosty-promo',
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
-			'1.3.1'
+			'1.3.2'
 		);
 	}
 
@@ -137,7 +137,7 @@ final class Manacost_Boosty_Promo {
 			return $output;
 		}
 
-		return self::render_banner();
+		return self::render_homepage_banner();
 	}
 
 	/**
@@ -165,7 +165,7 @@ final class Manacost_Boosty_Promo {
 			return $content;
 		}
 
-		return self::render_banner();
+		return self::render_sidebar_banner();
 	}
 
 	/**
@@ -182,18 +182,41 @@ final class Manacost_Boosty_Promo {
 	}
 
 	/**
-	 * Renders an accessible, dimensioned image link to the existing Boosty target.
+	 * Renders the previous Boosty creative selected for the homepage.
 	 *
 	 * @return string
 	 */
-	private static function render_banner(): string {
-		$banner_url = plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo/banner.webp?ver=5247cc0c54b8';
+	private static function render_homepage_banner(): string {
+		return self::render_banner( 'manacost-boosty-promo/homepage-banner.webp?ver=44d5f1f12b09', 1172, 1342 );
+	}
+
+	/**
+	 * Renders the current Boosty creative selected for article sidebars.
+	 *
+	 * @return string
+	 */
+	private static function render_sidebar_banner(): string {
+		return self::render_banner( 'manacost-boosty-promo/banner.webp?ver=5247cc0c54b8', 1173, 1341 );
+	}
+
+	/**
+	 * Renders an accessible, dimensioned image link to the existing Boosty target.
+	 *
+	 * @param string $asset_path Banner path relative to the MU-plugin directory.
+	 * @param int    $width      Intrinsic image width.
+	 * @param int    $height     Intrinsic image height.
+	 * @return string
+	 */
+	private static function render_banner( string $asset_path, int $width, int $height ): string {
+		$banner_url = plugin_dir_url( __FILE__ ) . $asset_path;
 
 		return sprintf(
-			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="1173" height="1341" alt="" decoding="async"></a>',
+			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="%4$d" height="%5$d" alt="" decoding="async"></a>',
 			esc_url( self::BOOSTY_URL ),
 			esc_attr( 'Поддержать Manacost на Boosty' ),
-			esc_url( $banner_url )
+			esc_url( $banner_url ),
+			$width,
+			$height
 		);
 	}
 }
