@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Cache Purge
  * Description: Adds an admin-bar button to purge WordPress, cache plugins, local cache folders, object cache, OPcache and Cloudflare.
- * Version: 1.1.7
+ * Version: 1.1.8
  * Author: Manacost
  *
  * @package ManacostCachePurge
@@ -12,12 +12,14 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/manacost-cache-purge/opcache.php';
 require_once __DIR__ . '/manacost-cache-purge/runtime.php';
+require_once __DIR__ . '/manacost-cache-purge/theme-options.php';
 
 /**
  * Coordinates bounded cache invalidation for public Manacost content.
  */
 final class Manacost_Cache_Purge {
 	use Manacost_Cache_Purge_Runtime;
+	use Manacost_Cache_Purge_Theme_Options;
 
 	private const ACTION                             = 'manacost_purge_cache';
 	private const NONCE                              = 'manacost_purge_cache_nonce';
@@ -59,6 +61,7 @@ final class Manacost_Cache_Purge {
 		add_action( 'wp_update_nav_menu', array( __CLASS__, 'purge_after_menu_change' ), 200 );
 		add_action( 'customize_save_after', array( __CLASS__, 'purge_after_theme_change' ), 200 );
 		add_action( 'switch_theme', array( __CLASS__, 'purge_after_theme_change' ), 200 );
+		add_action( 'update_option_td_011', array( __CLASS__, 'purge_after_newspaper_options_change' ), 200, 3 );
 
 		if ( self::feature_enabled( 'MANACOST_PERF_ENABLED', true ) ) {
 			add_action( 'init', array( __CLASS__, 'remove_frontend_core_style_hooks' ), 1 );
@@ -607,15 +610,6 @@ final class Manacost_Cache_Purge {
 	}
 
 	/**
-	 * Schedules a purge after theme customization or activation.
-	 *
-	 * @return void
-	 */
-	public static function purge_after_theme_change(): void {
-		self::run_automatic_purge( 'theme' );
-	}
-
-	/**
 	 * Determines whether a post type has public cached output.
 	 *
 	 * @param WP_Post $post Post to inspect.
@@ -736,15 +730,19 @@ final class Manacost_Cache_Purge {
 	/**
 	 * Schedules one throttled automatic cache purge.
 	 *
-	 * @param string $source Automatic purge origin.
+	 * @param string $source               Automatic purge origin.
+	 * @param bool   $defer_if_throttled Whether a throttled change must be queued for later.
 	 * @return void
 	 */
-	private static function run_automatic_purge( string $source ): void {
+	private static function run_automatic_purge( string $source, bool $defer_if_throttled = false ): void {
 		if ( wp_installing() || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ) {
 			return;
 		}
 
 		if ( get_transient( self::AUTO_PURGE_THROTTLE_TRANSIENT ) ) {
+			if ( $defer_if_throttled ) {
+				self::schedule_deferred_automatic_purge();
+			}
 			return;
 		}
 

@@ -33,17 +33,31 @@ $GLOBALS['fixture'] = [
 	'remote_posts' => [],
 	'remote_post_args' => [],
 	'reverse_should_fail' => false,
+	'registered_actions' => [],
+	'scheduled_events' => [],
+	'transient_active' => false,
+	'allow_schedule' => false,
 	'options' => [],
 	'posts' => [],
 ];
 
-function add_action( ...$args ): void {}
+function add_action( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): void {
+	$GLOBALS['fixture']['registered_actions'][] = [ $hook, $priority, $accepted_args ];
+}
 function add_filter( ...$args ): void {}
 function do_action( string $action, ...$args ): void { $GLOBALS['fixture']['actions'][] = $action; }
 function wp_installing(): bool { return false; }
-function get_transient( string $key ): bool { return false; }
+function get_transient( string $key ): bool { return $GLOBALS['fixture']['transient_active']; }
 function set_transient( ...$args ): bool { return true; }
 function wp_schedule_single_event( ...$args ): bool { return false; }
+function as_has_scheduled_action( ...$args ): bool { return false; }
+function as_schedule_single_action( int $timestamp, string $hook, array $args = [], string $group = '', bool $unique = false ): int {
+	if ( ! $GLOBALS['fixture']['allow_schedule'] ) {
+		return 0;
+	}
+	$GLOBALS['fixture']['scheduled_events'][] = [ $timestamp, $hook, $args ];
+	return 1;
+}
 function wp_next_scheduled( ...$args ): bool { return false; }
 function sanitize_key( string $value ): string { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', $value ) ?? '' ); }
 function wp_is_post_revision( int $post_id ): bool { return false; }
@@ -125,6 +139,26 @@ switch ( $scenario ) {
 	case 'content_custom':
 		Manacost_Cache_Purge::purge_after_content_change( 13, $published_custom, true );
 		break;
+	case 'theme_options_changed':
+		Manacost_Cache_Purge::purge_after_newspaper_options_change(
+			[ 'tds_site_background_image' => 'old.png' ],
+			[ 'tds_site_background_image' => 'new.png' ],
+			'td_011'
+		);
+		break;
+	case 'theme_options_unchanged':
+		$options = [ 'tds_site_background_image' => 'same.png' ];
+		Manacost_Cache_Purge::purge_after_newspaper_options_change( $options, $options, 'td_011' );
+		break;
+	case 'theme_options_throttled':
+		$GLOBALS['fixture']['transient_active'] = true;
+		$GLOBALS['fixture']['allow_schedule'] = true;
+		Manacost_Cache_Purge::purge_after_newspaper_options_change(
+			[ 'tds_site_background_image' => 'old.png' ],
+			[ 'tds_site_background_image' => 'new.png' ],
+			'td_011'
+		);
+		break;
 	case 'async_ci_deploy':
 		$direct_results = Manacost_Cache_Purge::run_async_purge( 'ci_deploy' );
 		break;
@@ -165,5 +199,7 @@ echo json_encode( [
 	'direct_failed' => is_array( $direct_results )
 		? count( array_filter( $direct_results, static fn( array $result ): bool => ( $result['status'] ?? '' ) !== 'ok' ) )
 		: null,
+	'registered_actions' => $GLOBALS['fixture']['registered_actions'],
+	'scheduled_events' => $GLOBALS['fixture']['scheduled_events'],
 	'local_cache_marker_exists' => file_exists( WP_CONTENT_DIR . '/cache/wp-rocket/marker' ),
 ], JSON_THROW_ON_ERROR );

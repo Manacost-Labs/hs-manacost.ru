@@ -1773,7 +1773,7 @@
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 1027
+        "line": 1025
       },
       {
         "name": "manacost_cloudflare_api_key",
@@ -2453,14 +2453,14 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 765
+        "line": 763
       },
       {
         "name": "manacost_cache_purge_cron",
         "resolved": true,
         "api": "wp_schedule_event",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 231
+        "line": 234
       },
       {
         "name": "unified_hs_check_english_titles",
@@ -2945,21 +2945,21 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 806
+        "line": 804
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 834
+        "line": 832
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
-        "line": 986
+        "line": 984
       },
       {
         "name": "manage_options",
