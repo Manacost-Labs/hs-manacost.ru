@@ -42,7 +42,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-site-navigation',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
 			array(),
-			'1.3.0'
+			'1.4.0'
 		);
 
 		if ( ! is_front_page() ) {
