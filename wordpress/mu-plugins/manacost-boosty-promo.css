@@ -24,9 +24,18 @@
 	height: auto;
 }
 
+.manacost-boosty-promo + .td_block_wrap {
+	/* TagDiv applies -8px here; reserve a real gap before the next sidebar block. */
+	margin-top: 48px !important;
+}
+
 @media (max-width: 767px) {
 	.manacost-boosty-promo {
 		margin-bottom: 28px;
+	}
+
+	.manacost-boosty-promo + .td_block_wrap {
+		margin-top: 28px !important;
 	}
 }
 

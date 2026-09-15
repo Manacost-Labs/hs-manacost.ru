@@ -40,7 +40,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-site-navigation',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
 			array(),
-			'1.0.0'
+			'1.2.0'
 		);
 
 		if ( ! is_front_page() ) {
@@ -51,7 +51,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-boosty-promo',
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
-			'1.1.0'
+			'1.2.0'
 		);
 	}
 
