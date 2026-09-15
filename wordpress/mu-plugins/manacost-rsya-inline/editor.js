@@ -20,7 +20,7 @@
         },
       },
       {
-        text: "Лента РСЯ",
+        text: "Горизонтальная лента РСЯ",
         onAction: function () {
           insert("feed");
         },

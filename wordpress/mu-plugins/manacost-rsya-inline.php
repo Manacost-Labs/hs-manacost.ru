@@ -24,7 +24,6 @@ final class Manacost_Rsya_Inline_Banner {
 	private const FOOTER_BLOCK_ID            = 'R-A-16113237-5';
 	private const FLOOR_BLOCK_ID             = 'R-A-16113237-7';
 	private const EDITOR_BANNER_BLOCK_ID     = 'R-A-16113237-12';
-	private const EDITOR_FEED_BLOCK_ID       = 'R-A-16113237-10';
 	private const PUBLIC_PROFILE_BLOCK_ID    = 'R-A-16113237-13';
 	private const GATE_HANDLE                = 'manacost-rsya-gate';
 	private const TEXT_PARAGRAPH_POSITION    = 3;
@@ -333,9 +332,15 @@ final class Manacost_Rsya_Inline_Banner {
 		}
 
 		++self::$manual_unit_index;
-		$block_id = 'feed' === $format ? self::EDITOR_FEED_BLOCK_ID : self::EDITOR_BANNER_BLOCK_ID;
 
-		return self::render_unit( 'editor-' . $format, $block_id, $format, '-manual-' . self::$manual_unit_index );
+		/*
+		 * RСЯ's feed render mode may choose a tall, vertical card stack. Keep the
+		 * historical `feed` shortcode for published articles, but render it with
+		 * the compact banner placement so it remains a small horizontal unit.
+		 */
+		$slot = 'feed' === $format ? 'editor-horizontal' : 'editor-banner';
+
+		return self::render_unit( $slot, self::EDITOR_BANNER_BLOCK_ID, 'banner', '-manual-' . self::$manual_unit_index );
 	}
 
 	/**
