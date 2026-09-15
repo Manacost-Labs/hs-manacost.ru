@@ -71,6 +71,11 @@ class BoostyPromoTest(unittest.TestCase):
             $other_tag = call_user_func($entry[0], $other_tag, 'other-style', '/other.css', 'all');
         }}
 
+        $perfmatters_exclusions = [];
+        foreach ($filters['perfmatters_minify_css_exclusions'] ?? [] as $entry) {{
+            $perfmatters_exclusions = call_user_func($entry[0], $perfmatters_exclusions);
+        }}
+
         $footer = '<li class="menu-item"><a href="/existing/">Existing</a></li>';
         foreach ($filters['wp_nav_menu_items'] ?? [] as $entry) {{
             $footer = call_user_func($entry[0], $footer, (object) ['theme_location' => 'footer-menu']);
@@ -117,6 +122,7 @@ class BoostyPromoTest(unittest.TestCase):
             'styles' => $styles,
             'navigation_tag' => $navigation_tag,
             'other_tag' => $other_tag,
+            'perfmatters_exclusions' => $perfmatters_exclusions,
         ]);
         """
         completed = subprocess.run(
@@ -154,6 +160,8 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn("manacost-boosty-promo", result["styles"])
         self.assertIn('data-no-minify="1"', result["navigation_tag"])
         self.assertNotIn('data-no-minify="1"', result["other_tag"])
+        self.assertIn("manacost-site-navigation.css", result["perfmatters_exclusions"])
+        self.assertIn("manacost-boosty-promo.css", result["perfmatters_exclusions"])
 
     def test_navigation_typography_loads_beyond_the_homepage(self) -> None:
         result = self.run_plugin(is_front_page=False)

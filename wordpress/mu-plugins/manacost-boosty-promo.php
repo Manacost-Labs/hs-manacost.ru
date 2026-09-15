@@ -24,6 +24,7 @@ final class Manacost_Boosty_Promo {
 		add_filter( 'wp_nav_menu_items', array( __CLASS__, 'append_footer_links' ), 10, 2 );
 		add_filter( 'pre_do_shortcode_tag', array( __CLASS__, 'replace_homepage_pricing_card' ), 10, 3 );
 		add_filter( 'style_loader_tag', array( __CLASS__, 'exclude_layout_styles_from_minification' ), 10, 4 );
+		add_filter( 'perfmatters_minify_css_exclusions', array( __CLASS__, 'exclude_layout_styles_from_perfmatters' ) );
 	}
 
 	/**
@@ -76,6 +77,20 @@ final class Manacost_Boosty_Promo {
 		}
 
 		return str_replace( '<link ', '<link data-no-minify="1" ', $html );
+	}
+
+	/**
+	 * Prevents Perfmatters from replacing these versioned emergency layout files
+	 * with a stale cache artifact.
+	 *
+	 * @param array<int,string> $exclusions Existing CSS source exclusions.
+	 * @return array<int,string>
+	 */
+	public static function exclude_layout_styles_from_perfmatters( array $exclusions ): array {
+		$exclusions[] = 'manacost-site-navigation.css';
+		$exclusions[] = 'manacost-boosty-promo.css';
+
+		return array_values( array_unique( $exclusions ) );
 	}
 
 	/**
