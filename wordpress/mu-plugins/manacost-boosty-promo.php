@@ -23,6 +23,7 @@ final class Manacost_Boosty_Promo {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 		add_filter( 'wp_nav_menu_items', array( __CLASS__, 'append_footer_links' ), 10, 2 );
 		add_filter( 'pre_do_shortcode_tag', array( __CLASS__, 'replace_homepage_pricing_card' ), 10, 3 );
+		add_filter( 'style_loader_tag', array( __CLASS__, 'exclude_layout_styles_from_minification' ), 10, 4 );
 	}
 
 	/**
@@ -40,7 +41,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-site-navigation',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
 			array(),
-			'1.2.0'
+			'1.3.0'
 		);
 
 		if ( ! is_front_page() ) {
@@ -51,8 +52,30 @@ final class Manacost_Boosty_Promo {
 			'manacost-boosty-promo',
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
-			'1.2.0'
+			'1.3.0'
 		);
+	}
+
+	/**
+	 * Keeps the tiny layout styles out of the long-lived combined CSS cache.
+	 *
+	 * These two assets are intentionally separate so an emergency layout fix is
+	 * visible immediately after the stylesheet version changes.
+	 *
+	 * @param string $html   Generated stylesheet tag.
+	 * @param string $handle Registered stylesheet handle.
+	 * @param string $href   Stylesheet URL.
+	 * @param string $media  Stylesheet media attribute.
+	 * @return string
+	 */
+	public static function exclude_layout_styles_from_minification( string $html, string $handle, string $href, string $media ): string {
+		unset( $href, $media );
+
+		if ( ! in_array( $handle, array( 'manacost-site-navigation', 'manacost-boosty-promo' ), true ) ) {
+			return $html;
+		}
+
+		return str_replace( '<link ', '<link data-no-minify="1" ', $html );
 	}
 
 	/**

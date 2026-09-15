@@ -61,6 +61,16 @@ class BoostyPromoTest(unittest.TestCase):
             call_user_func($entry[0]);
         }}
 
+        $navigation_tag = '<link rel="stylesheet" href="/navigation.css">';
+        foreach ($filters['style_loader_tag'] ?? [] as $entry) {{
+            $navigation_tag = call_user_func($entry[0], $navigation_tag, 'manacost-site-navigation', '/navigation.css', 'all');
+        }}
+
+        $other_tag = '<link rel="stylesheet" href="/other.css">';
+        foreach ($filters['style_loader_tag'] ?? [] as $entry) {{
+            $other_tag = call_user_func($entry[0], $other_tag, 'other-style', '/other.css', 'all');
+        }}
+
         $footer = '<li class="menu-item"><a href="/existing/">Existing</a></li>';
         foreach ($filters['wp_nav_menu_items'] ?? [] as $entry) {{
             $footer = call_user_func($entry[0], $footer, (object) ['theme_location' => 'footer-menu']);
@@ -105,6 +115,8 @@ class BoostyPromoTest(unittest.TestCase):
             'shortcode' => $shortcode,
             'other_shortcode' => $other_shortcode,
             'styles' => $styles,
+            'navigation_tag' => $navigation_tag,
+            'other_tag' => $other_tag,
         ]);
         """
         completed = subprocess.run(
@@ -140,6 +152,8 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertFalse(result["other_shortcode"])
         self.assertIn("manacost-site-navigation", result["styles"])
         self.assertIn("manacost-boosty-promo", result["styles"])
+        self.assertIn('data-no-minify="1"', result["navigation_tag"])
+        self.assertNotIn('data-no-minify="1"', result["other_tag"])
 
     def test_navigation_typography_loads_beyond_the_homepage(self) -> None:
         result = self.run_plugin(is_front_page=False)
