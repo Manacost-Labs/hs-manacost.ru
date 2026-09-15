@@ -34,6 +34,9 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn("li.mc-reader-entry > a", navigation_css)
         self.assertIn("li.menu-item-has-children > a", navigation_css)
         self.assertIn("right: 6px", navigation_css)
+        self.assertIn("border-radius: 8px", navigation_css)
+        self.assertIn(":focus-visible", navigation_css)
+        self.assertIn("prefers-reduced-motion", navigation_css)
 
     def run_plugin(self, is_front_page: bool) -> dict[str, object]:
         script = f"""
