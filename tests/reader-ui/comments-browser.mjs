@@ -8,7 +8,7 @@ import './comments-assets.mjs';
 // A local, synthetic boundary test: no WordPress runtime or reader data.
 const root = new URL('../../', import.meta.url).pathname;
 const plugin = `${root}wordpress/mu-plugins/hs-manacost-reader/`;
-const php = "define('ABSPATH','/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$part){return '/article/';} require $argv[1]; echo hs_reader_comments_shell();";
+const php = "define('ABSPATH','/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function get_the_ID(){return 7;} function get_permalink(){return 'https://example.test/article/';} function wp_parse_url($v,$part){return '/article/';} function hs_manacost_reader_default_avatar_url(){return '/default-avatar.webp';} require $argv[1]; echo hs_reader_comments_shell();";
 const shell = execFileSync('php', ['-r', php, `${plugin}comments.php`], { encoding: 'utf8' });
 const favoritePhp = "define('ABSPATH','/'); function esc_attr($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');} function esc_html__($v){return $v;} function hs_reader_favorite_article($id){return ['allowed'=>true,'path'=>'/article/'];} require $argv[1]; echo hs_reader_article_favorite_shell(7);";
 const favoriteShell = execFileSync('php', ['-r', favoritePhp, `${plugin}article-favorite.php`], { encoding: 'utf8' });
@@ -168,7 +168,8 @@ try {
     assert.equal(composerAccents.shadow, 'none', 'the comment composer must remain shadow-free');
     if (width === 390) {
       assert.ok(composerHeight < 560, `mobile composer remains compact: ${composerHeight}`);
-      assert.ok(composerActions.attachment.width >= composerActions.contentWidth - 1, 'mobile attachment action spans the composer');
+      assert.ok(composerActions.attachment.width >= 44 && composerActions.attachment.width <= 48,
+        'mobile attachment action remains a compact image icon');
       assert.ok(composerActions.submit.width >= composerActions.contentWidth - 1, 'mobile publish action spans the composer');
     }
     if (width === 1440) {
@@ -179,6 +180,8 @@ try {
     if (width === 390 || width === 1440) {
       const refreshProfile = page.getByRole('button', { name: 'Обновить данные', exact: true });
       assert.equal(await refreshProfile.isVisible(), true, `profile refresh has one visible and accessible label at ${width}px`);
+      assert.equal(await page.getByRole('button', { name: 'Прикрепить изображение', exact: true }).isVisible(), true,
+        `the compact image action retains an accessible name at ${width}px`);
       await page.getByLabel('Комментарий', { exact: true }).focus();
       await page.keyboard.press('Tab');
       assert.equal(await page.locator('[data-comments-attachment-picker]').evaluate(node => node === document.activeElement), true);
