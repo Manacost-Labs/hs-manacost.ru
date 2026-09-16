@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: Manacost
  *
  * @package Manacost
@@ -161,6 +161,7 @@ final class Manacost_Partner_Placements {
 			self::render_asset_error();
 		}
 
+		status_header( 200 );
 		header( 'Content-Type: image/webp' );
 		header( 'Content-Length: ' . strlen( $body ) );
 		header( 'Cache-Control: public, max-age=86400, stale-if-error=604800' );
