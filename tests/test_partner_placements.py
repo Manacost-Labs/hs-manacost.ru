@@ -186,6 +186,11 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertIn(
                     'src="/site-media/secondary-mark/"', markup
                 )
+                self.assertIn(
+                    'src="/site-media/secondary-mark/" width="729" height="90"',
+                    markup,
+                )
+                self.assertNotIn('width="728" height="90"', markup)
                 self.assertNotIn("sirus.cc", markup)
                 self.assertNotIn("728h90", markup)
                 self.assertNotIn("td-a-rec", markup)
@@ -222,6 +227,11 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertNotIn('class="site-opening-note__label"', content)
         self.assertIn('href="/site-link/secondary/"', content)
         self.assertIn('src="/site-media/secondary-mark/"', content)
+        self.assertIn(
+            'src="/site-media/secondary-mark/" width="729" height="90"',
+            content,
+        )
+        self.assertNotIn('width="728" height="90"', content)
         self.assertIn('rel="sponsored noopener noreferrer"', content)
         self.assertTrue(content.endswith("<p>Article body</p>"))
 

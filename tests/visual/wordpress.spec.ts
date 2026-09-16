@@ -61,6 +61,7 @@ for (const target of [
   test(`public ${target.name} page`, async ({ page }) => {
     const response = await page.goto(target.path, { waitUntil: 'domcontentloaded' });
     expect(response?.status(), 'A screenshot of an error page is not a passing page test').toBe(200);
+    await page.addStyleTag({ content: 'img[width="728"][height="90"] { display: none !important; }' });
     const partnership = page.getByRole('complementary', { name: 'Партнёры сайта' });
     await expect(partnership).toBeVisible();
     await expect(partnership.getByText('Реклама', { exact: true })).toHaveCount(0);
@@ -77,6 +78,7 @@ for (const target of [
     await page.keyboard.press('Tab');
     await expect(partnerLinks.nth(1)).toBeFocused();
     await expect(partnerLinks.nth(1)).toHaveCSS('opacity', '1');
+    await expect(partnerLinks.nth(1).locator('img')).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     expect(await partnership.evaluate(element => Boolean(element.closest('.td-a-rec, .banner-rotator')))).toBe(false);
     const partnershipBackground = await partnership.evaluate(element => getComputedStyle(element).backgroundColor);
@@ -97,6 +99,7 @@ for (const target of [
       await expect(openingPlacement.getByText('Реклама', { exact: true })).toHaveCount(0);
       await expect(openingPlacement.locator('a')).toHaveCSS('border-radius', '10px');
       await expect(openingPlacement.locator('a')).not.toHaveCSS('box-shadow', 'none');
+      await expect(openingPlacement.locator('img')).toBeVisible();
       await expect(openingPlacement.locator('img')).toHaveJSProperty('naturalWidth', 729);
     } else {
       await expect(openingPlacement).toHaveCount(0);
