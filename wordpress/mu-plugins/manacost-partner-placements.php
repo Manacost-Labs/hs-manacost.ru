@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Manacost
  *
  * @package Manacost
@@ -15,17 +15,26 @@ final class Manacost_Partner_Placements {
 	private const PLAYEROK_URL   = 'https://plrk.co/p/hsmanacostru1708';
 	private const SIRUS_URL      = 'https://sirus.cc/hsmanacost';
 	private const PLAYEROK_IMAGE = '/wp-content/uploads/2026/07/728x90.jpg.webp';
-	private const SIRUS_IMAGE    = '/wp-content/uploads/2026/03/728h90.png.webp';
+	private const SIRUS_IMAGE    = '/site-media/secondary-mark.webp';
+	private const SIRUS_LINK     = '/site-link/secondary/';
+	private const SIRUS_SOURCE   = 'https://hs-manacost.ru/wp-content/uploads/2026/03/728h90.png.webp';
+	private const BRAND_IMAGE    = '/wp-content/uploads/2026/01/unnamed.png';
 
 	/** Prevents themes that fire the header hook twice from duplicating the placement. */
 	private static bool $rendered = false;
 
 	/** Registers supported public extension points before regular plugins and the theme load. */
 	public static function boot(): void {
+		if ( in_array( self::request_path(), array( self::SIRUS_IMAGE, self::SIRUS_LINK ), true ) && ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+
 		add_filter( 'option_td_011', array( __CLASS__, 'suppress_legacy_header' ), 100 );
 		add_filter( 'option_ad_inserter', array( __CLASS__, 'suppress_legacy_article_block' ), 100 );
+		add_filter( 'the_content', array( __CLASS__, 'prepend_article_placement' ), 8 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 		add_action( 'td_wp_booster_after_header', array( __CLASS__, 'render_header' ), 20 );
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_serve_first_party_route' ), -1000 );
 
 		// The disposable integration theme omits Standard Pack, which owns the production hook.
 		if ( function_exists( 'wp_get_environment_type' ) && 'local' === wp_get_environment_type() ) {
@@ -93,8 +102,72 @@ final class Manacost_Partner_Placements {
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.css',
 			array(),
-			'1.0.2'
+			'1.0.3'
 		);
+	}
+
+	/** Adds the direct Sirus placement before the main body of a single article. */
+	public static function prepend_article_placement( string $content ): string {
+		if (
+			! self::should_render_public_request()
+			|| ! is_singular( 'post' )
+			|| ! in_the_loop()
+			|| ! is_main_query()
+			|| false !== strpos( $content, 'class="site-opening-note"' )
+		) {
+			return $content;
+		}
+
+		return self::sirus_placement_markup() . $content;
+	}
+
+	/** Serves the neutral first-party Sirus image and outbound route. */
+	public static function maybe_serve_first_party_route(): void {
+		if ( ! self::should_filter_legacy_options() ) {
+			return;
+		}
+
+		$path = self::request_path();
+		if ( self::SIRUS_LINK === $path ) {
+			nocache_headers();
+			wp_redirect( self::SIRUS_URL, 302, 'Manacost' ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+			exit;
+		}
+
+		if ( self::SIRUS_IMAGE !== $path ) {
+			return;
+		}
+
+		$response = wp_safe_remote_get(
+			self::SIRUS_SOURCE,
+			array(
+				'timeout'             => 5,
+				'redirection'         => 0,
+				'limit_response_size' => 1048576,
+				'headers'             => array( 'Accept' => 'image/webp' ),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			self::render_asset_error();
+		}
+
+		$body                = wp_remote_retrieve_body( $response );
+		$content_type_header = wp_remote_retrieve_header( $response, 'content-type' );
+		$content_type        = is_string( $content_type_header )
+			? strtolower( trim( $content_type_header ) )
+			: '';
+		if ( 'image/webp' !== $content_type || strlen( $body ) < 1024 || strlen( $body ) > 1048576 ) {
+			self::render_asset_error();
+		}
+
+		header( 'Content-Type: image/webp' );
+		header( 'Content-Length: ' . strlen( $body ) );
+		header( 'Cache-Control: public, max-age=86400, stale-if-error=604800' );
+		header( 'ETag: "' . hash( 'sha256', $body ) . '"' );
+		header( 'X-Content-Type-Options: nosniff' );
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated binary WebP response.
+		exit;
 	}
 
 	/** Renders both direct partners once after the public Newspaper header. */
@@ -106,19 +179,50 @@ final class Manacost_Partner_Placements {
 		self::$rendered = true;
 		?>
 		<aside class="site-partnership" aria-label="<?php echo esc_attr( 'Партнёры сайта' ); ?>">
+			<a class="site-masthead-mark" href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php echo esc_attr( 'Манакост — главная' ); ?>">
+				<img src="<?php echo esc_url( self::BRAND_IMAGE ); ?>" width="321" height="234" alt="" decoding="async" fetchpriority="high">
+			</a>
 			<div class="site-partnership__inner">
 				<p class="site-partnership__label"><?php echo esc_html( 'Реклама' ); ?></p>
 				<div class="site-partnership__items">
 					<a class="site-partnership__item" href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Playerok — партнёр Manacost' ); ?>">
 						<img src="<?php echo esc_url( self::PLAYEROK_IMAGE ); ?>" width="729" height="90" alt="" decoding="async" fetchpriority="high">
 					</a>
-					<a class="site-partnership__item" href="<?php echo esc_url( self::SIRUS_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Sirus — партнёр Manacost' ); ?>">
+					<a class="site-partnership__item" href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Sirus — партнёр Manacost' ); ?>">
 						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="728" height="90" alt="" decoding="async">
 					</a>
 				</div>
 			</div>
 		</aside>
 		<?php
+	}
+
+	/** Builds the visible first-party Sirus placement used at the article opening. */
+	private static function sirus_placement_markup(): string {
+		return '<aside class="site-opening-note" aria-label="' . esc_attr( 'Реклама: Sirus' ) . '">'
+			. '<p class="site-opening-note__label">' . esc_html( 'Реклама' ) . '</p>'
+			. '<a class="site-opening-note__link" href="' . esc_url( self::SIRUS_LINK ) . '" target="_blank" rel="sponsored noopener noreferrer" aria-label="' . esc_attr( 'Sirus — партнёр Manacost' ) . '">'
+			. '<img src="' . esc_url( self::SIRUS_IMAGE ) . '" width="728" height="90" alt="" decoding="async" loading="lazy">'
+			. '</a></aside>';
+	}
+
+	/** Returns the normalized request path without trusting query input. */
+	private static function request_path(): string {
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
+			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			: '/';
+		$path        = wp_parse_url( $request_uri, PHP_URL_PATH );
+
+		return is_string( $path ) ? $path : '/';
+	}
+
+	/** Sends a bounded failure response without exposing the upstream error. */
+	private static function render_asset_error(): void {
+		status_header( 503 );
+		header( 'Cache-Control: no-store' );
+		header( 'Content-Type: text/plain; charset=utf-8' );
+		echo 'Asset temporarily unavailable';
+		exit;
 	}
 
 	/**

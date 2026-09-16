@@ -439,6 +439,7 @@ class RsyaInlineBannerTest(unittest.TestCase):
         self.assertIn("max-width: 970px", result["head"])
         self.assertIn("height: 90px", result["head"])
         self.assertIn("max-width: 320px", result["head"])
+        self.assertIn("width: calc(100vw - 32px)", result["head"])
         self.assertIn("height: 100px", result["head"])
         self.assertIn("min-height: 180px", result["head"])
         self.assertIn("border-radius: 16px", result["head"])

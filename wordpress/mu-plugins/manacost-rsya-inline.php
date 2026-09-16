@@ -193,7 +193,7 @@ final class Manacost_Rsya_Inline_Banner {
 
 			@media (max-width: 767px) {
 				.manacost-rsya-inline {
-					width: min(100%, 320px);
+					width: calc(100vw - 32px);
 					max-width: 320px;
 					margin: 22px auto;
 				}
