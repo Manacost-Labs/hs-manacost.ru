@@ -16,11 +16,16 @@ def directives(filename):
 
 
 class ReaderProxyTlsTests(unittest.TestCase):
-    def test_reader_has_a_dedicated_nonpersistent_upstream(self):
+    def test_reader_has_a_dedicated_bounded_persistent_upstream(self):
         upstream = directives("proxy-staging-upstream.conf")
         self.assertIn("upstream hs_manacost_reader_origin {", upstream)
         self.assertIn("zone hs_manacost_reader_origin 64k;", upstream)
-        self.assertNotRegex(upstream, r"\bkeepalive\b")
+        self.assertIn("keepalive 8;", upstream)
+        self.assertIn("keepalive_timeout 15s;", upstream)
+        self.assertIn("keepalive_requests 100;", upstream)
+        production = directives("proxy-production-upstream.conf")
+        for setting in ("keepalive 8;", "keepalive_timeout 15s;", "keepalive_requests 100;"):
+            self.assertIn(setting, production)
         self.assertEqual(
             re.findall(r"server ([^;]+);", upstream),
             [f"127.0.0.1:{port} max_fails=2 fail_timeout=2s" for port in (18443, 18444, 18445)],
@@ -30,7 +35,9 @@ class ReaderProxyTlsTests(unittest.TestCase):
         proxy = directives("proxy-staging-reader.conf")
         self.assertIn("proxy_pass https://hs_manacost_reader_origin;", proxy)
         self.assertNotIn("https://hs_manacost_origin;", proxy)
-        self.assertIn("proxy_set_header Connection close;", proxy)
+        self.assertIn('proxy_set_header Connection "";', proxy)
+        self.assertIn("proxy_http_version 1.1;", proxy)
+        self.assertNotIn("non_idempotent", proxy)
         self.assertIn("proxy_ssl_session_reuse off;", proxy)
         self.assertIn("proxy_ssl_verify on;", proxy)
         # The staging chain has two untrusted intermediates. Nginx's default
@@ -58,6 +65,10 @@ class ReaderProxyTlsTests(unittest.TestCase):
 
     def test_production_reader_pins_the_origin_certificate(self):
         proxy = directives("proxy-production-reader.conf")
+        self.assertEqual(proxy.count('proxy_set_header Connection "";'), 2)
+        self.assertEqual(proxy.count('proxy_http_version 1.1;'), 2)
+        self.assertEqual(proxy.count('proxy_ssl_session_reuse off;'), 2)
+        self.assertNotIn("non_idempotent", proxy)
         self.assertIn("proxy_pass https://hs_manacost_reader_production_origin;", proxy)
         self.assertIn("proxy_ssl_verify on;", proxy)
         self.assertNotIn("proxy_ssl_verify off;", proxy)
