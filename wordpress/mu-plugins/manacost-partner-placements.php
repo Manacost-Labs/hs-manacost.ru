@@ -40,7 +40,7 @@ final class Manacost_Partner_Placements {
 	 * @return mixed
 	 */
 	public static function suppress_legacy_header( $options ) {
-		if ( ! self::should_render_public_request() || ! is_array( $options ) ) {
+		if ( ! self::should_filter_legacy_options() || ! is_array( $options ) ) {
 			return $options;
 		}
 
@@ -64,7 +64,7 @@ final class Manacost_Partner_Placements {
 	 * @return mixed
 	 */
 	public static function suppress_legacy_article_block( $stored_value ) {
-		if ( ! self::should_render_public_request() ) {
+		if ( ! self::should_filter_legacy_options() ) {
 			return $stored_value;
 		}
 
@@ -153,17 +153,32 @@ final class Manacost_Partner_Placements {
 
 	/** Returns whether the current request is a public page on a project host. */
 	private static function should_render_public_request(): bool {
-		if ( ! self::feature_enabled() ) {
+		if ( ! self::should_filter_legacy_options() ) {
 			return false;
 		}
 
 		if (
-			is_admin()
-			|| wp_doing_ajax()
-			|| is_feed()
+			is_feed()
 			|| is_preview()
 			|| is_robots()
 			|| is_trackback()
+		) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks only request state that is safe while regular plugins load options.
+	 *
+	 * Query-dependent conditional tags belong in should_render_public_request().
+	 */
+	private static function should_filter_legacy_options(): bool {
+		if (
+			! self::feature_enabled()
+			|| is_admin()
+			|| wp_doing_ajax()
 			|| ( defined( 'REST_REQUEST' ) && REST_REQUEST )
 		) {
 			return false;

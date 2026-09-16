@@ -39,6 +39,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         $actions = [];
         $filters = [];
         $styles = [];
+        $conditional_calls = 0;
         $admin = {json.dumps(admin)};
         $feed = {json.dumps(feed)};
         $preview = {json.dumps(preview)};
@@ -54,10 +55,10 @@ class PartnerPlacementsTest(unittest.TestCase):
         }}
         function is_admin() {{ return $GLOBALS['admin']; }}
         function wp_doing_ajax() {{ return false; }}
-        function is_feed() {{ return $GLOBALS['feed']; }}
-        function is_preview() {{ return $GLOBALS['preview']; }}
-        function is_robots() {{ return false; }}
-        function is_trackback() {{ return false; }}
+        function is_feed() {{ $GLOBALS['conditional_calls']++; return $GLOBALS['feed']; }}
+        function is_preview() {{ $GLOBALS['conditional_calls']++; return $GLOBALS['preview']; }}
+        function is_robots() {{ $GLOBALS['conditional_calls']++; return false; }}
+        function is_trackback() {{ $GLOBALS['conditional_calls']++; return false; }}
         function home_url() {{ return 'https://' . $_SERVER['HTTP_HOST']; }}
         function wp_get_environment_type() {{ return $GLOBALS['environment']; }}
         function wp_parse_url($url, $component = -1) {{ return parse_url($url, $component); }}
@@ -107,6 +108,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         foreach ($filters['option_ad_inserter'] ?? [] as $entry) {{
             $ad_inserter = call_user_func($entry[0], $ad_inserter);
         }}
+        $filter_conditional_calls = $conditional_calls;
         $decoded_ad_inserter = unserialize(
             base64_decode(substr($ad_inserter, 4), true),
             ['allowed_classes' => false]
@@ -129,6 +131,7 @@ class PartnerPlacementsTest(unittest.TestCase):
             'legacy_header' => $legacy_header,
             'network_header' => $network_header,
             'ad_inserter' => $decoded_ad_inserter,
+            'filter_conditional_calls' => $filter_conditional_calls,
             'markup' => $markup,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         """
@@ -148,6 +151,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertIn("td_wp_booster_after_header", result["actions"])
         self.assertIn("option_td_011", result["filters"])
         self.assertIn("option_ad_inserter", result["filters"])
+        self.assertEqual(0, result["filter_conditional_calls"])
 
     def test_renders_transparent_first_party_placements_once_on_both_domains(self) -> None:
         for host in ("hs-manacost.ru", "hs-manacost.com"):
@@ -202,11 +206,12 @@ class PartnerPlacementsTest(unittest.TestCase):
                 result = self.run_plugin(**context)
                 self.assertEqual("", result["markup"])
                 self.assertEqual([], result["styles"])
-                self.assertIn(
-                    "banner-rotator",
-                    result["legacy_header"]["td_ads"]["header"]["ad_code"],
-                )
-                self.assertIn("sirus.cc", result["ad_inserter"]["2"]["code"])
+                if not context.get("feed") and not context.get("preview"):
+                    self.assertIn(
+                        "banner-rotator",
+                        result["legacy_header"]["td_ads"]["header"]["ad_code"],
+                    )
+                    self.assertIn("sirus.cc", result["ad_inserter"]["2"]["code"])
 
     def test_styles_preserve_focus_and_responsive_layout(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
