@@ -29,7 +29,7 @@ test.beforeEach(async ({ context }) => {
     const url = new URL(route.request().url());
     const partner = url.pathname.endsWith('/728x90.jpg.webp')
       ? { label: 'PLAYEROK', color: '#123b5d' }
-      : url.pathname.endsWith('/site-media/secondary-mark.webp') || url.pathname.endsWith('/728h90.png.webp')
+      : url.pathname.endsWith('/site-media/secondary-mark/') || url.pathname.endsWith('/728h90.png.webp')
         ? { label: 'SIRUS', color: '#35206e' }
         : null;
     if (partner) {

@@ -184,7 +184,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                     'src="/wp-content/uploads/2026/07/728x90.jpg.webp"', markup
                 )
                 self.assertIn(
-                    'src="/site-media/secondary-mark.webp"', markup
+                    'src="/site-media/secondary-mark/"', markup
                 )
                 self.assertNotIn("sirus.cc", markup)
                 self.assertNotIn("728h90", markup)
@@ -220,7 +220,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertTrue(content.startswith('<aside class="site-opening-note"'))
         self.assertIn('aria-label="Реклама: Sirus"', content)
         self.assertIn('href="/site-link/secondary/"', content)
-        self.assertIn('src="/site-media/secondary-mark.webp"', content)
+        self.assertIn('src="/site-media/secondary-mark/"', content)
         self.assertIn('rel="sponsored noopener noreferrer"', content)
         self.assertTrue(content.endswith("<p>Article body</p>"))
 
