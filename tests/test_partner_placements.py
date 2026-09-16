@@ -1,0 +1,223 @@
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PLUGIN = ROOT / "wordpress/mu-plugins/manacost-partner-placements.php"
+STYLESHEET = (
+    ROOT
+    / "wordpress/mu-plugins/manacost-partner-placements/partner-placements.css"
+)
+PHP_BINARY = shutil.which("php") or "/usr/bin/php"
+
+
+class PartnerPlacementsTest(unittest.TestCase):
+    def run_plugin(
+        self,
+        *,
+        host: str = "hs-manacost.ru",
+        admin: bool = False,
+        feed: bool = False,
+        preview: bool = False,
+        rest: bool = False,
+        enabled: bool = True,
+        local: bool = False,
+    ) -> dict[str, object]:
+        feature_flag = (
+            "define('MANACOST_PARTNER_PLACEMENTS_ENABLED', false);"
+            if not enabled
+            else ""
+        )
+        script = f"""
+        define('ABSPATH', '/');
+        {feature_flag}
+        $actions = [];
+        $filters = [];
+        $styles = [];
+        $admin = {json.dumps(admin)};
+        $feed = {json.dumps(feed)};
+        $preview = {json.dumps(preview)};
+        $rest = {json.dumps(rest)};
+        $environment = {json.dumps("local" if local else "production")};
+        $_SERVER['HTTP_HOST'] = {json.dumps(host)};
+
+        function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {{
+            $GLOBALS['actions'][$hook][] = [$callback, $priority, $accepted_args];
+        }}
+        function add_filter($hook, $callback, $priority = 10, $accepted_args = 1) {{
+            $GLOBALS['filters'][$hook][] = [$callback, $priority, $accepted_args];
+        }}
+        function is_admin() {{ return $GLOBALS['admin']; }}
+        function wp_doing_ajax() {{ return false; }}
+        function is_feed() {{ return $GLOBALS['feed']; }}
+        function is_preview() {{ return $GLOBALS['preview']; }}
+        function is_robots() {{ return false; }}
+        function is_trackback() {{ return false; }}
+        function home_url() {{ return 'https://' . $_SERVER['HTTP_HOST']; }}
+        function wp_get_environment_type() {{ return $GLOBALS['environment']; }}
+        function wp_parse_url($url, $component = -1) {{ return parse_url($url, $component); }}
+        function wp_unslash($value) {{ return stripslashes($value); }}
+        function sanitize_text_field($value) {{ return trim(strip_tags($value)); }}
+        function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
+        function wp_enqueue_style($handle, $src, $dependencies = [], $version = false) {{
+            $GLOBALS['styles'][$handle] = [$src, $dependencies, $version];
+        }}
+        function esc_url($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
+        function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
+        function esc_html($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
+
+        if ($rest) {{ define('REST_REQUEST', true); }}
+        require {json.dumps(str(PLUGIN))};
+
+        $legacy_header = [
+            'td_ads' => [
+                'header' => [
+                    'ad_code' => '<div class="banner-rotator"><a href="https://plrk.co/p/hsmanacostru1708">Playerok</a><a href="https://sirus.cc/hsmanacost">Sirus</a></div>',
+                ],
+            ],
+        ];
+        $network_header = [
+            'td_ads' => [
+                'header' => [
+                    'ad_code' => '<ins class="adsbygoogle"></ins>',
+                ],
+            ],
+        ];
+        foreach ($filters['option_td_011'] ?? [] as $entry) {{
+            $legacy_header = call_user_func($entry[0], $legacy_header);
+            $network_header = call_user_func($entry[0], $network_header);
+        }}
+
+        $ad_inserter_settings = [
+            2 => [
+                'code' => '<a href="https://sirus.cc/hsmanacost"><img src="/wp-content/uploads/2026/03/728h90.png"></a>',
+                'display_type' => '1',
+            ],
+            3 => [
+                'code' => '<div id="yandex_rtb_R-A-example"></div>',
+                'display_type' => '1',
+            ],
+        ];
+        $ad_inserter = ':AI:' . base64_encode(serialize($ad_inserter_settings));
+        foreach ($filters['option_ad_inserter'] ?? [] as $entry) {{
+            $ad_inserter = call_user_func($entry[0], $ad_inserter);
+        }}
+        $decoded_ad_inserter = unserialize(
+            base64_decode(substr($ad_inserter, 4), true),
+            ['allowed_classes' => false]
+        );
+
+        foreach ($actions['wp_enqueue_scripts'] ?? [] as $entry) {{
+            call_user_func($entry[0]);
+        }}
+        ob_start();
+        foreach ($actions['td_wp_booster_after_header'] ?? [] as $entry) {{
+            call_user_func($entry[0]);
+            call_user_func($entry[0]);
+        }}
+        $markup = ob_get_clean();
+
+        echo json_encode([
+            'actions' => array_keys($actions),
+            'filters' => array_keys($filters),
+            'styles' => $styles,
+            'legacy_header' => $legacy_header,
+            'network_header' => $network_header,
+            'ad_inserter' => $decoded_ad_inserter,
+            'markup' => $markup,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        """
+        completed = subprocess.run(
+            [PHP_BINARY, "-r", script],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout)
+
+    def test_registers_supported_public_hooks(self) -> None:
+        result = self.run_plugin()
+
+        self.assertIn("wp_enqueue_scripts", result["actions"])
+        self.assertIn("td_wp_booster_after_header", result["actions"])
+        self.assertIn("option_td_011", result["filters"])
+        self.assertIn("option_ad_inserter", result["filters"])
+
+    def test_renders_transparent_first_party_placements_once_on_both_domains(self) -> None:
+        for host in ("hs-manacost.ru", "hs-manacost.com"):
+            with self.subTest(host=host):
+                result = self.run_plugin(host=host)
+                markup = str(result["markup"])
+
+                self.assertEqual(1, markup.count('class="site-partnership"'))
+                self.assertIn('aria-label="Партнёры сайта"', markup)
+                self.assertIn('class="site-partnership__label">Реклама</', markup)
+                self.assertIn('href="https://plrk.co/p/hsmanacostru1708"', markup)
+                self.assertIn('href="https://sirus.cc/hsmanacost"', markup)
+                self.assertIn('rel="sponsored noopener noreferrer"', markup)
+                self.assertIn(
+                    'src="/wp-content/uploads/2026/07/728x90.jpg.webp"', markup
+                )
+                self.assertIn(
+                    'src="/wp-content/uploads/2026/03/728h90.png.webp"', markup
+                )
+                self.assertNotIn("td-a-rec", markup)
+                self.assertNotIn("banner-rotator", markup)
+                self.assertIn("manacost-partner-placements", result["styles"])
+
+        local_result = self.run_plugin(host="127.0.0.1:8888", local=True)
+        self.assertIn('class="site-partnership"', local_result["markup"])
+        self.assertIn("wp_body_open", local_result["actions"])
+
+    def test_suppresses_only_the_known_legacy_direct_placements(self) -> None:
+        result = self.run_plugin()
+
+        self.assertEqual(
+            "", result["legacy_header"]["td_ads"]["header"]["ad_code"]
+        )
+        self.assertEqual(
+            '<ins class="adsbygoogle"></ins>',
+            result["network_header"]["td_ads"]["header"]["ad_code"],
+        )
+        self.assertEqual("", result["ad_inserter"]["2"]["code"])
+        self.assertIn("yandex_rtb", result["ad_inserter"]["3"]["code"])
+
+    def test_skips_non_public_requests_and_unknown_hosts(self) -> None:
+        contexts = (
+            {"admin": True},
+            {"feed": True},
+            {"preview": True},
+            {"rest": True},
+            {"host": "example.com"},
+            {"enabled": False},
+        )
+        for context in contexts:
+            with self.subTest(**context):
+                result = self.run_plugin(**context)
+                self.assertEqual("", result["markup"])
+                self.assertEqual([], result["styles"])
+                self.assertIn(
+                    "banner-rotator",
+                    result["legacy_header"]["td_ads"]["header"]["ad_code"],
+                )
+                self.assertIn("sirus.cc", result["ad_inserter"]["2"]["code"])
+
+    def test_styles_preserve_focus_and_responsive_layout(self) -> None:
+        css = STYLESHEET.read_text(encoding="utf-8")
+
+        self.assertIn(".site-partnership__item:focus-visible", css)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", css)
+        self.assertIn("aspect-ratio: 729 / 90", css)
+        self.assertIn("@media (max-width: 767px)", css)
+        self.assertIn("grid-template-columns: 1fr", css)
+        self.assertNotIn("display: none", css)
+
+
+if __name__ == "__main__":
+    unittest.main()

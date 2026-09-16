@@ -38,8 +38,7 @@ class BoostyPromoTest(unittest.TestCase):
         navigation_css = NAVIGATION_CSS.read_text(encoding="utf-8")
 
         self.assertIn(".manacost-boosty-promo + .td_block_wrap", promo_css)
-        self.assertIn(".manacost-banner-rotator", promo_css)
-        self.assertIn("border-radius: 14px", promo_css)
+        self.assertNotIn(".manacost-banner-rotator", promo_css)
         self.assertIn("0 22px 60px rgba(15, 40, 70, 0.1)", promo_css)
         self.assertNotIn("0 14px 34px rgba(15, 40, 70, 0.22)", promo_css)
         self.assertIn("margin-top: 48px", promo_css)

@@ -27,6 +27,19 @@ async function removeDynamicEditorNotices(page: Page): Promise<void> {
 test.beforeEach(async ({ context }) => {
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
+    const partner = url.pathname.endsWith('/728x90.jpg.webp')
+      ? { label: 'PLAYEROK', color: '#123b5d' }
+      : url.pathname.endsWith('/728h90.png.webp')
+        ? { label: 'SIRUS', color: '#35206e' }
+        : null;
+    if (partner) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml',
+        body: `<svg xmlns="http://www.w3.org/2000/svg" width="729" height="90" viewBox="0 0 729 90"><rect width="729" height="90" fill="${partner.color}"/><text x="364.5" y="56" fill="#fff" font-family="sans-serif" font-size="28" font-weight="700" text-anchor="middle">${partner.label}</text></svg>`,
+      });
+      return;
+    }
     if (['127.0.0.1', 'localhost'].includes(url.hostname)) await route.continue();
     else await route.abort();
   });
@@ -40,6 +53,17 @@ for (const target of [
   test(`public ${target.name} page`, async ({ page }) => {
     const response = await page.goto(target.path, { waitUntil: 'domcontentloaded' });
     expect(response?.status(), 'A screenshot of an error page is not a passing page test').toBe(200);
+    const partnership = page.getByRole('complementary', { name: 'Партнёры сайта' });
+    await expect(partnership).toBeVisible();
+    await expect(partnership.getByText('Реклама', { exact: true })).toBeVisible();
+    const partnerLinks = partnership.locator('a[rel~="sponsored"]');
+    await expect(partnerLinks).toHaveCount(2);
+    await partnerLinks.first().focus();
+    await expect(partnerLinks.first()).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(partnerLinks.nth(1)).toBeFocused();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    expect(await partnership.evaluate(element => Boolean(element.closest('.td-a-rec, .banner-rotator')))).toBe(false);
     await stabilize(page);
     await expect(page).toHaveScreenshot(`${target.name}.png`);
   });

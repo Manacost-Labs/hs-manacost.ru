@@ -111,14 +111,19 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
                     self.assertNotIn('font-family:Arial', result)
                     self.assertIn('name="manacost-perf-active"', result)
 
-    def test_font_repair_keeps_other_default_optimizations_active(self) -> None:
+    def test_font_repair_keeps_non_ad_default_optimizations_active(self) -> None:
         for mobile in (False, True):
             with self.subTest(mobile=mobile):
                 result = self.render_page(mobile=mobile)
                 self.assertIn('id="manacost-mobile-lite-critical"', result)
-                self.assertIn('class="banner-rotator manacost-banner-rotator"', result)
-                self.assertIn('class="manacost-banner-slide manacost-banner-slide-1"', result)
-                self.assertIn('class="manacost-banner-slide manacost-banner-slide-2"', result)
+                self.assertIn(
+                    '<div class="banner-rotator"><a href="https://example.com/first">',
+                    result,
+                )
+                self.assertNotIn("manacost-banner-rotator", result)
+                self.assertNotIn("manacost-banner-slide", result)
+                self.assertNotIn("manacostBannerFirst", result)
+                self.assertNotIn("/wp-content/uploads/2026/07/728x90.jpg", result)
                 self.assertIn(
                     'data-manacost-delayed-src="https://www.googletagmanager.com/gtag/js?id=test"',
                     result,

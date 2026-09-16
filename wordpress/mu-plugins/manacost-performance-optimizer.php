@@ -18,9 +18,6 @@ final class Manacost_Performance_Optimizer {
 	private const MOBILE_LCP         = 'https://hs-manacost.ru/wp-content/uploads/2026/05/budget-decks-696x353.webp';
 	private const DESKTOP_SECOND     = 'https://hs-manacost.ru/wp-content/uploads/2026/05/obzor-patcha-1068x542.webp';
 	private const MOBILE_SECOND      = 'https://hs-manacost.ru/wp-content/uploads/2026/05/obzor-patcha-696x353.webp';
-	private const DESKTOP_TOP_BANNER = 'https://hs-manacost.ru/wp-content/uploads/2026/07/728x90.jpg';
-	private const MOBILE_TOP_BANNER  = 'https://hs-manacost.ru/wp-content/uploads/2026/07/728x90.jpg';
-	private const SECOND_TOP_BANNER  = 'https://hs-manacost.ru/wp-content/uploads/2026/03/728h90.png.webp';
 
 	/** Registers the frontend output-buffer hook. */
 	public static function boot(): void {
@@ -49,12 +46,9 @@ final class Manacost_Performance_Optimizer {
 
 		if ( self::feature_enabled( 'MANACOST_MOBILE_LITE_ENABLED', true ) ) {
 			$html = self::add_first_view_assets( $html );
-			$html = self::normalize_banner_rotator( $html );
 
 			if ( self::is_mobile_request() ) {
-				$html = self::fix_mobile_banner_rotator_css( $html );
 				$html = self::replace_top_card_backgrounds( $html );
-				$html = str_replace( self::DESKTOP_TOP_BANNER, self::MOBILE_TOP_BANNER, $html );
 			}
 		}
 
@@ -69,60 +63,6 @@ final class Manacost_Performance_Optimizer {
 		}
 
 		return $html;
-	}
-
-	/**
-	 * Replaces the existing two-slide rotator with stable image dimensions.
-	 *
-	 * @param string $html Rendered page HTML.
-	 * @return string
-	 */
-	private static function normalize_banner_rotator( string $html ): string {
-		if ( strpos( $html, 'class="banner-rotator manacost-banner-rotator"' ) !== false || strpos( $html, 'banner-rotator' ) === false ) {
-			return $html;
-		}
-
-		$first_banner = self::is_mobile_request() ? self::MOBILE_TOP_BANNER : self::DESKTOP_TOP_BANNER;
-		$replacement  = '<div class="banner-rotator manacost-banner-rotator">'
-			. '<a class="manacost-banner-slide manacost-banner-slide-1" href="https://plrk.co/p/dr_hsmanacostru1806" rel="noopener" target="_blank">'
-			. '<img src="' . esc_url( $first_banner ) . '" alt="" width="729" height="90" fetchpriority="high" decoding="async">'
-			. '</a>'
-			. '<a class="manacost-banner-slide manacost-banner-slide-2" href="https://sirus.cc/hsmanacost" rel="noopener" target="_blank">'
-			. '<img src="' . esc_url( self::SECOND_TOP_BANNER ) . '" alt="" width="728" height="90" decoding="async">'
-			. '</a>'
-			. '</div>';
-
-		$result = preg_replace(
-			'#<div class="banner-rotator">\s*<a\b[\s\S]*?</a>\s*<a\b[\s\S]*?</a>\s*</div>#',
-			$replacement,
-			$html,
-			1
-		);
-		return $result ? $result : $html;
-	}
-
-	/**
-	 * Constrains the existing rotator styles on mobile requests.
-	 *
-	 * @param string $html Rendered page HTML.
-	 * @return string
-	 */
-	private static function fix_mobile_banner_rotator_css( string $html ): string {
-		$replacement = '@media screen and (max-width: 768px) {' . "\n"
-			. '.banner-rotator { min-height: 50px; height: 50px; width: calc(100vw - 40px); max-width: 768px; min-width: 0; left: 50%; transform: translateX(-50%); overflow: hidden; background: #002844 url("' . self::MOBILE_TOP_BANNER . '") center/contain no-repeat; }' . "\n"
-			. '.banner-rotator a { position: absolute; top: 0; left: 0; height: 100%; min-height: 0; }' . "\n"
-			. '.banner-rotator a:nth-child(1) { animation: manacostBannerFirst 10s infinite !important; animation-delay: 0s !important; }' . "\n"
-			. '.banner-rotator a:nth-child(2) { display: block !important; animation: manacostBannerSecond 10s infinite !important; animation-delay: 0s !important; }' . "\n"
-			. '.banner-rotator img { width: 100%; height: 100%; max-height: 50px; object-fit: contain; }' . "\n"
-			. '}';
-
-		$result = preg_replace(
-			'#@media\s+screen\s+and\s+\(max-width:\s*768px\)\s*\{\s*\.banner-rotator\s*\{.*?\.banner-rotator\s+img\s*\{.*?\}\s*\}#s',
-			$replacement,
-			$html,
-			1
-		);
-		return $result ? $result : $html;
 	}
 
 	/**
@@ -209,8 +149,7 @@ final class Manacost_Performance_Optimizer {
 		$desktop_preload    = '<link rel="preload" as="image" href="' . self::DESKTOP_LCP . '" fetchpriority="high">';
 		$responsive_preload =
 			'<link rel="preload" as="image" href="' . self::MOBILE_LCP . '" media="(max-width: 767px)" fetchpriority="high">' . "\n" .
-			'<link rel="preload" as="image" href="' . self::DESKTOP_LCP . '" media="(min-width: 768px)" fetchpriority="high">' . "\n" .
-			'<link rel="preload" as="image" href="' . self::MOBILE_TOP_BANNER . '" media="(max-width: 767px)">';
+			'<link rel="preload" as="image" href="' . self::DESKTOP_LCP . '" media="(min-width: 768px)" fetchpriority="high">';
 
 		if ( strpos( $html, $desktop_preload ) !== false ) {
 			$html = str_replace( $desktop_preload, $responsive_preload, $html );
@@ -223,17 +162,9 @@ final class Manacost_Performance_Optimizer {
 		}
 
 		$css = '<style id="manacost-mobile-lite-critical">'
-			. '.banner-rotator a:nth-child(1){animation:manacostBannerFirst 10s infinite!important;animation-delay:0s!important;}'
-			. '.banner-rotator a:nth-child(2){display:block!important;animation:manacostBannerSecond 10s infinite!important;animation-delay:0s!important;}'
-			. '.manacost-banner-rotator{position:relative!important;width:100%;max-width:729px;height:90px!important;min-height:90px!important;overflow:hidden;margin:0 auto;background:#002844;}'
-			. '.manacost-banner-rotator .manacost-banner-slide{position:absolute!important;inset:0;width:100%;height:100%!important;display:block!important;opacity:0;z-index:0;transition:none!important;}'
-			. '.manacost-banner-rotator img{display:block!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:contain;}'
-			. '@keyframes manacostBannerFirst{0%,48%{opacity:1;z-index:1;}52%,98%{opacity:0;z-index:0;}100%{opacity:1;z-index:1;}}'
-			. '@keyframes manacostBannerSecond{0%,48%{opacity:0;z-index:0;}52%,98%{opacity:1;z-index:1;}100%{opacity:0;z-index:0;}}'
 			. '@media(max-width:767px){'
 			. 'html,body{background:#010101;}'
 			. '.td-header-wrap,.td-mobile-header-wrap,.td-header-menu-wrap-full{background:#002844;}'
-			. '.manacost-banner-rotator{height:50px!important;min-height:50px!important;width:calc(100vw - 40px)!important;max-width:768px!important;min-width:0;left:50%;transform:translateX(-50%);}'
 			. '.td-a-rec img{max-width:100%;height:auto;}'
 			. 'a[href*="budzhetnye-kolody-hearthstone-kataklizm"] .entry-thumb.td-thumb-css{background-image:url("' . self::MOBILE_LCP . '")!important;}'
 			. 'a[href*="obzor-patcha-35-4-2"] .entry-thumb.td-thumb-css{background-image:url("' . self::MOBILE_SECOND . '")!important;}'

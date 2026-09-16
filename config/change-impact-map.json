@@ -140,7 +140,7 @@
       "checks": ["make integration", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/plausible-analytics.php", "wordpress/mu-plugins/manacost-ad-polish.php", "wordpress/mu-plugins/manacost-rsya-inline.php", "wordpress/mu-plugins/manacost-rsya-inline/**", "tests/test_rsya_inline_banner.py"],
+      "patterns": ["wordpress/mu-plugins/plausible-analytics.php", "wordpress/mu-plugins/manacost-ad-polish.php", "wordpress/mu-plugins/manacost-rsya-inline.php", "wordpress/mu-plugins/manacost-rsya-inline/**", "wordpress/mu-plugins/manacost-partner-placements.php", "wordpress/mu-plugins/manacost-partner-placements/**", "tests/test_rsya_inline_banner.py", "tests/test_partner_placements.py"],
       "owner": "ads-analytics",
       "classified": true,
       "risk": "high",
