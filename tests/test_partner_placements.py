@@ -174,6 +174,10 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("td-a-rec", markup)
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
+                self.assertEqual(
+                    "1.0.1",
+                    result["styles"]["manacost-partner-placements"][2],
+                )
 
         local_result = self.run_plugin(host="127.0.0.1:8888", local=True)
         self.assertIn('class="site-partnership"', local_result["markup"])
@@ -213,14 +217,22 @@ class PartnerPlacementsTest(unittest.TestCase):
                     )
                     self.assertIn("sirus.cc", result["ad_inserter"]["2"]["code"])
 
-    def test_styles_preserve_focus_and_responsive_layout(self) -> None:
+    def test_styles_place_the_rotator_in_the_header_without_a_white_strip(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
 
         self.assertIn(".site-partnership__item:focus-visible", css)
-        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", css)
+        self.assertIn("position: absolute", css)
+        self.assertIn("background: transparent", css)
+        self.assertIn("border: 0", css)
+        self.assertIn("@keyframes site-partnership-first", css)
+        self.assertIn("@keyframes site-partnership-second", css)
         self.assertIn("aspect-ratio: 729 / 90", css)
+        self.assertIn("@media (min-width: 768px)", css)
         self.assertIn("@media (max-width: 767px)", css)
-        self.assertIn("grid-template-columns: 1fr", css)
+        self.assertIn("position: relative", css)
+        self.assertIn("background: #002844", css)
+        self.assertNotIn("#f7f9fb", css)
+        self.assertNotIn("grid-template-columns", css)
         self.assertNotIn("display: none", css)
 
 

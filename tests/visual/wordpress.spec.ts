@@ -58,12 +58,26 @@ for (const target of [
     await expect(partnership.getByText('Реклама', { exact: true })).toBeVisible();
     const partnerLinks = partnership.locator('a[rel~="sponsored"]');
     await expect(partnerLinks).toHaveCount(2);
+    await expect(partnerLinks.first()).toHaveCSS('opacity', '1');
     await partnerLinks.first().focus();
     await expect(partnerLinks.first()).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(partnerLinks.nth(1)).toBeFocused();
+    await expect(partnerLinks.nth(1)).toHaveCSS('opacity', '1');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     expect(await partnership.evaluate(element => Boolean(element.closest('.td-a-rec, .banner-rotator')))).toBe(false);
+    const partnershipBackground = await partnership.evaluate(element => getComputedStyle(element).backgroundColor);
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      const headerBox = await page.locator('.td-header-wrap').boundingBox();
+      const partnershipBox = await partnership.boundingBox();
+      expect(headerBox).not.toBeNull();
+      expect(partnershipBox).not.toBeNull();
+      expect(partnershipBackground).toBe('rgba(0, 0, 0, 0)');
+      expect(partnershipBox!.y).toBeGreaterThanOrEqual(headerBox!.y);
+      expect(partnershipBox!.y + partnershipBox!.height).toBeLessThanOrEqual(headerBox!.y + headerBox!.height);
+    } else {
+      expect(partnershipBackground).toBe('rgb(0, 40, 68)');
+    }
     await stabilize(page);
     await expect(page).toHaveScreenshot(`${target.name}.png`);
   });
