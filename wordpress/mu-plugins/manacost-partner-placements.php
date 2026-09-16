@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Manacost
  *
  * @package Manacost
@@ -189,7 +189,7 @@ final class Manacost_Partner_Placements {
 						<img src="<?php echo esc_url( self::PLAYEROK_IMAGE ); ?>" width="729" height="90" alt="" decoding="async" fetchpriority="high">
 					</a>
 					<a class="site-partnership__item" href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Sirus — партнёр Manacost' ); ?>">
-						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="728" height="90" alt="" decoding="async">
+						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="729" height="90" alt="" decoding="async">
 					</a>
 				</div>
 			</div>
@@ -201,7 +201,7 @@ final class Manacost_Partner_Placements {
 	private static function sirus_placement_markup(): string {
 		return '<aside class="site-opening-note" aria-label="' . esc_attr( 'Реклама: Sirus' ) . '">'
 			. '<a class="site-opening-note__link" href="' . esc_url( self::SIRUS_LINK ) . '" target="_blank" rel="sponsored noopener noreferrer" aria-label="' . esc_attr( 'Sirus — партнёр Manacost' ) . '">'
-			. '<img src="' . esc_url( self::SIRUS_IMAGE ) . '" width="728" height="90" alt="" decoding="async" loading="lazy">'
+			. '<img src="' . esc_url( self::SIRUS_IMAGE ) . '" width="729" height="90" alt="" decoding="async" loading="lazy">'
 			. '</a></aside>';
 	}
 
