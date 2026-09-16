@@ -227,6 +227,15 @@ class PartnerPlacementsTest(unittest.TestCase):
         archive_result = self.run_plugin(singular_post=False)
         self.assertEqual("<p>Article body</p>", archive_result["content"])
 
+    def test_first_party_image_route_overrides_wordpress_404_status(self) -> None:
+        source = PLUGIN.read_text(encoding="utf-8")
+
+        success_status = source.index("status_header( 200 );")
+        content_type = source.index("header( 'Content-Type: image/webp' );")
+        body = source.index("echo $body")
+        self.assertLess(success_status, content_type)
+        self.assertLess(content_type, body)
+
     def test_skips_non_public_requests_and_unknown_hosts(self) -> None:
         contexts = (
             {"admin": True},
