@@ -175,7 +175,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.0.1",
+                    "1.0.2",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
@@ -234,6 +234,22 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertNotIn("#f7f9fb", css)
         self.assertNotIn("grid-template-columns", css)
         self.assertNotIn("display: none", css)
+
+    def test_styles_reserve_the_desktop_header_when_ad_filters_hide_the_logo_row(self) -> None:
+        css = STYLESHEET.read_text(encoding="utf-8")
+
+        header_selector = (
+            "#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap "
+            "> .td-header-wrap.td-header-style-1"
+        )
+        menu_selector = f"{header_selector} > .td-header-menu-wrap-full"
+
+        self.assertIn(header_selector, css)
+        self.assertIn(menu_selector, css)
+        self.assertIn("min-height: 218px", css)
+        self.assertIn("min-height: 222px", css)
+        self.assertIn("inset-block-end: 0", css)
+        self.assertIn("inset-inline: 0", css)
 
 
 if __name__ == "__main__":

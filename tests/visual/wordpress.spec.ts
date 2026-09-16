@@ -135,6 +135,27 @@ async function login(page: Page): Promise<void> {
   await page.waitForURL(/\/wp-admin\//);
 }
 
+test('authenticated desktop header survives cosmetic ad filtering', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'Desktop Newspaper header only');
+
+  await login(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.addStyleTag({ content: '.td-banner-wrap-full { display: none !important; }' });
+
+  const headerBox = await page.locator('.td-header-wrap').boundingBox();
+  const menuBox = await page.locator('.td-header-menu-wrap-full').boundingBox();
+  const partnershipBox = await page.getByRole('complementary', { name: 'Партнёры сайта' }).boundingBox();
+  const contentBox = await page.locator('.td-main-content-wrap').boundingBox();
+
+  expect(headerBox).not.toBeNull();
+  expect(menuBox).not.toBeNull();
+  expect(partnershipBox).not.toBeNull();
+  expect(contentBox).not.toBeNull();
+  expect(headerBox!.height).toBeGreaterThanOrEqual(222);
+  expect(partnershipBox!.y + partnershipBox!.height).toBeLessThanOrEqual(menuBox!.y);
+  expect(menuBox!.y + menuBox!.height).toBeLessThanOrEqual(contentBox!.y);
+});
+
 test('admin dashboard', async ({ page }) => {
   await login(page);
   await page.goto('/wp-admin/index.php', { waitUntil: 'domcontentloaded' });
