@@ -173,7 +173,7 @@ class PartnerPlacementsTest(unittest.TestCase):
 
                 self.assertEqual(1, markup.count('class="site-partnership"'))
                 self.assertIn('aria-label="Партнёры сайта"', markup)
-                self.assertIn('class="site-partnership__label">Реклама</', markup)
+                self.assertNotIn('class="site-partnership__label"', markup)
                 self.assertIn('href="https://plrk.co/p/hsmanacostru1708"', markup)
                 self.assertIn('class="site-masthead-mark"', markup)
                 self.assertIn(f'href="https://{host}/"', markup)
@@ -192,7 +192,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.0.3",
+                    "1.0.6",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
@@ -219,6 +219,7 @@ class PartnerPlacementsTest(unittest.TestCase):
 
         self.assertTrue(content.startswith('<aside class="site-opening-note"'))
         self.assertIn('aria-label="Реклама: Sirus"', content)
+        self.assertNotIn('class="site-opening-note__label"', content)
         self.assertIn('href="/site-link/secondary/"', content)
         self.assertIn('src="/site-media/secondary-mark/"', content)
         self.assertIn('rel="sponsored noopener noreferrer"', content)
@@ -292,6 +293,10 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertIn("inset-inline: 0", css)
         self.assertIn(".site-masthead-mark", css)
         self.assertIn(".site-opening-note", css)
+        self.assertNotIn(".site-partnership__label", css)
+        self.assertNotIn(".site-opening-note__label", css)
+        self.assertGreaterEqual(css.count("border-radius: 10px"), 2)
+        self.assertIn("box-shadow: 0 10px 28px rgba(2, 8, 18, 0.28)", css)
 
 
 if __name__ == "__main__":

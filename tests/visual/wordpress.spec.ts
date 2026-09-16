@@ -63,9 +63,11 @@ for (const target of [
     expect(response?.status(), 'A screenshot of an error page is not a passing page test').toBe(200);
     const partnership = page.getByRole('complementary', { name: 'Партнёры сайта' });
     await expect(partnership).toBeVisible();
-    await expect(partnership.getByText('Реклама', { exact: true })).toBeVisible();
+    await expect(partnership.getByText('Реклама', { exact: true })).toHaveCount(0);
     const partnerLinks = partnership.locator('a[rel~="sponsored"]');
     await expect(partnerLinks).toHaveCount(2);
+    await expect(partnerLinks.first()).toHaveCSS('border-radius', '10px');
+    await expect(partnerLinks.first()).not.toHaveCSS('box-shadow', 'none');
     if ((page.viewportSize()?.width ?? 0) >= 768) {
       await expect(page.getByRole('link', { name: 'Манакост — главная' })).toBeVisible();
     }
@@ -92,6 +94,9 @@ for (const target of [
     const openingPlacement = page.getByRole('complementary', { name: 'Реклама: Sirus' });
     if (target.name === 'article') {
       await expect(openingPlacement).toBeVisible();
+      await expect(openingPlacement.getByText('Реклама', { exact: true })).toHaveCount(0);
+      await expect(openingPlacement.locator('a')).toHaveCSS('border-radius', '10px');
+      await expect(openingPlacement.locator('a')).not.toHaveCSS('box-shadow', 'none');
       await expect(openingPlacement.locator('img')).toHaveJSProperty('naturalWidth', 729);
     } else {
       await expect(openingPlacement).toHaveCount(0);
