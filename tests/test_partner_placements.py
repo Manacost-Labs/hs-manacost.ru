@@ -27,6 +27,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         rest: bool = False,
         enabled: bool = True,
         local: bool = False,
+        singular_post: bool = False,
     ) -> dict[str, object]:
         feature_flag = (
             "define('MANACOST_PARTNER_PLACEMENTS_ENABLED', false);"
@@ -45,6 +46,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         $preview = {json.dumps(preview)};
         $rest = {json.dumps(rest)};
         $environment = {json.dumps("local" if local else "production")};
+        $singular_post = {json.dumps(singular_post)};
         $_SERVER['HTTP_HOST'] = {json.dumps(host)};
 
         function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {{
@@ -59,7 +61,10 @@ class PartnerPlacementsTest(unittest.TestCase):
         function is_preview() {{ $GLOBALS['conditional_calls']++; return $GLOBALS['preview']; }}
         function is_robots() {{ $GLOBALS['conditional_calls']++; return false; }}
         function is_trackback() {{ $GLOBALS['conditional_calls']++; return false; }}
-        function home_url() {{ return 'https://' . $_SERVER['HTTP_HOST']; }}
+        function home_url($path = '') {{ return 'https://' . $_SERVER['HTTP_HOST'] . $path; }}
+        function is_singular($type = '') {{ return $GLOBALS['singular_post'] && ($type === '' || $type === 'post'); }}
+        function in_the_loop() {{ return true; }}
+        function is_main_query() {{ return true; }}
         function wp_get_environment_type() {{ return $GLOBALS['environment']; }}
         function wp_parse_url($url, $component = -1) {{ return parse_url($url, $component); }}
         function wp_unslash($value) {{ return stripslashes($value); }}
@@ -123,6 +128,10 @@ class PartnerPlacementsTest(unittest.TestCase):
             call_user_func($entry[0]);
         }}
         $markup = ob_get_clean();
+        $content = '<p>Article body</p>';
+        foreach ($filters['the_content'] ?? [] as $entry) {{
+            $content = call_user_func($entry[0], $content);
+        }}
 
         echo json_encode([
             'actions' => array_keys($actions),
@@ -133,6 +142,7 @@ class PartnerPlacementsTest(unittest.TestCase):
             'ad_inserter' => $decoded_ad_inserter,
             'filter_conditional_calls' => $filter_conditional_calls,
             'markup' => $markup,
+            'content' => $content,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         """
         completed = subprocess.run(
@@ -149,8 +159,10 @@ class PartnerPlacementsTest(unittest.TestCase):
 
         self.assertIn("wp_enqueue_scripts", result["actions"])
         self.assertIn("td_wp_booster_after_header", result["actions"])
+        self.assertIn("template_redirect", result["actions"])
         self.assertIn("option_td_011", result["filters"])
         self.assertIn("option_ad_inserter", result["filters"])
+        self.assertIn("the_content", result["filters"])
         self.assertEqual(0, result["filter_conditional_calls"])
 
     def test_renders_transparent_first_party_placements_once_on_both_domains(self) -> None:
@@ -163,19 +175,24 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertIn('aria-label="Партнёры сайта"', markup)
                 self.assertIn('class="site-partnership__label">Реклама</', markup)
                 self.assertIn('href="https://plrk.co/p/hsmanacostru1708"', markup)
-                self.assertIn('href="https://sirus.cc/hsmanacost"', markup)
+                self.assertIn('class="site-masthead-mark"', markup)
+                self.assertIn(f'href="https://{host}/"', markup)
+                self.assertIn('src="/wp-content/uploads/2026/01/unnamed.png"', markup)
+                self.assertIn('href="/site-link/secondary/"', markup)
                 self.assertIn('rel="sponsored noopener noreferrer"', markup)
                 self.assertIn(
                     'src="/wp-content/uploads/2026/07/728x90.jpg.webp"', markup
                 )
                 self.assertIn(
-                    'src="/wp-content/uploads/2026/03/728h90.png.webp"', markup
+                    'src="/site-media/secondary-mark.webp"', markup
                 )
+                self.assertNotIn("sirus.cc", markup)
+                self.assertNotIn("728h90", markup)
                 self.assertNotIn("td-a-rec", markup)
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.0.2",
+                    "1.0.3",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
@@ -195,6 +212,20 @@ class PartnerPlacementsTest(unittest.TestCase):
         )
         self.assertEqual("", result["ad_inserter"]["2"]["code"])
         self.assertIn("yandex_rtb", result["ad_inserter"]["3"]["code"])
+
+    def test_places_sirus_before_the_main_single_article_content(self) -> None:
+        result = self.run_plugin(singular_post=True)
+        content = str(result["content"])
+
+        self.assertTrue(content.startswith('<aside class="site-opening-note"'))
+        self.assertIn('aria-label="Реклама: Sirus"', content)
+        self.assertIn('href="/site-link/secondary/"', content)
+        self.assertIn('src="/site-media/secondary-mark.webp"', content)
+        self.assertIn('rel="sponsored noopener noreferrer"', content)
+        self.assertTrue(content.endswith("<p>Article body</p>"))
+
+        archive_result = self.run_plugin(singular_post=False)
+        self.assertEqual("<p>Article body</p>", archive_result["content"])
 
     def test_skips_non_public_requests_and_unknown_hosts(self) -> None:
         contexts = (
@@ -250,6 +281,8 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertIn("min-height: 222px", css)
         self.assertIn("inset-block-end: 0", css)
         self.assertIn("inset-inline: 0", css)
+        self.assertIn(".site-masthead-mark", css)
+        self.assertIn(".site-opening-note", css)
 
 
 if __name__ == "__main__":

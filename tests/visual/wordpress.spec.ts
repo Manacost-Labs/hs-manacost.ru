@@ -29,7 +29,7 @@ test.beforeEach(async ({ context }) => {
     const url = new URL(route.request().url());
     const partner = url.pathname.endsWith('/728x90.jpg.webp')
       ? { label: 'PLAYEROK', color: '#123b5d' }
-      : url.pathname.endsWith('/728h90.png.webp')
+      : url.pathname.endsWith('/site-media/secondary-mark.webp') || url.pathname.endsWith('/728h90.png.webp')
         ? { label: 'SIRUS', color: '#35206e' }
         : null;
     if (partner) {
@@ -37,6 +37,14 @@ test.beforeEach(async ({ context }) => {
         status: 200,
         contentType: 'image/svg+xml',
         body: `<svg xmlns="http://www.w3.org/2000/svg" width="729" height="90" viewBox="0 0 729 90"><rect width="729" height="90" fill="${partner.color}"/><text x="364.5" y="56" fill="#fff" font-family="sans-serif" font-size="28" font-weight="700" text-anchor="middle">${partner.label}</text></svg>`,
+      });
+      return;
+    }
+    if (url.pathname.endsWith('/wp-content/uploads/2026/01/unnamed.png')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml',
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="321" height="234" viewBox="0 0 321 234"><rect width="321" height="234" rx="18" fill="#d8b46b"/><text x="160.5" y="128" fill="#1d252b" font-family="serif" font-size="38" font-weight="700" text-anchor="middle">MANACOST</text></svg>',
       });
       return;
     }
@@ -58,6 +66,9 @@ for (const target of [
     await expect(partnership.getByText('Реклама', { exact: true })).toBeVisible();
     const partnerLinks = partnership.locator('a[rel~="sponsored"]');
     await expect(partnerLinks).toHaveCount(2);
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      await expect(page.getByRole('link', { name: 'Манакост — главная' })).toBeVisible();
+    }
     await expect(partnerLinks.first()).toHaveCSS('opacity', '1');
     await partnerLinks.first().focus();
     await expect(partnerLinks.first()).toBeFocused();
@@ -77,6 +88,13 @@ for (const target of [
       expect(partnershipBox!.y + partnershipBox!.height).toBeLessThanOrEqual(headerBox!.y + headerBox!.height);
     } else {
       expect(partnershipBackground).toBe('rgb(0, 40, 68)');
+    }
+    const openingPlacement = page.getByRole('complementary', { name: 'Реклама: Sirus' });
+    if (target.name === 'article') {
+      await expect(openingPlacement).toBeVisible();
+      await expect(openingPlacement.locator('img')).toHaveJSProperty('naturalWidth', 729);
+    } else {
+      await expect(openingPlacement).toHaveCount(0);
     }
     await stabilize(page);
     await expect(page).toHaveScreenshot(`${target.name}.png`);
@@ -141,6 +159,10 @@ test('authenticated desktop header survives cosmetic ad filtering', async ({ pag
   await login(page);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.addStyleTag({ content: '.td-banner-wrap-full { display: none !important; }' });
+
+  const mastheadMark = page.getByRole('link', { name: 'Манакост — главная' });
+  await expect(mastheadMark).toBeVisible();
+  await expect(mastheadMark.locator('img')).toHaveJSProperty('naturalWidth', 321);
 
   const headerBox = await page.locator('.td-header-wrap').boundingBox();
   const menuBox = await page.locator('.td-header-menu-wrap-full').boundingBox();
