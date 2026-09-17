@@ -103,7 +103,8 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("smoke-check.sh production", production)
         self.assertIn("skip_novosibirsk", production)
         self.assertIn("MANACOST_SKIP_NOVOSIBIRSK", production)
-        self.assertIn("--preserve-env=MANACOST_SKIP_NOVOSIBIRSK", production)
+        self.assertIn("MAINTENANCE_MODE", production)
+        self.assertIn("skip-novosibirsk", production)
 
     def test_smoke_check_allows_only_an_explicit_novosibirsk_maintenance_exception(self) -> None:
         smoke = (ROOT / "ops/smoke-check.sh").read_text(encoding="utf-8")
@@ -168,6 +169,9 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("release_staging_refresh", script)
         self.assertNotIn("rocket_clean_", production_branch)
         self.assertNotIn("warm-staging-minified-assets.php", production_branch)
+        self.assertIn('maintenance_mode="${4:-}"', script)
+        self.assertIn("skip-novosibirsk", script)
+        self.assertIn('MANACOST_SKIP_NOVOSIBIRSK="$skip_novosibirsk"', script)
         self.assertIn("install -o root -g root -m 0755", installer_text)
         self.assertIn("/usr/local/sbin/hs-manacost-ci-deploy", installer_text)
         self.assertIn("Verify authorized deployment helper", staging)

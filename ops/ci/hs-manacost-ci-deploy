@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 3 ]]; then
-  echo 'Usage: hs-manacost-ci-deploy <staging|production> <commit-sha> <workspace>' >&2
-  exit 2
+if [[ $# -lt 3 || $# -gt 4 ]]; then
+	echo 'Usage: hs-manacost-ci-deploy <staging|production> <commit-sha> <workspace> [skip-novosibirsk]' >&2
+	exit 2
 fi
 
 environment="$1"
 commit_sha="$2"
 workspace="$3"
+maintenance_mode="${4:-}"
 runner_user='hs-manacost-runner'
 expected_workspace='/opt/actions-runner/hs-manacost/_work/hs-manacost.ru/hs-manacost.ru'
+
+case "$maintenance_mode" in
+	'') skip_novosibirsk='false' ;;
+	skip-novosibirsk) skip_novosibirsk='true' ;;
+	*) echo 'Unknown deployment maintenance mode.' >&2; exit 2 ;;
+esac
+
+if [[ "$environment" != production && -n "$maintenance_mode" ]]; then
+	echo 'The proxy maintenance mode is valid only for production promotion.' >&2
+	exit 2
+fi
 
 if [[ ! "$commit_sha" =~ ^[0-9a-f]{40}$ ]]; then
   echo 'A full 40-character commit SHA is required.' >&2
@@ -134,10 +146,11 @@ run_wp() {
   runuser -u koloda -- env \
     REQUEST_URI='/' \
     HTTP_HOST="$wordpress_host" \
-    SERVER_NAME="$wordpress_host" \
-    HTTPS='on' \
-    SERVER_PORT='443' \
-    /usr/local/bin/wp --path="$target_root" "$@"
+		SERVER_NAME="$wordpress_host" \
+		HTTPS='on' \
+		SERVER_PORT='443' \
+		MANACOST_SKIP_NOVOSIBIRSK="$skip_novosibirsk" \
+		/usr/local/bin/wp --path="$target_root" "$@"
 }
 
 run_wp core is-installed
