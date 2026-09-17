@@ -47,36 +47,23 @@
 		margin-block-end: 8px;
 	}
 
-	/* Turn the mobile homepage mosaic into distinct, readable editorial cards. */
+	/* Keep Newspaper's image-led mosaic, with enough separation to scan each story. */
 	body.home .td-big-grid-flex-post {
 		box-sizing: border-box;
-		inline-size: auto;
-		block-size: auto;
-		margin-inline: 12px;
-		margin-block-end: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.14);
-		border-radius: 10px;
-		background: #002844;
-		box-shadow: 0 6px 18px rgba(2, 8, 18, 0.22);
+		inline-size: calc(100% - 16px);
+		block-size: min(80vw, 300px);
+		margin-inline: 8px;
+		margin-block-end: 8px;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(2, 8, 18, 0.2);
 		overflow: hidden;
 	}
 
-	body.home .td-big-grid-flex-post .td-module-container {
-		display: flex;
-		flex-direction: column;
-		block-size: auto;
-		background: #002844;
-	}
-
+	body.home .td-big-grid-flex-post .td-module-container,
 	body.home .td-big-grid-flex-post .td-image-container,
 	body.home .td-big-grid-flex-post .td-image-wrap {
 		inline-size: 100%;
-		block-size: auto;
-		aspect-ratio: 16 / 9;
-	}
-
-	body.home .td-big-grid-flex-post .td-image-wrap {
-		padding-block-end: 0;
+		block-size: 100%;
 	}
 
 	body.home .td-big-grid-flex-post .entry-thumb {
@@ -88,23 +75,18 @@
 	}
 
 	body.home .td-big-grid-flex-post .td-module-meta-info {
-		position: static;
 		box-sizing: border-box;
-		inline-size: auto;
-		block-size: auto;
-		padding: 12px 16px 16px;
+		padding: 16px;
 		text-align: start;
-		background: #002844;
 	}
 
 	body.home .td-big-grid-flex-post .td-post-category {
-		margin-block-end: 8px;
+		margin-block-end: 6px;
 	}
 
-	body.home .td-big-grid-flex-post .entry-title {
-		inline-size: auto;
-		block-size: auto;
-		font-size: clamp(18px, 5.5vw, 21px);
+	body.home .td_block_big_grid_flex_1 .td-big-grid-flex-post .entry-title,
+	body.home .td_block_big_grid_flex_1 .td-big-grid-flex-post .entry-title a {
+		font-size: clamp(16px, 4.4vw, 17px);
 		line-height: 1.22;
 		text-align: start;
 	}

@@ -241,16 +241,6 @@
 		width: 100%;
 		margin-bottom: 12px;
 	}
-
-	.site-opening-note__link {
-		aspect-ratio: 5 / 1;
-		max-block-size: 70px;
-	}
-
-	.site-opening-note__link img {
-		object-fit: cover;
-		object-position: left center;
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {
