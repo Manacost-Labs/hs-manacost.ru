@@ -7,6 +7,11 @@ on:
         description: Full 40-character SHA already verified on staging
         required: true
         type: string
+      skip_novosibirsk:
+        description: Skip only the Novosibirsk edge while its maintenance is declared
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -97,5 +102,7 @@ jobs:
           DEPLOY_SHA: ${{ needs.verify-staging.outputs.commit_sha }}
         run: sudo /usr/local/sbin/hs-manacost-ci-deploy production "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
 
-      - name: Verify primary, mirror, origin and both RU proxies
+      - name: Verify primary, mirror, origin and available RU proxies
+        env:
+          MANACOST_SKIP_NOVOSIBIRSK: ${{ inputs.skip_novosibirsk || false }}
         run: ./ops/smoke-check.sh production
