@@ -228,7 +228,7 @@
 		position: relative;
 		z-index: 1;
 		width: 100%;
-		padding: 8px 12px;
+		padding: 4px 12px;
 		background: #002844;
 	}
 
@@ -239,7 +239,17 @@
 
 	.site-opening-note {
 		width: 100%;
-		margin-bottom: 20px;
+		margin-bottom: 12px;
+	}
+
+	.site-opening-note__link {
+		aspect-ratio: 5 / 1;
+		max-block-size: 70px;
+	}
+
+	.site-opening-note__link img {
+		object-fit: cover;
+		object-position: left center;
 	}
 }
 

@@ -1,0 +1,149 @@
+/**
+ * Public mobile layout adjustments owned by Manacost.
+ *
+ * These rules intentionally target rendered Newspaper component classes without
+ * changing the parent theme or generated tagDiv styles.
+ */
+
+@media (max-width: 767px) {
+	/* Let long article headings define the hero height instead of escaping upward. */
+	body.single-post .td-post-template-3 .td-post-header-holder.td-image-gradient {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		block-size: auto;
+		min-block-size: 200px;
+		overflow: hidden;
+	}
+
+	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-featured-image,
+	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-title {
+		grid-area: 1 / 1;
+	}
+
+	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-featured-image {
+		align-self: stretch;
+		block-size: 100%;
+		min-block-size: 200px;
+	}
+
+	body.single-post .td-post-template-3 .td-post-featured-image img {
+		inline-size: 100%;
+		block-size: 100%;
+		object-fit: cover;
+	}
+
+	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-title {
+		position: relative;
+		inset: auto;
+		align-self: end;
+		box-sizing: border-box;
+		inline-size: 100%;
+		padding: 0 20px 16px;
+	}
+
+	body.single-post .td-post-template-3 .td-post-title .entry-title {
+		font-size: clamp(21px, 6.2vw, 24px);
+		line-height: 1.18;
+		margin-block-end: 8px;
+	}
+
+	/* Turn the mobile homepage mosaic into distinct, readable editorial cards. */
+	body.home .td-big-grid-flex-post {
+		box-sizing: border-box;
+		inline-size: auto;
+		block-size: auto;
+		margin-inline: 12px;
+		margin-block-end: 12px;
+		border: 1px solid rgba(255, 255, 255, 0.14);
+		border-radius: 10px;
+		background: #002844;
+		box-shadow: 0 6px 18px rgba(2, 8, 18, 0.22);
+		overflow: hidden;
+	}
+
+	body.home .td-big-grid-flex-post .td-module-container {
+		display: flex;
+		flex-direction: column;
+		block-size: auto;
+		background: #002844;
+	}
+
+	body.home .td-big-grid-flex-post .td-image-container,
+	body.home .td-big-grid-flex-post .td-image-wrap {
+		inline-size: 100%;
+		block-size: auto;
+		aspect-ratio: 16 / 9;
+	}
+
+	body.home .td-big-grid-flex-post .td-image-wrap {
+		padding-block-end: 0;
+	}
+
+	body.home .td-big-grid-flex-post .entry-thumb {
+		inset: 0;
+		inline-size: 100%;
+		block-size: 100%;
+		background-position: center;
+		background-size: cover;
+	}
+
+	body.home .td-big-grid-flex-post .td-module-meta-info {
+		position: static;
+		box-sizing: border-box;
+		inline-size: auto;
+		block-size: auto;
+		padding: 12px 16px 16px;
+		text-align: start;
+		background: #002844;
+	}
+
+	body.home .td-big-grid-flex-post .td-post-category {
+		margin-block-end: 8px;
+	}
+
+	body.home .td-big-grid-flex-post .entry-title {
+		inline-size: auto;
+		block-size: auto;
+		font-size: clamp(18px, 5.5vw, 21px);
+		line-height: 1.22;
+		text-align: start;
+	}
+
+	body.home .td-big-grid-flex-post .entry-title a:focus-visible {
+		outline: 3px solid var(--td_theme_color, #2a77bf);
+		outline-offset: 3px;
+	}
+
+	/* Increase brand presence while retaining 44px+ menu and search targets. */
+	.td-header-menu-wrap-full,
+	.td-header-menu-wrap,
+	.td-header-main-menu {
+		block-size: 62px;
+	}
+
+	.td-mobile-logo img {
+		inset-block-start: 3px;
+		inline-size: auto;
+		block-size: 56px;
+		max-block-size: 56px;
+	}
+
+	#td-top-mobile-toggle a,
+	#td-header-search-button-mob {
+		block-size: 62px;
+		line-height: 62px;
+	}
+
+	.td-mobile-logo:focus-visible,
+	#td-top-mobile-toggle a:focus-visible,
+	#td-header-search-button-mob:focus-visible {
+		outline: 3px solid var(--td_theme_color, #2a77bf);
+		outline-offset: -4px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body.home .td-big-grid-flex-post .entry-thumb {
+		transition: none;
+	}
+}
