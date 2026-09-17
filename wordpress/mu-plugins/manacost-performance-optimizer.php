@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Manacost Performance Optimizer
- * Description: Front-page performance hardening for hs-manacost.ru without WP Rocket Delay JS.
- * Version: 1.0.0
+ * Description: Public-page performance hardening for hs-manacost.ru without delaying partner advertising.
+ * Version: 1.1.0
  * Author: Manacost
  *
  * @package Manacost
@@ -10,14 +10,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** Applies bounded performance changes to the anonymous home page. */
+/** Applies bounded performance changes to anonymous public pages. */
 final class Manacost_Performance_Optimizer {
-	private const PRIMARY_HOST       = 'hs-manacost.ru';
-	private const MIRROR_HOST        = 'hs-manacost.com';
-	private const DESKTOP_LCP        = 'https://hs-manacost.ru/wp-content/uploads/2026/05/budget-decks-1068x542.webp';
-	private const MOBILE_LCP         = 'https://hs-manacost.ru/wp-content/uploads/2026/05/budget-decks-696x353.webp';
-	private const DESKTOP_SECOND     = 'https://hs-manacost.ru/wp-content/uploads/2026/05/obzor-patcha-1068x542.webp';
-	private const MOBILE_SECOND      = 'https://hs-manacost.ru/wp-content/uploads/2026/05/obzor-patcha-696x353.webp';
+	private const PRIMARY_HOST = 'hs-manacost.ru';
+	private const MIRROR_HOST  = 'hs-manacost.com';
 
 	/** Registers the frontend output-buffer hook. */
 	public static function boot(): void {
@@ -45,16 +41,19 @@ final class Manacost_Performance_Optimizer {
 		}
 
 		if ( self::feature_enabled( 'MANACOST_MOBILE_LITE_ENABLED', true ) ) {
-			$html = self::add_first_view_assets( $html );
+			$html = self::remove_legacy_first_view_assets( $html );
+			$html = self::optimize_first_view( $html );
+			$html = self::add_mobile_critical_assets( $html );
 
 			if ( self::is_mobile_request() ) {
-				$html = self::replace_top_card_backgrounds( $html );
+				$html = self::remove_mobile_webfonts( $html );
 			}
 		}
 
 		if ( self::feature_enabled( 'MANACOST_DEFER_THIRD_PARTY_ENABLED', true ) ) {
 			$html = self::remove_third_party_hints( $html );
 			$html = self::defer_third_party_scripts( $html );
+			$html = self::delay_yandex_metrica_inline( $html );
 			$html = self::delay_liveinternet_counter( $html );
 		}
 
@@ -66,7 +65,7 @@ final class Manacost_Performance_Optimizer {
 	}
 
 	/**
-	 * Checks the host, public request context, and home-page route.
+	 * Checks the host and public request context.
 	 *
 	 * @return bool
 	 */
@@ -98,7 +97,13 @@ final class Manacost_Performance_Optimizer {
 			: '/';
 		$path        = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
 
-		return '/' === $path || is_front_page() || is_home();
+		foreach ( array( '/wp-admin', '/wp-login.php', '/wp-json', '/reader-api', '/account' ) as $excluded_path ) {
+			if ( str_starts_with( $path, $excluded_path ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -140,110 +145,232 @@ final class Manacost_Performance_Optimizer {
 	}
 
 	/**
-	 * Adds responsive image preloads and the existing first-view styles once.
+	 * Optimizes the first meaningful image on public listing pages.
 	 *
 	 * @param string $html Rendered page HTML.
 	 * @return string
 	 */
-	private static function add_first_view_assets( string $html ): string {
-		$desktop_preload    = '<link rel="preload" as="image" href="' . self::DESKTOP_LCP . '" fetchpriority="high">';
-		$responsive_preload =
-			'<link rel="preload" as="image" href="' . self::MOBILE_LCP . '" media="(max-width: 767px)" fetchpriority="high">' . "\n" .
-			'<link rel="preload" as="image" href="' . self::DESKTOP_LCP . '" media="(min-width: 768px)" fetchpriority="high">';
-
-		if ( strpos( $html, $desktop_preload ) !== false ) {
-			$html = str_replace( $desktop_preload, $responsive_preload, $html );
-		} elseif ( strpos( $html, self::MOBILE_LCP ) === false ) {
-			$html = self::inject_into_head( $html, $responsive_preload . "\n" );
-		}
-
-		if ( strpos( $html, 'id="manacost-mobile-lite-critical"' ) !== false ) {
+	private static function optimize_first_view( string $html ): string {
+		if ( ! self::is_listing_request() ) {
 			return $html;
 		}
 
-		$css = '<style id="manacost-mobile-lite-critical">'
-			. '@media(max-width:767px){'
-			. 'html,body{background:#010101;}'
-			. '.td-header-wrap,.td-mobile-header-wrap,.td-header-menu-wrap-full{background:#002844;}'
-			. '.td-a-rec img{max-width:100%;height:auto;}'
-			. 'a[href*="budzhetnye-kolody-hearthstone-kataklizm"] .entry-thumb.td-thumb-css{background-image:url("' . self::MOBILE_LCP . '")!important;}'
-			. 'a[href*="obzor-patcha-35-4-2"] .entry-thumb.td-thumb-css{background-image:url("' . self::MOBILE_SECOND . '")!important;}'
-			. '.manacost-lcp-thumb{background-image:none!important;overflow:hidden;}'
-			. '.manacost-lcp-picture,.manacost-lcp-picture img{display:block;width:100%;height:100%;}'
-			. '.manacost-lcp-picture img{object-fit:cover;}'
-			. '}</style>' . "\n";
+		$lcp_url = '';
+		$html    = self::promote_home_grid_cards( $html, $lcp_url );
 
-		return self::inject_into_head( $html, $css );
+		if ( '' === $lcp_url ) {
+			$html = self::promote_first_listing_thumbnail( $html, $lcp_url );
+		}
+
+		if ( '' === $lcp_url ) {
+			return $html;
+		}
+
+		$html = preg_replace(
+			'#<link\b(?=[^>]*\brel=["\']preload["\'])(?=[^>]*\bas=["\']image["\'])[^>]*>\s*#i',
+			'',
+			$html
+		) ?? $html;
+
+		$preload = '<link id="manacost-lcp-preload" rel="preload" as="image" href="' . esc_url( $lcp_url ) . '" fetchpriority="high">' . "\n";
+
+		return self::inject_into_head( $html, $preload );
 	}
 
 	/**
-	 * Converts the two configured top-card backgrounds to responsive images.
+	 * Converts the first two homepage grid backgrounds into discoverable images.
 	 *
-	 * @param string $html Rendered page HTML.
+	 * @param string $html    Rendered page HTML.
+	 * @param string $lcp_url Selected LCP URL, populated by reference.
 	 * @return string
 	 */
-	private static function replace_top_card_backgrounds( string $html ): string {
-		$html = self::replace_top_card_background(
-			$html,
-			'budzhetnye-kolody-hearthstone-kataklizm',
-			self::DESKTOP_LCP,
-			self::MOBILE_LCP,
-			'11 лучших бюджетных колод КАТАКЛИЗМА до 3000 пыли',
-			true
-		);
+	private static function promote_home_grid_cards( string $html, string &$lcp_url ): string {
+		$grid_offset = stripos( $html, 'td-big-grid-flex' );
+		if ( false === $grid_offset ) {
+			return $html;
+		}
 
-		return self::replace_top_card_background(
-			$html,
-			'obzor-patcha-35-4-2',
-			self::DESKTOP_SECOND,
-			self::MOBILE_SECOND,
-			'Обзор патча 35.4.2',
-			false
-		);
-	}
+		$before = substr( $html, 0, $grid_offset );
+		$grid   = substr( $html, $grid_offset );
+		$seen   = 0;
 
-	/**
-	 * Converts one matching card while preserving its existing link.
-	 *
-	 * @param string $html          Rendered page HTML.
-	 * @param string $slug          Target article slug.
-	 * @param string $desktop_url   Desktop image URL.
-	 * @param string $mobile_url    Mobile image URL.
-	 * @param string $alt           Existing article title.
-	 * @param bool   $high_priority Whether to prioritize the image request.
-	 * @return string
-	 */
-	private static function replace_top_card_background(
-		string $html,
-		string $slug,
-		string $desktop_url,
-		string $mobile_url,
-		string $alt,
-		bool $high_priority
-	): string {
-		$pattern = '#(<a\b(?=[^>]*href=["\'][^"\']*' . preg_quote( $slug, '#' ) . '[^"\']*["\'])(?=[^>]*\bclass=["\'][^"\']*\btd-image-wrap\b)[^>]*>)(<span\b(?=[^>]*\bentry-thumb\b)(?=[^>]*\btd-thumb-css\b)[^>]*>\s*</span>)(</a>)#i';
-
-		$result = preg_replace_callback(
-			$pattern,
-			static function ( array $matches ) use ( $desktop_url, $mobile_url, $alt, $high_priority ): string {
-				if ( strpos( $matches[2], 'manacost-lcp-thumb' ) !== false ) {
+		$grid = preg_replace_callback(
+			'#(<a\b(?=[^>]*\bclass=["\'][^"\']*\btd-image-wrap\b)[^>]*>)(\s*)(<span\b(?=[^>]*\bclass=["\'][^"\']*\bentry-thumb\b)[^>]*>)(\s*</span>)(\s*</a>)#i',
+			static function ( array $matches ) use ( &$seen, &$lcp_url ): string {
+				$desktop_url = self::image_url_from_tag( $matches[3] );
+				if ( '' === $desktop_url ) {
 					return $matches[0];
 				}
 
-				$priority_attr = $high_priority ? ' fetchpriority="high"' : '';
-				$thumb         = '<span class="entry-thumb td-thumb-css manacost-lcp-thumb">'
+				$mobile_url = self::mobile_size_url( $desktop_url );
+				$alt        = self::extract_attr( $matches[1], 'title' );
+				$priority   = 0 === $seen;
+				$seen++;
+
+				if ( $priority ) {
+					$lcp_url = self::is_mobile_request() ? $mobile_url : $desktop_url;
+				}
+
+				$thumb = '<span class="entry-thumb td-thumb-css manacost-lcp-thumb">'
 					. '<picture class="manacost-lcp-picture">'
 					. '<source media="(max-width: 767px)" srcset="' . esc_url( $mobile_url ) . '">'
-					. '<img src="' . esc_url( $desktop_url ) . '" alt="' . esc_attr( $alt ) . '" width="1068" height="542" decoding="async" loading="eager"' . $priority_attr . '>'
-					. '</picture>'
-					. '</span>';
+					. '<img src="' . esc_url( $desktop_url ) . '" alt="' . esc_attr( $alt ) . '" width="1068" height="542" decoding="async" loading="eager"'
+					. ( $priority ? ' fetchpriority="high"' : '' )
+					. ' sizes="(max-width: 767px) 100vw, 50vw">'
+					. '</picture></span>';
 
-				return $matches[1] . $thumb . $matches[3];
+				return $matches[1] . $matches[2] . $thumb . $matches[5];
+			},
+			$grid,
+			2
+		) ?? $grid;
+
+		return $before . $grid;
+	}
+
+	/**
+	 * Promotes the first real Newspaper listing thumbnail out of Rocket lazyload.
+	 *
+	 * @param string $html    Rendered page HTML.
+	 * @param string $lcp_url Selected LCP URL, populated by reference.
+	 * @return string
+	 */
+	private static function promote_first_listing_thumbnail( string $html, string &$lcp_url ): string {
+		$result = preg_replace_callback(
+			'#(<div\b(?=[^>]*\bclass=["\'][^"\']*\btd-module-thumb\b)[^>]*>[\s\S]*?<img\b(?=[^>]*\bclass=["\'][^"\']*\bentry-thumb\b)(?=[^>]*\bdata-lazy-src=)[^>]*>)#i',
+			static function ( array $matches ) use ( &$lcp_url ): string {
+				$tag     = $matches[1];
+				$img_pos = strripos( $tag, '<img' );
+				if ( false === $img_pos ) {
+					return $tag;
+				}
+
+				$prefix  = substr( $tag, 0, $img_pos );
+				$img_tag = substr( $tag, $img_pos );
+				$lcp_url = self::extract_attr( $img_tag, 'data-lazy-src' );
+				if ( '' === $lcp_url ) {
+					return $tag;
+				}
+
+				$srcset  = self::extract_attr( $img_tag, 'data-lazy-srcset' );
+				$sizes   = self::extract_attr( $img_tag, 'data-lazy-sizes' );
+				$img_tag = preg_replace( '/\s(?:src|data-lazy-src|data-lazy-srcset|data-lazy-sizes|loading|fetchpriority)=(?:["\']).*?["\']/i', '', $img_tag ) ?? $img_tag;
+				$attrs   = ' src="' . esc_url( $lcp_url ) . '" loading="eager" fetchpriority="high" decoding="async"';
+				$attrs  .= '' !== $srcset ? ' srcset="' . esc_attr( $srcset ) . '"' : '';
+				$attrs  .= '' !== $sizes ? ' sizes="' . esc_attr( $sizes ) . '"' : '';
+				$img_tag = preg_replace( '/\s*\/?\>$/', $attrs . '>', $img_tag, 1 ) ?? $img_tag;
+
+				return $prefix . $img_tag;
 			},
 			$html,
 			1
 		);
-		return $result ? $result : $html;
+
+		return $result ?? $html;
+	}
+
+	/**
+	 * Adds mobile background and typography budgets without affecting icon fonts.
+	 *
+	 * @param string $html Rendered page HTML.
+	 * @return string
+	 */
+	private static function add_mobile_critical_assets( string $html ): string {
+		$critical = '<style id="manacost-mobile-lite-critical">@media(max-width:767px){'
+			. 'html,body{background:#010101!important;background-image:none!important;}'
+			. '.td-header-wrap,.td-mobile-header-wrap,.td-header-menu-wrap-full{background:#002844;}'
+			. '.td-a-rec img{max-width:100%;height:auto;}'
+			. '.manacost-lcp-thumb{background-image:none!important;overflow:hidden;}'
+			. '.manacost-lcp-picture,.manacost-lcp-picture img{display:block;width:100%;height:100%;}'
+			. '.manacost-lcp-picture img{object-fit:cover;}'
+			. '}</style>' . "\n";
+		$fonts    = '<style id="manacost-mobile-font-budget">@media(max-width:1024px){'
+			. 'body,body .entry-title,body .entry-title a,body .td-block-title,body .td-block-title *,body .td-post-category,body .td-pulldown-size,body .tdm-descr,body .td-author-date,body .td-editor-date,body .sf-menu>li>a,body .td-module-comments,body .td-read-more a{font-family:Arial,"Helvetica Neue",sans-serif!important;}'
+			. '}</style>' . "\n";
+
+		return self::inject_into_head( $html, $critical . $fonts );
+	}
+
+	/**
+	 * Removes hosted Google Fonts only for mobile responses using the system-font budget above.
+	 *
+	 * @param string $html Rendered page HTML.
+	 * @return string
+	 */
+	private static function remove_mobile_webfonts( string $html ): string {
+		$patterns = array(
+			'#<link\b(?=[^>]*\brel=["\'](?:preconnect|dns-prefetch)["\'])(?=[^>]*\bhref=["\'](?:https?:)?//fonts\.(?:googleapis|gstatic)\.com)[^>]*>\s*#i',
+			'#<link\b(?=[^>]*(?:data-wpr-hosted-gf-parameters|href=["\'][^"\']*fonts\.googleapis\.com))[^>]*>\s*#i',
+			'#<noscript\b(?=[^>]*data-wpr-hosted-gf-parameters)[^>]*>[\s\S]*?</noscript>\s*#i',
+			'#<link\b(?=[^>]*\brel=["\']preload["\'])(?=[^>]*\bas=["\']font["\'])(?=[^>]*\bhref=["\'][^"\']*/google-fonts/)[^>]*>\s*#i',
+		);
+
+		return preg_replace( $patterns, '', $html ) ?? $html;
+	}
+
+	/**
+	 * Removes stale first-view assets emitted by the older overlapping optimizers.
+	 *
+	 * @param string $html Rendered page HTML.
+	 * @return string
+	 */
+	private static function remove_legacy_first_view_assets( string $html ): string {
+		return preg_replace(
+			'#<style\b[^>]*id=["\'](?:manacost-mobile-lite-critical|manacost-mobile-font-budget|hs-mobile-first-view-assets)["\'][^>]*>[\s\S]*?</style>\s*#i',
+			'',
+			$html
+		) ?? $html;
+	}
+
+	/**
+	 * Returns the first background URL stored on a Newspaper thumbnail span.
+	 *
+	 * @param string $tag Thumbnail tag.
+	 * @return string
+	 */
+	private static function image_url_from_tag( string $tag ): string {
+		$url = self::extract_attr( $tag, 'data-bg' );
+		if ( '' !== $url ) {
+			return $url;
+		}
+
+		if ( preg_match( '#background-image:\s*url\((?:&quot;|["\']?)(https?://[^)"\']+)(?:&quot;|["\']?)\)#i', $tag, $match ) ) {
+			return html_entity_decode( $match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Derives the registered Newspaper mobile crop from its large-grid crop.
+	 *
+	 * @param string $url Large-grid image URL.
+	 * @return string
+	 */
+	private static function mobile_size_url( string $url ): string {
+		$result = preg_replace( '/-1068x542(?=\.(?:jpe?g|png|webp)(?:[?#]|$))/i', '-696x353', $url, 1 );
+		return $result && $result !== $url ? $result : $url;
+	}
+
+	/** Returns whether the current request is a public content listing. */
+	private static function is_listing_request(): bool {
+		if ( is_front_page() || is_home() ) {
+			return true;
+		}
+
+		foreach ( array( 'is_category', 'is_tag', 'is_archive', 'is_search' ) as $conditional ) {
+			if ( function_exists( $conditional ) && $conditional() ) {
+				return true;
+			}
+		}
+
+		$request_uri = '/';
+		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+			$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+		}
+		$path = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
+
+		return (bool) preg_match( '#^/(?:category|tag|author|search)/#', $path );
 	}
 
 	/**
@@ -299,7 +426,7 @@ final class Manacost_Performance_Optimizer {
 	 * @return string
 	 */
 	private static function remove_third_party_hints( string $html ): string {
-		$domains = '(?:pagead2\.googlesyndication\.com|fundingchoicesmessages\.google\.com|www\.googletagmanager\.com|www\.google-analytics\.com|mc\.yandex\.ru|counter\.yadro\.ru)';
+		$domains = '(?:www\.googletagmanager\.com|www\.google-analytics\.com|mc\.yandex\.ru|counter\.yadro\.ru)';
 
 		$result = preg_replace(
 			'#<link\b(?=[^>]*rel=["\'](?:preconnect|dns-prefetch)["\'])(?=[^>]*href=["\'](?:https?:)?//' . $domains . '[^"\']*["\'])[^>]*>\s*#i',
@@ -337,6 +464,37 @@ HTML;
 	}
 
 	/**
+	 * Defers the legacy inline Yandex Metrica loader until well after first paint.
+	 *
+	 * @param string $html Rendered page HTML.
+	 * @return string
+	 */
+	private static function delay_yandex_metrica_inline( string $html ): string {
+		if ( false === strpos( $html, 'yandex-metrica-watch/watch.js' ) ) {
+			return $html;
+		}
+
+		$replacement = <<<'JS'
+if (w.opera == "[object Opera]") {
+            d.addEventListener("DOMContentLoaded", function () { w.setTimeout(f, 15000); }, false);
+        } else if (d.readyState === "complete") {
+            w.setTimeout(f, 15000);
+        } else {
+            w.addEventListener("load", function () { w.setTimeout(f, 15000); }, false);
+        }
+JS;
+
+		$result = preg_replace(
+			'#if\s*\(\s*w\.opera\s*==\s*"\[object Opera\]"\s*\)\s*\{\s*d\.addEventListener\("DOMContentLoaded",\s*f,\s*false\);\s*\}\s*else\s*\{\s*f\(\);\s*\}#',
+			$replacement,
+			$html,
+			1
+		);
+
+		return $result ?? $html;
+	}
+
+	/**
 	 * Rewrites one existing script as inert markup for the delay gate.
 	 *
 	 * @param array<int, string> $matches Full regex match and captured script URL.
@@ -346,7 +504,7 @@ HTML;
 		$tag = $matches[0];
 		$src = html_entity_decode( $matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
-		if ( ! preg_match( '#(?:pagead2\.googlesyndication\.com|fundingchoicesmessages\.google\.com|googletagmanager\.com|google-analytics\.com|mc\.yandex\.ru|/wp-content/plugins/ad-inserter/js/ai-functions\.min\.js)#i', $src ) ) {
+		if ( ! preg_match( '#(?:googletagmanager\.com|google-analytics\.com|mc\.yandex\.ru)#i', $src ) ) {
 			return $tag;
 		}
 
