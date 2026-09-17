@@ -5,6 +5,17 @@
  * changing the parent theme or generated tagDiv styles.
  */
 
+@media (min-width: 768px) and (max-width: 1140px) {
+	/* Keep the Newspaper grid white without painting its tablet side gutters. */
+	body.single-post .td-post-template-3 {
+		background-color: transparent;
+	}
+
+	body.single-post .td-post-template-3 > .td-container {
+		background-color: #fff;
+	}
+}
+
 @media (max-width: 767px) {
 	/* Keep the article cover while making variable-length text reliably readable. */
 	body.single-post .td-post-template-3 .td-post-header-holder.td-image-gradient {

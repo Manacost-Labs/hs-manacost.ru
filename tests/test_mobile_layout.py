@@ -63,7 +63,7 @@ class MobileLayoutTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-mobile-layout/mobile-layout.css",
             result["styles"]["manacost-mobile-layout"][0],
         )
-        self.assertEqual("1.0.4", result["styles"]["manacost-mobile-layout"][2])
+        self.assertEqual("1.0.5", result["styles"]["manacost-mobile-layout"][2])
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
@@ -106,6 +106,15 @@ class MobileLayoutTest(unittest.TestCase):
         self.assertIn(":focus-visible", css)
         self.assertNotIn("user-scalable=no", css)
         self.assertNotIn("overflow-x: hidden", css)
+
+    def test_tablet_article_keeps_white_inside_the_grid_without_white_outer_gutters(self) -> None:
+        css = STYLESHEET.read_text(encoding="utf-8")
+
+        self.assertIn("@media (min-width: 768px) and (max-width: 1140px)", css)
+        self.assertIn("body.single-post .td-post-template-3 {", css)
+        self.assertIn("background-color: transparent", css)
+        self.assertIn("body.single-post .td-post-template-3 > .td-container", css)
+        self.assertIn("background-color: #fff", css)
 
 
 if __name__ == "__main__":
