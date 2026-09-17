@@ -103,6 +103,7 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("smoke-check.sh production", production)
         self.assertIn("skip_novosibirsk", production)
         self.assertIn("MANACOST_SKIP_NOVOSIBIRSK", production)
+        self.assertIn("--preserve-env=MANACOST_SKIP_NOVOSIBIRSK", production)
 
     def test_smoke_check_allows_only_an_explicit_novosibirsk_maintenance_exception(self) -> None:
         smoke = (ROOT / "ops/smoke-check.sh").read_text(encoding="utf-8")

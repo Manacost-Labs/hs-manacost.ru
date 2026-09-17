@@ -1381,21 +1381,21 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 404
+        "line": 412
       },
       {
         "name": "cloudflare_api_key",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 415
+        "line": 423
       },
       {
         "name": "cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 393
+        "line": 401
       },
       {
         "name": "date_format",
@@ -1780,35 +1780,35 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 413
+        "line": 421
       },
       {
         "name": "manacost_cloudflare_api_token",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 433
+        "line": 441
       },
       {
         "name": "manacost_cloudflare_email",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 402
+        "line": 410
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 391
+        "line": 399
       },
       {
         "name": "manacost_cloudflare_zone_id",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 528
+        "line": 536
       },
       {
         "name": "manacost_ingest_logs",
@@ -2032,7 +2032,7 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
-        "line": 372
+        "line": 380
       }
     ],
     "shortcodes": [
