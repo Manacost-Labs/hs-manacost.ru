@@ -6,94 +6,59 @@
  */
 
 @media (max-width: 767px) {
-	/* Let long article headings define the hero height instead of escaping upward. */
+	/* Use a calm editorial header on phones instead of placing text over the cover. */
 	body.single-post .td-post-template-3 .td-post-header-holder.td-image-gradient {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
 		block-size: auto;
-		min-block-size: 200px;
-		overflow: hidden;
+		min-block-size: 0;
+		background: #fff;
+		border-block-end: 1px solid rgba(0, 40, 68, 0.12);
+		overflow: visible;
 	}
 
-	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-featured-image,
-	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-title {
-		grid-area: 1 / 1;
+	body.single-post .td-post-template-3 .td-post-header-holder.td-image-gradient::before,
+	body.single-post .td-post-template-3 .td-post-header-holder.td-image-gradient::after {
+		content: none;
+		display: none;
 	}
 
 	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-featured-image {
-		align-self: stretch;
-		block-size: 100%;
-		min-block-size: 200px;
-	}
-
-	body.single-post .td-post-template-3 .td-post-featured-image img {
-		inline-size: 100%;
-		block-size: 100%;
-		object-fit: cover;
+		display: none;
 	}
 
 	body.single-post .td-post-template-3 .td-post-header-holder > .td-post-title {
-		position: relative;
+		position: static;
 		inset: auto;
-		align-self: end;
 		box-sizing: border-box;
 		inline-size: 100%;
-		padding: 0 20px 16px;
+		padding: 24px 20px 20px;
+		color: #172331;
 	}
 
 	body.single-post .td-post-template-3 .td-post-title .entry-title {
-		font-size: clamp(21px, 6.2vw, 24px);
-		line-height: 1.18;
-		margin-block-end: 8px;
+		margin-block-end: 12px;
+		color: #172331;
+		font-size: clamp(26px, 7.4vw, 32px);
+		font-weight: 700;
+		line-height: 1.14;
+		text-align: center;
 	}
 
-	/* Keep Newspaper's image-led mosaic, with enough separation to scan each story. */
-	body.home .td-big-grid-flex-post {
-		box-sizing: border-box;
-		inline-size: calc(100% - 16px);
-		block-size: min(80vw, 300px);
-		margin-inline: 8px;
-		margin-block-end: 8px;
-		border-radius: 8px;
-		box-shadow: 0 4px 12px rgba(2, 8, 18, 0.2);
-		overflow: hidden;
+	body.single-post .td-post-template-3 .td-post-title .td-post-sub-title {
+		margin-block: 0 16px;
+		color: #4d5966;
+		font-size: 17px;
+		line-height: 1.5;
 	}
 
-	body.home .td-big-grid-flex-post .td-module-container,
-	body.home .td-big-grid-flex-post .td-image-container,
-	body.home .td-big-grid-flex-post .td-image-wrap {
-		inline-size: 100%;
-		block-size: 100%;
+	body.single-post .td-post-template-3 .td-post-title .td-module-meta-info,
+	body.single-post .td-post-template-3 .td-post-title .td-post-date,
+	body.single-post .td-post-template-3 .td-post-title .td-post-views,
+	body.single-post .td-post-template-3 .td-post-title .td-post-comments a {
+		color: #64717d;
 	}
 
-	body.home .td-big-grid-flex-post .entry-thumb {
-		inset: 0;
-		inline-size: 100%;
-		block-size: 100%;
-		background-position: center;
-		background-size: cover;
-	}
-
-	body.home .td-big-grid-flex-post .td-module-meta-info {
-		box-sizing: border-box;
-		padding: 16px;
-		text-align: start;
-	}
-
-	body.home .td-big-grid-flex-post .td-post-category {
-		margin-block-end: 6px;
-	}
-
-	body.home .td_block_big_grid_flex_1 .td-big-grid-flex-post .entry-title,
-	body.home .td_block_big_grid_flex_1 .td-big-grid-flex-post .entry-title a {
-		font-size: clamp(16px, 4.4vw, 17px);
-		line-height: 1.22;
-		text-align: start;
-	}
-
-	body.home .td-big-grid-flex-post .entry-title a:focus-visible {
-		outline: 3px solid var(--td_theme_color, #2a77bf);
-		outline-offset: 3px;
+	body.single-post .td-post-template-3 .td-post-title .td-post-author-name a {
+		color: #344150;
 	}
 
 	/* Increase brand presence while retaining 44px+ menu and search targets. */
@@ -121,11 +86,5 @@
 	#td-header-search-button-mob:focus-visible {
 		outline: 3px solid var(--td_theme_color, #2a77bf);
 		outline-offset: -4px;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	body.home .td-big-grid-flex-post .entry-thumb {
-		transition: none;
 	}
 }

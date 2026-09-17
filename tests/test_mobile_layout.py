@@ -63,36 +63,35 @@ class MobileLayoutTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-mobile-layout/mobile-layout.css",
             result["styles"]["manacost-mobile-layout"][0],
         )
-        self.assertEqual("1.0.0", result["styles"]["manacost-mobile-layout"][2])
+        self.assertEqual("1.0.1", result["styles"]["manacost-mobile-layout"][2])
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
 
-    def test_mobile_css_owns_the_article_header_cards_and_logo(self) -> None:
+    def test_mobile_css_replaces_the_article_cover_with_a_plain_text_header(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
 
         self.assertIn("@media (max-width: 767px)", css)
         self.assertIn(".td-post-header-holder.td-image-gradient", css)
-        self.assertIn("display: grid", css)
+        self.assertIn("background: #fff", css)
+        self.assertIn("min-block-size: 0", css)
+        self.assertIn(".td-post-header-holder.td-image-gradient::before", css)
+        self.assertIn("content: none", css)
+        self.assertIn("display: none", css)
         self.assertIn(".td-post-title", css)
-        self.assertIn("position: relative", css)
-        self.assertIn(".td-big-grid-flex-post", css)
-        self.assertIn(".td-module-meta-info", css)
-        self.assertIn("inline-size: calc(100% - 16px)", css)
-        self.assertIn("block-size: min(80vw, 300px)", css)
-        self.assertIn("margin-inline: 8px", css)
-        self.assertIn("margin-block-end: 8px", css)
-        self.assertIn("font-size: clamp(16px, 4.4vw, 17px)", css)
-        self.assertNotIn("flex-direction: column", css)
-        self.assertNotIn("position: static", css)
+        self.assertIn("position: static", css)
+        self.assertIn("font-size: clamp(26px, 7.4vw, 32px)", css)
+        self.assertIn("font-weight: 700", css)
+        self.assertIn("text-align: center", css)
+        self.assertIn("color: #172331", css)
+        self.assertNotIn("body.home .td-big-grid-flex-post", css)
         self.assertIn(".td-mobile-logo img", css)
         self.assertIn("block-size: 56px", css)
 
-    def test_mobile_css_preserves_focus_and_reduced_motion_contracts(self) -> None:
+    def test_mobile_css_preserves_focus_and_zoom_contracts(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
 
         self.assertIn(":focus-visible", css)
-        self.assertIn("@media (prefers-reduced-motion: reduce)", css)
         self.assertNotIn("user-scalable=no", css)
         self.assertNotIn("overflow-x: hidden", css)
 
