@@ -63,7 +63,7 @@ class MobileLayoutTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-mobile-layout/mobile-layout.css",
             result["styles"]["manacost-mobile-layout"][0],
         )
-        self.assertEqual("1.0.3", result["styles"]["manacost-mobile-layout"][2])
+        self.assertEqual("1.0.4", result["styles"]["manacost-mobile-layout"][2])
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
@@ -81,9 +81,12 @@ class MobileLayoutTest(unittest.TestCase):
         self.assertIn(".td-post-title", css)
         self.assertIn("position: relative", css)
         self.assertIn("justify-content: flex-end", css)
-        self.assertIn("font-size: 24px", css)
+        self.assertIn("font-size: clamp(22px, 6.15vw, 24px)", css)
         self.assertIn("font-weight: 600", css)
         self.assertIn("text-align: start", css)
+        self.assertIn("text-wrap: balance", css)
+        self.assertIn("overflow-wrap: anywhere", css)
+        self.assertIn("hyphens: auto", css)
         self.assertIn("text-shadow", css)
         self.assertIn("font-size: 15px", css)
         self.assertIn("justify-content: flex-start", css)

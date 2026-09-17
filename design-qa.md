@@ -5,6 +5,7 @@
 - Source visual truth: `/home/debian/.codex/attachments/3c27a702-ebd5-47a6-a199-f3267593b89a/codex-clipboard-44f0f3e1-36bc-4642-85ec-d7c37767b5c6.png`
 - Browser implementation at 390 px: `.artifacts/article-clean-header/article-390-cover-overlay.png`
 - Browser implementation at 320 px: `.artifacts/article-clean-header/article-320-cover-overlay.png`
+- Long-title stress state at 320 px: `.artifacts/article-clean-header/article-320-long-title.png`
 - Combined comparison: `.artifacts/design-qa/cover-overlay-reference-vs-built.png`
 - Route: `https://hs-manacost.ru/novie-karty-hearthstone-temnaya-imperiya-sentyabr-16/`
 - State: anonymous article view with the worktree stylesheet injected after production CSS; analytics and `admin-ajax.php` were blocked to avoid production mutations.
@@ -21,6 +22,7 @@
 - No actionable P0, P1, or P2 differences remain for the requested article header treatment.
 - Fonts and typography: the implementation preserves the site font, uses a 24 px/600 white heading with 1.18 line height, a 15 px italic subtitle, and text shadows that remain readable over detailed artwork.
 - Spacing and layout rhythm: the text container grows with content. It is 280 px high at 390 px and 329.8 px at 320 px, with the title and subtitle fully contained at both widths.
+- Long-copy resilience: a substantially longer title plus longer subtitle produces seven title lines at 320 px and six at 390 px; the header grows to 391.7/358 px without clipping or horizontal overflow. An unbroken stress-test token also wraps without overflow.
 - Colors and visual tokens: a controlled three-stop dark gradient increases from 42% near the top to 90% near the text-heavy bottom. White and translucent-white text retain clear hierarchy.
 - Image quality and assets: the real WordPress featured image is used with `object-fit: cover`; no generated, duplicated, or substitute image is introduced.
 - Copy and content: live title, subtitle, date, and view count are preserved. The reference omits metadata, but retaining the compact metadata row is an intentional content-preservation decision.
@@ -38,6 +40,7 @@ A separate crop was not needed: the normalized combined comparison renders the c
 1. The earlier selected direction removed the mobile cover and used a white editorial header. The user replaced that direction with a cover-overlay reference.
 2. The cover was restored as an absolutely positioned real featured image; a three-stop overlay and content-sized title container were added.
 3. Post-fix browser evidence confirms the 320 px heading grows the header instead of clipping, while the 390 px version keeps the compact 280 px composition shown in the reference.
+4. Long-copy hardening adds a 22–24 px fluid title size, balanced wrapping, automatic hyphenation, and emergency wrapping for unbroken tokens. Post-fix evidence is the long-title stress screenshot and measured zero overflow at 320/390 px.
 
 ## Follow-up polish
 
