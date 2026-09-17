@@ -100,7 +100,8 @@ jobs:
       - name: Deploy the verified revision
         env:
           DEPLOY_SHA: ${{ needs.verify-staging.outputs.commit_sha }}
-        run: sudo /usr/local/sbin/hs-manacost-ci-deploy production "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
+          MANACOST_SKIP_NOVOSIBIRSK: ${{ inputs.skip_novosibirsk || false }}
+        run: sudo --preserve-env=MANACOST_SKIP_NOVOSIBIRSK /usr/local/sbin/hs-manacost-ci-deploy production "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
 
       - name: Verify primary, mirror, origin and available RU proxies
         env:

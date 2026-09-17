@@ -15,7 +15,21 @@ define( 'ABSPATH', '/fixture/' );
 define( 'WP_CONTENT_DIR', $argv[3] );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'MINUTE_IN_SECONDS', 60 );
-define( 'MANACOST_REVERSE_PROXY_PURGE_ENDPOINTS', 'https://edge.fixture/purge' );
+$scenario = $argv[2];
+$regional_config_scenario = in_array(
+	$scenario,
+	[ 'reverse_config_both_edges', 'reverse_config_novosibirsk_maintenance' ],
+	true
+);
+define(
+	'MANACOST_REVERSE_PROXY_PURGE_ENDPOINTS',
+	$regional_config_scenario
+		? 'https://194.67.92.242/purge https://186.246.28.244/purge'
+		: 'https://edge.fixture/purge'
+);
+if ( 'reverse_config_novosibirsk_maintenance' === $scenario ) {
+	putenv( 'MANACOST_SKIP_NOVOSIBIRSK=true' );
+}
 define( 'MANACOST_REVERSE_PROXY_PURGE_TOKEN', 'fixture-token' );
 define( 'MANACOST_REVERSE_PROXY_PURGE_HOST', 'example.test' );
 define( 'MANACOST_CLOUDFLARE_ZONE_ID', 'fixture-zone' );
@@ -39,6 +53,7 @@ $GLOBALS['fixture'] = [
 	'allow_schedule' => false,
 	'options' => [],
 	'posts' => [],
+	'reverse_endpoints' => [],
 ];
 
 function add_action( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): void {
@@ -99,7 +114,6 @@ foreach ( [ 'wp-rocket', 'min', 'busting', 'critical-css', 'used-css', 'backgrou
 
 require $argv[1];
 
-$scenario = $argv[2];
 $published_post = new WP_Post( 'post', 'publish' );
 $published_page = new WP_Post( 'page', 'publish' );
 $published_custom = new WP_Post( 'event', 'publish' );
@@ -166,6 +180,13 @@ switch ( $scenario ) {
 		$GLOBALS['fixture']['reverse_should_fail'] = true;
 		$direct_results = Manacost_Cache_Purge::run_async_purge( 'ci_deploy' );
 		break;
+	case 'reverse_config_both_edges':
+	case 'reverse_config_novosibirsk_maintenance':
+		$method = new ReflectionMethod( Manacost_Cache_Purge::class, 'reverse_proxy_config' );
+		$method->setAccessible( true );
+		$config = $method->invoke( null );
+		$GLOBALS['fixture']['reverse_endpoints'] = $config['endpoints'];
+		break;
 	case 'async_unknown':
 		Manacost_Cache_Purge::run_async_purge( 'unrecognised_origin' );
 		break;
@@ -202,4 +223,5 @@ echo json_encode( [
 	'registered_actions' => $GLOBALS['fixture']['registered_actions'],
 	'scheduled_events' => $GLOBALS['fixture']['scheduled_events'],
 	'local_cache_marker_exists' => file_exists( WP_CONTENT_DIR . '/cache/wp-rocket/marker' ),
+	'reverse_endpoints' => $GLOBALS['fixture']['reverse_endpoints'],
 ], JSON_THROW_ON_ERROR );
