@@ -253,7 +253,8 @@ def main():
                     "Cookie": "synthetic-private-cookie", "Authorization": "Bearer synthetic-fixture"
                 })
                 assert (status, body) == (200, expected), (status, headers, body)
-                assert headers["Vary"] == "Accept" and "max-age=300" in headers["Cache-Control"]
+                assert headers["Vary"] == "Accept" and "max-age=604800" in headers["Cache-Control"]
+                assert "stale-while-revalidate=2592000" in headers["Cache-Control"]
                 assert "x-amz-request-id" not in headers
                 assert request("remote.jpg", accept, "HEAD")[2] == b""
             assert all("Cookie" not in headers and "Authorization" not in headers

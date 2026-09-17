@@ -1,0 +1,54 @@
+{
+  "name": "Plausible sampled Core Web Vitals",
+  "owner": "Manacost frontend operations",
+  "purpose": "Measure aggregate LCP, INP, and CLS quality buckets after mobile performance releases.",
+  "direction": "outbound",
+  "endpoints": {
+    "browser_proxy": "https://hs-manacost.ru/mca/event",
+    "tracker": "https://hs-manacost.ru/mca/script.js"
+  },
+  "authentication": {
+    "method": "none; first-party Plausible proxy",
+    "secret_variables": []
+  },
+  "data_classes": [
+    "aggregate performance metric name",
+    "bounded performance rating",
+    "bounded value bucket",
+    "navigation type"
+  ],
+  "timeout_seconds": 5,
+  "retry": {
+    "max_attempts": 1,
+    "retryable_conditions": [],
+    "backoff": "none"
+  },
+  "idempotency": {
+    "source": "one in-memory send guard per sampled page navigation",
+    "not_supported": "provider does not accept a client idempotency key"
+  },
+  "rate_limit": {
+    "expected": "five percent of production page navigations; at most one event per available metric",
+    "on_429": "drop the optional measurement without retry"
+  },
+  "observability": {
+    "metric": "Plausible custom event named Web Vital",
+    "structured_outcome": "metric, rating, value_bucket, navigation_type",
+    "correlation_identifier": "none"
+  },
+  "degradation": {
+    "user_visible_fallback": "none; reading and advertising continue when observers or analytics are unavailable",
+    "data_preservation": "optional sample is dropped"
+  },
+  "disable_switch": {
+    "configuration": "set MANACOST_WEB_VITALS_ENABLED=false in environment configuration",
+    "owner": "Manacost frontend operations"
+  },
+  "privacy": {
+    "personal_data": "none added by the RUM event",
+    "persistent_identifier": "none",
+    "raw_url": false,
+    "cookies_or_local_storage": false,
+    "staging": "disabled"
+  }
+}
