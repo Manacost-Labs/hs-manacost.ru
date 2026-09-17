@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Mobile Layout
  * Description: Applies update-safe mobile presentation fixes to public Newspaper surfaces.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Manacost
  *
  * @package Manacost
@@ -27,7 +27,7 @@ final class Manacost_Mobile_Layout {
 			'manacost-mobile-layout',
 			plugin_dir_url( __FILE__ ) . 'manacost-mobile-layout/mobile-layout.css',
 			array(),
-			'1.0.2'
+			'1.0.3'
 		);
 	}
 }
