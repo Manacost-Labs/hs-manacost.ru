@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function manacost_telegram_news_strip_markup(): string {
 	return <<<'HTML'
-<aside class="manacost-telegram-news td-container" aria-label="Новости Manacost в Telegram">
+<aside class="manacost-telegram-news" aria-label="Новости Manacost в Telegram">
 	<a class="manacost-telegram-news__link" href="https://t.me/manacost_ru" target="_blank" rel="noopener noreferrer" aria-label="Открыть канал Manacost в Telegram">
 		<svg class="manacost-telegram-news__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21.8 3.4 18.5 20c-.2 1.2-1 1.5-1.9.9l-5.4-4-2.6 2.5c-.3.3-.5.5-1 .5l.4-5.5 10.1-9.1c.4-.4-.1-.6-.7-.2L4.9 13 1 11.8c-1.1-.3-1.1-1.1.2-1.6L20.1 3c.9-.3 1.9.2 1.7.4Z"/></svg>
 		<span>Актуальные и быстрые новости в Telegram</span>
@@ -73,7 +73,8 @@ function manacost_render_telegram_news_strip_style(): void {
 			box-sizing: border-box;
 			clear: both;
 			color: #fff;
-			margin: 0 auto;
+			margin: 0;
+			width: 100%;
 		}
 
 		.manacost-telegram-news__link {
