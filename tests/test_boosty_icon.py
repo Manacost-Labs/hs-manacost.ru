@@ -41,7 +41,7 @@ class BoostyIconTest(unittest.TestCase):
         self.assertIn("justify-content: center", completed.stdout)
         self.assertNotIn("#f15f2c", completed.stdout)
 
-    def test_injects_a_labeled_telegram_news_link_inside_public_page_content(self) -> None:
+    def test_injects_the_telegram_news_link_after_the_header_when_partner_block_precedes_it(self) -> None:
         script = f"""
         define('ABSPATH', '/');
         $actions = [];
@@ -55,7 +55,7 @@ class BoostyIconTest(unittest.TestCase):
         require {json.dumps(str(PLUGIN))};
         $markup = manacost_telegram_news_strip_markup();
         echo manacost_inject_telegram_news_strip(
-            '<div class="td-header-wrap"></div><div class="td-main-content-wrap"></div>'
+            '<aside class="site-partnership"></aside><div class="td-header-wrap"></div><div class="td-main-content-wrap"></div>'
         );
         echo "\nMARKUP:\n" . $markup;
         """
@@ -70,8 +70,12 @@ class BoostyIconTest(unittest.TestCase):
         self.assertIn('aria-label="Открыть канал Manacost в Telegram"', completed.stdout)
         self.assertIn('rel="noopener noreferrer"', completed.stdout)
         self.assertLess(
-            completed.stdout.index("td-main-content-wrap"),
+            completed.stdout.index("td-header-wrap"),
             completed.stdout.index("manacost-telegram-news"),
+        )
+        self.assertLess(
+            completed.stdout.index("manacost-telegram-news"),
+            completed.stdout.index("td-main-content-wrap"),
         )
 
     def test_starts_the_telegram_strip_on_non_homepage_public_pages(self) -> None:
@@ -97,6 +101,35 @@ class BoostyIconTest(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual("started", completed.stdout)
+
+    def test_injects_the_telegram_news_link_between_header_and_partner_block(self) -> None:
+        script = f"""
+        define('ABSPATH', '/');
+        $actions = [];
+        function add_action($hook, $callback, $priority = 10) {{
+            $GLOBALS['actions'][$hook][] = [$callback, $priority];
+        }}
+        function is_admin() {{ return false; }}
+        function is_feed() {{ return false; }}
+        function is_preview() {{ return false; }}
+        require {json.dumps(str(PLUGIN))};
+        echo manacost_inject_telegram_news_strip(
+            '<div class="td-header-wrap"><nav></nav></div><aside class="site-partnership"></aside><div class="td-main-content-wrap"></div>'
+        );
+        """
+        completed = subprocess.run(
+            [PHP_BINARY, "-r", script], check=False, capture_output=True, text=True
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertLess(
+            completed.stdout.index("td-header-wrap"),
+            completed.stdout.index("manacost-telegram-news"),
+        )
+        self.assertLess(
+            completed.stdout.index("manacost-telegram-news"),
+            completed.stdout.index("site-partnership"),
+        )
 
 
 if __name__ == "__main__":

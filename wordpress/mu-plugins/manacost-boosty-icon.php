@@ -25,14 +25,21 @@ HTML;
 }
 
 /**
- * Inserts the Telegram strip inside Newspaper's main-content wrapper.
+ * Inserts the Telegram strip directly beneath the Newspaper header.
  *
  * @param string $html Rendered public-page markup.
  * @return string
  */
 function manacost_inject_telegram_news_strip( string $html ): string {
-	$pattern  = '/(<div\b[^>]*\bclass=(["\'])[^"\']*\btd-main-content-wrap\b[^"\']*\2[^>]*>)/i';
-	$injected = preg_replace( $pattern, '$1' . manacost_telegram_news_strip_markup(), $html, 1 );
+	$header_pattern = '/(<div\b[^>]*\bclass=(?:["\'])[^"\']*\btd-header-wrap\b[^"\']*(?:["\'])[^>]*>.*?)(<aside\b[^>]*\bclass=(?:["\'])[^"\']*\bsite-partnership\b[^"\']*(?:["\'])[^>]*>)/is';
+	$injected       = preg_replace( $header_pattern, '$1' . manacost_telegram_news_strip_markup() . '$2', $html, 1 );
+
+	if ( is_string( $injected ) && $injected !== $html ) {
+		return $injected;
+	}
+
+	$main_pattern = '/(<div\b[^>]*\bclass=(?:["\'])[^"\']*\btd-main-content-wrap\b[^"\']*(?:["\'])[^>]*>)/i';
+	$injected     = preg_replace( $main_pattern, manacost_telegram_news_strip_markup() . '$1', $html, 1 );
 
 	return is_string( $injected ) ? $injected : $html;
 }
@@ -63,8 +70,10 @@ function manacost_render_telegram_news_strip_style(): void {
 	<style id="manacost-telegram-news-strip-style">
 		.manacost-telegram-news {
 			background: #2a77bf;
+			box-sizing: border-box;
+			clear: both;
 			color: #fff;
-			margin-bottom: 10px;
+			margin: 0 auto;
 		}
 
 		.manacost-telegram-news__link {
