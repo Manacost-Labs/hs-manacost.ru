@@ -21,6 +21,7 @@ class BoostyIconTest(unittest.TestCase):
             $GLOBALS['actions'][$hook][] = [$callback, $priority];
         }}
         function is_admin() {{ return false; }}
+		function is_front_page() {{ return false; }}
         require {json.dumps(str(PLUGIN))};
         ob_start();
         foreach ($actions['wp_head'] ?? [] as $entry) {{
@@ -39,6 +40,38 @@ class BoostyIconTest(unittest.TestCase):
         self.assertIn("align-items: center", completed.stdout)
         self.assertIn("justify-content: center", completed.stdout)
         self.assertNotIn("#f15f2c", completed.stdout)
+
+    def test_injects_a_labeled_telegram_news_link_before_homepage_content(self) -> None:
+        script = f"""
+        define('ABSPATH', '/');
+        $actions = [];
+        function add_action($hook, $callback, $priority = 10) {{
+            $GLOBALS['actions'][$hook][] = [$callback, $priority];
+        }}
+        function is_admin() {{ return false; }}
+        function is_feed() {{ return false; }}
+        function is_preview() {{ return false; }}
+        function is_front_page() {{ return true; }}
+        require {json.dumps(str(PLUGIN))};
+        $markup = manacost_telegram_news_strip_markup();
+        echo manacost_inject_telegram_news_strip(
+            '<div class="td-header-wrap"></div><div class="td-main-content-wrap"></div>'
+        );
+        echo "\nMARKUP:\n" . $markup;
+        """
+        completed = subprocess.run(
+            [PHP_BINARY, "-r", script], check=False, capture_output=True, text=True
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn('href="https://t.me/manacost_ru"', completed.stdout)
+        self.assertIn("Актуальные и быстрые новости в Telegram", completed.stdout)
+        self.assertIn('aria-label="Открыть канал Manacost в Telegram"', completed.stdout)
+        self.assertIn('rel="noopener noreferrer"', completed.stdout)
+        self.assertLess(
+            completed.stdout.index("manacost-telegram-news"),
+            completed.stdout.index("td-main-content-wrap"),
+        )
 
 
 if __name__ == "__main__":
