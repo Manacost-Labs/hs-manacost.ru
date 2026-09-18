@@ -65,8 +65,8 @@ class BoostyIconTest(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn('href="https://t.me/manacost_ru"', completed.stdout)
-        self.assertIn('class="manacost-telegram-news"', completed.stdout)
-        self.assertNotIn('manacost-telegram-news td-container', completed.stdout)
+        self.assertIn('class="manacost-telegram-news td-container-wrap"', completed.stdout)
+        self.assertNotIn('manacost-telegram-news td-container"', completed.stdout)
         self.assertIn("Актуальные и быстрые новости в Telegram", completed.stdout)
         self.assertIn('aria-label="Открыть канал Manacost в Telegram"', completed.stdout)
         self.assertIn('rel="noopener noreferrer"', completed.stdout)
