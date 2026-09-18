@@ -25,6 +25,22 @@ HTML;
 }
 
 /**
+ * Returns the public-site link to the official Boosty support page.
+ *
+ * @return string
+ */
+function manacost_boosty_footer_strip_markup(): string {
+	return <<<'HTML'
+<aside class="manacost-boosty-footer" aria-label="Поддержка Manacost на Boosty">
+	<a class="manacost-boosty-footer__link" href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" aria-label="Поддержать Manacost на Boosty">
+		<span class="manacost-boosty-footer__icon" aria-hidden="true"></span>
+		<span>Поддержите Manacost на Boosty</span>
+	</a>
+</aside>
+HTML;
+}
+
+/**
  * Inserts the Telegram strip directly beneath the Newspaper header.
  *
  * @param string $html Rendered public-page markup.
@@ -35,11 +51,18 @@ function manacost_inject_telegram_news_strip( string $html ): string {
 	$injected       = preg_replace( $header_pattern, '$1' . manacost_telegram_news_strip_markup() . '$2', $html, 1 );
 
 	if ( is_string( $injected ) && $injected !== $html ) {
-		return $injected;
+		$html = $injected;
+	} else {
+		$main_pattern = '/(<div\b[^>]*\bclass=(?:["\'])[^"\']*\btd-main-content-wrap\b[^"\']*(?:["\'])[^>]*>)/i';
+		$injected     = preg_replace( $main_pattern, manacost_telegram_news_strip_markup() . '$1', $html, 1 );
+
+		if ( is_string( $injected ) ) {
+			$html = $injected;
+		}
 	}
 
-	$main_pattern = '/(<div\b[^>]*\bclass=(?:["\'])[^"\']*\btd-main-content-wrap\b[^"\']*(?:["\'])[^>]*>)/i';
-	$injected     = preg_replace( $main_pattern, manacost_telegram_news_strip_markup() . '$1', $html, 1 );
+	$footer_pattern = '/(<div\b[^>]*\bclass=(?:["\'])[^"\']*\btd-footer-wrapper\b[^"\']*(?:["\'])[^>]*>)/i';
+	$injected       = preg_replace( $footer_pattern, '$1' . manacost_boosty_footer_strip_markup(), $html, 1 );
 
 	return is_string( $injected ) ? $injected : $html;
 }
@@ -83,13 +106,39 @@ function manacost_render_telegram_news_strip_style(): void {
 			display: flex;
 			font-family: Arial, "Helvetica Neue", sans-serif;
 			box-sizing: border-box;
-			font-size: 14px;
+			font-size: 13px;
 			font-weight: 700;
-			gap: 8px;
+			gap: 7px;
 			justify-content: center;
 			line-height: 1.2;
-			min-height: 44px;
-			padding: 0 16px;
+			min-height: 40px;
+			padding: 0 14px;
+			text-align: center;
+			text-decoration: none;
+		}
+
+		.manacost-boosty-footer {
+			background: #f15f2c;
+			box-sizing: border-box;
+			clear: both;
+			color: #fff;
+			margin: 0;
+			width: 100%;
+		}
+
+		.manacost-boosty-footer__link {
+			align-items: center;
+			box-sizing: border-box;
+			color: inherit;
+			display: flex;
+			font-family: Arial, "Helvetica Neue", sans-serif;
+			font-size: 13px;
+			font-weight: 700;
+			gap: 7px;
+			justify-content: center;
+			line-height: 1.2;
+			min-height: 40px;
+			padding: 0 14px;
 			text-align: center;
 			text-decoration: none;
 		}
@@ -99,16 +148,29 @@ function manacost_render_telegram_news_strip_style(): void {
 			color: #fff;
 		}
 
-		.manacost-telegram-news__link:focus-visible {
+		.manacost-boosty-footer__link:hover {
+			background: #d94f20;
+			color: #fff;
+		}
+
+		.manacost-telegram-news__link:focus-visible,
+		.manacost-boosty-footer__link:focus-visible {
 			outline: 3px solid #fff;
 			outline-offset: -3px;
 		}
 
 		.manacost-telegram-news__icon {
 			fill: currentColor;
-			flex: 0 0 16px;
+			flex: 0 0 14px;
+			height: 14px;
+			width: 14px;
+		}
+
+		.manacost-boosty-footer__icon {
+			background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='80 45 165 205'%3E%3Cpath fill='%23fff' d='M87.5,163.9L120.2,51h50.1l-10.1,35c-.1.2-.2.4-.3.6L133.3,179h24.8c-10.4,25.9-18.5,46.2-24.3,60.9-45.8-.5-58.6-33.3-47.4-72.1M133.9,240l60.4-86.9h-25.6l22.3-55.7c38.2,4,56.2,34.1,45.6,70.5-11.3,39.1-57.2,72.1-101.8,72.1h-.9z'/%3E%3C/svg%3E") center / contain no-repeat;
+			flex: 0 0 12px;
 			height: 16px;
-			width: 16px;
+			width: 12px;
 		}
 
 		@media (max-width: 767px) {
