@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: Manacost
  *
  * @package Manacost
@@ -20,7 +20,11 @@ final class Manacost_Partner_Placements {
 	private const SIRUS_SOURCE   = 'https://hs-manacost.ru/wp-content/uploads/2026/03/728h90.png.webp';
 	private const BRAND_IMAGE    = '/wp-content/uploads/2026/01/unnamed.png';
 
-	/** Prevents themes that fire the header hook twice from duplicating the placement. */
+	/**
+	 * Prevents themes that fire the header hook twice from duplicating the placement.
+	 *
+	 * @var bool
+	 */
 	private static bool $rendered = false;
 
 	/** Registers supported public extension points before regular plugins and the theme load. */
@@ -89,7 +93,7 @@ final class Manacost_Partner_Placements {
 
 		$value[2]['code'] = '';
 
-		return $encoded ? ':AI:' . base64_encode( serialize( $value ) ) : $value; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+		return $encoded ? ':AI:' . base64_encode( serialize( $value ) ) : $value; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize,WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Required by Ad Inserter's trusted option format.
 	}
 
 	/** Loads the small layout stylesheet only on eligible public requests. */
@@ -102,11 +106,15 @@ final class Manacost_Partner_Placements {
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.css',
 			array(),
-			'1.0.6'
+			'1.0.7'
 		);
 	}
 
-	/** Adds the direct Sirus placement before the main body of a single article. */
+	/**
+	 * Adds the direct Sirus placement before the main body of a single article.
+	 *
+	 * @param string $content Main article content.
+	 */
 	public static function prepend_article_placement( string $content ): string {
 		if (
 			! self::should_render_public_request()
@@ -208,7 +216,7 @@ final class Manacost_Partner_Placements {
 	/** Returns the normalized request path without trusting query input. */
 	private static function request_path(): string {
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
-			? wp_unslash( $_SERVER['REQUEST_URI'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
 			: '/';
 		$path        = wp_parse_url( $request_uri, PHP_URL_PATH );
 
@@ -231,7 +239,7 @@ final class Manacost_Partner_Placements {
 	 * @return mixed
 	 */
 	private static function decode_ad_inserter_option( string $stored_value ) {
-		$serialized = base64_decode( substr( $stored_value, 4 ), true );
+		$serialized = base64_decode( substr( $stored_value, 4 ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Required by Ad Inserter's trusted option format.
 		if ( false === $serialized ) {
 			return null;
 		}
@@ -239,7 +247,11 @@ final class Manacost_Partner_Placements {
 		return unserialize( $serialized, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
 	}
 
-	/** Checks whether the Newspaper slot still contains the direct-partner rotator. */
+	/**
+	 * Checks whether the Newspaper slot still contains the direct-partner rotator.
+	 *
+	 * @param string $code Stored Newspaper header code.
+	 */
 	private static function is_legacy_header_code( string $code ): bool {
 		return false !== strpos( $code, 'banner-rotator' )
 			&& (
@@ -248,7 +260,11 @@ final class Manacost_Partner_Placements {
 			);
 	}
 
-	/** Checks whether Ad Inserter block 2 is still the known Sirus duplicate. */
+	/**
+	 * Checks whether Ad Inserter block 2 is still the known Sirus duplicate.
+	 *
+	 * @param string $code Stored Ad Inserter block code.
+	 */
 	private static function is_legacy_article_code( string $code ): bool {
 		return false !== strpos( $code, 'sirus.cc/hsmanacost' )
 			&& false !== strpos( $code, '728h90.png' );

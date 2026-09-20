@@ -160,6 +160,16 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/manacost-mobile-layout.php", "wordpress/mu-plugins/manacost-mobile-layout/**", "tests/test_mobile_layout.py"],
+      "owner": "public-mobile-layout",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "responsive-ui", "accessibility"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-responsive-experience", "wordpress-typography-layout-system", "wordpress-accessibility", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/**"],
       "owner": "first-party-generic",
       "classified": false,

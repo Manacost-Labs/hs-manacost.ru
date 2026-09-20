@@ -197,7 +197,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.0.6",
+                    "1.0.7",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
@@ -282,6 +282,10 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertIn("@media (max-width: 767px)", css)
         self.assertIn("position: relative", css)
         self.assertIn("background: #002844", css)
+        self.assertNotIn("aspect-ratio: 5 / 1", css)
+        self.assertNotIn("max-block-size: 70px", css)
+        self.assertNotIn("object-fit: cover", css)
+        self.assertNotIn("object-position: left center", css)
         self.assertNotIn("#f7f9fb", css)
         self.assertNotIn("grid-template-columns", css)
         self.assertNotIn("display: none", css)
