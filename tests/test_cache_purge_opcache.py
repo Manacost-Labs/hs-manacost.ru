@@ -111,6 +111,19 @@ class CachePurgeOpcacheTest(unittest.TestCase):
 
         self.assertEqual(result["direct_failed"], 1)
 
+    def test_novosibirsk_purge_is_skipped_only_for_the_explicit_maintenance_flag(self) -> None:
+        strict = self.run_scenario("reverse_config_both_edges")
+        maintenance = self.run_scenario("reverse_config_novosibirsk_maintenance")
+
+        self.assertEqual(
+            strict["reverse_endpoints"],
+            ["https://194.67.92.242/purge", "https://186.246.28.244/purge"],
+        )
+        self.assertEqual(
+            maintenance["reverse_endpoints"],
+            ["https://194.67.92.242/purge"],
+        )
+
     def test_automatic_post_purge_records_a_reverse_proxy_failure_and_runs_later_steps(self) -> None:
         result = self.run_scenario("content_post_reverse_failure")
         self.assertEqual(result["opcache"], 0)

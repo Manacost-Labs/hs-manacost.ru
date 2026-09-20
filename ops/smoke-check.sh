@@ -10,9 +10,24 @@ esac
 origin_ip='151.80.21.140'
 edge_ips=('194.67.92.242' '186.246.28.244')
 edge_regions=('ru-moscow' 'ru-novosibirsk')
+skip_novosibirsk="${MANACOST_SKIP_NOVOSIBIRSK:-false}"
 image_path='/wp-content/uploads/2026/07/728x90.jpg'
 temporary_directory="$(mktemp -d)"
 trap 'rm -rf "$temporary_directory"' EXIT
+
+case "$skip_novosibirsk" in
+  true|false) ;;
+  *) echo 'MANACOST_SKIP_NOVOSIBIRSK must be true or false' >&2; exit 2 ;;
+esac
+
+skip_edge_for_maintenance() {
+  local region="$1"
+  if [[ "$skip_novosibirsk" == true && "$region" == 'ru-novosibirsk' ]]; then
+    echo 'SKIP: ru-novosibirsk edge is in declared maintenance'
+    return 0
+  fi
+  return 1
+}
 
 request() {
   local domain="$1"
@@ -108,6 +123,9 @@ check_staging() {
   request "$domain" "$origin_ip" '/' '401' true
 
   for index in "${!edge_ips[@]}"; do
+    if skip_edge_for_maintenance "${edge_regions[$index]}"; then
+      continue
+    fi
     check_edge "$domain" "${edge_ips[$index]}" "${edge_regions[$index]}" '401'
   done
 }
@@ -118,6 +136,9 @@ check_production_domain() {
   request "$domain" "$origin_ip" "$image_path" '200' true
 
   for index in "${!edge_ips[@]}"; do
+    if skip_edge_for_maintenance "${edge_regions[$index]}"; then
+      continue
+    fi
     check_edge "$domain" "${edge_ips[$index]}" "${edge_regions[$index]}" '200'
     request "$domain" "${edge_ips[$index]}" "$image_path" '200'
     if [[ "$(header_value 'Content-Type')" != image/* ]]; then
@@ -128,6 +149,9 @@ check_production_domain() {
 
   local ip insecure _attempt
   for ip in "$origin_ip" "${edge_ips[@]}"; do
+    if [[ "$skip_novosibirsk" == true && "$ip" == "${edge_ips[1]}" ]]; then
+      continue
+    fi
     insecure=false
     [[ "$ip" == "$origin_ip" ]] && insecure=true
     for _attempt in 1 2; do

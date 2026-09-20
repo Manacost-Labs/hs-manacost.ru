@@ -10,6 +10,11 @@ on:
         description: Full 40-character SHA currently at main, for the temporary self-hosted fallback
         required: true
         type: string
+      skip_novosibirsk:
+        description: Skip only the Novosibirsk edge while its maintenance is declared
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -65,13 +70,16 @@ jobs:
           DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_sha || github.event.workflow_run.head_sha }}
         run: sudo /usr/local/sbin/hs-manacost-ci-deploy staging "$DEPLOY_SHA" "$GITHUB_WORKSPACE"
 
-      - name: Verify staging and both RU proxies
+      - name: Verify staging and available RU proxies
+        env:
+          MANACOST_SKIP_NOVOSIBIRSK: ${{ inputs.skip_novosibirsk || false }}
         run: ./ops/smoke-check.sh staging
 
       - name: Record successful staging deployment
         uses: actions/github-script@v8
         env:
           DEPLOY_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_sha || github.event.workflow_run.head_sha }}
+          STAGING_DESCRIPTION: ${{ inputs.skip_novosibirsk && 'Verified on staging, origin and Moscow; Novosibirsk maintenance' || 'Verified on test.hs-manacost.ru and both RU proxies' }}
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -81,7 +89,7 @@ jobs:
               environment: 'staging',
               auto_merge: false,
               required_contexts: [],
-              description: 'Verified on test.hs-manacost.ru and both RU proxies',
+              description: process.env.STAGING_DESCRIPTION,
               transient_environment: false,
               production_environment: false,
             });
@@ -92,5 +100,5 @@ jobs:
               state: 'success',
               environment: 'staging',
               environment_url: 'https://test.hs-manacost.ru',
-              description: 'Staging smoke checks passed',
+              description: process.env.STAGING_DESCRIPTION,
             });

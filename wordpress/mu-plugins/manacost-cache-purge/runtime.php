@@ -269,6 +269,14 @@ trait Manacost_Cache_Purge_Runtime {
 			$endpoints = array();
 		}
 		$endpoints = array_values( array_filter( array_map( 'esc_url_raw', $endpoints ) ) );
+		if ( 'true' === getenv( 'MANACOST_SKIP_NOVOSIBIRSK' ) ) {
+			$endpoints = array_values(
+				array_filter(
+					$endpoints,
+					static fn ( string $endpoint ): bool => '186.246.28.244' !== (string) wp_parse_url( $endpoint, PHP_URL_HOST )
+				)
+			);
+		}
 
 		return array(
 			'endpoints' => $endpoints,

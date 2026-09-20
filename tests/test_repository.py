@@ -91,6 +91,8 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("REQUESTED_SHA", staging)
         self.assertIn("git rev-parse origin/main", staging)
         self.assertIn("smoke-check.sh staging", staging)
+        self.assertIn("skip_novosibirsk", staging)
+        self.assertIn("MANACOST_SKIP_NOVOSIBIRSK", staging)
         self.assertIn("workflow_dispatch:", production)
         self.assertIn(
             "verify-staging:\n    runs-on: [self-hosted, linux, x64, hs-manacost-production]",
@@ -99,6 +101,18 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertNotIn("verify-staging:\n    runs-on: ubuntu-latest", production)
         self.assertIn("successful staging deployment", production)
         self.assertIn("smoke-check.sh production", production)
+        self.assertIn("skip_novosibirsk", production)
+        self.assertIn("MANACOST_SKIP_NOVOSIBIRSK", production)
+        self.assertIn("MAINTENANCE_MODE", production)
+        self.assertIn("skip-novosibirsk", production)
+
+    def test_smoke_check_allows_only_an_explicit_novosibirsk_maintenance_exception(self) -> None:
+        smoke = (ROOT / "ops/smoke-check.sh").read_text(encoding="utf-8")
+
+        self.assertIn('MANACOST_SKIP_NOVOSIBIRSK:-false', smoke)
+        self.assertIn("true|false", smoke)
+        self.assertIn("ru-novosibirsk", smoke)
+        self.assertIn("SKIP: ru-novosibirsk edge is in declared maintenance", smoke)
 
     def test_staging_release_clears_page_cache_and_warms_reader_assets_before_exposure(self) -> None:
         staging = (ROOT / ".github/workflows/deploy-staging.yml").read_text(encoding="utf-8")
@@ -155,6 +169,9 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("release_staging_refresh", script)
         self.assertNotIn("rocket_clean_", production_branch)
         self.assertNotIn("warm-staging-minified-assets.php", production_branch)
+        self.assertIn('maintenance_mode="${4:-}"', script)
+        self.assertIn("skip-novosibirsk", script)
+        self.assertIn('MANACOST_SKIP_NOVOSIBIRSK="$skip_novosibirsk"', script)
         self.assertIn("install -o root -g root -m 0755", installer_text)
         self.assertIn("/usr/local/sbin/hs-manacost-ci-deploy", installer_text)
         self.assertIn("Verify authorized deployment helper", staging)
