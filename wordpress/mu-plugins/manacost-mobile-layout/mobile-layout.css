@@ -158,23 +158,23 @@
 	}
 
 	/* Increase brand presence while retaining 44px+ menu and search targets. */
-	.td-header-menu-wrap-full,
-	.td-header-menu-wrap,
-	.td-header-main-menu {
-		block-size: 62px;
+	body .td-header-wrap .td-header-menu-wrap-full,
+	body .td-header-wrap .td-header-menu-wrap,
+	body .td-header-wrap .td-header-main-menu {
+		block-size: 62px !important;
 	}
 
-	.td-mobile-logo img {
-		inset-block-start: 3px;
-		inline-size: auto;
-		block-size: 56px;
-		max-block-size: 56px;
+	body .td-header-wrap .td-mobile-logo img {
+		inset-block-start: 3px !important;
+		inline-size: auto !important;
+		block-size: 56px !important;
+		max-block-size: 56px !important;
 	}
 
 	#td-top-mobile-toggle a,
 	#td-header-search-button-mob {
-		block-size: 62px;
-		line-height: 62px;
+		block-size: 62px !important;
+		line-height: 62px !important;
 	}
 
 	.td-mobile-logo:focus-visible,
