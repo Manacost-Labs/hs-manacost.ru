@@ -63,7 +63,7 @@ class MobileLayoutTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-mobile-layout/mobile-layout.css",
             result["styles"]["manacost-mobile-layout"][0],
         )
-        self.assertEqual("1.0.6", result["styles"]["manacost-mobile-layout"][2])
+        self.assertEqual("1.0.7", result["styles"]["manacost-mobile-layout"][2])
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
@@ -95,8 +95,11 @@ class MobileLayoutTest(unittest.TestCase):
         self.assertIn("margin-inline: calc(50% - 50vw)", css)
         self.assertIn("border-radius: 0 !important", css)
         self.assertNotIn("body.home .td-big-grid-flex-post", css)
+        self.assertIn("body .td-header-wrap .td-header-menu-wrap-full", css)
         self.assertIn(".td-mobile-logo img", css)
-        self.assertIn("block-size: 56px", css)
+        self.assertIn("block-size: 62px !important", css)
+        self.assertIn("block-size: 56px !important", css)
+        self.assertIn("max-block-size: 56px !important", css)
 
     def test_mobile_article_heading_wraps_at_word_boundaries(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
