@@ -98,21 +98,16 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
-    def test_guest_home_keeps_desktop_fonts_and_uses_mobile_system_budget(self) -> None:
+    def test_guest_home_keeps_theme_fonts_for_every_user_agent(self) -> None:
         for mobile in (False, True):
             for legacy_font_trim in (None, True):
                 with self.subTest(mobile=mobile, legacy_font_trim=legacy_font_trim):
                     result = self.render_page(
                         mobile=mobile, legacy_font_trim=legacy_font_trim
                     )
-                    if mobile:
-                        for markup in FONT_MARKUP[:-1]:
-                            self.assertNotIn(markup, result)
-                        self.assertIn(FONT_MARKUP[-1], result)
-                        self.assertIn('id="manacost-mobile-font-budget"', result)
-                    else:
-                        for markup in FONT_MARKUP:
-                            self.assertIn(markup, result)
+                    for markup in FONT_MARKUP:
+                        self.assertIn(markup, result)
+                    self.assertNotIn('id="manacost-mobile-font-budget"', result)
                     self.assertNotIn('id="manacost-font-trim"', result)
                     self.assertIn('name="manacost-perf-active"', result)
 
@@ -175,14 +170,12 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         self.assertNotIn('data-lazy-src=', result)
         self.assertIn('name="manacost-perf-active"', result)
 
-    def test_mobile_critical_css_suppresses_body_art_and_maps_display_fonts(self) -> None:
+    def test_mobile_critical_css_suppresses_body_art_without_replacing_theme_fonts(self) -> None:
         result = self.render_page(mobile=True)
 
         self.assertIn('background-image:none!important', result)
-        self.assertIn('id="manacost-mobile-font-budget"', result)
-        self.assertIn('.td-block-title', result)
-        self.assertIn('.entry-title', result)
-        self.assertIn('font-family:Arial', result)
+        self.assertNotIn('id="manacost-mobile-font-budget"', result)
+        self.assertNotIn('font-family:Arial', result)
 
     def test_font_repair_keeps_non_ad_default_optimizations_active(self) -> None:
         for mobile in (False, True):
