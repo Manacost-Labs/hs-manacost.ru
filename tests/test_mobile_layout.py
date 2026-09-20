@@ -39,10 +39,16 @@ class MobileLayoutTest(unittest.TestCase):
         foreach ($actions['wp_enqueue_scripts'] ?? [] as $entry) {{
             call_user_func($entry[0]);
         }}
+        ob_start();
+        foreach ($actions['wp_head'] ?? [] as $entry) {{
+            call_user_func($entry[0]);
+        }}
+        $head = ob_get_clean();
 
         echo json_encode([
             'actions' => array_keys($actions),
             'styles' => $styles,
+            'head' => $head,
         ], JSON_UNESCAPED_SLASHES);
         """
         completed = subprocess.run(
@@ -67,6 +73,16 @@ class MobileLayoutTest(unittest.TestCase):
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
+
+    def test_prints_critical_mobile_overrides_after_theme_styles(self) -> None:
+        result = self.run_plugin()
+
+        self.assertIn("wp_head", result["actions"])
+        self.assertIn('id="manacost-mobile-layout-critical"', result["head"])
+        self.assertIn("letter-spacing: 0 !important", result["head"])
+        self.assertIn("word-spacing: 0 !important", result["head"])
+        self.assertIn("block-size: 62px !important", result["head"])
+        self.assertEqual("", self.run_plugin(admin=True)["head"])
 
     def test_mobile_css_uses_the_article_cover_as_a_readable_text_background(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
