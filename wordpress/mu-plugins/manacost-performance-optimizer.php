@@ -44,10 +44,6 @@ final class Manacost_Performance_Optimizer {
 			$html = self::remove_legacy_first_view_assets( $html );
 			$html = self::optimize_first_view( $html );
 			$html = self::add_mobile_critical_assets( $html );
-
-			if ( self::is_mobile_request() ) {
-				$html = self::remove_mobile_webfonts( $html );
-			}
 		}
 
 		if ( self::feature_enabled( 'MANACOST_DEFER_THIRD_PARTY_ENABLED', true ) ) {
@@ -270,7 +266,7 @@ final class Manacost_Performance_Optimizer {
 	}
 
 	/**
-	 * Adds mobile background and typography budgets without affecting icon fonts.
+	 * Adds only viewport-based first-paint safeguards.
 	 *
 	 * @param string $html Rendered page HTML.
 	 * @return string
@@ -284,28 +280,7 @@ final class Manacost_Performance_Optimizer {
 			. '.manacost-lcp-picture,.manacost-lcp-picture img{display:block;width:100%;height:100%;}'
 			. '.manacost-lcp-picture img{object-fit:cover;}'
 			. '}</style>' . "\n";
-		$fonts    = '<style id="manacost-mobile-font-budget">@media(max-width:1024px){'
-			. 'body,body .entry-title,body .entry-title a,body .td-block-title,body .td-block-title *,body .td-post-category,body .td-pulldown-size,body .tdm-descr,body .td-author-date,body .td-editor-date,body .sf-menu>li>a,body .td-module-comments,body .td-read-more a{font-family:Arial,"Helvetica Neue",sans-serif!important;}'
-			. '}</style>' . "\n";
-
-		return self::inject_into_head( $html, $critical . $fonts );
-	}
-
-	/**
-	 * Removes hosted Google Fonts only for mobile responses using the system-font budget above.
-	 *
-	 * @param string $html Rendered page HTML.
-	 * @return string
-	 */
-	private static function remove_mobile_webfonts( string $html ): string {
-		$patterns = array(
-			'#<link\b(?=[^>]*\brel=["\'](?:preconnect|dns-prefetch)["\'])(?=[^>]*\bhref=["\'](?:https?:)?//fonts\.(?:googleapis|gstatic)\.com)[^>]*>\s*#i',
-			'#<link\b(?=[^>]*(?:data-wpr-hosted-gf-parameters|href=["\'][^"\']*fonts\.googleapis\.com))[^>]*>\s*#i',
-			'#<noscript\b(?=[^>]*data-wpr-hosted-gf-parameters)[^>]*>[\s\S]*?</noscript>\s*#i',
-			'#<link\b(?=[^>]*\brel=["\']preload["\'])(?=[^>]*\bas=["\']font["\'])(?=[^>]*\bhref=["\'][^"\']*/google-fonts/)[^>]*>\s*#i',
-		);
-
-		return preg_replace( $patterns, '', $html ) ?? $html;
+		return self::inject_into_head( $html, $critical );
 	}
 
 	/**
@@ -316,7 +291,7 @@ final class Manacost_Performance_Optimizer {
 	 */
 	private static function remove_legacy_first_view_assets( string $html ): string {
 		return preg_replace(
-			'#<style\b[^>]*id=["\'](?:manacost-mobile-lite-critical|manacost-mobile-font-budget|hs-mobile-first-view-assets)["\'][^>]*>[\s\S]*?</style>\s*#i',
+			'#<style\b[^>]*id=["\'](?:manacost-mobile-lite-critical|hs-mobile-first-view-assets)["\'][^>]*>[\s\S]*?</style>\s*#i',
 			'',
 			$html
 		) ?? $html;
