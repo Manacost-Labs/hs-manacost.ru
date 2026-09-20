@@ -63,7 +63,7 @@ class MobileLayoutTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-mobile-layout/mobile-layout.css",
             result["styles"]["manacost-mobile-layout"][0],
         )
-        self.assertEqual("1.0.5", result["styles"]["manacost-mobile-layout"][2])
+        self.assertEqual("1.0.6", result["styles"]["manacost-mobile-layout"][2])
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
@@ -85,8 +85,6 @@ class MobileLayoutTest(unittest.TestCase):
         self.assertIn("font-weight: 600", css)
         self.assertIn("text-align: start", css)
         self.assertIn("text-wrap: balance", css)
-        self.assertIn("overflow-wrap: anywhere", css)
-        self.assertIn("hyphens: auto", css)
         self.assertIn("text-shadow", css)
         self.assertIn("font-size: 15px", css)
         self.assertIn("justify-content: flex-start", css)
@@ -99,6 +97,14 @@ class MobileLayoutTest(unittest.TestCase):
         self.assertNotIn("body.home .td-big-grid-flex-post", css)
         self.assertIn(".td-mobile-logo img", css)
         self.assertIn("block-size: 56px", css)
+
+    def test_mobile_article_heading_wraps_at_word_boundaries(self) -> None:
+        css = STYLESHEET.read_text(encoding="utf-8")
+
+        self.assertIn("overflow-wrap: break-word", css)
+        self.assertIn("hyphens: none", css)
+        self.assertNotIn("overflow-wrap: anywhere", css)
+        self.assertNotIn("hyphens: auto", css)
 
     def test_mobile_css_preserves_focus_and_zoom_contracts(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
