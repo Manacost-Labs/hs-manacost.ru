@@ -63,7 +63,7 @@ class MobileLayoutTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-mobile-layout/mobile-layout.css",
             result["styles"]["manacost-mobile-layout"][0],
         )
-        self.assertEqual("1.0.7", result["styles"]["manacost-mobile-layout"][2])
+        self.assertEqual("1.0.8", result["styles"]["manacost-mobile-layout"][2])
 
         self.assertEqual([], self.run_plugin(admin=True)["styles"])
         self.assertEqual([], self.run_plugin(feed=True)["styles"])
@@ -106,6 +106,8 @@ class MobileLayoutTest(unittest.TestCase):
 
         self.assertIn("overflow-wrap: break-word", css)
         self.assertIn("hyphens: none", css)
+        self.assertIn("letter-spacing: normal !important", css)
+        self.assertIn("word-spacing: normal !important", css)
         self.assertNotIn("overflow-wrap: anywhere", css)
         self.assertNotIn("hyphens: auto", css)
 

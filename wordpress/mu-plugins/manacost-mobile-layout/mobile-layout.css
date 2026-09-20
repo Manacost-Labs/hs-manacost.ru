@@ -108,10 +108,12 @@
 		color: rgba(255, 255, 255, 0.92);
 		font-size: 15px;
 		line-height: 1.45;
+		letter-spacing: normal !important;
 		overflow-wrap: break-word;
 		text-align: start;
 		text-wrap: pretty;
 		text-shadow: 0 1px 7px rgba(0, 0, 0, 0.9);
+		word-spacing: normal !important;
 		hyphens: none;
 	}
 
