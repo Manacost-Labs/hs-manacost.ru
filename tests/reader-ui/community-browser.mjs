@@ -67,6 +67,16 @@ function reactionReply(value) {
 function release(queue, status, value) {
   const response = queue.shift(); assert.ok(response, 'expected delayed browser request'); json(response, status, value);
 }
+async function waitForQueuedRequest(queue, label) {
+  await Promise.race([
+    new Promise(resolve => {
+      const ready = () => queue.length ? resolve() : setImmediate(ready);
+      ready();
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} request was not queued`)), 2000)),
+  ]);
+  assert.equal(queue.length, 1, `${label} body is genuinely delayed`);
+}
 
 reset();
 const server = createServer(async (request, response) => {
@@ -140,10 +150,7 @@ try {
   assert.equal(await moderation().count(), 0, 'regular readers have no moderator UI');
 
   reset(); holdHydration = true; await load();
-  await new Promise(resolve => {
-    const ready = () => heldHydrations.length ? resolve() : setImmediate(ready);
-    ready();
-  });
+  await waitForQueuedRequest(heldHydrations, 'reaction hydration');
   await reaction('like').click();
   await page.waitForFunction(() => {
     const button = document.querySelector('[data-reaction="like"]');
@@ -155,10 +162,7 @@ try {
   assert.equal(await reaction('like').getAttribute('aria-pressed'), 'true', 'stale hydration cannot overwrite a newer reaction');
 
   reset(); holdHydration = holdReaction = true; await load();
-  await new Promise(resolve => {
-    const ready = () => heldHydrations.length ? resolve() : setImmediate(ready);
-    ready();
-  });
+  await waitForQueuedRequest(heldHydrations, 'reaction hydration');
   await reaction('like').click();
   await page.waitForFunction(() => document.querySelector('[data-reaction="like"]').disabled);
   const failedReaction = heldReactions.shift();
@@ -240,8 +244,8 @@ try {
 
   reset({ moderator: true }); holdPermission = true;
   await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded' }); await page.getByRole('button', { name: /Нравится/ }).waitFor();
-  await new Promise(resolve => setImmediate(resolve)); assert.equal(heldPermissions.length, 1, 'permission body is genuinely delayed');
-  holdReaction = true; await reaction('like').click(); await new Promise(resolve => setImmediate(resolve)); assert.equal(heldReactions.length, 1, 'reaction body is genuinely delayed');
+  await waitForQueuedRequest(heldPermissions, 'permission');
+  holdReaction = true; await reaction('like').click(); await waitForQueuedRequest(heldReactions, 'reaction');
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
   release(heldPermissions, 200, { canModerateComments: true, commentingBlocked: false });
   const staleReaction = heldReactions.shift(); json(staleReaction.response, 200, reactionReply(staleReaction.write.reaction));
