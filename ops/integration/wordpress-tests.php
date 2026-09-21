@@ -262,5 +262,6 @@ hs_integration_assert(!isset(rest_get_server()->get_routes()['/manacost-reader/v
 hs_integration_assert(!comments_open($postId), 'reader bridge enabled native comments');
 
 require __DIR__ . '/article-cover.php';
+require __DIR__ . '/listing-thumbnails.php';
 
 echo "WordPress PHP integration assertions: OK\n";

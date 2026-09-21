@@ -32,6 +32,7 @@ mkdir -p "$SITE_DIR/.integration"
 cp "$ROOT_DIR/ops/integration/wordpress-tests.php" "$SITE_DIR/.integration/wordpress-tests.php"
 cp "$ROOT_DIR/tests/fixtures/admin-meta-key-cache-integration.php" "$SITE_DIR/.integration/admin-meta-key-cache.php"
 cp "$ROOT_DIR/tests/fixtures/article-cover-integration.php" "$SITE_DIR/.integration/article-cover.php"
+cp "$ROOT_DIR/tests/fixtures/listing-thumbnails-integration.php" "$SITE_DIR/.integration/listing-thumbnails.php"
 mkdir -p "$SITE_DIR/wp-content/uploads"
 mkdir -p "$SITE_DIR/wp-content/cache"
 find "$SITE_DIR" -type d -exec chmod 0755 {} +
