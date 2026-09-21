@@ -24,7 +24,7 @@ rm -rf "$SITE_DIR"
 mkdir -p "$SITE_DIR/wp-content/mu-plugins" "$SITE_DIR/wp-content/plugins" "$SITE_DIR/wp-content/themes"
 
 wp core download --version=6.9.7 --skip-content --path="$SITE_DIR" --quiet
-for plugin in classic-editor hs-manacost-inline-deck wp-kolodahearthstone-spoilers; do
+for plugin in classic-editor hs-manacost-inline-deck wp-kolodahearthstone-spoilers wp-manacost-decks_old; do
     cp -a "$ROOT_DIR/wordpress/plugins/$plugin" "$SITE_DIR/wp-content/plugins/$plugin"
 done
 cp -a "$ROOT_DIR/wordpress/themes/Newspaper_new" "$SITE_DIR/wp-content/themes/Newspaper_new"
@@ -32,6 +32,7 @@ mkdir -p "$SITE_DIR/.integration"
 cp "$ROOT_DIR/ops/integration/wordpress-tests.php" "$SITE_DIR/.integration/wordpress-tests.php"
 cp "$ROOT_DIR/tests/fixtures/admin-meta-key-cache-integration.php" "$SITE_DIR/.integration/admin-meta-key-cache.php"
 cp "$ROOT_DIR/tests/fixtures/article-cover-integration.php" "$SITE_DIR/.integration/article-cover.php"
+cp "$ROOT_DIR/tests/fixtures/deck-image-integration.php" "$SITE_DIR/.integration/deck-image.php"
 cp "$ROOT_DIR/tests/fixtures/listing-thumbnails-integration.php" "$SITE_DIR/.integration/listing-thumbnails.php"
 mkdir -p "$SITE_DIR/wp-content/uploads"
 mkdir -p "$SITE_DIR/wp-content/cache"

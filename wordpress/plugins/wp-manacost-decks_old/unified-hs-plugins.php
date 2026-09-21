@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost: Decks
  * Description: Управление колодами Hearthstone
- * Version: 2.0.4
+ * Version: 2.0.5
  * Author: Manacost Dev
  * Requires PHP: 7.4
  * Requires at least: 5.8

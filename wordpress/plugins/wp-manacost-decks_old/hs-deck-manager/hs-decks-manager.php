@@ -2,7 +2,7 @@
 /*
 Plugin Name: Hearthstone Decks Manager
 Description: Управление колодами Hearthstone с голосованием и фильтрацией (модуль Manacost: Decks)
-Version: 1.0.18
+Version: 1.0.19
 Author: Manacost Dev
 */
 
@@ -67,6 +67,8 @@ if (!function_exists('hs_mb_lower')) {
  */
 class HS_Decks_Manager {
     const DEFAULT_PER_PAGE = 13;
+    const MOBILE_IMAGE_MIN_WIDTH = 640;
+    const MOBILE_IMAGE_MAX_WIDTH = 768;
 
     public function __construct() {
         // --- Общие хуки (фронт + админка) ---
@@ -5073,11 +5075,44 @@ class HS_Decks_Manager {
         return empty($parts) ? '' : ' ' . implode(' ', $parts);
     }
 
+    private function bound_mobile_image_srcset($srcset) {
+        if (!wp_is_mobile() || $srcset === '') {
+            return $srcset;
+        }
+
+        $bounded_candidates = array();
+        $has_adequate_candidate = false;
+
+        foreach (explode(',', $srcset) as $candidate) {
+            $candidate = trim($candidate);
+            if (!preg_match('/\s+([0-9]+)w$/', $candidate, $matches)) {
+                return $srcset;
+            }
+
+            $width = absint($matches[1]);
+            if ($width > self::MOBILE_IMAGE_MAX_WIDTH) {
+                continue;
+            }
+
+            $bounded_candidates[] = $candidate;
+            if ($width >= self::MOBILE_IMAGE_MIN_WIDTH) {
+                $has_adequate_candidate = true;
+            }
+        }
+
+        if (!$has_adequate_candidate) {
+            return $srcset;
+        }
+
+        return implode(', ', $bounded_candidates);
+    }
+
     private function render_deck_image_markup($thumbnail_id, $title, $priority_image = false, $wide_image = false) {
         $image = $this->get_attachment_image_render_data($thumbnail_id);
         if (empty($image['src'])) {
             return '';
         }
+        $image['srcset'] = $this->bound_mobile_image_srcset((string) $image['srcset']);
 
         $default_sizes = $wide_image
             ? '(max-width: 767px) calc(100vw - 28px), 560px'
