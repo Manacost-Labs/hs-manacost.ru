@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Article Cover Loading
  * Description: Keeps the Newspaper article cover eager and its preload aligned with the rendered image.
- * Version: 1.1.0
+ * Version: 1.2.0
  *
  * @package Manacost
  */
@@ -91,7 +91,44 @@ final class Manacost_Article_Cover {
 		$cover->set_attribute( 'fetchpriority', 'high' );
 		$cover->set_attribute( 'data-no-lazy', '1' );
 
-		return self::align_preload( $cover->get_updated_html(), $attributes, $source_url );
+		$html = self::align_preload( $cover->get_updated_html(), $attributes, $source_url );
+		return self::defer_mobile_module_thumbnails( $html );
+	}
+
+	/**
+	 * Defers article module thumbnails that sit outside the mobile first view.
+	 *
+	 * @param string $html Rendered article HTML.
+	 * @return string
+	 */
+	private static function defer_mobile_module_thumbnails( string $html ): string {
+		if ( ! wp_is_mobile() ) {
+			return $html;
+		}
+
+		$processor = new WP_HTML_Tag_Processor( $html );
+		while ( $processor->next_tag(
+			array(
+				'tag_name'   => 'DIV',
+				'class_name' => 'td-module-thumb',
+			)
+		) ) {
+			while ( $processor->next_tag( array( 'tag_closers' => 'visit' ) ) ) {
+				$tag = $processor->get_tag();
+				if ( 'DIV' === $tag ) {
+					break;
+				}
+				if ( 'IMG' !== $tag ) {
+					continue;
+				}
+				$processor->set_attribute( 'loading', 'lazy' );
+				$processor->set_attribute( 'decoding', 'async' );
+				$processor->remove_attribute( 'data-no-lazy' );
+				break;
+			}
+		}
+
+		return $processor->get_updated_html();
 	}
 
 	/**
