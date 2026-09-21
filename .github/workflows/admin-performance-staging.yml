@@ -26,6 +26,8 @@ jobs:
       WP_TEST_DATASET_SIZE: ${{ vars.STAGING_PERFORMANCE_DATASET_SIZE || '1000' }}
       HS_ADMIN_PERF_ENVIRONMENT: staging
       HS_ADMIN_PERF_CACHE_STATE: warm
+      PLAYWRIGHT_EXECUTABLE_PATH: /usr/bin/chromium
+      PLAYWRIGHT_HOST_RESOLVER_RULES: MAP test.hs-manacost.ru 151.80.21.140
     steps:
       - uses: actions/checkout@v5
         with:
@@ -62,14 +64,8 @@ jobs:
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: |
           mkdir -p .artifacts/admin-performance/raw .artifacts/admin-performance/reports
-          docker run --rm --network host --ipc=host \
-            --env WP_TEST_BASE_URL --env WP_TEST_ADMIN_USER --env WP_TEST_ADMIN_PASSWORD \
-            --env STAGING_HTTP_USER --env STAGING_HTTP_PASSWORD \
-            --env WP_TEST_DATASET_SIZE --env HS_ADMIN_PERF_ENVIRONMENT \
-            --env HS_ADMIN_PERF_CACHE_STATE \
-            -v "$GITHUB_WORKSPACE:/work" -w /work \
-            mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e \
-            node ops/performance/collect-admin-performance.mjs /work/.artifacts/admin-performance/raw
+          test -x "$PLAYWRIGHT_EXECUTABLE_PATH"
+          node ops/performance/collect-admin-performance.mjs .artifacts/admin-performance/raw
           for raw_report in .artifacts/admin-performance/raw/*.json; do
             report_path=".artifacts/admin-performance/reports/$(basename "$raw_report")"
             ops/performance/build-admin-performance-report.py \

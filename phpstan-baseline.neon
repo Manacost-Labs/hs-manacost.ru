@@ -31,18 +31,6 @@ parameters:
 			path: wordpress/mu-plugins/hs-admin-ajax-guard.php
 
 		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 2
-			path: wordpress/mu-plugins/hs-admin-load-trim.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between ''AIOSEO\\\\Plugin\\\\Common\\\\Admin\\\\WritingAssistant'' and class\-string will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: wordpress/mu-plugins/hs-admin-load-trim.php
-
-		-
 			message: '#^Function hs_smart_tooltip_render_bgs_search_box not found\.$#'
 			identifier: function.notFound
 			count: 1
