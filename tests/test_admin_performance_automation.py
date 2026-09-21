@@ -230,6 +230,10 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
         collector_source = collector.read_text(encoding="utf-8")
         self.assertIn("WP_TEST_ADMIN_USER", collector_source)
         self.assertIn("WP_TEST_ADMIN_PASSWORD", collector_source)
+        self.assertIn("PLAYWRIGHT_EXECUTABLE_PATH", collector_source)
+        self.assertIn("PLAYWRIGHT_HOST_RESOLVER_RULES", collector_source)
+        self.assertIn("async function warmUp", collector_source)
+        self.assertIn("await warmUp(page, screen)", collector_source)
         self.assertIn("sampleCount", collector_source)
         self.assertNotIn("console.log(password", collector_source)
 
@@ -243,6 +247,14 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
         )
         self.assertIn("RUN_PERFORMANCE", integration_runner)
         self.assertIn("collect-admin-performance.mjs", integration_runner)
+
+        staging_workflow = (
+            ROOT / ".github/workflows/admin-performance-staging.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("PLAYWRIGHT_EXECUTABLE_PATH", staging_workflow)
+        self.assertIn("PLAYWRIGHT_HOST_RESOLVER_RULES", staging_workflow)
+        self.assertIn("node ops/performance/collect-admin-performance.mjs", staging_workflow)
+        self.assertNotIn("docker run", staging_workflow)
 
 
 if __name__ == "__main__":

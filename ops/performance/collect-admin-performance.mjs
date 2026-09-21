@@ -29,7 +29,13 @@ if (Boolean(httpUsername) !== Boolean(httpPassword)) {
   throw new Error('Both staging HTTP credential variables must be set together');
 }
 
-const browser = await chromium.launch({ headless: true });
+const browserExecutable = process.env.PLAYWRIGHT_EXECUTABLE_PATH?.trim();
+const hostResolverRules = process.env.PLAYWRIGHT_HOST_RESOLVER_RULES?.trim();
+const browser = await chromium.launch({
+  headless: true,
+  ...(browserExecutable ? { executablePath: browserExecutable } : {}),
+  ...(hostResolverRules ? { args: [`--host-resolver-rules=${hostResolverRules}`] } : {}),
+});
 const contextOptions = {
   viewport: { width: 1440, height: 900 },
   locale: 'ru-RU',
@@ -72,6 +78,15 @@ async function discoverEditorPath(context) {
   const href = await page.locator('a.row-title').first().getAttribute('href');
   await page.close();
   return href ? `/wp-admin/${href.replace(/^.*\/wp-admin\//, '')}` : null;
+}
+
+async function warmUp(page, screen) {
+  await page.goto(`${baseURL}${screen.path}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60_000,
+  });
+  await page.locator(screen.selector).first().waitFor({ state: 'visible' });
+  await page.waitForTimeout(150);
 }
 
 async function measure(page, screen) {
@@ -154,6 +169,9 @@ try {
   ];
   const page = await context.newPage();
   const measurements = new Map(screens.map(screen => [screen.name, []]));
+  for (const screen of screens) {
+    await warmUp(page, screen);
+  }
   for (let sample = 0; sample < sampleCount; sample += 1) {
     for (const screen of screens) {
       measurements.get(screen.name).push(await measure(page, screen));
