@@ -56,13 +56,17 @@ test('production edge reader location uses a dedicated verified origin pool', ()
   const location = readFileSync(new URL('../../../ops/reader/proxy-production-reader.conf', import.meta.url), 'utf8');
   for (const contract of ['client_max_body_size 4m;', 'proxy_request_buffering off;',
     'proxy_pass https://hs_manacost_reader_production_origin;', 'proxy_ssl_name hs-manacost.ru;',
-    'proxy_ssl_verify on;', 'proxy_ssl_session_reuse off;', 'proxy_set_header Connection close;',
+    'proxy_ssl_verify on;', 'proxy_ssl_session_reuse off;', 'proxy_set_header Connection "";',
+    'proxy_http_version 1.1;',
     'proxy_set_header Host hs-manacost.ru;', 'proxy_set_header Authorization "";',
     'proxy_cache off;', 'proxy_buffering off;', 'access_log off;']) assert.ok(location.includes(contract), contract);
   assert.equal(location.includes('$http_authorization'), false);
   const upstream = readFileSync(new URL('../../../ops/reader/proxy-production-upstream.conf', import.meta.url), 'utf8');
   assert.ok(upstream.includes('upstream hs_manacost_reader_production_origin'));
-  assert.equal(upstream.includes('keepalive'), false);
+  for (const contract of ['keepalive 8;', 'keepalive_timeout 15s;', 'keepalive_requests 100;']) {
+    assert.ok(upstream.includes(contract), contract);
+  }
+  assert.equal(location.includes('non_idempotent'), false);
 });
 
 test('production service template isolates state, secrets and the loopback listener', () => {
