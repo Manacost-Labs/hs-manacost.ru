@@ -45,15 +45,17 @@ for (const filename of ['hs-tooltip.js', 'hs-tooltip-v115.js']) {
     assert.deepEqual(requests, []);
   });
 
-  test(`${filename}: only intersecting cards warm up, once and at low priority`, () => {
+  test(`${filename}: intersecting cards stay unloaded until interaction`, () => {
     const { requests, targets, observers } = loadScript(filename);
     const entries = [
       { target: targets[28], isIntersecting: true },
       { target: targets[29], isIntersecting: false },
     ];
-    observers[0].callback(entries);
-    observers[0].callback(entries);
-    assert.deepEqual(requests, [{ url: '/cards/28.png', priority: 'low' }]);
+    if (observers[0]) {
+      observers[0].callback(entries);
+      observers[0].callback(entries);
+    }
+    assert.deepEqual(requests, []);
   });
 
   test(`${filename}: missing IntersectionObserver does not trigger a bulk fallback`, () => {
