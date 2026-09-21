@@ -2132,7 +2132,7 @@
         "resolved": true,
         "api": "add_shortcode",
         "file": "wordpress/mu-plugins/manacost-rsya-inline.php",
-        "line": 68
+        "line": 60
       },
       {
         "name": "spoiler",
