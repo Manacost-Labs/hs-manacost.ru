@@ -12,12 +12,27 @@ const renderShell = enabled => execFileSync('php', ['-r',
   "define('ABSPATH','/fixture/'); function hs_reader_comments_enabled(){return $GLOBALS['argv'][2] === '1';} function hs_manacost_reader_is_account_request(){return true;} function hs_manacost_reader_default_avatar_url(){return '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=a1b2c3d4e5f6';} function esc_attr($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } function esc_html__($s,$domain='') { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); } require $argv[1]; echo hs_manacost_reader_account_shell();",
   `${plugin}account.php`, enabled ? '1' : '0'], { encoding: 'utf8' });
 let shell = renderShell(true);
+let sharedBootstrap = true;
+let profileEditorDelay = 0;
+let parserDelay = 0;
+let footerDelay = 0;
+const earlyBootstrap = execFileSync('php', ['-r', String.raw`
+define('ABSPATH','/fixture/');
+function hs_manacost_reader_page(){return (object) array('ID'=>22);}
+function is_page($id){return true;}
+function hs_reader_public_profile_request(){return false;}
+function wp_print_inline_script_tag($code,$attributes){echo '<script id="'.$attributes['id'].'">'.$code.'</script>';}
+require $argv[1]; hs_manacost_reader_early_bootstrap();`, `${plugin}assets.php`], {encoding:'utf8'});
 let communityIdentity = { canModerateComments: false, paidSubscriber: false, commentingBlocked: false };
 const assets = new Map([
   ['/ui.css', ['text/css', readFileSync(`${plugin}ui.css`)]],
   ['/reader.css', ['text/css', readFileSync(`${plugin}reader.css`)]],
   ['/tailwind.css', ['text/css', readFileSync(`${plugin}tailwind.css`)]],
   ['/profile-editor.js', ['text/javascript', readFileSync(`${plugin}profile-editor.js`)]],
+  ['/bootstrap.js', ['text/javascript', readFileSync(`${plugin}bootstrap.js`)]],
+  ['/account-ready.js', ['text/javascript', 'window.accountScriptReady = performance.now();']],
+  ['/parser-block.js', ['text/javascript', 'window.parserScriptReady = performance.now();']],
+  ['/footer-block.js', ['text/javascript', 'window.footerScriptReady = performance.now();']],
   ['/reader.js', ['text/javascript', readFileSync(`${plugin}reader.js`)]],
   ['/theme.css', ['text/css', readFileSync(`${root}wordpress/themes/Newspaper_new/style.css`)]],
   ['/theme-boxed.css', ['text/css', readFileSync(`${root}wordpress/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css`)]],
@@ -49,11 +64,18 @@ const server = createServer((request, response) => {
   }
 	if (request.url === '/reader-api/v1/community/me') { response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(communityIdentity)); return; }
   const asset = assets.get(request.url);
-  if (asset) { response.writeHead(200, { 'Content-Type': asset[0] }); response.end(asset[1]); return; }
+  if (asset) {
+    const send = () => { response.writeHead(200, { 'Content-Type': asset[0] }); response.end(asset[1]); };
+    if (request.url === '/profile-editor.js' && profileEditorDelay) setTimeout(send, profileEditorDelay);
+    else if (request.url === '/parser-block.js' && parserDelay) setTimeout(send, parserDelay);
+    else if (request.url === '/footer-block.js' && footerDelay) setTimeout(send, footerDelay);
+    else send();
+    return;
+  }
   if (request.url !== '/') { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   // The account shell owns the only page title, just as the dedicated template does.
-  response.end(`<!doctype html><html lang="ru"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/ui.css"><link rel="stylesheet" href="/reader.css"><link rel="stylesheet" href="/tailwind.css"><title>Local reader test</title><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script src="/profile-editor.js"></script><script src="/reader.js"></script></body></html>`);
+  response.end(`<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width">${sharedBootstrap ? earlyBootstrap : ''}<script src="/parser-block.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/ui.css"><link rel="stylesheet" href="/reader.css"><link rel="stylesheet" href="/tailwind.css"><title>Local reader test</title>${sharedBootstrap ? '<script defer src="/bootstrap.js"></script>' : ''}<script defer src="/profile-editor.js"></script><script defer src="/account-ready.js"></script><script defer src="/reader.js"></script></head><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script defer src="/footer-block.js"></script></body></html>`);
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -79,6 +101,7 @@ try {
   let logoutStatus = 204;
   let logoutCalls = 0;
   let meCalls = 0;
+  let legacyMeCalls = 0;
   let profileWriteStatus = 200;
   let profileWriteResponse = profileDto({ version: 2 });
   let avatarWriteStatus = 200;
@@ -96,9 +119,11 @@ try {
   let publicationStatus = 200;
   const fulfillMe = async route => {
     meCalls += 1;
+    if (new URL(route.request().url()).pathname.endsWith('/me')) legacyMeCalls += 1;
     return route.fulfill({ status: profileStatus, json: profile }).catch(() => {});
   };
   await page.route('**/reader-api/v1/me', fulfillMe);
+  await page.route('**/reader-api/v1/bootstrap', fulfillMe);
   await page.route('**/reader-api/v1/profile', route => {
     const request = route.request();
     profileWrites.push({ headers: request.headers(), body: request.postDataJSON() });
@@ -191,12 +216,35 @@ try {
     assert.equal(outerAlignment.mainBackground, 'rgb(243, 245, 246)', 'the cabinet must use the cool paper background from the Reader design contract');
   };
 
+  parserDelay = 900; footerDelay = 1400;
+  const earlyCalls = meCalls;
+  await ready();
+  await page.waitForLoadState('load');
+  assert.equal(meCalls - earlyCalls, 1, 'inline and deferred bootstrap must reuse the same request');
+  assert.equal(await page.evaluate(() => {
+    const entries = performance.getEntriesByType('resource');
+    return entries.find(x => x.name.endsWith('/reader-api/v1/bootstrap')).startTime <
+      entries.find(x => x.name.endsWith('/parser-block.js')).responseEnd;
+  }), true, 'identity must start before parser-blocking theme JavaScript completes');
+  assert.equal(await page.evaluate(() => window.accountScriptReady < performance.getEntriesByType('resource').find(x => x.name.endsWith('/footer-block.js')).responseEnd), true,
+    'account controller must not wait for unrelated deferred footer scripts');
+  parserDelay = 0; footerDelay = 0;
+
   for (const width of [320, 390, 560, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
+    profileEditorDelay = 700;
     const callsBeforeNavigation = meCalls;
     await ready();
     await page.waitForLoadState('load');
     assert.equal(meCalls - callsBeforeNavigation, 1, 'initial pageshow must not restart the initial identity request');
+    assert.equal(legacyMeCalls, 0, 'shared account must not issue a second /me request');
+    assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').find(entry => entry.name.endsWith('/reader-api/v1/bootstrap')).startTime <= window.accountScriptReady), true, 'bootstrap must begin before the account controller loads');
+    assert.equal(await page.evaluate(() => {
+      const resources = performance.getEntriesByType('resource');
+      return resources.find(entry => entry.name.endsWith('/reader-api/v1/bootstrap')).startTime <
+        resources.find(entry => entry.name.endsWith('/profile-editor.js')).responseEnd;
+    }), true, 'slow profile editor must not hold up identity validation');
+    profileEditorDelay = 0;
     await assertFits();
     await assertThemeOuterAlignment(width);
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
@@ -715,17 +763,17 @@ try {
   assert.equal(await page.locator('[data-reader-actions] button').count(), 1, `${await status.textContent()} / ${await page.locator('[data-reader-actions]').textContent()}`);
   await assertFits();
   await capture('error');
-  // Real loopback sockets, not immediate route.abort(): prove actual seven-second deadlines.
-  await page.unroute('**/reader-api/v1/me');
-  heldRequest = { path: '/reader-api/v1/me', method: 'GET' };
+  // Real loopback sockets, not immediate route.abort(): prove the shared five-second deadline.
+  await page.unroute('**/reader-api/v1/bootstrap');
+  heldRequest = { path: '/reader-api/v1/bootstrap', method: 'GET' };
   const meDeadlineStart = Date.now();
   await page.goto(origin, { waitUntil: 'domcontentloaded' });
   await retry.waitFor({ timeout: 12000 });
   assert.match(await status.textContent(), /слишком много времени/);
-  assert.ok(Date.now() - meDeadlineStart >= 6500, 'session request must wait for its actual UI deadline');
+  assert.ok(Date.now() - meDeadlineStart >= 4500, 'session request must wait for its actual shared deadline');
   assert.ok(nativeDeadlineCalls.some(call => call.path === heldRequest.path));
   heldRequest = null;
-  await page.route('**/reader-api/v1/me', fulfillMe);
+  await page.route('**/reader-api/v1/bootstrap', fulfillMe);
   profileStatus = 200;
   profile = sessionDto({ user: { displayName: 'Synthetic reader' }, profileUrl: null, profile: profileDto({ displayName: 'Synthetic reader' }) });
   await ready();
@@ -767,7 +815,12 @@ try {
   for (const selector of ['[data-reader-save-profile]', '[data-reader-avatar-input]', '[data-reader-remove-avatar]']) {
     assert.equal(await page.locator(selector).isDisabled(), false, `${selector} must be re-enabled after pagehide abort and reauthentication`);
   }
-  console.log('Reader browser regression: responsive account states, Unicode edits, conflicts, CSRF refresh, avatar writes, account switches, real request/body/logout deadlines, mutation reconciliation and private-state races: PASS');
+  sharedBootstrap = false;
+  const legacyBefore = legacyMeCalls;
+  await ready();
+  await page.getByRole('button', {name: 'Изменить профиль'}).waitFor();
+  assert.equal(legacyMeCalls, legacyBefore + 1, 'old cached shells retain /me fallback compatibility');
+  console.log('Reader browser regression: shared bootstrap, standalone compatibility, responsive account states, Unicode edits, conflicts, CSRF refresh, avatar writes, account switches, real request/body/logout deadlines, mutation reconciliation and private-state races: PASS');
 } finally {
   if (browser) await browser.close();
   for (const response of heldResponses) response.destroy();

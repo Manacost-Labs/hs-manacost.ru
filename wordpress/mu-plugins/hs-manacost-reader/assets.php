@@ -193,4 +193,39 @@ function hs_manacost_reader_assets(): void {
 	hs_manacost_reader_enqueue_style( 'reader' );
 	hs_manacost_reader_enqueue_script( 'profile-editor' );
 	hs_manacost_reader_enqueue_script( 'reader' );
+	// Account rendering must not wait for unrelated deferred theme/footer scripts.
+	foreach ( array( 'hs-manacost-reader-bootstrap', 'hs-manacost-reader-profile-editor', 'hs-manacost-reader' ) as $handle ) {
+		wp_script_add_data( $handle, 'group', 0 );
+	}
+	foreach ( array( 'rocket_delay_js_exclusions', 'rocket_exclude_defer_js', 'rocket_excluded_inline_js_content', 'perfmatters_delay_js_exclusions', 'perfmatters_defer_js_exclusions', 'perfmatters_minify_js_exclusions' ) as $hook ) {
+		add_filter( $hook, 'hs_manacost_reader_early_exclusions' );
+	}
+}
+
+/**
+ * Keep only the early identity starter synchronous; other assets stay optimized.
+ *
+ * @param string[] $exclusions Existing optimizer exclusions.
+ * @return string[]
+ */
+function hs_manacost_reader_early_exclusions( array $exclusions ): array {
+	return array_values( array_unique( array_merge( $exclusions, array( 'hs-manacost-reader-early-bootstrap' ) ) ) );
+}
+
+/** Start the shared private request before styles, parser-blocking JS or body HTML. */
+function hs_manacost_reader_early_bootstrap(): void {
+	$page = hs_manacost_reader_page();
+	if ( ! $page || ! is_page( $page->ID ) || hs_reader_public_profile_request() ) {
+		return;
+	}
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Immutable local plugin asset; an HTTP request or WP_Filesystem bootstrap would delay the critical starter.
+	$script = file_get_contents( __DIR__ . '/bootstrap.js' );
+	if ( false === $script ) {
+		return;
+	}
+	// Static first-party code only: never embed session, profile or CSRF data in HTML.
+	wp_print_inline_script_tag(
+		"/* hs-manacost-reader-early-bootstrap */\n" . $script . "\nvoid window.hsManacostReaderBootstrap().catch(() => {});",
+		array( 'id' => 'hs-manacost-reader-early-bootstrap' )
+	);
 }

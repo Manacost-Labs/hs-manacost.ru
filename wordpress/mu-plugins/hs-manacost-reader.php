@@ -120,6 +120,7 @@ function hs_manacost_reader_bootstrap(): void {
 	add_filter( 'wp_nav_menu_items', 'hs_manacost_reader_menu', 20, 2 );
 	add_filter( 'template_include', 'hs_manacost_reader_template' );
 	add_action( 'wp_enqueue_scripts', 'hs_manacost_reader_assets' );
+	add_action( 'wp_head', 'hs_manacost_reader_early_bootstrap', 2 );
 	add_action( 'wp_enqueue_scripts', 'hs_manacost_reader_tailwind_assets', 30 );
 	add_action( 'wp_enqueue_scripts', 'hs_reader_account_trim_assets', 1000 );
 	add_action( 'wp', 'hs_reader_account_integrations', 20 );
