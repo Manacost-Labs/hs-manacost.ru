@@ -92,14 +92,6 @@
     }
   }
 
-  function warmupVisibleTooltips(root) {
-    var nodes = (root || document).querySelectorAll('.hs-card-tooltip[data-image]');
-    var limit = Math.min(nodes.length, 24);
-    for (var i = 0; i < limit; i++) {
-      preloadImage(nodes[i].getAttribute('data-image'), i < 8 ? 'high' : 'low');
-    }
-  }
-
   /**
    * MutationObserver следит за динамически добавленными карточками
    * (комментарии, бесконечная прокрутка, AJAX-подгрузка постов).
@@ -355,7 +347,6 @@
     ensureWarmupObserver();
     ensureDomObserver();
     observeForWarmup(document);
-    warmupVisibleTooltips(document);
   }
 
   function bootstrap() {

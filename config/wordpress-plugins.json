@@ -11,7 +11,7 @@
     {"slug": "cloudflare", "status": "active", "version": "4.14.3", "origin": "wordpress.org"},
     {"slug": "cyr2lat", "status": "active", "version": "7.0.2", "origin": "wordpress.org"},
     {"slug": "hs-manacost-inline-deck", "status": "active", "version": "1.0.1", "origin": "custom"},
-    {"slug": "hs-tooltip", "status": "active", "version": "1.1.8", "origin": "custom"},
+    {"slug": "hs-tooltip", "status": "active", "version": "1.1.9", "origin": "custom"},
     {"slug": "manacost-arena-feed", "status": "active", "version": "1.1.5", "origin": "custom"},
     {"slug": "members", "status": "active", "version": "3.2.21", "origin": "wordpress.org"},
     {"slug": "perfmatters", "status": "active", "version": "2.6.2", "origin": "commercial"},
