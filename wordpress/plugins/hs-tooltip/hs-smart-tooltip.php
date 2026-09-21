@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Smart Tooltip
  * Description: Adds Hearthstone card tooltips using a prebuilt dictionary.
- * Version: 1.1.9
+ * Version: 1.1.10
  * Requires at least: 5.9
  * Requires PHP: 8.0
  * Text Domain: hs-smart-tooltip
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('HS_SMART_TOOLTIP_VERSION', '1.1.9');
+define('HS_SMART_TOOLTIP_VERSION', '1.1.10');
 define('HS_SMART_TOOLTIP_FRONTEND_SCRIPT', 'hs-tooltip-v115.js');
 
 const HS_TOOLTIP_CACHE_GROUP = 'hs_smart_tooltip';

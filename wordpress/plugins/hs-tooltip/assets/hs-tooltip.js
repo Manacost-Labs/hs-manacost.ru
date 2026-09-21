@@ -18,8 +18,6 @@
   var rafId = 0;
   var lastEvent = null;
   var hideTimer = 0;
-  var warmupObserver = null;
-  var domObserver = null;
   if (typeof window !== 'undefined') {
     window.HS_TOOLTIP_LOADED = true;
   }
@@ -56,62 +54,6 @@
       return;
     }
     preloadImage(target.getAttribute('data-image'), priority || 'low');
-  }
-
-  /**
-   * Прогревает картинки тултипов, попавших в зону видимости (или близко к ней),
-   * чтобы при первом hover'е картинка уже лежала в браузерном кэше.
-   * Используем IntersectionObserver с большим rootMargin — начинаем грузить
-   * заранее, до того как пользователь увидит элемент.
-   */
-  function ensureWarmupObserver() {
-    if (warmupObserver || typeof IntersectionObserver === 'undefined') {
-      return;
-    }
-    warmupObserver = new IntersectionObserver(function (entries) {
-      for (var i = 0; i < entries.length; i++) {
-        if (!entries[i].isIntersecting) {
-          continue;
-        }
-        var el = entries[i].target;
-        preloadTargetImages(el, 'low');
-        // Раз прогрели — не наблюдаем больше, экономим CPU.
-        warmupObserver.unobserve(el);
-      }
-    }, { rootMargin: '400px 0px', threshold: 0 });
-  }
-
-  function observeForWarmup(root) {
-    if (!warmupObserver) {
-      return;
-    }
-    var nodes = (root || document).querySelectorAll('.hs-card-tooltip[data-image]:not([data-hs-warm])');
-    for (var i = 0; i < nodes.length; i++) {
-      nodes[i].setAttribute('data-hs-warm', '1');
-      warmupObserver.observe(nodes[i]);
-    }
-  }
-
-  /**
-   * MutationObserver следит за динамически добавленными карточками
-   * (комментарии, бесконечная прокрутка, AJAX-подгрузка постов).
-   */
-  function ensureDomObserver() {
-    if (domObserver || typeof MutationObserver === 'undefined') {
-      return;
-    }
-    domObserver = new MutationObserver(function (mutations) {
-      for (var i = 0; i < mutations.length; i++) {
-        var added = mutations[i].addedNodes;
-        for (var j = 0; j < added.length; j++) {
-          var node = added[j];
-          if (node && node.nodeType === 1) {
-            observeForWarmup(node);
-          }
-        }
-      }
-    });
-    domObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   function createTooltip() {
@@ -343,25 +285,7 @@
     return true;
   }
 
-  function initWarmup() {
-    ensureWarmupObserver();
-    ensureDomObserver();
-    observeForWarmup(document);
-  }
-
-  function bootstrap() {
-    attachListeners();
-    // Запуск прогрева — на idle, чтобы не конкурировать с критическим рендером.
-    if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(initWarmup, { timeout: 1500 });
-    } else {
-      setTimeout(initWarmup, 600);
-    }
-  }
-
   if (!attachListeners()) {
-    document.addEventListener('DOMContentLoaded', bootstrap, { once: true });
-  } else {
-    bootstrap();
+    document.addEventListener('DOMContentLoaded', attachListeners, { once: true });
   }
 })();
