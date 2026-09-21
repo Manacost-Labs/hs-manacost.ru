@@ -39,7 +39,8 @@ process.stdout.write(JSON.stringify(destination));
         script = f"""
 const fs = require('node:fs');
 let destination = null;
-global.window = {{ location: {{ hostname: 'hs-manacost.ru', replace: value => {{ destination = value; }} }} }};
+global.window = {{ addEventListener() {{}}, location: {{ hostname: 'hs-manacost.ru', replace: value => {{ destination = value; }} }} }};
+global.document = {{ querySelector: () => null }};
 new Function(fs.readFileSync({json.dumps(str(BOOTSTRAP))}, 'utf8'))();
 process.stdout.write(JSON.stringify(destination));
 """

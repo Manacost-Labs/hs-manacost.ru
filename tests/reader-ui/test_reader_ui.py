@@ -13,6 +13,54 @@ CSS = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/reader.css'
 ASSETS_PHP = ROOT / 'wordpress/mu-plugins/hs-manacost-reader/assets.php'
 
 class ReaderUiContractTests(unittest.TestCase):
+    def test_account_bootstrap_is_deferred_in_head_not_behind_footer_editor(self):
+        fixture = r'''define('ABSPATH', '/fixture/');
+function hs_manacost_reader_page() { return (object) array('ID' => 22); }
+function is_page($id) { return ($GLOBALS['argv'][2] ?? '') !== 'article'; }
+function hs_reader_public_profile_request() { return ($GLOBALS['argv'][2] ?? '') === 'public'; }
+function content_url($path) { return '/wp-content/' . $path; }
+function add_filter(...$args) {}
+function wp_enqueue_style(...$args) {}
+function wp_enqueue_script($handle, $src, $deps, $version, $args) {
+    $GLOBALS['scripts'][$handle] = array('args' => $args, 'deps' => $deps);
+}
+function wp_script_add_data($handle, $key, $value) {
+    $GLOBALS['scripts'][$handle][$key] = $value;
+}
+$GLOBALS['scripts'] = array();
+require $argv[1]; hs_manacost_reader_assets();
+echo json_encode($GLOBALS['scripts']);'''
+        result = subprocess.run(['php', '-r', fixture, str(ASSETS_PHP)],
+                                capture_output=True, text=True, check=True)
+        scripts = json.loads(result.stdout)
+        bootstrap = scripts['hs-manacost-reader-bootstrap']
+        self.assertEqual(bootstrap.get('group'), 0)
+        self.assertEqual(bootstrap['args']['strategy'], 'defer')
+        self.assertEqual(bootstrap['deps'], [])
+        self.assertEqual(scripts['hs-manacost-reader'].get('group'), 0)
+        self.assertEqual(scripts['hs-manacost-reader-profile-editor'].get('group'), 0)
+        self.assertIn('hs-manacost-reader-bootstrap', scripts['hs-manacost-reader']['deps'])
+        for route in ('article', 'public'):
+            other = subprocess.run(['php', '-r', fixture, str(ASSETS_PHP), route],
+                                   capture_output=True, text=True, check=True)
+            self.assertEqual(json.loads(other.stdout), [], route)
+
+    def test_early_account_identity_emits_only_static_shared_code_on_private_account(self):
+        fixture = r'''define('ABSPATH', '/fixture/');
+function hs_manacost_reader_page() { return (object) array('ID' => 22); }
+function is_page($id) { return ($GLOBALS['argv'][2] ?? '') !== 'article'; }
+function hs_reader_public_profile_request() { return ($GLOBALS['argv'][2] ?? '') === 'public'; }
+function wp_print_inline_script_tag($code, $attributes) { echo json_encode(array($code, $attributes)); }
+require $argv[1]; hs_manacost_reader_early_bootstrap();'''
+        output = subprocess.run(['php', '-r', fixture, str(ASSETS_PHP)], capture_output=True, text=True, check=True)
+        code, attributes = json.loads(output.stdout)
+        self.assertIn((PHP.parent / 'bootstrap.js').read_text(), code)
+        self.assertIn('window.hsManacostReaderBootstrap().catch', code)
+        self.assertEqual(attributes['id'], 'hs-manacost-reader-early-bootstrap')
+        for route in ('article', 'public'):
+            other = subprocess.run(['php', '-r', fixture, str(ASSETS_PHP), route], capture_output=True, text=True, check=True)
+            self.assertEqual(other.stdout, '', route)
+
     def test_invalid_public_profile_keeps_shared_styles_without_private_editor(self):
         fixture = "define('ABSPATH','/fixture/'); function hs_manacost_reader_is_account_request(){return true;} function hs_reader_public_profile_request(){return true;} function hs_reader_public_profile_id(){return '';} require $argv[1]; echo hs_manacost_reader_account_shell();"
         html = subprocess.run(['php', '-r', fixture, str(PHP)], capture_output=True, text=True, check=True).stdout
@@ -83,6 +131,7 @@ function content_url($path) { return '/wp-content/' . $path; }
 function wp_enqueue_style($handle, $source = '', $dependencies = array(), $version = false) { if (empty($GLOBALS['styles'][$handle])) { $GLOBALS['styles'][$handle] = true; $GLOBALS['assets'][] = array($source, $version); } }
 function wp_style_is($handle, $state = 'enqueued') { return !empty($GLOBALS['styles'][$handle]); }
 function wp_enqueue_script($handle, $source = '', $dependencies = array(), $version = false) { if (empty($GLOBALS['scripts'][$handle])) { $GLOBALS['scripts'][$handle] = true; $GLOBALS['assets'][] = array($source, $version); } }
+function wp_script_add_data(...$args) {}
 class WP_Post { public $ID; public $post_status; public $post_content; public $post_type = 'post'; public $post_password = ''; public $post_title = 'Тест'; }
 function get_post($id) { $post = new WP_Post(); $post->ID = $id; $post->post_status = 'publish'; $post->post_content = 'Открытая статья'; return $post; }
 function get_permalink($post) { return 'https://test.hs-manacost.ru/test-article/'; }
@@ -167,6 +216,7 @@ echo json_encode($GLOBALS['assets']);'''
         # Privacy controls now live only in the account bundle instead of every
         # article; keep the aggregate source guard below 156 KiB.
         self.assertLessEqual(sum(path.stat().st_size for path in assets), 156_000)
+        self.assertLessEqual((PHP.parent / 'bootstrap.js').stat().st_size, 2_500)
         self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 35_700)
         self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
 

@@ -447,6 +447,7 @@
 
 		async function logoutRequest( csrfToken ) {
 			logoutInFlight = true;
+			window.hsManacostReaderBootstrap?.invalidate?.( 'logout' );
 			const requestLogoutGeneration = ++logoutGeneration;
 			generation += 1;
 			if ( controller ) controller.abort();
@@ -471,6 +472,11 @@
 			}
 		}
 
+		function identityRetry( preservePrivate, timeout = false ) {
+			if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход. Изменения в форме сохранены.' );
+			else showRetry( timeout ? 'Проверка входа заняла слишком много времени. Повторите попытку.' : 'Не удалось проверить вход. Повторите попытку.' );
+		}
+
 		async function refresh( refreshOptions = {} ) {
 			if ( logoutInFlight ) return;
 			clearAdministrator();
@@ -486,26 +492,22 @@
 			const deadline = window.setTimeout( () => {
 				if ( current( requestController, requestGeneration ) ) {
 					requestController.abort();
-					if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход вовремя. Изменения в форме сохранены.' );
-					else showRetry( 'Проверка входа заняла слишком много времени. Повторите попытку.' );
+					identityRetry( preservePrivate, true );
 				}
 			}, requestTimeoutMs );
 			try {
-				const response = await fetch( meEndpoint, { credentials: 'same-origin', cache: 'no-store', signal: requestController.signal, headers: { Accept: 'application/json' } } );
-				const data = await response.json().catch( () => ( {} ) );
+				const { response, data } = await ( window.hsManacostReaderBootstrap?.( ! refreshOptions.initial ) ??
+					fetch( meEndpoint, { credentials: 'same-origin', cache: 'no-store', signal: requestController.signal, headers: { Accept: 'application/json' } } )
+						.then( async response => ( { response, data: await response.json().catch( () => ( {} ) ) } ) ) );
 				if ( ! current( requestController, requestGeneration ) ) return;
 				if ( response.status === 200 ) authenticated( data, { ...refreshOptions, preserveDraft: preservePrivate } );
 				else if ( response.status === 401 ) guest( 'Войдите через HearthPulse, чтобы открыть свой профиль.' );
-				else if ( response.status === 503 || response.status === 429 ) {
-					if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход. Изменения в форме сохранены.' );
-					else showRetry( 'Сервис входа временно недоступен.' );
-				}
+				else if ( response.status === 503 || response.status === 429 ) identityRetry( preservePrivate );
 				else throw new Error( 'identity_failed' );
 			} catch ( error ) {
 				if ( error.name !== 'AbortError' && current( requestController, requestGeneration ) ) {
 					if ( error.message === 'invalid_profile' ) showRetry( 'Сервис вернул некорректные данные профиля. Повторите попытку.' );
-					else if ( preservePrivate ) showPreservedRetry( 'Не удалось обновить вход. Изменения в форме сохранены.' );
-					else showRetry( 'Не удалось проверить вход. Повторите попытку.' );
+					else identityRetry( preservePrivate, error.name === 'TimeoutError' );
 				}
 			} finally {
 				window.clearTimeout( deadline );
@@ -517,6 +519,7 @@
 			avatarEndpoint,
 			onRefresh: ( options ) => refresh( { ...options, silent: true } ),
 			onMutationStart: () => {
+				window.hsManacostReaderBootstrap?.invalidate?.( 'profile_mutation' );
 				permissionsController?.abort();
 				generation += 1;
 				if ( controller ) controller.abort();
@@ -546,7 +549,7 @@
 			accountMenu.querySelector( 'summary' ).focus();
 		} );
 		const refreshIfActive = () => { if ( ! logoutInFlight && ! profileEditor.isBusy() ) refresh( { preserveDraft: true, silent: true } ); };
-		// Initial navigation already calls refresh below; only BFCache needs a second entry path.
+		// BFCache-only pageshow.
 		window.addEventListener( 'pageshow', event => { if ( event.persisted ) refreshIfActive(); } );
 		window.addEventListener( 'focus', refreshIfActive );
 		window.addEventListener( 'pagehide', () => {
@@ -559,7 +562,7 @@
 			clearPrivate();
 			status.textContent = 'Проверяем вход…';
 		} );
-		refresh();
+		refresh( { initial: true } );
 	}
 
 	document.querySelectorAll( '[data-mc-reader-root]' ).forEach( init );

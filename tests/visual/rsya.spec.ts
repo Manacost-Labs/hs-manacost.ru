@@ -73,6 +73,34 @@ async function verifyPlacements(page: Page) {
   await expect(page.locator('script[src*="yandex.ru/ads/system/context.js"]')).toHaveCount(1);
 }
 
+for (const scenario of [
+  { name: 'paid', status: 200, body: { adFree: true }, allowed: false },
+  { name: 'unpaid', status: 200, body: { adFree: false }, allowed: true },
+  { name: 'unknown', status: 200, body: {}, allowed: false },
+  { name: 'provider failure', status: 503, body: { adFree: false }, allowed: false },
+]) {
+  test(`ad SDK waits for private subscription decision: ${scenario.name}`, async ({ page }) => {
+    await interceptSdk(page);
+    let release!: () => void;
+    const decision = new Promise<void>(resolve => { release = resolve; });
+    let sdkRequests = 0;
+    page.on('request', request => { if (request.url().includes('yandex.ru/ads/system/context.js')) sdkRequests++; });
+    await page.context().route('**/reader-api/v1/ad-status', async route => {
+      await decision;
+      await route.fulfill({ status: scenario.status, contentType: 'application/json',
+        headers: { 'Cache-Control': 'private, no-store' }, body: JSON.stringify(scenario.body) });
+    });
+    await page.goto(manualArticlePath, { waitUntil: 'domcontentloaded' });
+    expect(sdkRequests).toBe(0);
+    await expect(page.locator('script[src*="yandex.ru/ads/system/context.js"]')).toHaveCount(0);
+    release();
+    expect(await page.evaluate(() => (window as any).manacostRsyaReady)).toBe(scenario.allowed);
+    expect(sdkRequests).toBe(scenario.allowed ? 1 : 0);
+    if (scenario.allowed) await verifyPlacements(page);
+    else await expect(page.locator('[data-manacost-rsya-unit]')).toBeHidden();
+  });
+}
+
 test('manual article placement survives reload, resize and slow SDK without duplicate calls', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
