@@ -27,7 +27,7 @@
     {"slug": "wordfence", "status": "active", "version": "9.0.1", "origin": "wordpress.org"},
     {"slug": "wp-kolodahearthstone-banner", "status": "active", "version": "1.0", "origin": "custom"},
     {"slug": "wp-kolodahearthstone-spoilers", "status": "active", "version": "1.0", "origin": "custom"},
-    {"slug": "wp-manacost-decks_old", "status": "active", "version": "2.0.4", "origin": "legacy"},
+    {"slug": "wp-manacost-decks_old", "status": "active", "version": "2.0.5", "origin": "legacy"},
     {"slug": "wp-rocket", "status": "active", "version": "3.21.3", "origin": "commercial"}
   ],
   "excluded_runtime_categories": [
