@@ -31,6 +31,31 @@ $cover_parser->next_tag('LINK');
 hs_integration_assert($cover_parser->get_attribute('href') === 'https://hs-manacost.ru/banner.webp', 'unrelated banner preload changed');
 hs_integration_assert(Manacost_Article_Cover::optimize_html($cover_result) === $cover_result, 'cover processing is not idempotent');
 
+$cover_previous_user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
+$cover_mobile_result = Manacost_Article_Cover::optimize_html($cover_page);
+$cover_mobile_src = 'https://hs-manacost.ru/wp-content/uploads/2026/09/cover-768x390.jpg';
+$cover_parser = new WP_HTML_Tag_Processor($cover_mobile_result);
+$cover_parser->next_tag('IMG');
+hs_integration_assert($cover_parser->get_attribute('src') === $cover_mobile_src, 'mobile cover still downloads the original');
+hs_integration_assert($cover_parser->get_attribute('srcset') === $cover_mobile_src . ' 768w', 'mobile cover candidates are not bounded');
+$cover_parser = new WP_HTML_Tag_Processor($cover_mobile_result);
+$cover_parser->next_tag('LINK');
+hs_integration_assert($cover_parser->get_attribute('href') === $cover_mobile_src, 'mobile preload still downloads the original');
+hs_integration_assert($cover_parser->get_attribute('imagesrcset') === $cover_mobile_src . ' 768w', 'mobile preload candidates differ from IMG');
+$cover_small_srcset = $cover_url . ' 1176w, https://hs-manacost.ru/wp-content/uploads/2026/09/cover-300x152.jpg 300w';
+$cover_small_page = str_replace($cover_srcset, $cover_small_srcset, $cover_page);
+$cover_small_result = Manacost_Article_Cover::optimize_html($cover_small_page);
+$cover_parser = new WP_HTML_Tag_Processor($cover_small_result);
+$cover_parser->next_tag('IMG');
+hs_integration_assert($cover_parser->get_attribute('src') === $cover_url, 'mobile cover fell back to an undersized candidate');
+hs_integration_assert($cover_parser->get_attribute('srcset') === $cover_small_srcset, 'mobile srcset changed without an adequate candidate');
+if (null === $cover_previous_user_agent) {
+    unset($_SERVER['HTTP_USER_AGENT']);
+} else {
+    $_SERVER['HTTP_USER_AGENT'] = $cover_previous_user_agent;
+}
+
 foreach (['<div class="td-module-thumb">' . $cover_tag . '</div>', '<div class="td-post-featured-image"></div>' . $cover_tag, '<div class="td-post-featured-image"><picture><source srcset="art.webp">' . $cover_tag . '</picture></div>'] as $cover_unsupported) {
     $cover_unmodified = '<html><head></head><body>' . $cover_unsupported . '</body></html>';
     hs_integration_assert(Manacost_Article_Cover::optimize_html($cover_unmodified) === $cover_unmodified, 'unrelated or unsupported markup was changed');
