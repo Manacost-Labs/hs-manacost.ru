@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Article Cover Loading
  * Description: Keeps the Newspaper article cover eager and its preload aligned with the rendered image.
- * Version: 1.0.0
+ * Version: 1.1.0
  *
  * @package Manacost
  */
@@ -11,6 +11,8 @@ defined( 'ABSPATH' ) || exit;
 
 /** Optimizes only the public article cover, not images in the article body. */
 final class Manacost_Article_Cover {
+	private const MOBILE_MIN_WIDTH = 640;
+	private const MOBILE_MAX_WIDTH = 768;
 
 	/** Registers a non-Rocket fallback and a final, cacheable Rocket pass. */
 	public static function boot(): void {
@@ -76,6 +78,8 @@ final class Manacost_Article_Cover {
 		if ( ! preg_match( '#^(?:https?:)?//#i', $attributes['src'] ) ) {
 			return $html;
 		}
+		$source_url = $attributes['src'];
+		$attributes = self::bound_mobile_candidates( $attributes );
 
 		foreach ( $attributes as $name => $value ) {
 			if ( '' !== $value ) {
@@ -87,7 +91,50 @@ final class Manacost_Article_Cover {
 		$cover->set_attribute( 'fetchpriority', 'high' );
 		$cover->set_attribute( 'data-no-lazy', '1' );
 
-		return self::align_preload( $cover->get_updated_html(), $attributes );
+		return self::align_preload( $cover->get_updated_html(), $attributes, $source_url );
+	}
+
+	/**
+	 * Caps Retina mobile covers at a generated size without changing desktop.
+	 *
+	 * @param array<string, string> $attributes Responsive cover attributes.
+	 * @return array<string, string>
+	 */
+	private static function bound_mobile_candidates( array $attributes ): array {
+		if ( ! wp_is_mobile() || '' === $attributes['srcset'] ) {
+			return $attributes;
+		}
+
+		$candidates = preg_split( '/\s*,\s*/', $attributes['srcset'], -1, PREG_SPLIT_NO_EMPTY );
+		if ( false === $candidates ) {
+			return $attributes;
+		}
+
+		$bounded     = array();
+		$largest_url = '';
+		$largest     = 0;
+		foreach ( $candidates as $candidate ) {
+			if ( ! preg_match( '/^(\S+)\s+(\d+)w$/', trim( $candidate ), $matches ) ) {
+				continue;
+			}
+			$width = (int) $matches[2];
+			if ( $width < self::MOBILE_MIN_WIDTH || $width > self::MOBILE_MAX_WIDTH ) {
+				continue;
+			}
+			$bounded[] = $matches[1] . ' ' . $width . 'w';
+			if ( $width > $largest ) {
+				$largest     = $width;
+				$largest_url = $matches[1];
+			}
+		}
+
+		if ( '' === $largest_url ) {
+			return $attributes;
+		}
+
+		$attributes['src']    = $largest_url;
+		$attributes['srcset'] = implode( ', ', $bounded );
+		return $attributes;
 	}
 
 	/**
@@ -126,9 +173,10 @@ final class Manacost_Article_Cover {
 	 *
 	 * @param string                $html       Rendered HTML with eager cover.
 	 * @param array<string, string> $attributes The cover's final responsive attributes.
+	 * @param string                $source_url The cover URL before mobile candidate selection.
 	 * @return string
 	 */
-	private static function align_preload( string $html, array $attributes ): string {
+	private static function align_preload( string $html, array $attributes, string $source_url ): string {
 		$processor = new WP_HTML_Tag_Processor( $html );
 		while ( $processor->next_tag( array( 'tag_name' => 'LINK' ) ) ) {
 			if ( 'preload' !== $processor->get_attribute( 'rel' ) || 'image' !== $processor->get_attribute( 'as' ) ) {
@@ -140,7 +188,7 @@ final class Manacost_Article_Cover {
 			}
 			// Nginx negotiates formats on the original URL; do not force a sidecar.
 			$original = preg_replace( '/(\.(?:jpe?g|png))\.(?:webp|avif)(?=[?#]|$)/i', '$1', $href );
-			if ( $href !== $attributes['src'] && $original !== $attributes['src'] ) {
+			if ( ! in_array( $href, array( $source_url, $attributes['src'] ), true ) && ! in_array( $original, array( $source_url, $attributes['src'] ), true ) ) {
 				continue;
 			}
 			$preload_attributes = array(
