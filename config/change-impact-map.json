@@ -190,6 +190,16 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-manacost-pwa.php", "public/manifest.webmanifest", "public/service-worker.js", "public/offline.html", "public/favicon.ico", "public/pwa-icons/**", "tests/test_pwa.py"],
+      "owner": "public-pwa",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "cache", "responsive-ui", "accessibility"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-runtime-stack", "wordpress-accessibility", "wp-plugin-development", "playwright"],
+      "checks": ["make code-quality", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/**"],
       "owner": "first-party-generic",
       "classified": false,
