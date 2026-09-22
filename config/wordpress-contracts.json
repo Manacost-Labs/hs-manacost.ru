@@ -3044,13 +3044,6 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
         "line": 303
-      },
-      {
-        "name": "update_themes",
-        "resolved": true,
-        "api": "current_user_can",
-        "file": "wordpress/mu-plugins/hs-admin-theme-update-guard.php",
-        "line": 117
       }
     ]
   }

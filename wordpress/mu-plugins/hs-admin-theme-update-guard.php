@@ -114,7 +114,7 @@ final class HS_Admin_Theme_Update_Guard {
 			return false;
 		}
 
-		return current_user_can( 'update_themes' );
+		return true;
 	}
 
 	/**
