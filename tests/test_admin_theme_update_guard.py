@@ -22,7 +22,7 @@ class AdminThemeUpdateGuardTest(unittest.TestCase):
             "ajax",
             "cron",
             "cli",
-            "no_capability",
+            "capability_disabled",
             "other_theme",
             "not_deleted",
             "later_manual_check",

@@ -137,7 +137,7 @@ switch ( $scenario ) {
 		$stored = $fresh;
 		define( 'WP_CLI', true );
 		break;
-	case 'no_capability':
+	case 'capability_disabled':
 		$stored  = $fresh;
 		$allowed = false;
 		break;
@@ -185,6 +185,7 @@ if ( 'later_manual_check' === $scenario ) {
 
 switch ( $scenario ) {
 	case 'fresh':
+	case 'capability_disabled':
 		same( $now - 60, $stored->last_checked ?? null, 'fresh cache was not restored' );
 		same( '12.7.4', $stored->response['Newspaper_new']['new_version'] ?? null, 'tagDiv filter was not applied' );
 		break;
