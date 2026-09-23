@@ -1,0 +1,23 @@
+{
+  "$schema": "../vendor/infection/infection/resources/schema.json",
+  "source": {
+    "directories": [
+      "wordpress/mu-plugins"
+    ]
+  },
+  "phpUnit": {
+    "configDir": ".",
+    "customPath": "vendor/bin/phpunit"
+  },
+  "timeout": 15,
+  "minMsi": 70,
+  "minCoveredMsi": 70,
+  "logs": {
+    "text": "../.artifacts/infection-quality.log",
+    "summary": "../.artifacts/infection-summary.log"
+  },
+  "mutators": {
+    "@default": true
+  },
+  "bootstrap": "tests/phpunit/infection-bootstrap.php"
+}

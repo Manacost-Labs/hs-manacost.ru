@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="../vendor/autoload.php" cacheDirectory="../.artifacts/phpunit"
+         failOnWarning="true" failOnRisky="true">
+  <testsuites><testsuite name="metadata-cache"><directory>../tests/phpunit</directory></testsuite></testsuites>
+  <source><include><file>../wordpress/mu-plugins/hs-admin-meta-key-cache.php</file></include></source>
+</phpunit>

@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 ENV_FILE="$ROOT_DIR/.artifacts/integration/runtime.env"
 COMPOSE_FILE="$ROOT_DIR/ops/integration/compose.yml"
+# shellcheck source=ops/integration/scope.sh
+source "$ROOT_DIR/ops/integration/scope.sh"
+PROJECT_NAME=$(integration_project_name "$ROOT_DIR")
 
 if [[ ! -f "$ENV_FILE" ]]; then
     exit 0
@@ -15,6 +18,6 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 "${docker_command[@]}" compose \
-    --project-name hs-manacost-integration \
+    --project-name "$PROJECT_NAME" \
     --env-file "$ENV_FILE" \
     -f "$COMPOSE_FILE" down --volumes --remove-orphans

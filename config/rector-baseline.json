@@ -1,0 +1,35 @@
+{
+  "notice": "Six pre-existing modernization proposals at 487d9394; unchanged source and proposal only. Never auto-update this baseline.",
+  "entries": [
+    {
+      "path": "wordpress/mu-plugins/hs-lcp-background-preload.php",
+      "source_sha256": "9bb286a9af149f434fe36e1f22265adc64b02d99a3842ce82befb2d5532452b4",
+      "diff_sha256": "522cf994a23e9f85c3151f43330f820948e2bae22a08879a6732a04b8c534f14"
+    },
+    {
+      "path": "wordpress/mu-plugins/hs-manacost-reader/account.php",
+      "source_sha256": "78c4fe359976db6281349f0d36003f8b8d13a9e00b895e12916c158e7c4c6a55",
+      "diff_sha256": "ecc45ace67a049254c3b1dffc60828322ab09284353204959a275414549b913f"
+    },
+    {
+      "path": "wordpress/mu-plugins/manacost-cache-purge.php",
+      "source_sha256": "574ae1d721e1c41f95515521aa4d03093350556693ec1a68e7c0b042025c4e46",
+      "diff_sha256": "af6af622ac109359c4f649ff32fe695ac530e2a41a3ad355f39e2f90d288c14c"
+    },
+    {
+      "path": "wordpress/mu-plugins/manacost-cache-purge/runtime.php",
+      "source_sha256": "3673d5e24d29da9c7b440d71ec4014664ea00a0b61d404b22e3265349c8f4e89",
+      "diff_sha256": "3e36fb19c20048ba89ee57f54cb1aee8ab6bd48b4d9ae6ae88f25c56a8a940fb"
+    },
+    {
+      "path": "wordpress/mu-plugins/manacost-guide-pdf.php",
+      "source_sha256": "93f7cb38c2d934f18a2ad33112a3bf869e3853833b27ffa191eb7bc5b1d74449",
+      "diff_sha256": "afb8ef091740b9b5d5b498c2422f5bb4b89279b528894ee486665d16b8eaa10e"
+    },
+    {
+      "path": "wordpress/mu-plugins/plausible-analytics.php",
+      "source_sha256": "95089bdb58ec2bbca970cd18bc4418ee3da4008f844a3cce9b3f3c00b5df983d",
+      "diff_sha256": "7827716bff6677add3623e7fdac072b6196970b8a7cf2a38430e085bfcc00a5f"
+    }
+  ]
+}

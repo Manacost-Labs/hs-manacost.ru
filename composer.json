@@ -5,13 +5,18 @@
   "license": "proprietary",
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "1.2.1",
+    "deptrac/deptrac": "^4.7",
+    "infection/infection": "^0.29",
     "phpcompatibility/phpcompatibility-wp": "2.1.8",
+    "phpunit/phpunit": "^11.0",
+    "rector/rector": "^2.0",
     "szepeviktor/phpstan-wordpress": "2.0.3",
     "wp-coding-standards/wpcs": "3.4.1"
   },
   "config": {
     "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "infection/extension-installer": false
     },
     "sort-packages": true
   },

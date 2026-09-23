@@ -2,7 +2,20 @@
 
 .PHONY: nginx-media-test
 
-check: composer-validate php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test web-v2-check shell-check nginx-media-test
+check: composer-validate quality-config php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test web-v2-check shell-check nginx-media-test
+
+.PHONY: quality-config quality-plan quality-verify design-verify
+quality-config:
+	@python3 ops/code-quality/quality-guard.py --check-config
+
+quality-plan:
+	@python3 ops/code-quality/quality-guard.py --plan
+
+quality-verify:
+	@python3 ops/code-quality/quality-guard.py
+
+design-verify:
+	@python3 ops/code-quality/quality-guard.py --family design --task-type ui
 
 nginx-media-test:
 	@python3 ops/nginx/tests/check_media_negotiation.py
@@ -12,8 +25,29 @@ nginx-media-test:
 composer-validate:
 	@composer validate --strict --no-check-publish
 
-code-quality: composer-validate
+code-quality: composer-validate quality-extended
 	@ops/code-quality/run.sh
+
+.PHONY: quality-extended quality-mutation quality-audit quality-wpscan quality-query-monitor quality-advisories
+quality-extended:
+	@vendor/bin/phpunit -c config/phpunit.xml
+	@python3 ops/code-quality/rector-ratchet.py
+	@vendor/bin/deptrac analyse --config-file=config/deptrac-quality.yaml --cache-file=.artifacts/deptrac.cache --no-progress
+
+quality-mutation:
+	@ops/code-quality/mutation.sh
+
+quality-audit:
+	@composer audit --locked
+
+quality-advisories:
+	@ops/integration/diagnostics.sh --advisories
+
+quality-wpscan:
+	@ops/integration/diagnostics.sh --wpscan
+
+quality-query-monitor:
+	@ops/integration/diagnostics.sh --query-monitor
 
 php-lint:
 	@find wordpress config -type f -name '*.php' -print0 | xargs -0 -n 1 php -l >/dev/null

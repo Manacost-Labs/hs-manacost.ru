@@ -6,7 +6,9 @@ RUNTIME_DIR="$ROOT_DIR/.artifacts/integration"
 SITE_DIR="$RUNTIME_DIR/site"
 ENV_FILE="$RUNTIME_DIR/runtime.env"
 COMPOSE_FILE="$ROOT_DIR/ops/integration/compose.yml"
-PROJECT_NAME=hs-manacost-integration
+# shellcheck source=ops/integration/scope.sh
+source "$ROOT_DIR/ops/integration/scope.sh"
+PROJECT_NAME=$(integration_project_name "$ROOT_DIR")
 
 if [[ ! "${WP_TEST_PORT:-8888}" =~ ^[0-9]+$ ]] \
     || (( ${WP_TEST_PORT:-8888} < 1024 || ${WP_TEST_PORT:-8888} > 65535 )); then

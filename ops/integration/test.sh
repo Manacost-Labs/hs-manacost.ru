@@ -11,7 +11,10 @@ docker_command=(docker)
 if ! docker info >/dev/null 2>&1; then
     docker_command=(sudo -n docker)
 fi
-compose=("${docker_command[@]}" compose --project-name hs-manacost-integration --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+# shellcheck source=ops/integration/scope.sh
+source "$ROOT_DIR/ops/integration/scope.sh"
+PROJECT_NAME=$(integration_project_name "$ROOT_DIR")
+compose=("${docker_command[@]}" compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
 
 "${compose[@]}" run --rm -e HS_MANACOST_S3_RESTORE=1 cli eval-file /var/www/html/.integration/wordpress-tests.php
 # Match Apache's local-only URL constants before the domain bootstrap MU loads.
