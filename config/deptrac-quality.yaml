@@ -1,0 +1,33 @@
+deptrac:
+  paths:
+    - ../wordpress/mu-plugins
+    - ../wordpress/plugins
+    - ../wordpress/themes
+  layers:
+    - name: FirstParty
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: wordpress/mu-plugins/.*
+          must_not:
+            - type: directory
+              value: wordpress/mu-plugins/(manacost-social-links|hs-manacost-newspaper-trim)\.php
+    # These two adapters intentionally integrate the installed Newspaper API.
+    - name: NewspaperAdapters
+      collectors:
+        - type: directory
+          value: wordpress/mu-plugins/(manacost-social-links|hs-manacost-newspaper-trim)\.php
+    - name: VendorPlugins
+      collectors:
+        - type: directory
+          value: wordpress/plugins/.*
+    - name: VendorThemes
+      collectors:
+        - type: directory
+          value: wordpress/themes/.*
+  ruleset:
+    FirstParty: []
+    NewspaperAdapters: [VendorPlugins, VendorThemes]
+    VendorPlugins: [VendorPlugins, VendorThemes]
+    VendorThemes: [VendorThemes, VendorPlugins]

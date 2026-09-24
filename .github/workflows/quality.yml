@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      mutation:
+        description: Run bounded metadata-cache mutation tests
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,6 +31,8 @@ jobs:
         env:
           CODE_QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: make code-quality
+      - name: Audit locked PHP dependencies
+        run: make quality-audit
       - name: Build WordPress change impact report
         env:
           CHANGE_IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -43,6 +51,20 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y nginx
       - name: Check repository
         run: make check
+
+  mutation:
+    if: github.event_name == 'workflow_dispatch' && inputs.mutation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+          coverage: xdebug
+      - run: composer install --no-interaction --prefer-dist
+      - run: make quality-mutation
 
   wordpress-integration:
     runs-on: ubuntu-latest

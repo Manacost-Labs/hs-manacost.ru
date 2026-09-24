@@ -11,6 +11,11 @@ const RESPONSIVE_PATHS = [
 
 async function stabilize(page: Page): Promise<void> {
   await page.addStyleTag({ path: screenshotStyle });
+  // Integration stacks use different loopback ports; keep only their visible
+  // permalink text stable so it cannot reflow this narrow editor screenshot.
+  await page.locator('#sample-permalink a').evaluateAll(links => links.forEach(link => {
+    link.textContent = link.textContent?.replace(/http:\/\/127\.0\.0\.1:\d+/, 'http://127.0.0.1:8888') ?? '';
+  }));
   await page.evaluate(async () => {
     if (document.fonts?.ready) await document.fonts.ready;
     window.scrollTo(0, 0);
@@ -203,6 +208,7 @@ test('article editor', async ({ page }) => {
   await page.goto(editUrl, { waitUntil: 'domcontentloaded' });
   await removeDynamicEditorNotices(page);
   await expect(page.locator('.mce-btn button', { hasText: 'Реклама' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Создать новую версию', exact: true })).toBeVisible();
   await stabilize(page);
   await expect(page).toHaveScreenshot('editor.png');
 });

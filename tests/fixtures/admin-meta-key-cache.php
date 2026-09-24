@@ -102,6 +102,17 @@ switch ($scenario) {
     case 'invalid_limit':
         add_filter('postmeta_form_limit', fn() => -1);
         same(null, apply_filters('postmeta_form_keys', null), 'invalid limit delegates to core'); break;
+    case 'default_limit':
+        $wpdb->rows = array_map(fn($i) => sprintf('key%04d', $i), range(1, 35));
+        same(array_slice($wpdb->rows, 0, 30), choices(), 'core default exposes exactly thirty keys'); break;
+    case 'upper_limit':
+        add_filter('postmeta_form_limit', fn() => 1000);
+        same(['alpha', 'beta'], apply_filters('postmeta_form_keys', null), 'upper limit is inclusive');
+        add_filter('postmeta_form_limit', fn() => 1001, 20);
+        same(null, apply_filters('postmeta_form_keys', null), 'oversized dropdown delegates to core'); break;
+    case 'coerced_limit':
+        add_filter('postmeta_form_limit', fn() => 1000.9);
+        same(['alpha', 'beta'], apply_filters('postmeta_form_keys', null), 'core integer coercion happens before bounds'); break;
     case 'add': case 'delete': case 'delete_all':
         choices();
         $wpdb->rows = $scenario === 'add' ? ['alpha', 'beta', 'new'] : ['beta'];

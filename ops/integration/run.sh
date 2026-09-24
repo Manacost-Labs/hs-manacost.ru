@@ -19,7 +19,7 @@ if [[ "${RUN_VISUAL:-0}" == "1" || "${RUN_PERFORMANCE:-0}" == "1" ]]; then
         if [[ "${UPDATE_VISUAL:-0}" == "1" ]]; then
             visual_command+=(--update-snapshots)
         fi
-        "${docker_command[@]}" run --rm --network host --ipc=host \
+        "${docker_command[@]}" run --rm --network host --ipc=host --cpus=1 --memory=1g --pids-limit=256 \
             --env CI \
             --env-file "$ROOT_DIR/.artifacts/integration/runtime.env" \
             -v "$ROOT_DIR:/work" -w /work \
@@ -31,7 +31,7 @@ if [[ "${RUN_VISUAL:-0}" == "1" || "${RUN_PERFORMANCE:-0}" == "1" ]]; then
         report_directory="$ROOT_DIR/.artifacts/admin-performance/reports"
         rm -rf "$raw_directory" "$report_directory"
         mkdir -p "$raw_directory" "$report_directory"
-        "${docker_command[@]}" run --rm --network host --ipc=host \
+        "${docker_command[@]}" run --rm --network host --ipc=host --cpus=1 --memory=1g --pids-limit=256 \
             --env CI \
             --env-file "$ROOT_DIR/.artifacts/integration/runtime.env" \
             -v "$ROOT_DIR:/work" -w /work \
