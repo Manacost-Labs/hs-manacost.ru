@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { collectSqlProfile } from './browser-sql-profile.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -123,23 +124,6 @@ async function measureEditorOpen(id) {
       group.latest_end_ms = Math.max(group.latest_end_ms, Math.round(resource.responseEnd));
       assetGroups.set(owner, group);
     }
-    const queryRows = window.QueryMonitorData?.data?.db_queries?.data?.rows;
-    const callerTotals = new Map();
-    if (queryRows && typeof queryRows === 'object') {
-      for (const row of Object.values(queryRows)) {
-        const seconds = Number(row?.ltime);
-        if (!Number.isFinite(seconds) || seconds < 0) continue;
-        const stack = Array.isArray(row?.stack) ? row.stack : [];
-        const safeNames = stack.filter(name =>
-          typeof name === 'string' && /^[A-Za-z_\\][A-Za-z0-9_\\:>\-]{0,79}$/.test(name));
-        const caller = safeNames.find(name => /^(hs_|wf|td_|AIOSEO|WPRocket)/i.test(name))
-          ?? safeNames[0] ?? 'other';
-        const total = callerTotals.get(caller) ?? { caller, count: 0, total_ms: 0 };
-        total.count += 1;
-        total.total_ms += seconds * 1000;
-        callerTotals.set(caller, total);
-      }
-    }
     return {
       ttfb_ms: Math.round(navigation.responseStart - navigation.requestStart),
       dom_interactive_ms: Math.round(navigation.domInteractive - navigation.startTime),
@@ -152,17 +136,10 @@ async function measureEditorOpen(id) {
       asset_groups: [...assetGroups.values()]
         .sort((left, right) => right.latest_end_ms - left.latest_end_ms)
         .slice(0, 12),
-      sql_profile: {
-        available: Boolean(queryRows),
-        profiled_queries: [...callerTotals.values()].reduce((sum, item) => sum + item.count, 0),
-        top_callers: [...callerTotals.values()]
-          .sort((left, right) => right.total_ms - left.total_ms)
-          .slice(0, 12)
-          .map(item => ({ ...item, total_ms: Math.round(item.total_ms) })),
-      },
     };
   });
-  return { ...timings, editor_ready_ms: editorReadyMs };
+  const sqlProfile = await page.evaluate(collectSqlProfile);
+  return { ...timings, sql_profile: sqlProfile, editor_ready_ms: editorReadyMs };
 }
 
 async function removeFixture() {

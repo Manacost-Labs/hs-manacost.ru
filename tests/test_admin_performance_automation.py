@@ -260,6 +260,37 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
         self.assertIn("node ops/performance/collect-admin-performance.mjs", staging_workflow)
         self.assertNotIn("docker run", staging_workflow)
 
+    def test_browser_sql_profile_never_exports_query_text(self) -> None:
+        script = """
+import { collectSqlProfile } from './ops/performance/browser-sql-profile.mjs';
+const unavailable = collectSqlProfile();
+globalThis.QueryMonitorData = { data: { db_queries: { data: { rows: [
+  { sql: 'SELECT private@example.com secret-token', ltime: 0.01,
+    stack: ['wpdb->query', 'hs_example_lookup'] },
+  { sql: 'UPDATE private@example.com', ltime: 0.005,
+    stack: ['wpdb->query', 'hs_example_lookup'] },
+  { sql: 'SELECT another secret-token', ltime: 0.003,
+    stack: ['unsafe caller with arguments'] },
+] } } } };
+console.log(JSON.stringify({ unavailable, measured: collectSqlProfile() }));
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertNotIn("private@example.com", result.stdout)
+        self.assertNotIn("secret-token", result.stdout)
+        profile = json.loads(result.stdout)
+        self.assertFalse(profile["unavailable"]["available"])
+        self.assertEqual(3, profile["measured"]["profiled_queries"])
+        self.assertEqual("hs_example_lookup", profile["measured"]["top_callers"][0]["caller"])
+        self.assertEqual(2, profile["measured"]["top_callers"][0]["count"])
+        self.assertEqual("hs_example_lookup", profile["measured"]["top_by_count"][0]["caller"])
+
 
 if __name__ == "__main__":
     _ = unittest.main()

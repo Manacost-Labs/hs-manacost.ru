@@ -22,8 +22,9 @@ reports are uploaded without a pass/fail evaluation. Existing screen budgets
 remain unchanged.
 
 The article diagnostic also records grouped script/style resource timing.
-When Query Monitor is temporarily active on staging, it records only sanitized
-caller names with query counts and total durations. It never exports SQL text
-or Query Monitor's raw page data. Query Monitor must remain inactive after a
-manual profiling run. Its extra overhead means timing samples from that run
-must not be compared with ordinary runs.
+When Query Monitor is temporarily active on staging, the collector writes a
+`diagnostic-sql-callers.json` artifact for all measured screens. It contains
+only sanitized caller names with query counts and total durations; neither SQL
+text nor Query Monitor's raw page data is exported. Query Monitor must remain
+inactive after a manual profiling run. Its extra overhead means timing samples
+from that run must not be compared with ordinary runs.
