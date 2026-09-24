@@ -2742,7 +2742,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-editor-cloudflare-deferred-purge.php",
-        "line": 53
+        "line": 54
       },
       {
         "name": "edit_post",

@@ -30,7 +30,8 @@ final class HS_Editor_Cloudflare_Deferred_Purge {
 	/** Registers handlers for the editor and response completion. */
 	public static function boot(): void {
 		add_action( 'pre_post_update', array( __CLASS__, 'prepare_editor_save' ), 1, 2 );
-		add_action( 'shutdown', array( __CLASS__, 'finish_after_response' ), 0 );
+		// Complete other WordPress shutdown work before returning the editor response.
+		add_action( 'shutdown', array( __CLASS__, 'finish_after_response' ), PHP_INT_MAX );
 	}
 
 	/**
