@@ -40,6 +40,16 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["ops/php84/**"],
+      "owner": "shared-php-fpm-runtime",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["host-operations", "performance", "wordpress-runtime"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "kolodahearthstone.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["wordpress-runtime-stack", "wordpress-observability", "wordpress-release-manager", "wp-performance", "agent-performance-optimization"],
+      "checks": ["/opt/php84/sbin/php-fpm -t --fpm-config /opt/php84/etc/php-fpm.conf", "./ops/smoke-check.sh staging", "./ops/smoke-check.sh production"]
+    },
+    {
       "patterns": ["ops/monitoring/**", "tests/test_availability_monitoring.py"],
       "owner": "shared-origin-availability-monitoring",
       "classified": true,
