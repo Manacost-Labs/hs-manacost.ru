@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portable WordPress Admin Plugin"
+  short_description: "Админ-плагины и перенос настроек между двумя сайтами"
+  default_prompt: "Используй $wordpress-admin-plugin-portability, чтобы создать админ-плагин для hs-manacost.ru с проверяемым переносом на kolodahearthstone.com."

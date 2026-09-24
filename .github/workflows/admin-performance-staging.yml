@@ -66,13 +66,15 @@ jobs:
           mkdir -p .artifacts/admin-performance/raw .artifacts/admin-performance/reports
           test -x "$PLAYWRIGHT_EXECUTABLE_PATH"
           node ops/performance/collect-admin-performance.mjs .artifacts/admin-performance/raw
+          evaluation_failed=0
           for raw_report in .artifacts/admin-performance/raw/*.json; do
             report_path=".artifacts/admin-performance/reports/$(basename "$raw_report")"
             ops/performance/build-admin-performance-report.py \
               "$raw_report" config/admin-performance-budgets.json > "$report_path"
             .agents/skills/wordpress-admin-performance/scripts/evaluate_admin_performance.py \
-              "$report_path"
+              "$report_path" || evaluation_failed=1
           done
+          exit "$evaluation_failed"
       - name: Diagnose authenticated article save
         if: always() && steps.credentials.outputs.enabled == 'true'
         env:
