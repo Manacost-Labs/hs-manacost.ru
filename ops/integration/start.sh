@@ -32,6 +32,7 @@ done
 cp -a "$ROOT_DIR/wordpress/themes/Newspaper_new" "$SITE_DIR/wp-content/themes/Newspaper_new"
 mkdir -p "$SITE_DIR/.integration"
 cp "$ROOT_DIR/ops/integration/wordpress-tests.php" "$SITE_DIR/.integration/wordpress-tests.php"
+cp "$ROOT_DIR/ops/integration/dashboard-latest-decks.php" "$SITE_DIR/.integration/dashboard-latest-decks.php"
 cp "$ROOT_DIR/tests/fixtures/admin-meta-key-cache-integration.php" "$SITE_DIR/.integration/admin-meta-key-cache.php"
 cp "$ROOT_DIR/tests/fixtures/article-cover-integration.php" "$SITE_DIR/.integration/article-cover.php"
 cp "$ROOT_DIR/tests/fixtures/deck-image-integration.php" "$SITE_DIR/.integration/deck-image.php"
