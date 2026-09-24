@@ -30,6 +30,7 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
   locale: 'ru-RU',
   httpCredentials: { username: httpUsername, password: httpPassword },
+  extraHTTPHeaders: { 'X-HS-Admin-Perf-Probe': '1' },
 });
 const page = await context.newPage();
 const samples = [];
@@ -59,10 +60,12 @@ async function submitPublishButton() {
   }
   await page.locator('#title').waitFor({ state: 'visible' });
   const qmTime = response.headers()['x-qm-overview-time-taken'];
+  const phaseHeader = response.headers()['x-hs-perf-phases'];
   return {
     response_ms: Math.round(responseMs),
     ready_ms: Math.round(performance.now() - started),
     qm_wp_time_ms: qmTime ? Math.round(Number.parseFloat(qmTime.replace(',', '.')) * 1000) : null,
+    phases_ms: phaseHeader ? JSON.parse(phaseHeader) : null,
   };
 }
 
