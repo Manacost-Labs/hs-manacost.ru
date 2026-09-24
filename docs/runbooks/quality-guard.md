@@ -17,6 +17,53 @@ The canonical client template lives in the skills repository at
 `integrations/codex/subscription-savings/quality/project_client.py`. Updating the
 server release and adopting application changes are separately verified actions.
 
+## Поиск готового кода и проверочный набор
+
+После выбора конкретных файлов сначала используйте локальный поиск:
+
+```sh
+context-economy --project "$PWD" retrieve 'restore image from storage' \
+  --source wordpress/mu-plugins/hs-manacost-s3-offload/src/PathPolicy.php \
+  --source wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php
+make quality-retrieval-eval
+```
+
+`config/retrieval-eval.json` содержит шесть размеченных запросов к реальному
+коду и один запрос, для которого в выбранных файлах нет ответа. Локальный
+прогон не обращается к модели. Для сравнения с нативными embedding/rerank
+OpenRouter запустите `context-economy --project "$PWD" retrieval-eval
+--manifest config/retrieval-eval.json --semantic` только при явном пробеле
+локальных данных и свободном общем дневном лимите. Совпадение означает
+кандидата: проверьте SHA исходника, совместимость и тесты. При перемещении
+кода обновляйте метки в проектном файле.
+
+## Учёт принятых задач
+
+Для задачи, выбранной в реальный пилот, до подготовки выполните
+`context-economy --project "$PWD" meter-start --task-id ID --current-session
+--from-task-start`. Флаг `--current-session` разрешает точный локальный Codex
+JSONL по `CODEX_SESSION_ID`; для другого клиента нужен точный `--session`.
+Если подготовка уже началась, не утверждайте полное покрытие. Привяжите
+вспомогательные сессии до их работы и передавайте `--meter-task-id ID`
+командам, которые должны войти в итог.
+
+Создайте в игнорируемой `.artifacts/pilot/` краткий `task.json` с `goal`,
+непустыми `criteria` и `constraints`. Локальная команда `advise --task
+.artifacts/pilot/task.json --category implementation --selected-model terra`
+сохраняет `advice_id` без сетевого запроса; укажите фактическую категорию и
+модель. После проверок завершите интервал через `meter-finish --task-id ID
+--coverage-evidence '...'` только при полном покрытии подготовки, повторов и
+помощников. Запишите фактический итог через `pilot-record --file
+.artifacts/pilot/outcome.json --meter-task ID`; схема и правила сравнения
+находятся в установленном `ADVISORY-PILOT.md`. Не создавайте фиктивную
+baseline-задачу и не оценивайте кредиты по цене API.
+
+`make quality-pilot-report` показывает пары принятых задач,
+`make quality-usage-report` — измеренный end-to-end расход. `make
+quality-cache-stats` показывает попадания, промахи, истечения и вытеснения;
+`context-economy --project "$PWD" cache-stats --days 30` даёт дневной ряд.
+До накопления реальных задач и вытеснений лимит кэша менять нельзя.
+
 Integration Compose names include a hash of the physical worktree path. `start`,
 `test` and `stop` derive the same name; cleanup cannot target another worktree's
 old globally named integration stack. Choose a free `WP_TEST_PORT` when tests run
