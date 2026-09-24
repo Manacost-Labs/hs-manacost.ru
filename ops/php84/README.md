@@ -1,14 +1,16 @@
 # Shared PHP 8.4 OPcache capacity
 
-The `php-fpm84` master serves `hs-manacost.ru` and `kolodahearthstone.ru` pools. Both pool files must use the value in `opcache-capacity.conf`:
+The `php-fpm84` master serves both WordPress pools. OPcache shared memory is allocated from the global PHP INI before pool settings take effect. The source setting is [`99-opcache-capacity.ini`](99-opcache-capacity.ini), installed as `/opt/php84/etc/php.d/99-hs-opcache-capacity.ini`.
+
+On 2026-09-24 the global limit was 128 MiB while both pools advertised 256 MiB. The cache was full, with about 119 MiB of cached script bytecode, 8 MiB of interned strings, and increasing misses. Raising only the pool values to 512 and 1024 MiB still left the cache full at approximately the same script count. This confirmed that the global allocation was the limiting layer. The host had about 33 GiB available RAM. The target global allocation and both pool settings are 512 MiB. The global interned strings buffer was also full at its default 8 MiB, although both pools requested 32 MiB; set that value globally as well.
+
+Before applying, save the two pool files and any existing target INI file to a private rollback location. Verify the pool setting appears exactly once in each file. Install the INI and change only `php_admin_value[opcache.memory_consumption]` in these files to 512:
 
 - `/opt/php84/etc/php-fpm.d/site.d/hs-manacost.ru.conf`
 - `/opt/php84/etc/php-fpm.d/site.d/kolodahearthstone.ru.conf`
 
-On 2026-09-24 the effective shared cache was full at 256 MiB: `cache_full=true`, 24 bytes free, 3029 cached scripts, and increasing misses. Both pools had `php_admin_value[opcache.memory_consumption] = 256`; the host had about 33 GiB available RAM. The target is 512 MiB. Other pool options, including security and request limits, stay as they are.
+Check `/opt/php84/sbin/php-fpm -i` for a global 512 MiB value, then run `/opt/php84/sbin/php-fpm -t --fpm-config /opt/php84/etc/php-fpm.conf` before `systemctl reload php-fpm84`. The reload clears OPcache; warm staging before comparing performance.
 
-Before applying, save both exact pool files to a private rollback location and verify that each contains the expected 256 MiB setting exactly once. Replace only that line in both files. Run `/opt/php84/sbin/php-fpm -t --fpm-config /opt/php84/etc/php-fpm.conf` before `systemctl reload php-fpm84`. The reload clears OPcache; warm staging before comparing performance.
+Accept only if both pools report `cache_full=false`, substantial free shared memory and a 32 MiB interned strings buffer after warming, PHP-FPM is active with no queue, five matching staging admin samples show no regression, and smoke checks pass for staging, the main and mirror domains, origin, both RU proxies, and Koloda. Do not purge WordPress, Redis, or edge caches for this change.
 
-Accept only if both pools report an effective 512 MiB cache with `cache_full=false`, PHP-FPM is active with no queue, five matching staging admin samples show no regression, and smoke checks pass for staging, the main and mirror domains, origin, both RU proxies, and Koloda. Do not purge WordPress, Redis, or edge caches for this change.
-
-Rollback: restore the two saved pool files, validate PHP-FPM syntax, reload `php-fpm84`, and repeat the health and smoke checks. Keep the old files until the new cache has warmed and the follow-up measurements pass.
+Rollback: restore both saved pool files and remove the installed INI if it did not previously exist, validate PHP-FPM syntax, reload `php-fpm84`, and repeat the health and smoke checks. Keep backups until the new cache has warmed and measurements pass.
