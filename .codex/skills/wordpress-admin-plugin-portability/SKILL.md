@@ -23,7 +23,7 @@ Use this skill when a request combines a new admin feature or plugin with future
 
 ## Move a plugin to Koloda
 
-1. Verify the source plugin on hs-manacost staging, then record the reviewed source commit and a deterministic tree digest. Existing `hs-tooltip` has a pinned copy in Koloda's `config/shared-plugin-lock.json`; its current verifier is specific to that plugin. Extend the lock and verifier for another shared plugin before relying on them.
+1. Verify the source plugin on hs-manacost staging, then record the reviewed source commit and a deterministic tree digest. Existing `hs-tooltip` has a pinned copy in Koloda's `config/shared-plugin-lock.json`. Add each new shared plugin to the lock and confirm that Koloda's verifier checks **every** entry; upgrade any legacy verifier that checks only `hs-tooltip` before relying on it.
 2. Copy only reviewed plugin source into Koloda's source repository, without runtime files or secrets. Review the diff for Newspaper-only hooks, source-domain assumptions, admin capabilities, asset scope and collisions with existing Koloda plugins. Check compatibility with Blocksy and WordPress 6.9.7.
 3. Activate and test on `test.kolodahearthstone.com` through Koloda's release path. Verify the admin screen with the intended role, save/validation/errors, keyboard/mobile, frontend impact and performance. Keep the source and target releases independently reversible.
 4. For each allowed setting, export a redacted manifest of **names, types and intended transformations** first. Use a protected backup and a dry run before importing values on Koloda staging. Compare expected and stored values there without printing secrets. Transfer only the exact reviewed keys; never import the source database or theme options wholesale.
