@@ -42,7 +42,9 @@ OpenRouter запустите `context-economy --project "$PWD" retrieval-eval
 Для задачи, выбранной в реальный пилот, до подготовки выполните
 `context-economy --project "$PWD" meter-start --task-id ID --current-session
 --from-task-start`. Флаг `--current-session` разрешает точный локальный Codex
-JSONL по `CODEX_SESSION_ID`; для другого клиента нужен точный `--session`.
+JSONL по `CODEX_SESSION_ID` или Claude Code JSONL по `CLAUDE_CODE_SESSION_ID`
+внутри Claude Code. Для другого клиента нужен точный `--session`, а для журнала
+Claude также `--session-format claude`.
 Если подготовка уже началась, не утверждайте полное покрытие. Привяжите
 вспомогательные сессии до их работы и передавайте `--meter-task-id ID`
 командам, которые должны войти в итог.
