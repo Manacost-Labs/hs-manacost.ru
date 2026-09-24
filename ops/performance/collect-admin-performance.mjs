@@ -179,6 +179,11 @@ try {
     ...(editorPath
       ? [{ name: 'post-editor', path: editorPath, selector: '#post' }]
       : []),
+    ...(process.env.HS_ADMIN_PERF_EXTRA_SCREENS === '1' ? [
+      { name: 'diagnostic-plugins', path: '/wp-admin/plugins.php', selector: '.wp-list-table' },
+      { name: 'diagnostic-users', path: '/wp-admin/users.php', selector: '.wp-list-table' },
+      { name: 'diagnostic-settings', path: '/wp-admin/options-general.php', selector: '#wpbody-content' },
+    ] : []),
   ];
   const page = await context.newPage();
   const measurements = new Map(screens.map(screen => [screen.name, []]));

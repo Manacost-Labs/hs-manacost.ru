@@ -96,6 +96,50 @@ async function measureEditorOpen(id) {
     const resources = performance.getEntriesByType('resource');
     const scripts = resources.filter(resource => resource.initiatorType === 'script');
     const styles = resources.filter(resource => resource.initiatorType === 'link');
+    const assetGroups = new Map();
+    for (const resource of [...scripts, ...styles]) {
+      const resourceURL = new URL(resource.name);
+      const pathname = resourceURL.pathname;
+      const parts = pathname.split('/');
+      let owner = 'other';
+      if (resourceURL.origin !== location.origin) {
+        owner = 'external';
+      } else if (pathname.startsWith('/wp-includes/') || pathname.startsWith('/wp-admin/')) {
+        owner = 'wordpress-core';
+      } else if (pathname.startsWith('/wp-content/plugins/')) {
+        owner = /^[a-z0-9_-]{1,64}$/i.test(parts[3]) ? `plugin:${parts[3]}` : 'plugin:other';
+      } else if (pathname.startsWith('/wp-content/mu-plugins/')) {
+        owner = 'mu-plugins';
+      } else if (pathname.startsWith('/wp-content/themes/')) {
+        owner = 'theme';
+      }
+      const group = assetGroups.get(owner) ?? {
+        owner, script_count: 0, style_count: 0,
+        transfer_bytes: 0, encoded_body_bytes: 0, latest_end_ms: 0,
+      };
+      group[resource.initiatorType === 'script' ? 'script_count' : 'style_count'] += 1;
+      group.transfer_bytes += resource.transferSize;
+      group.encoded_body_bytes += resource.encodedBodySize;
+      group.latest_end_ms = Math.max(group.latest_end_ms, Math.round(resource.responseEnd));
+      assetGroups.set(owner, group);
+    }
+    const queryRows = window.QueryMonitorData?.data?.db_queries?.data?.rows;
+    const callerTotals = new Map();
+    if (queryRows && typeof queryRows === 'object') {
+      for (const row of Object.values(queryRows)) {
+        const seconds = Number(row?.ltime);
+        if (!Number.isFinite(seconds) || seconds < 0) continue;
+        const stack = Array.isArray(row?.stack) ? row.stack : [];
+        const safeNames = stack.filter(name =>
+          typeof name === 'string' && /^[A-Za-z_\\][A-Za-z0-9_\\:>\-]{0,79}$/.test(name));
+        const caller = safeNames.find(name => /^(hs_|wf|td_|AIOSEO|WPRocket)/i.test(name))
+          ?? safeNames[0] ?? 'other';
+        const total = callerTotals.get(caller) ?? { caller, count: 0, total_ms: 0 };
+        total.count += 1;
+        total.total_ms += seconds * 1000;
+        callerTotals.set(caller, total);
+      }
+    }
     return {
       ttfb_ms: Math.round(navigation.responseStart - navigation.requestStart),
       dom_interactive_ms: Math.round(navigation.domInteractive - navigation.startTime),
@@ -105,6 +149,17 @@ async function measureEditorOpen(id) {
       script_count: scripts.length,
       script_transfer_bytes: scripts.reduce((sum, resource) => sum + resource.transferSize, 0),
       style_count: styles.length,
+      asset_groups: [...assetGroups.values()]
+        .sort((left, right) => right.latest_end_ms - left.latest_end_ms)
+        .slice(0, 12),
+      sql_profile: {
+        available: Boolean(queryRows),
+        profiled_queries: [...callerTotals.values()].reduce((sum, item) => sum + item.count, 0),
+        top_callers: [...callerTotals.values()]
+          .sort((left, right) => right.total_ms - left.total_ms)
+          .slice(0, 12)
+          .map(item => ({ ...item, total_ms: Math.round(item.total_ms) })),
+      },
     };
   });
   return { ...timings, editor_ready_ms: editorReadyMs };
