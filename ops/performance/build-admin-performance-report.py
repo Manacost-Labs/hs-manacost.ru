@@ -96,6 +96,8 @@ def validate_raw(raw: object) -> JsonObject:
         or dataset_size < 1
     ):
         fail("dataset_size must be a positive integer")
+    if raw_object.get("dataset_kind") != "published_posts":
+        fail("dataset_kind must be published_posts")
 
     samples = raw_object.get("samples")
     if not isinstance(samples, list) or len(samples) < 5:
@@ -187,6 +189,7 @@ def build_report(raw_value: object, budget_value: object) -> dict[str, object]:
         "screen": screen,
         "authenticated_role": raw["authenticated_role"],
         "dataset_size": raw["dataset_size"],
+        "dataset_kind": raw["dataset_kind"],
         "sample_count": len(samples),
         "cache_state": raw["cache_state"],
         "metrics": metrics,

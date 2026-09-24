@@ -31,11 +31,23 @@ const context = await browser.newContext({
   locale: 'ru-RU',
   httpCredentials: { username: httpUsername, password: httpPassword },
 });
+await context.addInitScript(() => {
+  window.__hsLongTasks = 0;
+  try {
+    new PerformanceObserver(entries => {
+      window.__hsLongTasks += entries.getEntries().length;
+    }).observe({ type: 'longtask', buffered: true });
+  } catch {
+    // Older browsers may not expose long tasks.
+  }
+});
 const page = await context.newPage();
 const samples = [];
+const openSamples = [];
 const fixtureTitle = `Admin performance probe ${Date.now()}`;
 let postId;
 let cleaned = false;
+let savedContent = '';
 
 const isSaveResponse = response => {
   const request = response.request();
@@ -64,6 +76,38 @@ async function submitPublishButton() {
     ready_ms: Math.round(performance.now() - started),
     qm_wp_time_ms: qmTime ? Math.round(Number.parseFloat(qmTime.replace(',', '.')) * 1000) : null,
   };
+}
+
+async function measureEditorOpen(id) {
+  const started = performance.now();
+  const response = await page.goto(
+    `${baseURL}/wp-admin/post.php?post=${id}&action=edit`,
+    { waitUntil: 'domcontentloaded', timeout: 60_000 },
+  );
+  if (!response || response.status() !== 200) {
+    throw new Error(`Article editor returned HTTP ${response?.status() ?? 'none'}`);
+  }
+  await page.locator('#content-html').waitFor({ state: 'visible' });
+  const editorReadyMs = Math.round(performance.now() - started);
+  const timings = await page.evaluate(() => {
+    const navigation = performance.getEntriesByType('navigation')[0];
+    const server = window.__hsAdminPerformance;
+    if (!navigation || !server) throw new Error('Editor performance probe is unavailable');
+    const resources = performance.getEntriesByType('resource');
+    const scripts = resources.filter(resource => resource.initiatorType === 'script');
+    const styles = resources.filter(resource => resource.initiatorType === 'link');
+    return {
+      ttfb_ms: Math.round(navigation.responseStart - navigation.requestStart),
+      dom_interactive_ms: Math.round(navigation.domInteractive - navigation.startTime),
+      sql_queries: Number(server.sql_queries),
+      peak_memory_mb: Number(server.peak_memory_mb),
+      long_tasks: Number(window.__hsLongTasks ?? 0),
+      script_count: scripts.length,
+      script_transfer_bytes: scripts.reduce((sum, resource) => sum + resource.transferSize, 0),
+      style_count: styles.length,
+    };
+  });
+  return { ...timings, editor_ready_ms: editorReadyMs };
 }
 
 async function removeFixture() {
@@ -101,9 +145,16 @@ try {
   if (!Number.isInteger(postId) || postId < 1) {
     throw new Error('Published fixture ID is unavailable');
   }
-  const savedContent = await page.locator('#content').inputValue();
+  savedContent = await page.locator('#content').inputValue();
   if (!savedContent.includes('Synthetic staging performance content.')) {
     throw new Error('Published article content did not round-trip');
+  }
+
+  for (let sample = 0; sample < 5; sample += 1) {
+    openSamples.push(await measureEditorOpen(postId));
+    if (await page.locator('#content').inputValue() !== savedContent) {
+      throw new Error('Article content changed while opening the editor');
+    }
   }
 
   for (let sample = 0; sample < 5; sample += 1) {
@@ -134,12 +185,22 @@ try {
       fixture_post_id: postId ?? null,
       fixture_cleaned: cleaned,
     }, null, 2)}\n`);
+    await writeFile(path.join(outputDirectory, 'open-article-diagnostic.json'), `${JSON.stringify({
+      environment: 'staging',
+      screen: 'published-article-open',
+      authenticated_role: 'administrator',
+      cache_state: 'warm',
+      viewport: 'desktop-1440',
+      fixture_bytes: Buffer.byteLength(savedContent ?? '', 'utf8'),
+      samples: openSamples,
+      fixture_cleaned: cleaned,
+    }, null, 2)}\n`);
     await context.close();
     await browser.close();
   }
 }
 
-if (!cleaned || samples.length !== 5) {
+if (!cleaned || samples.length !== 5 || openSamples.length !== 5) {
   throw new Error('Article save diagnosis was incomplete or fixture cleanup failed');
 }
 const responses = samples.map(sample => sample.response_ms).sort((a, b) => a - b);
