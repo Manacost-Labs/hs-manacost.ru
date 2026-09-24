@@ -39,6 +39,14 @@
       "required_for": ["wp-admin", "admin-page", "settings", "dashboard", "list-table", "form", "filter", "bulk-action", "modal", "responsive-admin", "admin-ux"]
     },
     {
+      "name": "wordpress-admin-plugin-portability",
+      "path": ".agents/skills/wordpress-admin-plugin-portability/SKILL.md",
+      "version": "1.0.0",
+      "source": "project",
+      "license": "project-internal",
+      "required_for": ["portable-admin-plugin", "cross-site-plugin", "koloda-plugin-transfer", "plugin-settings-transfer"]
+    },
+    {
       "name": "wordpress-admin-performance",
       "path": ".agents/skills/wordpress-admin-performance/SKILL.md",
       "version": "1.0.0",
@@ -349,6 +357,7 @@
     "code_quality": ["wordpress-clean-code", "wp-project-triage", "wp-phpstan", "wordpress-plugin-dev"],
     "newspaper_tagdiv": ["newspaper-tagdiv", "wp-project-triage", "wp-plugin-development"],
     "wordpress_admin_ui": ["wordpress-admin-ui", "wp-project-triage", "wp-plugin-development", "agent-frontend-ui-engineering", "web-quality-accessibility", "agent-browser-testing-with-devtools"],
+    "portable_admin_plugin": ["wordpress-admin-plugin-portability", "wordpress-admin-ui", "wp-plugin-development", "wordpress-plugin-dev", "wordpress-change-impact"],
     "wordpress_admin_performance": ["wordpress-admin-performance", "wordpress-admin-ui", "wp-performance", "wordpress-observability", "playwright", "agent-performance-optimization", "agent-browser-testing-with-devtools"],
     "change_impact": ["wordpress-change-impact", "hs-manacost-project", "wordpress-clean-code", "agent-code-review-and-quality"],
     "wordpress_article_editor": ["wordpress-article-editor", "wordpress-admin-ui", "newspaper-tagdiv", "wp-project-triage", "wp-plugin-development", "agent-browser-testing-with-devtools"],
