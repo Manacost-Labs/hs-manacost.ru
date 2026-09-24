@@ -101,6 +101,10 @@ try {
   if (!Number.isInteger(postId) || postId < 1) {
     throw new Error('Published fixture ID is unavailable');
   }
+  const savedContent = await page.locator('#content').inputValue();
+  if (!savedContent.includes('Synthetic staging performance content.')) {
+    throw new Error('Published article content did not round-trip');
+  }
 
   for (let sample = 0; sample < 5; sample += 1) {
     const title = `${fixtureTitle} ${sample}`;
@@ -108,6 +112,9 @@ try {
     samples.push(await submitPublishButton());
     if (await page.locator('#title').inputValue() !== title) {
       throw new Error('Saved title did not round-trip');
+    }
+    if (await page.locator('#content').inputValue() !== savedContent) {
+      throw new Error('Unchanged article content was modified during save');
     }
   }
 } finally {
