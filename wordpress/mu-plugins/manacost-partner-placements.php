@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: Manacost
  *
  * @package Manacost
@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 /** Owns the direct Playerok and Sirus placements on public Manacost pages. */
 final class Manacost_Partner_Placements {
-	private const PLAYEROK_URL   = 'https://plrk.co/p/hsmanacostru1708';
+	private const PLAYEROK_URL   = 'https://plrk.co/p/hsmanacostru2309';
 	private const SIRUS_URL      = 'https://sirus.cc/hsmanacost';
 	private const PLAYEROK_IMAGE = '/wp-content/uploads/2026/07/728x90.jpg.webp';
 	private const SIRUS_IMAGE    = '/site-media/secondary-mark/';
