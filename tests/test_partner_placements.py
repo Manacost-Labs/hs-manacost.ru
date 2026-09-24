@@ -197,7 +197,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.0.7",
+                    "1.0.9",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 

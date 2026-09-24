@@ -182,7 +182,8 @@
 
 	.site-partnership {
 		position: absolute;
-		z-index: 4;
+		/* Newspaper's header uses z-index: 2000 and otherwise intercepts banner clicks. */
+		z-index: 2001;
 		inset-block-start: 56px;
 		inset-inline-end: max(20px, calc((100% - 1068px) / 2));
 	}
