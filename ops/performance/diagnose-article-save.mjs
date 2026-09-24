@@ -58,7 +58,12 @@ async function submitPublishButton() {
     throw new Error(`Article save returned HTTP ${response.status()}`);
   }
   await page.locator('#title').waitFor({ state: 'visible' });
-  return { response_ms: Math.round(responseMs), ready_ms: Math.round(performance.now() - started) };
+  const qmTime = response.headers()['x-qm-overview-time-taken'];
+  return {
+    response_ms: Math.round(responseMs),
+    ready_ms: Math.round(performance.now() - started),
+    qm_wp_time_ms: qmTime ? Math.round(Number.parseFloat(qmTime.replace(',', '.')) * 1000) : null,
+  };
 }
 
 async function removeFixture() {
@@ -75,7 +80,7 @@ async function removeFixture() {
   page.once('dialog', dialog => dialog.accept());
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-    row.getByRole('link', { name: /Delete Permanently|Удалить навсегда/i }).click(),
+    row.locator('.row-actions .delete a').click(),
   ]);
   return (await page.locator(`#post-${postId}`).count()) === 0;
 }
