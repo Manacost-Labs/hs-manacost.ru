@@ -30,7 +30,6 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
   locale: 'ru-RU',
   httpCredentials: { username: httpUsername, password: httpPassword },
-  extraHTTPHeaders: { 'X-HS-Admin-Perf-Probe': '1' },
 });
 const page = await context.newPage();
 const samples = [];
@@ -60,12 +59,10 @@ async function submitPublishButton() {
   }
   await page.locator('#title').waitFor({ state: 'visible' });
   const qmTime = response.headers()['x-qm-overview-time-taken'];
-  const phaseHeader = response.headers()['x-hs-perf-phases'];
   return {
     response_ms: Math.round(responseMs),
     ready_ms: Math.round(performance.now() - started),
     qm_wp_time_ms: qmTime ? Math.round(Number.parseFloat(qmTime.replace(',', '.')) * 1000) : null,
-    phases_ms: phaseHeader ? JSON.parse(phaseHeader) : null,
   };
 }
 
@@ -140,3 +137,6 @@ if (!cleaned || samples.length !== 5) {
 }
 const responses = samples.map(sample => sample.response_ms).sort((a, b) => a - b);
 process.stdout.write(`Article save response: median ${responses[2]} ms, p95 ${responses[4]} ms; fixture cleaned\n`);
+if (responses[4] > 1500) {
+  throw new Error(`Article save p95 ${responses[4]} ms exceeds the 1500 ms budget`);
+}
