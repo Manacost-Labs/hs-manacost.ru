@@ -23,7 +23,6 @@ jobs:
     environment: staging
     env:
       WP_TEST_BASE_URL: https://test.hs-manacost.ru
-      WP_TEST_DATASET_SIZE: ${{ vars.STAGING_PERFORMANCE_DATASET_SIZE || '1000' }}
       HS_ADMIN_PERF_ENVIRONMENT: staging
       HS_ADMIN_PERF_CACHE_STATE: warm
       PLAYWRIGHT_EXECUTABLE_PATH: /usr/bin/chromium

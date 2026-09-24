@@ -18,11 +18,6 @@ const baseURL = process.env.WP_TEST_BASE_URL ?? `http://127.0.0.1:${port}`;
 const outputDirectory = path.resolve(
   process.argv[2] ?? '.artifacts/admin-performance/raw',
 );
-const datasetSize = Number.parseInt(process.env.WP_TEST_DATASET_SIZE ?? '1', 10);
-if (!Number.isInteger(datasetSize) || datasetSize < 1) {
-  throw new Error('WP_TEST_DATASET_SIZE must be a positive integer');
-}
-
 const httpUsername = process.env.STAGING_HTTP_USER;
 const httpPassword = process.env.STAGING_HTTP_PASSWORD;
 if (Boolean(httpUsername) !== Boolean(httpPassword)) {
@@ -54,6 +49,23 @@ async function login(context) {
   await page.getByRole('button', { name: /Log In|Войти/i }).click();
   await page.waitForURL(/\/wp-admin\//);
   await page.close();
+}
+
+async function countPublishedPosts(context) {
+  const page = await context.newPage();
+  try {
+    const response = await page.goto(
+      `${baseURL}/wp-json/wp/v2/posts?per_page=1&_fields=id`,
+      { waitUntil: 'domcontentloaded', timeout: 30_000 },
+    );
+    const total = Number(response?.headers()['x-wp-total']);
+    if (!response?.ok() || !Number.isSafeInteger(total) || total < 1) {
+      throw new Error(`Published post count could not be measured (HTTP ${response?.status() ?? 'none'})`);
+    }
+    return total;
+  } finally {
+    await page.close();
+  }
 }
 
 async function addLongTaskObserver(context) {
@@ -158,6 +170,7 @@ try {
   const context = await browser.newContext(contextOptions);
   await addLongTaskObserver(context);
   await login(context);
+  const datasetSize = await countPublishedPosts(context);
   const editorPath = await discoverEditorPath(context);
   const screens = [
     { name: 'dashboard', path: '/wp-admin/index.php', selector: '#wpbody-content' },
@@ -189,6 +202,7 @@ try {
       screen: screen.name,
       authenticated_role: 'administrator',
       dataset_size: datasetSize,
+      dataset_kind: 'published_posts',
       cache_state: process.env.HS_ADMIN_PERF_CACHE_STATE ?? 'warm',
       viewport: 'desktop-1440',
       samples: measurements.get(screen.name),

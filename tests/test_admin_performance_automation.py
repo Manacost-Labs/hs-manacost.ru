@@ -25,6 +25,7 @@ def raw_evidence(*, ttfb_ms: float = 620.0) -> dict[str, object]:
         "screen": "dashboard",
         "authenticated_role": "administrator",
         "dataset_size": 100,
+        "dataset_kind": "published_posts",
         "cache_state": "warm",
         "viewport": "desktop-1440",
         "samples": [dict(sample) for _ in range(5)],
@@ -194,6 +195,7 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             report = cast(dict[str, object], json.loads(result.stdout))
             self.assertEqual(5, report["sample_count"])
+            self.assertEqual("published_posts", report["dataset_kind"])
             metrics = cast(list[dict[str, object]], report["metrics"])
             ttfb = next(metric for metric in metrics if metric["name"] == "ttfb_ms")
             self.assertEqual(620.0, ttfb["after"])
@@ -204,6 +206,7 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
         invalid_reports = (
             {**raw_evidence(), "samples": cast(list[object], raw_evidence()["samples"])[:4]},
             {**raw_evidence(), "cache_state": "mixed"},
+            {**raw_evidence(), "dataset_kind": "configured_guess"},
             {**raw_evidence(), "session_token": "unsafe"},
         )
         with tempfile.TemporaryDirectory() as temporary_directory:
