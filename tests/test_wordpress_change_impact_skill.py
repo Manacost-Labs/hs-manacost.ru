@@ -81,6 +81,14 @@ class WordPressChangeImpactSkillTests(unittest.TestCase):
             cast(list[str], report["unclassified_first_party"]),
         )
 
+    def test_dashboard_deck_widget_has_explicit_admin_owner(self) -> None:
+        result = analyze("wordpress/mu-plugins/hs-dashboard-latest-decks.php")
+        self.assertEqual(0, result.returncode, result.stderr)
+        report = cast(dict[str, object], json.loads(result.stdout))
+        self.assertFalse(report["manual_review_required"])
+        self.assertIn("wordpress-admin-performance", cast(list[str], report["skills"]))
+        self.assertIn("make admin-performance", cast(list[str], report["checks"]))
+
     def test_analyzer_maps_newspaper_and_infrastructure_changes(self) -> None:
         result = analyze(
             "wordpress/themes/Newspaper_new/style.css",

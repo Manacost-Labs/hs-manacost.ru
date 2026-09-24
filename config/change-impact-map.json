@@ -120,6 +120,16 @@
       "checks": ["make admin-performance", "make integration", "make visual"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-dashboard-latest-decks.php"],
+      "owner": "dashboard-latest-decks",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["wp-admin", "performance", "wordpress-runtime"],
+      "domains": ["hs-manacost.ru", "hs-manacost.com", "test.hs-manacost.ru"],
+      "skills": ["wordpress-admin-ui", "wordpress-admin-performance", "wordpress-observability", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "make admin-performance", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-homepage-visibility.php"],
       "owner": "homepage-editorial-visibility",
       "classified": true,
