@@ -4,7 +4,7 @@ The `php-fpm84` master serves both WordPress pools. OPcache shared memory is all
 
 On 2026-09-24 the global limit was 128 MiB while both pools advertised 256 MiB. The cache was full, with about 119 MiB of cached script bytecode, 8 MiB of interned strings, and increasing misses. Raising only the pool values to 512 and 1024 MiB still left the cache full at approximately the same script count. This confirmed that the global allocation was the limiting layer. The host had about 33 GiB available RAM. The target global allocation and both pool settings are 512 MiB. The global interned strings buffer was also full at its default 8 MiB, although both pools requested 32 MiB; set that value globally as well.
 
-Before applying, save the two pool files and any existing target INI file to a private rollback location. Verify the pool setting appears exactly once in each file. Install the INI and change only `php_admin_value[opcache.memory_consumption]` in these files to 512:
+Before applying, save the two pool files and any existing target INI file to a private rollback location. Verify the pool setting appears exactly once in each file. Install the INI and replace only the setting named in [`pool-opcache-capacity.conf`](pool-opcache-capacity.conf) in these files:
 
 - `/opt/php84/etc/php-fpm.d/site.d/hs-manacost.ru.conf`
 - `/opt/php84/etc/php-fpm.d/site.d/kolodahearthstone.ru.conf`
