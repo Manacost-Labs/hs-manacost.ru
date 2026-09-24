@@ -158,6 +158,7 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
         for step_name in (
             "Check protected staging measurement credentials",
             "Collect five comparable warm staging samples",
+            "Diagnose authenticated article save",
         ):
             step = steps.split(f"      - name: {step_name}\n", 1)[1].split(
                 "      - ", 1
@@ -172,7 +173,7 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
             steps.index("Install locked browser package"),
         )
         self.assertIn("run: npm ci --ignore-scripts", steps)
-        self.assertEqual(8, steps.count("secrets."))
+        self.assertEqual(12, steps.count("secrets."))
 
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

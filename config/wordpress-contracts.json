@@ -2741,6 +2741,13 @@
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-cloudflare-deferred-purge.php",
+        "line": 54
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-homepage-visibility.php",
         "line": 102
       },
