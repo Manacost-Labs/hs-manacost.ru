@@ -25,6 +25,7 @@ jobs:
       WP_TEST_BASE_URL: https://test.hs-manacost.ru
       HS_ADMIN_PERF_ENVIRONMENT: staging
       HS_ADMIN_PERF_CACHE_STATE: warm
+      HS_ADMIN_PERF_EXTRA_SCREENS: '1'
       PLAYWRIGHT_EXECUTABLE_PATH: /usr/bin/chromium
       PLAYWRIGHT_HOST_RESOLVER_RULES: MAP test.hs-manacost.ru 151.80.21.140
     steps:
@@ -68,6 +69,10 @@ jobs:
           evaluation_failed=0
           for raw_report in .artifacts/admin-performance/raw/*.json; do
             report_path=".artifacts/admin-performance/reports/$(basename "$raw_report")"
+            if [[ "$(basename "$raw_report")" == diagnostic-* ]]; then
+              cp "$raw_report" "$report_path"
+              continue
+            fi
             ops/performance/build-admin-performance-report.py \
               "$raw_report" config/admin-performance-budgets.json > "$report_path"
             .agents/skills/wordpress-admin-performance/scripts/evaluate_admin_performance.py \

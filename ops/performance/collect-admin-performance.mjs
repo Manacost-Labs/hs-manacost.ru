@@ -3,6 +3,7 @@
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { collectSqlProfile } from './browser-sql-profile.mjs';
 
 const sampleCount = Number.parseInt(process.env.HS_ADMIN_PERF_SAMPLES ?? '5', 10);
 if (!Number.isInteger(sampleCount) || sampleCount < 5 || sampleCount > 20) {
@@ -105,7 +106,7 @@ async function measure(page, screen) {
   await page.goto(`${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(screen.selector).first().waitFor({ state: 'visible' });
   await page.waitForTimeout(150);
-  return page.evaluate(() => {
+  const timings = await page.evaluate(() => {
     const navigation = performance.getEntriesByType('navigation')[0];
     const server = window.__hsAdminPerformance;
     if (!navigation || !server) throw new Error('Admin performance probe is unavailable');
@@ -117,6 +118,7 @@ async function measure(page, screen) {
       long_tasks: Number(window.__hsLongTasks ?? 0),
     };
   });
+  return { ...timings, sql_profile: await page.evaluate(collectSqlProfile) };
 }
 
 async function verifyMobile(screens) {
@@ -179,6 +181,11 @@ try {
     ...(editorPath
       ? [{ name: 'post-editor', path: editorPath, selector: '#post' }]
       : []),
+    ...(process.env.HS_ADMIN_PERF_EXTRA_SCREENS === '1' ? [
+      { name: 'diagnostic-plugins', path: '/wp-admin/plugins.php', selector: '.wp-list-table' },
+      { name: 'diagnostic-users', path: '/wp-admin/users.php', selector: '.wp-list-table' },
+      { name: 'diagnostic-settings', path: '/wp-admin/options-general.php', selector: '#wpbody-content' },
+    ] : []),
   ];
   const page = await context.newPage();
   const measurements = new Map(screens.map(screen => [screen.name, []]));
@@ -217,6 +224,24 @@ try {
     await writeFile(
       path.join(outputDirectory, `${screen.name}.json`),
       `${JSON.stringify(report, null, 2)}\n`,
+      'utf8',
+    );
+  }
+  const profiles = screens.map(screen => ({
+    screen: screen.name,
+    samples: measurements.get(screen.name).map(sample => sample.sql_profile),
+  }));
+  if (profiles.some(profile => profile.samples.some(sample => sample.available))) {
+    await writeFile(
+      path.join(outputDirectory, 'diagnostic-sql-callers.json'),
+      `${JSON.stringify({
+        schema_version: 1,
+        environment: process.env.HS_ADMIN_PERF_ENVIRONMENT ?? 'integration',
+        authenticated_role: 'administrator',
+        dataset_size: datasetSize,
+        cache_state: process.env.HS_ADMIN_PERF_CACHE_STATE ?? 'warm',
+        profiles,
+      }, null, 2)}\n`,
       'utf8',
     );
   }

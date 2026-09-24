@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { collectSqlProfile } from './browser-sql-profile.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -96,6 +97,33 @@ async function measureEditorOpen(id) {
     const resources = performance.getEntriesByType('resource');
     const scripts = resources.filter(resource => resource.initiatorType === 'script');
     const styles = resources.filter(resource => resource.initiatorType === 'link');
+    const assetGroups = new Map();
+    for (const resource of [...scripts, ...styles]) {
+      const resourceURL = new URL(resource.name);
+      const pathname = resourceURL.pathname;
+      const parts = pathname.split('/');
+      let owner = 'other';
+      if (resourceURL.origin !== location.origin) {
+        owner = 'external';
+      } else if (pathname.startsWith('/wp-includes/') || pathname.startsWith('/wp-admin/')) {
+        owner = 'wordpress-core';
+      } else if (pathname.startsWith('/wp-content/plugins/')) {
+        owner = /^[a-z0-9_-]{1,64}$/i.test(parts[3]) ? `plugin:${parts[3]}` : 'plugin:other';
+      } else if (pathname.startsWith('/wp-content/mu-plugins/')) {
+        owner = 'mu-plugins';
+      } else if (pathname.startsWith('/wp-content/themes/')) {
+        owner = 'theme';
+      }
+      const group = assetGroups.get(owner) ?? {
+        owner, script_count: 0, style_count: 0,
+        transfer_bytes: 0, encoded_body_bytes: 0, latest_end_ms: 0,
+      };
+      group[resource.initiatorType === 'script' ? 'script_count' : 'style_count'] += 1;
+      group.transfer_bytes += resource.transferSize;
+      group.encoded_body_bytes += resource.encodedBodySize;
+      group.latest_end_ms = Math.max(group.latest_end_ms, Math.round(resource.responseEnd));
+      assetGroups.set(owner, group);
+    }
     return {
       ttfb_ms: Math.round(navigation.responseStart - navigation.requestStart),
       dom_interactive_ms: Math.round(navigation.domInteractive - navigation.startTime),
@@ -105,9 +133,13 @@ async function measureEditorOpen(id) {
       script_count: scripts.length,
       script_transfer_bytes: scripts.reduce((sum, resource) => sum + resource.transferSize, 0),
       style_count: styles.length,
+      asset_groups: [...assetGroups.values()]
+        .sort((left, right) => right.latest_end_ms - left.latest_end_ms)
+        .slice(0, 12),
     };
   });
-  return { ...timings, editor_ready_ms: editorReadyMs };
+  const sqlProfile = await page.evaluate(collectSqlProfile);
+  return { ...timings, sql_profile: sqlProfile, editor_ready_ms: editorReadyMs };
 }
 
 async function removeFixture() {
