@@ -73,6 +73,14 @@ jobs:
             .agents/skills/wordpress-admin-performance/scripts/evaluate_admin_performance.py \
               "$report_path"
           done
+      - name: Diagnose authenticated article save
+        if: github.event_name == 'workflow_dispatch' && steps.credentials.outputs.enabled == 'true'
+        env:
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+        run: node ops/performance/diagnose-article-save.mjs .artifacts/admin-performance/reports
       - name: Upload staging performance evidence
         if: always() && steps.credentials.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
