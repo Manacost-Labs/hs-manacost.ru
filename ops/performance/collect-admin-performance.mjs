@@ -52,15 +52,20 @@ async function login(context) {
 }
 
 async function countPublishedPosts(context) {
-  const response = await context.request.get(
-    `${baseURL}/wp-json/wp/v2/posts?per_page=1&_fields=id`,
-    { timeout: 30_000 },
-  );
-  const total = Number(response.headers()['x-wp-total']);
-  if (!response.ok() || !Number.isSafeInteger(total) || total < 1) {
-    throw new Error('Published post count could not be measured');
+  const page = await context.newPage();
+  try {
+    const response = await page.goto(
+      `${baseURL}/wp-json/wp/v2/posts?per_page=1&_fields=id`,
+      { waitUntil: 'domcontentloaded', timeout: 30_000 },
+    );
+    const total = Number(response?.headers()['x-wp-total']);
+    if (!response?.ok() || !Number.isSafeInteger(total) || total < 1) {
+      throw new Error(`Published post count could not be measured (HTTP ${response?.status() ?? 'none'})`);
+    }
+    return total;
+  } finally {
+    await page.close();
   }
-  return total;
 }
 
 async function addLongTaskObserver(context) {
