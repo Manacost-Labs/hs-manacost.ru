@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "s3-image-path",
+      "query": "reject invalid relative image path outside base directory",
+      "source": ["wordpress/mu-plugins/hs-manacost-s3-offload/src/PathPolicy.php", "wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php"],
+      "expected_path": "wordpress/mu-plugins/hs-manacost-s3-offload/src/PathPolicy.php"
+    },
+    {
+      "id": "s3-image-restore",
+      "query": "restore image from storage with downloader",
+      "source": ["wordpress/mu-plugins/hs-manacost-s3-offload/src/PathPolicy.php", "wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php"],
+      "expected_path": "wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php"
+    },
+    {
+      "id": "upload-deferred-sizes",
+      "query": "queue deferred thumbnail sizes after a media upload",
+      "source": ["wordpress/mu-plugins/hs-media-upload-accelerator.php", "wordpress/plugins/hs-manacost-inline-deck/includes/class-hs-manacost-inline-deck.php"],
+      "expected_path": "wordpress/mu-plugins/hs-media-upload-accelerator.php"
+    },
+    {
+      "id": "inline-deck-job",
+      "query": "start remote deck image generation from editor",
+      "source": ["wordpress/plugins/hs-manacost-inline-deck/includes/class-hs-manacost-inline-deck.php", "wordpress/mu-plugins/hs-media-upload-accelerator.php"],
+      "expected_path": "wordpress/plugins/hs-manacost-inline-deck/includes/class-hs-manacost-inline-deck.php"
+    },
+    {
+      "id": "article-schema",
+      "query": "enrich article schema and OpenGraph tags",
+      "source": ["wordpress/mu-plugins/manacost-aioseo-addon.php", "wordpress/mu-plugins/manacost-guide-pdf.php"],
+      "expected_path": "wordpress/mu-plugins/manacost-aioseo-addon.php"
+    },
+    {
+      "id": "guide-pdf",
+      "query": "export article guide as PDF and plain text",
+      "source": ["wordpress/mu-plugins/manacost-guide-pdf.php", "wordpress/mu-plugins/manacost-aioseo-addon.php"],
+      "expected_path": "wordpress/mu-plugins/manacost-guide-pdf.php"
+    },
+    {
+      "id": "absent-billing-refund",
+      "query": "refund a completed subscription invoice",
+      "source": ["wordpress/mu-plugins/hs-manacost-s3-offload/src/PathPolicy.php", "wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php"],
+      "expected_path": null
+    }
+  ]
+}

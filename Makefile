@@ -4,7 +4,7 @@
 
 check: composer-validate quality-config php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test web-v2-check shell-check nginx-media-test
 
-.PHONY: quality-config quality-plan quality-verify design-verify
+.PHONY: quality-config quality-plan quality-verify design-verify quality-retrieval-eval quality-cache-stats quality-pilot-report quality-usage-report
 quality-config:
 	@python3 ops/code-quality/quality-guard.py --check-config
 
@@ -16,6 +16,18 @@ quality-verify:
 
 design-verify:
 	@python3 ops/code-quality/quality-guard.py --family design --task-type ui
+
+quality-retrieval-eval:
+	@context-economy --project . retrieval-eval --manifest config/retrieval-eval.json
+
+quality-cache-stats:
+	@context-economy --project . cache-stats
+
+quality-pilot-report:
+	@context-economy --project . pilot-report
+
+quality-usage-report:
+	@context-economy --project . report --end-to-end
 
 nginx-media-test:
 	@python3 ops/nginx/tests/check_media_negotiation.py
