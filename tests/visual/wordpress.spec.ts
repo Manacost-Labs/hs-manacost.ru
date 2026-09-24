@@ -78,6 +78,18 @@ for (const target of [
       await expect(page.getByRole('link', { name: 'Манакост — главная' })).toBeVisible();
     }
     await expect(partnerLinks.first()).toHaveCSS('opacity', '1');
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      const bannerReceivesPointerHits = await partnerLinks.first().evaluate((link) => {
+        const bounds = link.getBoundingClientRect();
+        const hitTarget = document.elementFromPoint(
+          bounds.left + bounds.width / 2,
+          bounds.top + bounds.height / 2,
+        );
+
+        return hitTarget === link || link.contains(hitTarget);
+      });
+      expect(bannerReceivesPointerHits, 'The visible banner should receive pointer hits').toBe(true);
+    }
     await partnerLinks.first().focus();
     await expect(partnerLinks.first()).toBeFocused();
     await page.keyboard.press('Tab');
