@@ -49,6 +49,8 @@ class S3OffloadWorkerTest(unittest.TestCase):
                 HS_S3_WEBPC_DIR=str(webpc),
                 HS_S3_REMOTE_UPLOADS=str(primary),
                 HS_S3_REMOTE_WEBPC=str(secondary),
+                HS_S3_BACKUP_UPLOADS=str(root / "backup-uploads"),
+                HS_S3_BACKUP_WEBPC=str(root / "backup-webpc"),
                 HS_S3_HEALTHCHECK_URL="",
                 HS_S3_LOCK_FILE=str(root / "worker.lock"),
                 HS_S3_MIN_AGE="0s",
@@ -59,6 +61,8 @@ class S3OffloadWorkerTest(unittest.TestCase):
             self.assertEqual((webpc / "2026/09/variant.webp").read_bytes(), b"test image bytes")
             self.assertEqual((primary / "2026/09/original.jpg").read_bytes(), b"test image bytes")
             self.assertEqual((secondary / "2026/09/variant.webp").read_bytes(), b"test image bytes")
+            self.assertEqual((root / "backup-uploads/2026/09/original.jpg").read_bytes(), b"test image bytes")
+            self.assertEqual((root / "backup-webpc/2026/09/variant.webp").read_bytes(), b"test image bytes")
 
 
 if __name__ == "__main__":
