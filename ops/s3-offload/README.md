@@ -24,8 +24,10 @@ seven-day working set and temporary restorations.
 Before enabling cleanup on production, confirm a fresh database backup and a
 successful restore drill, test one disposable image through primary delivery
 and backup restoration, and verify that its attachment metadata remains
-readable. `HS_S3_DELETE_LOCAL=0` is the immediate rollback switch; it leaves
-both S3 copies intact. Do not switch back to `rclone move`.
+readable. Install the versioned `enable-verified-cleanup.conf` as the systemd
+service drop-in only after those checks pass. Removing this drop-in and
+restarting the timer is the immediate rollback switch; it leaves both S3 copies
+intact. Do not switch back to `rclone move`.
 
 Verify the candidate with `python3 -m unittest tests.test_s3_offload_worker tests.test_s3_verified_cleanup -v`,
 `bash -n ops/s3-offload/worker.sh`, and `make check`. After the exact commit passes
