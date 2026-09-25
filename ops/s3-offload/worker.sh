@@ -10,6 +10,8 @@ uploads_dir=${HS_S3_UPLOADS_DIR:-/var/www/koloda/data/www/hs-manacost.ru/wp-cont
 webpc_dir=${HS_S3_WEBPC_DIR:-/var/www/koloda/data/www/hs-manacost.ru/wp-content/uploads-webpc}
 remote_uploads=${HS_S3_REMOTE_UPLOADS:-ovh:hs-manacost-media-3az/wp-content/uploads}
 remote_webpc=${HS_S3_REMOTE_WEBPC:-ovh:hs-manacost-media-3az/wp-content/uploads-webpc}
+backup_uploads=${HS_S3_BACKUP_UPLOADS:-ovh:hs-manacost-backups-3az/media-offload/wp-content/uploads}
+backup_webpc=${HS_S3_BACKUP_WEBPC:-ovh:hs-manacost-backups-3az/media-offload/wp-content/uploads-webpc}
 minimum_age=${HS_S3_MIN_AGE:-15m}
 lock_file=${HS_S3_LOCK_FILE:-/run/lock/hs-manacost-s3-offload.lock}
 healthcheck_path=/wp-content/uploads/2025/12/cropped-hs-manacost.ru_-1-32x32.png
@@ -120,3 +122,35 @@ copy_images_to_primary() {
 
 copy_images_to_primary "$uploads_dir" "$remote_uploads"
 copy_images_to_primary "$webpc_dir" "$remote_webpc"
+
+copy_images_to_backup() {
+    local source_dir=$1
+    local destination=$2
+
+    [[ -d "$source_dir" ]] || return 0
+    "$rclone_bin" copy "$source_dir" "$destination" \
+        --s3-no-check-bucket \
+        --s3-acl private \
+        --no-traverse \
+        --ignore-existing \
+        "${image_filter[@]}" \
+        --min-age "$minimum_age" \
+        --transfers 8 \
+        --checkers 16 \
+        --s3-upload-concurrency 2 \
+        --s3-chunk-size 16M \
+        --bwlimit 35M \
+        --retries 10 \
+        --low-level-retries 20 \
+        --stats 1m \
+        --stats-one-line-date \
+        --stats-log-level NOTICE \
+        --log-level NOTICE
+}
+
+copy_images_to_backup "$uploads_dir" "$backup_uploads"
+copy_images_to_backup "$webpc_dir" "$backup_webpc"
+
+HS_S3_BACKUP_UPLOADS="$backup_uploads" \
+HS_S3_BACKUP_WEBPC="$backup_webpc" \
+    python3 "$(dirname "$0")/verified_cleanup.py"
