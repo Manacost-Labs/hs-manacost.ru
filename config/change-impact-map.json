@@ -150,7 +150,7 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
-      "patterns": ["wordpress/mu-plugins/hs-local-image-optimizer.php", "wordpress/mu-plugins/hs-local-image-optimizer/**", "wordpress/mu-plugins/hs-manacost-s3-offload.php", "wordpress/mu-plugins/hs-manacost-s3-offload/**", "wordpress/mu-plugins/manacost-media-unique-filenames.php", "wordpress/mu-plugins/hs-media-upload-accelerator.php"],
+      "patterns": ["wordpress/mu-plugins/hs-local-image-optimizer.php", "wordpress/mu-plugins/hs-local-image-optimizer/**", "wordpress/mu-plugins/hs-manacost-s3-offload.php", "wordpress/mu-plugins/hs-manacost-s3-offload/**", "wordpress/mu-plugins/manacost-media-unique-filenames.php", "wordpress/mu-plugins/hs-media-upload-accelerator.php", "ops/s3-offload/**"],
       "owner": "media-s3",
       "classified": true,
       "risk": "high",
