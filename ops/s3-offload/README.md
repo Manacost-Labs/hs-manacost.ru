@@ -13,13 +13,17 @@ sizes before the optimizer processes the attachment.
 
 Local cleanup is disabled unless the service has `HS_S3_DELETE_LOCAL=1`. When
 enabled, `verified_cleanup.py` considers at most 100 files per run that are at
-least seven days old. For each file it hashes the local bytes, streams the
-primary object, restores the backup object into a temporary file, compares both
-SHA256 digests, checks that the local file stayed unchanged, and only then
+least seven days old. For each file it hashes the local bytes, restores the exact
+primary and backup objects into temporary files in turn, compares both SHA256
+digests, checks that the local file stayed unchanged, and only then
 unlinks it. A failed upload, unreadable bucket or checksum mismatch retains the
 local file. WordPress can hydrate an offloaded source in the supported editor
 and optimizer contexts. Disk-capacity monitoring remains necessary for the
-seven-day working set and temporary restorations.
+seven-day working set and temporary restorations. Both remote reads use
+`rclone copyto` with a 180-second process timeout. On 2026-09-28, five reads of
+the same 90 KB object had median times of 15 seconds with `cat` and 0.114 seconds
+with `copyto`; all SHA256 digests matched. Only one restored object occupies
+temporary space at a time.
 
 Before enabling cleanup on production, confirm a fresh database backup and a
 successful restore drill, test one disposable image through primary delivery
