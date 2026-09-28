@@ -24,19 +24,18 @@ def digest_file(path: Path) -> str:
 
 
 def digest_remote(rclone: str, remote: str) -> str | None:
-    digest = hashlib.sha256()
-    with subprocess.Popen(
-        [rclone, "cat", remote, "--contimeout", "10s", "--timeout", "60s", "--retries", "2"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    ) as process:
-        if process.stdout is None:
+    with tempfile.TemporaryDirectory(prefix="hs-s3-restore-") as temporary:
+        restored = Path(temporary) / "image"
+        result = subprocess.run(
+            [rclone, "copyto", remote, str(restored), "--contimeout", "10s", "--timeout", "60s", "--retries", "2"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=180,
+        )
+        if result.returncode != 0 or not restored.is_file():
             return None
-        for chunk in iter(lambda: process.stdout.read(1024 * 1024), b""):
-            digest.update(chunk)
-        if process.wait() != 0:
-            return None
-    return digest.hexdigest()
+        return digest_file(restored)
 
 
 def eligible_files(directory: Path, minimum_age: int):
@@ -67,18 +66,9 @@ def clean_one(path: Path, source: Path, primary: str, backup: str, rclone: str) 
         if digest_remote(rclone, primary_object) != local_digest:
             print(f"held: primary S3 differs or is unreadable: {relative}", file=sys.stderr)
             return False
-        with tempfile.TemporaryDirectory(prefix="hs-s3-restore-") as temporary:
-            restored = Path(temporary) / "image"
-            result = subprocess.run(
-                [rclone, "copyto", backup_object, str(restored), "--contimeout", "10s", "--timeout", "60s", "--retries", "2"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-                timeout=180,
-            )
-            if result.returncode != 0 or not restored.is_file() or digest_file(restored) != local_digest:
-                print(f"held: backup restore differs or failed: {relative}", file=sys.stderr)
-                return False
+        if digest_remote(rclone, backup_object) != local_digest:
+            print(f"held: backup restore differs or failed: {relative}", file=sys.stderr)
+            return False
         current_stat = path.stat(follow_symlinks=False)
         if (
             original_stat.st_ino != current_stat.st_ino

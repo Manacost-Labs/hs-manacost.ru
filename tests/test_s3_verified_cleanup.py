@@ -32,11 +32,10 @@ class VerifiedCleanupTest(unittest.TestCase):
             rclone = root / "rclone"
             rclone.write_text(
                 "#!/usr/bin/env python3\n"
-                "import pathlib, shutil, sys\n"
+                "import shutil, sys\n"
                 "command, source = sys.argv[1:3]\n"
-                "if command == 'cat':\n"
-                "    sys.stdout.buffer.write(pathlib.Path(source).read_bytes())\n"
-                "elif command == 'copyto':\n"
+                # Require exact-object downloads instead of the slow cat path.
+                "if command == 'copyto':\n"
                 "    shutil.copyfile(source, sys.argv[3])\n"
                 "else:\n"
                 "    sys.exit(2)\n"
@@ -66,6 +65,11 @@ class VerifiedCleanupTest(unittest.TestCase):
             result = run_cleanup()
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(image.exists(), "a mismatching primary must retain the local source")
+
+            (primary / "2026/09/image.png").unlink()
+            result = run_cleanup()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(image.exists(), "an unreadable primary must retain the local source")
 
             (primary / "2026/09/image.png").write_bytes(b"source image")
             environment["HS_S3_DELETE_LOCAL"] = "0"
