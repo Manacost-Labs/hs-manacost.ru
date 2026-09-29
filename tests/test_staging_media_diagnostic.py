@@ -9,6 +9,31 @@ SCRIPT = ROOT / "ops/performance/diagnose-media-upload.mjs"
 
 
 class StagingMediaDiagnosticTests(unittest.TestCase):
+    def test_cleanup_verifies_lost_delete_responses_without_repeating_delete(self):
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", r'''
+import assert from 'node:assert/strict';
+import { deleteUploadFixture } from './ops/performance/delete-upload-fixture.mjs';
+for (const deleted of [true, false]) {
+  const calls = [];
+  const rest = async (route, method = 'GET') => {
+    calls.push([route, method]);
+    if (method === 'DELETE') throw new Error('Lost response');
+    return {status: deleted ? 404 : 200};
+  };
+  if (deleted) await deleteUploadFixture(rest, 123);
+  else await assert.rejects(deleteUploadFixture(rest, 123), /Lost response/);
+  assert.deepEqual(calls, [['media/123?force=true', 'DELETE'], ['media/123?context=edit', 'GET']]);
+}
+let requests = 0;
+await assert.rejects(deleteUploadFixture(async () => { requests++; }, '../posts/1'), /Invalid/);
+assert.equal(requests, 0);
+await assert.rejects(deleteUploadFixture(async (_route, method) => method === 'DELETE'
+  ? {status: 200, data: {deleted: true}} : {status: 200}, 123), /still exists/);
+'''], cwd=ROOT, capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_email_prompt_is_postponed_only_on_staging(self):
         result = subprocess.run(
             ["node", "--input-type=module", "-e", r'''

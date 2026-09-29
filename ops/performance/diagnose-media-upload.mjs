@@ -8,6 +8,7 @@ import { performance } from 'node:perf_hooks';
 import { crc32, deflateSync } from 'node:zlib';
 import { parseAsyncUpload } from '../../tests/integration/media-upload-response.mjs';
 import { finishAdminLogin } from './browser-admin-login.mjs';
+import { deleteUploadFixture } from './delete-upload-fixture.mjs';
 
 // This diagnostic creates and deletes media. Never accept another host or scheme.
 if (!/^https:\/\/test\.hs-manacost\.ru\/?$/.test(process.env.WP_TEST_BASE_URL ?? '')) {
@@ -196,6 +197,13 @@ try {
 } finally {
   if (nonce && authorId && page) {
     try {
+      // Detach cleanup from upload-screen scripts and any pending UI navigation.
+      await page.close();
+      page = await context.newPage();
+      const nonceResponse = await page.goto(`${baseURL}/wp-admin/admin-ajax.php?action=rest-nonce`);
+      check(nonceResponse?.status() === 200, 'Cleanup authentication failed');
+      nonce = (await nonceResponse.text()).trim();
+      check(/^[a-z0-9]{10}$/i.test(nonce), 'Cleanup nonce unavailable');
       // Recover an attachment even when its upload response was lost or invalid.
       const found = await rest(`media?context=edit&search=${prefix}&per_page=100&_fields=id,author,title`);
       check(found.status === 200 && Array.isArray(found.data), `Cleanup lookup failed (${found.status})`);
@@ -204,17 +212,14 @@ try {
           && Number.isSafeInteger(media.id) && media.id > 0) ownedIds.add(media.id);
       }
       for (const id of ownedIds) {
-        const deleted = await rest(`media/${id}?force=true`, 'DELETE');
-        check(deleted.status === 200 && deleted.data.deleted === true,
-          `Attachment cleanup failed (${deleted.status})`);
-        const absent = await rest(`media/${id}?context=edit`);
-        check(absent.status === 404, `Attachment still exists (${absent.status})`);
+        await deleteUploadFixture(rest, id);
       }
       // A timed-out request may still be processing; do not certify its cleanup.
       report.fixtures_cleaned = !uploadPending;
       report.cleaned_attachment_count = ownedIds.size;
     } catch (error) {
       report.cleanup_failed = true;
+      report.cleanup_error_type = error.name === 'TimeoutError' ? 'timeout' : 'request-or-check-failed';
       if (error instanceof DiagnosticFailure) report.cleanup_failed_check = error.message;
     }
   }
