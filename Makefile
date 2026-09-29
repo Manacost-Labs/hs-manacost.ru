@@ -2,7 +2,7 @@
 
 .PHONY: nginx-media-test
 
-check: composer-validate quality-config php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test web-v2-check shell-check nginx-media-test
+check: articles-mcp-test composer-validate quality-config php-lint contract-check skill-audit test lightbox-test reader-css-check reader-test web-v2-check shell-check nginx-media-test
 
 .PHONY: quality-config quality-plan quality-verify design-verify quality-retrieval-eval quality-cache-stats quality-pilot-report quality-usage-report
 quality-config:
@@ -136,3 +136,10 @@ admin-performance:
 
 plugin-audit:
 	@python3 ops/plugins/audit-updates.py --output-dir .artifacts/plugin-audit
+
+.PHONY: articles-mcp-test
+articles-mcp-test:
+	@npm ci --prefix services/articles-mcp --ignore-scripts --no-fund
+	@npm audit --prefix services/articles-mcp --audit-level=high
+	@for source in services/articles-mcp/*.js; do node --check "$$source" || exit; done
+	@npm test --prefix services/articles-mcp

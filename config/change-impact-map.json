@@ -20,6 +20,35 @@
   },
   "rules": [
     {
+      "patterns": [
+        "services/articles-mcp/**",
+        "docs/runbooks/articles-mcp.md"
+      ],
+      "owner": "public-articles-mcp",
+      "classified": true,
+      "risk": "high",
+      "surfaces": [
+        "external-integrations",
+        "public-content-export",
+        "mcp-authentication"
+      ],
+      "domains": [
+        "test.hs-manacost.ru",
+        "hs-manacost.ru"
+      ],
+      "skills": [
+        "wp-rest-api",
+        "wordpress-external-integrations",
+        "wordpress-privacy-consent",
+        "wordpress-release-manager",
+        "agent-security-and-hardening"
+      ],
+      "checks": [
+        "make articles-mcp-test",
+        "make check"
+      ]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/manacost-listing-thumbnails.php", "tests/fixtures/listing-thumbnails-integration.php"],
       "owner": "homepage-newspaper-thumbnail-fallback",
       "classified": true,
