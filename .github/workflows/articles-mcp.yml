@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.22.2'
+      - name: Install locked browser dependencies
+        run: npm ci --ignore-scripts
+      - name: Install staging probe browser
+        run: npx --no-install playwright install --with-deps chromium
       - name: Verify MCP service
         run: make articles-mcp-test
       - name: Read published staging articles through MCP
@@ -20,4 +24,6 @@ jobs:
           MCP_SOURCE_ORIGIN: https://test.hs-manacost.ru
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+          STAGING_DIAGNOSTIC_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
+          STAGING_DIAGNOSTIC_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
         run: node services/articles-mcp/smoke.js
