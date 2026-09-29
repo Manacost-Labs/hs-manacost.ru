@@ -1,0 +1,23 @@
+name: Articles MCP staging probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-read:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Verify MCP service
+        run: make articles-mcp-test
+      - name: Read published staging articles through MCP
+        env:
+          MCP_SOURCE_ORIGIN: https://test.hs-manacost.ru
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+        run: node services/articles-mcp/smoke.js

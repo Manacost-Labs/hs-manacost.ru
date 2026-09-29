@@ -1,0 +1,28 @@
+{
+  "name": "articles-mcp",
+  "owner": "hs-manacost",
+  "purpose": "Search and read published articles from multiple MCP clients",
+  "direction": "bidirectional",
+  "endpoints": [
+    "WordPress wp/v2/posts and wp/v2/categories",
+    "MCP /mcp",
+    "Hearthpulse OAuth issuer JWKS and current reader-permissions"
+  ],
+  "authentication": "HTTP: OAuth JWT access token (MCP_OAUTH_ISSUER, MCP_OAUTH_JWKS_URL, MCP_PERMISSIONS_CLIENT_SECRET). STDIO: local process access. Staging source: MCP_STAGING_SOURCE_AUTHORIZATION only.",
+  "data_classes": [
+    "public article text and public taxonomy",
+    "public media URLs",
+    "aggregate operational metrics"
+  ],
+  "timeout_seconds": 8,
+  "retry": {
+    "max_attempts": 1,
+    "conditions": "Next scheduled synchronization after failure; no inline retries",
+    "backoff": "five minutes between scheduled runs"
+  },
+  "idempotency": "Upsert by source-bound article ID; atomic index activation after complete catalog traversal",
+  "rate_limit": "HTTP: 60 requests/minute/subject, 300 total/minute, 4 active tool requests; source batches <=100 metadata or 25 bodies, >=200ms pause; 429 is returned with Retry-After",
+  "observability": "Sync emits counts; staging probe emits timings and byte counts. No tokens, article bodies, search strings or subject IDs in logs.",
+  "degradation": "Source validation failure withholds all affected tool results. Failed sync preserves committed index. Removed/private/password protected articles are withheld by live checks.",
+  "disable_switch": "Stop MCP HTTP process and sync timer; existing WordPress continues independently"
+}
