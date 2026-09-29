@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
+import { finishAdminLogin } from './browser-admin-login.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -166,7 +167,7 @@ try {
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: /Log In|Войти/i }).click();
-  await page.waitForURL(/\/wp-admin\//);
+  await finishAdminLogin(page, baseURL);
 
   await page.goto(`${baseURL}/wp-admin/post-new.php`, { waitUntil: 'domcontentloaded' });
   await page.locator('#title').fill(fixtureTitle);

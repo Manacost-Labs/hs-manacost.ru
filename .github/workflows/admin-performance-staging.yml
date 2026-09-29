@@ -40,8 +40,8 @@ jobs:
         id: credentials
         shell: bash
         env:
-          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
-          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: |
@@ -58,8 +58,8 @@ jobs:
       - name: Collect five comparable warm staging samples
         if: steps.credentials.outputs.enabled == 'true'
         env:
-          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
-          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: |
@@ -82,11 +82,19 @@ jobs:
       - name: Diagnose authenticated article save
         if: always() && steps.credentials.outputs.enabled == 'true'
         env:
-          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_WP_ADMIN_USER }}
-          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_WP_ADMIN_PASSWORD }}
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: node ops/performance/diagnose-article-save.mjs .artifacts/admin-performance/reports
+      - name: Diagnose authenticated image uploads
+        if: always() && steps.credentials.outputs.enabled == 'true'
+        env:
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+        run: node ops/performance/diagnose-media-upload.mjs .artifacts/admin-performance/reports
       - name: Upload staging performance evidence
         if: always() && steps.credentials.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4

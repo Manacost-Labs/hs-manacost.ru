@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
+import { finishAdminLogin } from './browser-admin-login.mjs';
 
 const sampleCount = Number.parseInt(process.env.HS_ADMIN_PERF_SAMPLES ?? '5', 10);
 if (!Number.isInteger(sampleCount) || sampleCount < 5 || sampleCount > 20) {
@@ -48,7 +49,7 @@ async function login(context) {
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: /Log In|Войти/i }).click();
-  await page.waitForURL(/\/wp-admin\//);
+  await finishAdminLogin(page, baseURL);
   await page.close();
 }
 
