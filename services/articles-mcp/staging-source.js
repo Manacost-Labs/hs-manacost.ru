@@ -9,6 +9,7 @@ export async function openStagingSource(env = process.env) {
   const required = ['STAGING_HTTP_USER', 'STAGING_HTTP_PASSWORD', 'STAGING_DIAGNOSTIC_USER', 'STAGING_DIAGNOSTIC_PASSWORD'];
   if (required.some(key => !env[key])) throw new Error('staging_credentials_required');
   const browser = await chromium.launch({ headless: true,
+    ...(env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: env.PLAYWRIGHT_EXECUTABLE_PATH } : {}),
     ...(env.PLAYWRIGHT_HOST_RESOLVER_RULES ? { args: [`--host-resolver-rules=${env.PLAYWRIGHT_HOST_RESOLVER_RULES}`] } : {}) });
   try {
     const context = await browser.newContext({ httpCredentials: { username: env.STAGING_HTTP_USER, password: env.STAGING_HTTP_PASSWORD } });

@@ -5,7 +5,7 @@ permissions:
   contents: read
 jobs:
   staging-read:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, hs-manacost-production]
     environment: staging
     timeout-minutes: 5
     steps:
@@ -15,13 +15,14 @@ jobs:
           node-version: '22.22.2'
       - name: Install locked browser dependencies
         run: npm ci --ignore-scripts
-      - name: Install staging probe browser
-        run: npx --no-install playwright install --with-deps chromium
+      - name: Check existing staging probe browser
+        run: test -x /usr/bin/chromium
       - name: Verify MCP service
         run: make articles-mcp-test
       - name: Read published staging articles through MCP
         env:
           MCP_SOURCE_ORIGIN: https://test.hs-manacost.ru
+          PLAYWRIGHT_EXECUTABLE_PATH: /usr/bin/chromium
           PLAYWRIGHT_HOST_RESOLVER_RULES: MAP test.hs-manacost.ru 151.80.21.140
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}

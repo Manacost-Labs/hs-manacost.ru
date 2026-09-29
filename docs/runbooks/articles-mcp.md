@@ -81,11 +81,12 @@ For staging use a **different** database and `MCP_SOURCE_ORIGIN=https://test.hs-
 Supply its HTTP Basic Authorization header in the protected environment variable
 `MCP_STAGING_SOURCE_AUTHORIZATION`. This is infrastructure authentication, not a
 WordPress account. Staging forwards this header into PHP, where WordPress may
-interpret it as an application password and return 401. Basic Auth alone therefore
-is not a working standalone staging configuration. The supplied staging probe
+interpret it as an application password and return 401. Verify this interaction
+before using a standalone staging configuration. The supplied staging probe
 uses `openStagingSource`: an ephemeral browser session with the existing staging
 diagnostic account. Reads use browser fetch through the same origin DNS mapping
-as the existing admin diagnostic workflow. Cookies are never exported, and no
+as the existing admin diagnostic workflow, on its server runner (the hosted runner
+cannot reach the origin). Cookies are never exported, and no
 REST nonce is sent, keeping REST context anonymous. It closes the
 browser after the probe. Use this harness for staging source checks; provision a
 separately reviewed staging source connection before operating a persistent
