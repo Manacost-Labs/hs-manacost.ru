@@ -160,12 +160,13 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
             "Check protected staging measurement credentials",
             "Collect five comparable warm staging samples",
             "Diagnose authenticated article save",
+            "Diagnose authenticated image uploads",
         ):
             step = steps.split(f"      - name: {step_name}\n", 1)[1].split(
                 "      - ", 1
             )[0]
             for secret_name in (
-                "STAGING_WP_ADMIN_USER", "STAGING_WP_ADMIN_PASSWORD",
+                "STAGING_DIAGNOSTIC_USER", "STAGING_DIAGNOSTIC_PASSWORD",
                 "STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD",
             ):
                 self.assertIn(f"secrets.{secret_name}", step)
@@ -174,7 +175,7 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
             steps.index("Install locked browser package"),
         )
         self.assertIn("run: npm ci --ignore-scripts", steps)
-        self.assertEqual(12, steps.count("secrets."))
+        self.assertEqual(16, steps.count("secrets."))
 
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

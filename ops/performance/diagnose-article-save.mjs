@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
+import { finishAdminLogin } from './browser-admin-login.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -144,21 +145,26 @@ async function measureEditorOpen(id) {
 
 async function removeFixture() {
   if (!postId) return false;
-  await page.goto(`${baseURL}/wp-admin/post.php?post=${postId}&action=edit`);
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-    page.locator('#delete-action a.submitdelete').click(),
-  ]);
-  await page.goto(`${baseURL}/wp-admin/edit.php?post_status=trash&post_type=post`);
-  const row = page.locator(`#post-${postId}`);
-  await row.waitFor({ state: 'visible' });
-  await row.hover();
-  page.once('dialog', dialog => dialog.accept());
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-    row.locator('.row-actions .delete a').click(),
-  ]);
-  return (await page.locator(`#post-${postId}`).count()) === 0;
+  // Cleanup must not depend on the current page/order of the trash list table.
+  return page.evaluate(async ({ id, titlePrefix }) => {
+    const nonceResponse = await fetch('/wp-admin/admin-ajax.php?action=rest-nonce');
+    const nonce = await nonceResponse.text();
+    if (!nonceResponse.ok || !/^[a-z0-9]{10}$/i.test(nonce)) return false;
+    const request = (route, method = 'GET') => fetch(`/wp-json/wp/v2/${route}`, {
+      method, headers: { 'X-WP-Nonce': nonce }, signal: AbortSignal.timeout(30_000),
+    });
+    const existing = await request(`posts/${id}?context=edit`);
+    if (existing.status === 404) return true;
+    if (!existing.ok) return false;
+    const post = await existing.json();
+    const ownerResponse = await request('users/me');
+    if (!ownerResponse.ok) return false;
+    const owner = await ownerResponse.json();
+    if (post.author !== owner.id || !post.title?.raw?.startsWith(titlePrefix)) return false;
+    const deleted = await request(`posts/${id}?force=true`, 'DELETE');
+    if (!deleted.ok || (await deleted.json()).deleted !== true) return false;
+    return (await request(`posts/${id}?context=edit`)).status === 404;
+  }, { id: postId, titlePrefix: fixtureTitle });
 }
 
 try {
@@ -166,7 +172,7 @@ try {
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: /Log In|Войти/i }).click();
-  await page.waitForURL(/\/wp-admin\//);
+  await finishAdminLogin(page, baseURL);
 
   await page.goto(`${baseURL}/wp-admin/post-new.php`, { waitUntil: 'domcontentloaded' });
   await page.locator('#title').fill(fixtureTitle);
