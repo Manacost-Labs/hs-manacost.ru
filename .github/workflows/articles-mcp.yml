@@ -22,6 +22,7 @@ jobs:
       - name: Read published staging articles through MCP
         env:
           MCP_SOURCE_ORIGIN: https://test.hs-manacost.ru
+          PLAYWRIGHT_HOST_RESOLVER_RULES: MAP test.hs-manacost.ru 151.80.21.140
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
           STAGING_DIAGNOSTIC_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}

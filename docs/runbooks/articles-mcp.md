@@ -84,8 +84,9 @@ WordPress account. Staging forwards this header into PHP, where WordPress may
 interpret it as an application password and return 401. Basic Auth alone therefore
 is not a working standalone staging configuration. The supplied staging probe
 uses `openStagingSource`: an ephemeral browser session with the existing staging
-diagnostic account, shared implicitly by the HTTP client. Cookies are never
-exported, and no REST nonce is sent, keeping REST context anonymous. It closes the
+diagnostic account. Reads use browser fetch through the same origin DNS mapping
+as the existing admin diagnostic workflow. Cookies are never exported, and no
+REST nonce is sent, keeping REST context anonymous. It closes the
 browser after the probe. Use this harness for staging source checks; provision a
 separately reviewed staging source connection before operating a persistent
 staging service. Production remains anonymous and refuses source credentials.
