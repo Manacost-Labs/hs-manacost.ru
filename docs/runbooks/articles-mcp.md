@@ -80,7 +80,17 @@ two environment variables above. Never run sync on the same stdout as STDIO.
 For staging use a **different** database and `MCP_SOURCE_ORIGIN=https://test.hs-manacost.ru`.
 Supply its HTTP Basic Authorization header in the protected environment variable
 `MCP_STAGING_SOURCE_AUTHORIZATION`. This is infrastructure authentication, not a
-WordPress admin account. The code refuses source credentials for production.
+WordPress account. Staging forwards this header into PHP, where WordPress may
+interpret it as an application password and return 401. Verify this interaction
+before using a standalone staging configuration. The supplied staging probe
+uses `openStagingSource`: an ephemeral browser session with the existing staging
+diagnostic account. Reads use browser fetch through the same origin DNS mapping
+as the existing admin diagnostic workflow, on its server runner (the hosted runner
+cannot reach the origin). Cookies are never exported, and no
+REST nonce is sent, keeping REST context anonymous. It closes the
+browser after the probe. Use this harness for staging source checks; provision a
+separately reviewed staging source connection before operating a persistent
+staging service. Production remains anonymous and refuses source credentials.
 
 ## Remote HTTP and OAuth
 
@@ -136,7 +146,7 @@ are `no-store` and `noindex`. Read-only annotations are not an authorization bou
 
 1. Pass `make articles-mcp-test`, `make check`, `make code-quality` and secret checks.
 2. Push a short branch/PR. Run **Articles MCP staging probe** manually on that ref;
-   it uses existing staging environment HTTP secrets, reads at most 20 articles,
+   it uses existing staging HTTP and diagnostic-user secrets, reads at most 20 articles,
    performs five fetch samples through MCP, and emits counts/times only.
 3. Deploy the reviewed service separately on staging, with an isolated index and
    identity client, using the staging-verified commit. Start a bounded sync job every

@@ -1,7 +1,7 @@
 // Read-only, bounded WordPress fixture. Never emit article bodies or credentials.
 import assert from 'node:assert/strict';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
-import { WordPressSource } from './source.js';
+import { openStagingSource } from './staging-source.js';
 import { ArticleStore } from './store.js';
 import { ArticleLibrary } from './library.js';
 import { createMcpServer } from './mcp.js';
@@ -9,9 +9,8 @@ import { syncArticles } from './sync.js';
 
 const origin = process.env.MCP_SOURCE_ORIGIN;
 if (origin !== 'https://test.hs-manacost.ru') throw new Error('staging_only');
-const user = process.env.STAGING_HTTP_USER; const password = process.env.STAGING_HTTP_PASSWORD;
-if (!user || !password) throw new Error('staging_http_credentials_required');
-const source = new WordPressSource(origin, { authorization: `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}` });
+const { source, close } = await openStagingSource();
+try {
 const { data } = await source.request({ per_page: 20, orderby: 'id', order: 'desc', _fields: 'id,modified_gmt,content.protected' });
 const catalog = data.filter(row => !row.content.protected);
 assert.ok(catalog.length > 0, 'published staging fixture required');
@@ -39,3 +38,5 @@ try {
   const categories = await client.callTool({ name: 'list_categories', arguments: {} }); assert.ok(!categories.isError);
   console.log(JSON.stringify({ ...stats, fetch_ms: times, article_bytes: bytes, source: 'staging', tools: 4 }));
 } finally { await client.close(); await server.close(); store.close(); }
+
+} finally { await close(); }
