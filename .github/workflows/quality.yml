@@ -83,6 +83,8 @@ jobs:
         run: npm ci
       - name: Install reader regression browser
         run: npx playwright install --with-deps chromium
+      - name: Install Reader server dependencies for OAuth browser fixture
+        run: npm ci --prefix services/reader --ignore-scripts
       - name: Check reader shell with Newspaper and synthetic identity
         run: make reader-browser-test
       - name: Run isolated WordPress behaviour and visual regression tests

@@ -104,15 +104,18 @@ relax Wordfence globally or use staging Basic Auth as MCP authorization.
 Configure the following values in the service environment:
 
 - `MCP_RESOURCE_URL`: exact HTTPS resource identifier ending in `/mcp`.
-- `MCP_OAUTH_ISSUER`: `https://hearthpulse.net/identity`, exactly matching the access token.
-- `MCP_OAUTH_JWKS_URL`: HTTPS JWKS on the issuer's origin.
+- `MCP_OAUTH_ISSUER`: `<source-origin>/mcp-oauth`, exactly matching the access token.
+- `MCP_OAUTH_JWKS_URL`: exact `<source-origin>/mcp-oauth/jwks`.
 - `MCP_PERMISSIONS_CLIENT_SECRET`: protected secret for the existing Reader
   permissions bridge, selected by source environment. Never put its value in Git.
 - `MCP_PORT`: optional loopback port, default 8792.
 
-The service is an OAuth **resource server**, not an authorization server. The
-chosen identity provider still needs its own client registration, login/consent,
-PKCE, discovery and token issuance configured for each intended MCP client.
+Articles MCP is the resource server. The authorization server is implemented in
+this repository's Reader BFF, reusing Hearthpulse login and current-role checks.
+See [the OAuth runbook](mcp-oauth.md) for PKCE/DCR/consent, protected signing keys,
+opt-in configuration, schema, proxy templates and release/rollback. No additional
+Hearthpulse repository code is needed for this profile.
+
 The user-authorized audience is **current Hearthpulse administrators**, including
 accounts signed in through Telegram. Reuse the canonical
 `createReaderPermissionsClient` from `services/reader/community-clients.js`:
@@ -124,20 +127,18 @@ bridge currently accepts the existing Reader client IDs/secrets; provision its
 protected environment explicitly, or extend Hearthpulse for a dedicated MCP
 permissions client in a separately reviewed change. Do not invent a new role API.
 
-Require signed JWT **access** tokens (`typ=at+jwt`, RS256/ES256), the exact resource
-audience, `articles:read` scope, subject, issue time and expiry. Maximum accepted
-age is 15 minutes. ID tokens and opaque access tokens are rejected. Do not assume
-that the existing Hearthpulse login already issues this token profile: verify it
-before registering clients or exposing the endpoint.
+Require signed JWT **access** tokens (`typ=at+jwt`, RS256), exact site OAuth issuer
+`<source-origin>/mcp-oauth`, exact MCP audience, `articles:read`, subject, issue time
+and expiry. Maximum accepted age is 15 minutes. ID tokens, opaque tokens and other
+sites' issuer/resource/JWKS are rejected by the CLI configuration boundary.
 
-On 2026-09-29, live discovery advertised `openid`, `profile`, `offline_access`
-and S256 PKCE, with no dynamic registration endpoint. It did not advertise
-`articles:read`. Therefore this service's remote OAuth flow is **not yet enabled**:
-the identity-side resource/token/client configuration is a release prerequisite,
-not something a passing local JWT fixture proves. Telegram remains the upstream
-login method; the MCP server must not collect Telegram credentials. Keys and TLS stay with the
-issuer/proxy. Removing the Hearthpulse admin role revokes access at the next request;
-issuer-side token revocation can take until the 15-minute age limit.
+The new authority issues this token profile after existing Hearthpulse login and
+explicit admin consent. The official SDK completes discovery/DCR/PKCE/token/read
+in local fixtures. Remote production exposure is **not yet enabled**: Reader flags,
+private RSA key, separately deployed MCP index/listener and reviewed HTTPS routes
+are still required. Telegram credentials remain exclusively with Hearthpulse.
+Role removal or provider failure denies the next MCP request. Refresh revocation
+or Reader logout stops renewal; existing JWTs may last up to 15 minutes.
 
 Launch with `node services/articles-mcp/cli.js http`. Missing or invalid OAuth
 configuration fails startup. Invalid tokens fail with 401 and protected-resource
@@ -160,8 +161,8 @@ are `no-store` and `noindex`. Read-only annotations are not an authorization bou
    Verify REST cache bypass and representative article text, including long posts.
 5. Measure wp-admin open/save five times before/after with the worker active. Do not
    call a five-sample MCP read probe an admin performance measurement.
-6. Production exposure remains a separate release: enforce Hearthpulse administrators, register
-   the issuer's clients, configure HTTPS routes, obtain release approval, and follow
+6. Production exposure remains a separate release: enforce Hearthpulse administrators, enable
+   the reviewed local OAuth authority, configure HTTPS routes, obtain release approval, and follow
    the project production workflow/gates. This PR does not expose a production URL.
 
 Disable by stopping the HTTP process and sync scheduler. Roll back the service to

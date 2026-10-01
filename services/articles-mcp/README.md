@@ -7,15 +7,16 @@
 
 ## Текущий статус
 
-Проверено **1 октября 2026 года** на версии `065acc0a7f96cec0d488bd132a64ee11a230b344`:
+Проверка опубликованных статей выполнена **1 октября 2026 года** на версии
+`065acc0a7f96cec0d488bd132a64ee11a230b344`; новый OAuth-модуль проверяется отдельно:
 
 | Способ подключения | Статус |
 |---|---|
 | STDIO — клиент запускает локальный процесс | Работает. Проверены запуск CLI, обнаружение четырёх инструментов и все четыре операции на опубликованной статье основного сайта. |
-| Streamable HTTP — код сервера | Проверен автоматическими тестами с тестовыми токенами и официальным MCP-клиентом. |
-| Публичный `https://hs-manacost.ru/mcp` | **Ещё не включён: HTTP 404.** Настройка OAuth Hearthpulse и отдельное развёртывание сервиса остаются необходимыми. |
+| Streamable HTTP + OAuth — код сервера | Реализован OAuth Manacost через существующий вход Hearthpulse. Официальный SDK проходит discovery, DCR, PKCE, получение JWT и чтение статьи. |
+| Публичный `https://hs-manacost.ru/mcp` | **Ещё не включён: HTTP 404.** OAuth Manacost выключен по умолчанию; отдельное staging/production развёртывание ещё требуется. |
 
-Все 12 автоматических тестов прошли. [Свежая проверка staging](https://github.com/Manacost-Labs/hs-manacost.ru/actions/runs/36836346777)
+Базовые 12 автоматических тестов прошли; новый OAuth имеет дополнительные regression и браузерные проверки. [Свежая проверка staging](https://github.com/Manacost-Labs/hs-manacost.ru/actions/runs/36836346777)
 проиндексировала 20 статей и проверила поиск, рубрики и пять чтений полного текста.
 Эта проверка использует MCP внутри процесса и настоящий REST API staging;
 она не проверяет вход пользователя через публичный OAuth.
@@ -113,15 +114,16 @@ node services/articles-mcp/cli.js stdio
 **Этот адрес пока не готов для добавления в ИИ-клиент.** На дату проверки и он,
 и `/.well-known/oauth-protected-resource/mcp` возвращают 404.
 
-Discovery Hearthpulse объявляет `openid`, `profile`, `offline_access` и PKCE S256,
-но не объявляет `articles:read` или endpoint динамической регистрации клиентов.
-Реальную выдачу совместимого токена нужно проверить и настроить в Hearthpulse;
-существующий Telegram-вход сам по себе не завершает настройку MCP OAuth.
+OAuth реализован здесь, в `services/reader/mcp-oauth*.js`. Клиент регистрируется
+у Manacost, пользователь входит через существующий Hearthpulse/Telegram и явно
+подтверждает доступ. Новый OAuth-модуль выпускает собственный JWT для MCP;
+Hearthpulse остаётся источником текущих прав администратора.
+[Настройка, endpoint-контракт, ключи, выпуск и rollback](../../docs/runbooks/mcp-oauth.md).
 
-Сервер ожидает подписанный JWT access token с `typ=at+jwt`, алгоритмом RS256/ES256,
-issuer `https://hearthpulse.net/identity`, audience равным URL ресурса MCP и scope
-`articles:read`. Максимальный возраст токена — 15 минут. ID token и непрозрачный
-access token не принимаются. После проверки токена сервер обращается к
+Сервер ожидает подписанный JWT access token с `typ=at+jwt`, алгоритмом RS256,
+issuer `https://hs-manacost.ru/mcp-oauth`, audience `https://hs-manacost.ru/mcp`
+и scope `articles:read`. Максимальный возраст токена — 15 минут.
+ID token и непрозрачный access token не принимаются. После проверки токена сервер обращается к
 каноническому API прав Hearthpulse. Снятие роли, блокировка или отказ API прав
 закрывают следующий запрос.
 
@@ -131,14 +133,15 @@ access token не принимаются. После проверки токен
 | Переменная | Значение |
 |---|---|
 | `MCP_RESOURCE_URL` | Точный HTTPS URL ресурса с путём `/mcp`. |
-| `MCP_OAUTH_ISSUER` | `https://hearthpulse.net/identity`. |
-| `MCP_OAUTH_JWKS_URL` | Проверенный HTTPS URL JWKS на origin этого issuer. |
+| `MCP_OAUTH_ISSUER` | `https://hs-manacost.ru/mcp-oauth`. |
+| `MCP_OAUTH_JWKS_URL` | `https://hs-manacost.ru/mcp-oauth/jwks`. |
 | `MCP_PERMISSIONS_CLIENT_SECRET` | Секрет существующего Reader permissions client для соответствующего окружения; только из защищённого хранилища. |
 | `MCP_PORT` | Необязательный loopback-порт; по умолчанию `8792`. |
 
 Запуск: `node services/articles-mcp/cli.js http`. Процесс слушает только
 `127.0.0.1`; внешний HTTPS reverse proxy, OAuth-регистрация клиентов, изолированная
 проверка staging и постоянная синхронизация требуют отдельной настройки.
+Шаблоны reverse proxy/systemd находятся в `ops/articles-mcp`.
 Обычный deployment WordPress не устанавливает и не запускает этот сервис.
 Подробные условия выпуска: [runbook](../../docs/runbooks/articles-mcp.md#remote-http-and-oauth).
 

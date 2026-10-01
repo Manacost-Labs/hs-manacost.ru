@@ -1,0 +1,34 @@
+[Unit]
+Description=Manacost published articles MCP
+After=network-online.target manacost-reader-production.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=manacost-articles-mcp
+Group=manacost-articles-mcp
+# Immutable release must contain services/articles-mcp and
+# services/reader/community-clients.js at their repository-relative paths.
+WorkingDirectory=/srv/manacost-articles-mcp/current
+EnvironmentFile=/etc/manacost-articles-mcp/service.env
+Environment=NODE_ENV=production
+Environment=MCP_PORT=8792
+Environment=MCP_DATABASE=/var/lib/manacost-articles-mcp/articles.sqlite
+ExecStart=/usr/bin/node services/articles-mcp/cli.js http
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+StateDirectory=manacost-articles-mcp
+StateDirectoryMode=0700
+MemoryMax=256M
+CPUQuota=25%
+TasksMax=32
+Nice=10
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+InaccessiblePaths=-/var/lib/manacost-reader -/var/lib/manacost-reader-staging -/var/lib/manacost-ecosystem -/var/www
+
+[Install]
+WantedBy=multi-user.target

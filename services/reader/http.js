@@ -33,7 +33,7 @@ function queueUnusedTokens(store, result, ttlMs) {
 }
 
 /** Same-origin HTTP boundary; refresh credentials stay encrypted on the server. */
-export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community, communityProductionEnabled = false, metrics = new ReaderMetrics() }) {
+export function createReaderHandler({ origin, store, identity, csrfKey, profiles, community, communityProductionEnabled = false, metrics = new ReaderMetrics(), mcpOAuth = null }) {
   if (new URL(origin).origin !== origin || !origin.startsWith('https://') || csrfKey?.length !== 32) throw new Error('Invalid reader HTTP configuration');
   const csrf = id => createHmac('sha256', csrfKey).update(id).digest('base64url');
   const validWrite = (request, id) => request.headers.get('origin') === origin
@@ -104,6 +104,10 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       if (!buckets.has(bucket) && buckets.size >= 4096) return json(503, { error: 'identity_unavailable' });
       const count = (buckets.get(bucket) ?? 0) + 1; buckets.set(bucket, count);
       if (count > (localSession ? 120 : 1000)) return new Response(null, { status: 429, headers: { ...securityHeaders, 'Retry-After': '60' } });
+    }
+    if (mcpOAuth) {
+      const response = await mcpOAuth(request, url, id, signal);
+      if (response) return response;
     }
     if (url.pathname === '/reader-auth/start' && request.method === 'GET') {
       if (url.searchParams.getAll('returnTo').length > 1 || request.headers.get('sec-fetch-site') === 'cross-site') return json(400, { error: 'invalid_request' });

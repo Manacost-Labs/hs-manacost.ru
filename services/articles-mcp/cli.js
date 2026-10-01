@@ -7,6 +7,7 @@ import { syncArticles } from './sync.js';
 import { createMcpServer } from './mcp.js';
 import { createAuthorization } from './auth.js';
 import { createHttpServer } from './http.js';
+import { oauthOptions } from './http-config.js';
 import { createReaderPermissionsClient } from '../reader/community-clients.js';
 
 process.umask(0o077);
@@ -21,11 +22,10 @@ try {
   } else if (mode === 'stdio') {
     await createMcpServer(library).connect(new StdioServerTransport());
   } else if (mode === 'http') {
-    if (process.env.MCP_OAUTH_ISSUER !== 'https://hearthpulse.net/identity') throw new Error('hearthpulse_issuer_required');
+    const boundary = oauthOptions(source.origin, process.env);
     const clientId = source.origin === 'https://hs-manacost.ru' ? 'manacost-reader-production' : 'manacost-reader-staging';
     const permissions = createReaderPermissionsClient({ clientId, clientSecret: process.env.MCP_PERMISSIONS_CLIENT_SECRET });
-    const options = { resource: process.env.MCP_RESOURCE_URL, issuer: process.env.MCP_OAUTH_ISSUER,
-      jwksUrl: process.env.MCP_OAUTH_JWKS_URL, permissions };
+    const options = { ...boundary, permissions };
     const authorize = createAuthorization(options); const port = Number(process.env.MCP_PORT ?? 8792);
     if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('invalid_port');
     const server = createHttpServer({ library, ...options, authorize }); server.listen(port, '127.0.0.1');
