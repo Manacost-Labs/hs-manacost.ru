@@ -35,6 +35,15 @@ Integration-тесты WordPress, визуальные regression-тесты, п
 
 Текущие версии и перечень внешних зависимостей находятся в [`config/site.json`](config/site.json) и [`config/plugins.json`](config/plugins.json).
 
+## MCP: статьи для ИИ
+
+[`services/articles-mcp/README.md`](services/articles-mcp/README.md) описывает поиск,
+чтение полного текста и просмотр архива опубликованных статей через MCP,
+установку, подключение клиента и проверку сервиса. Запуск через STDIO проверен;
+публичный `https://hs-manacost.ru/mcp` пока не включён и требует настройки OAuth
+Hearthpulse и отдельного развёртывания. Для удалённого доступа предусмотрена
+проверка действующей административной роли Hearthpulse при каждом запросе.
+
 ## Правила для AI
 
 Все AI-агенты обязаны прочитать `AGENTS.md`, выбрать скиллы по `config/ai-skills.json` и применить их до изменения кода. Специальный WordPress/PHP skill закреплён прямо в `.agents/skills/wordpress-plugin-dev`, поэтому его правила не зависят от состояния глобального каталога сервера.

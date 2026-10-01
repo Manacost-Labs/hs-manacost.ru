@@ -1,5 +1,8 @@
 # Published articles MCP
 
+User setup, tool examples and the dated delivery status are in
+[services/articles-mcp/README.md](../../services/articles-mcp/README.md).
+
 ## Contract and current delivery boundary
 
 `services/articles-mcp` is an independent Node 22 service. WordPress is the source;
