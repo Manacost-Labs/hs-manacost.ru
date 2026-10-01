@@ -8,6 +8,7 @@ import { ReaderProfiles } from './profiles.js';
 import { createIdentityClient } from './identity-client.js';
 import { createReaderHandler, drainRevocations } from './http.js';
 import { createCommunity } from './community.js';
+import { createMcpOAuth } from './mcp-oauth-config.js';
 import { BodyTooLarge } from './profile-http.js';
 
 function boundedRequestBody(request, limit) {
@@ -85,9 +86,10 @@ function start() {
   const store = new ReaderStore({ filename, encryptionKey: Buffer.from(process.env.READER_ENCRYPTION_KEY ?? '', 'base64url') });
   const profiles = new ReaderProfiles({ db: store.db, issuer: options.issuer });
   const community = createCommunity({ options, db: store.db });
+  const mcpOAuth = createMcpOAuth({ options, store, identity });
   const handle = createReaderHandler({ origin: options.origin, identity, store, profiles, community,
     communityProductionEnabled: process.env.READER_ALLOW_PRODUCTION_COMMUNITY === '1',
-    csrfKey: Buffer.from(process.env.READER_CSRF_KEY ?? '', 'base64url') });
+    csrfKey: Buffer.from(process.env.READER_CSRF_KEY ?? '', 'base64url'), mcpOAuth });
   const server = createReaderServer({ origin: options.origin, handle });
   const port = Number(process.env.READER_PORT || 18081);
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid reader port');

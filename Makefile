@@ -90,6 +90,7 @@ reader-css-check:
 		{ echo "Reader Tailwind CSS is stale; run npm run build:reader-css" >&2; exit 1; }
 
 reader-browser-test: lightbox-browser-test
+	@node tests/reader-ui/mcp-oauth-browser.mjs
 	@node tests/reader-ui/browser.mjs
 	@node tests/reader-ui/comments-browser.mjs
 	@node tests/reader-ui/comments-flows.mjs
