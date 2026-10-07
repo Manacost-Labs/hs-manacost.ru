@@ -1,0 +1,24 @@
+{
+  "name": "koloda-hearthstone-data",
+  "owner": "hs-manacost first-party MU-plugins",
+  "purpose": "Shared server-side access to public Hearthstone card libraries and statistics for future site features.",
+  "direction": "outbound",
+  "endpoints": {
+    "host": "https://api.kolodahearthstone.com",
+    "libraries": "/api/v1/...",
+    "statistics": "/v1/constructed/..., /v1/bg/..., /v1/arena/..., /v1/hsguru/...",
+    "details": "/api/db/..., /api/bg/..., /api/hsreplay/archetypes, /api/patches/...",
+    "documentation": "https://api.kolodahearthstone.com/docs"
+  },
+  "authentication": {"method": "none for verified public data endpoints", "credentials": "not collected or forwarded; GitHub login and premium/admin APIs excluded"},
+  "data_classes": ["public card/game content", "aggregated gameplay statistics", "operational outcome and cache age"],
+  "timeout_seconds": 5,
+  "retry": {"max_attempts": 1, "retryable_conditions": ["transport failure", "429", "5xx", "invalid response"], "backoff": "No immediate retries; later caller may retry after 30 seconds, honoring Retry-After up to 3600 seconds. 429 cooldown shared across resources."},
+  "idempotency": "GET only; no provider mutations, automatic refresh commands or inbound callbacks",
+  "rate_limit": {"expected_limit": "provider has not published a quota for these public endpoints", "handling": "5 minute per-query fresh cache, at most 100 rows requested, one 5-second request per miss, shared 429 backoff"},
+  "observability": {"hook": "manacost_koloda_api_result", "fields": ["public API path without query", "safe outcome code", "cached age in seconds"], "correlation": "path and observation time; no payloads, cookies, user identifiers or credentials"},
+  "degradation": "Return WP_Error on cold-cache failure. For transport/schema/429/5xx faults return last successful data for up to 24 hours with stale=true and an error code. Caller must display age or fallback. No HTTP calls at plugin load, editor save or page render unless explicitly invoked by a future feature.",
+  "disable_switch": {"constant": "MANACOST_KOLODA_API_ENABLED", "disabled_value": false, "owner": "site operator; checked before cached data or HTTP"},
+  "privacy": "Only public game filters leave the WordPress server. No browser cookies, WordPress user data, posts, IP headers or credentials are forwarded. Cache expires within 24 hours and uses site-scoped WordPress transients.",
+  "rollback": "Revert the integration commit through the staging/production pipeline; no content/schema migration or media changes. Disable switch is an immediate operator alternative."
+}

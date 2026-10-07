@@ -249,6 +249,16 @@
       "checks": ["make code-quality", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/manacost-koloda-api.php", "tests/test_koloda_api.py", "tests/fixtures/koloda-api.php", "config/integrations/koloda-hearthstone.json", "docs/runbooks/koloda-api.md"],
+      "owner": "koloda-public-data-integration",
+      "classified": true,
+      "risk": "medium",
+      "surfaces": ["wordpress-runtime", "external-api"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["wordpress-external-integrations", "wordpress-privacy-consent", "wordpress-runtime-stack", "wordpress-observability", "wp-plugin-development"],
+      "checks": ["make code-quality", "make contracts", "python3 -m unittest tests.test_koloda_api -v", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/**"],
       "owner": "first-party-generic",
       "classified": false,
