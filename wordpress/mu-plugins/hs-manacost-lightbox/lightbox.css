@@ -13,7 +13,6 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 }
 
 .hs-lightbox {
-  --hs-lightbox-bg: #071218;
   --hs-lightbox-panel: #142630;
   --hs-lightbox-text: #f3f5f6;
   --hs-lightbox-muted: #bdc9ce;
@@ -40,7 +39,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 }
 
 .hs-lightbox::backdrop {
-  background: rgba(3, 9, 13, 0.92);
+  background: transparent;
 }
 
 .hs-lightbox__surface {
@@ -54,7 +53,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
     max(16px, env(safe-area-inset-right))
     max(12px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
-  background: var(--hs-lightbox-bg);
+  background: transparent;
 }
 
 .hs-lightbox__title {
@@ -89,7 +88,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   border: 1px solid var(--hs-lightbox-border);
   border-radius: var(--hs-lightbox-radius);
   color: var(--hs-lightbox-muted);
-  background: rgba(20, 38, 48, 0.72);
+  background: rgba(20, 38, 48, 0.9);
   font: 600 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0.02em;
 }
@@ -152,7 +151,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 .hs-lightbox__control:hover {
   color: #fff;
   border-color: var(--hs-lightbox-accent);
-  background: rgba(215, 183, 122, 0.16);
+  background: #203944;
 }
 
 .hs-lightbox__original:focus-visible,
@@ -197,17 +196,28 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   height: auto;
   min-height: 0;
   max-height: 100%;
-  border: 1px solid var(--hs-lightbox-border);
-  border-radius: var(--hs-lightbox-radius);
+  border: 0;
+  border-radius: 0;
   object-fit: contain;
   opacity: 0;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.36);
-  transition: opacity 120ms ease;
+  box-shadow: none;
   -webkit-user-drag: none;
 }
 
 .hs-lightbox__image.is-ready {
   opacity: 1;
+  animation: hs-lightbox-image-enter 220ms cubic-bezier(0.16, 0.8, 0.24, 1);
+}
+
+@keyframes hs-lightbox-image-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .hs-lightbox__caption {
@@ -225,7 +235,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   overflow-y: auto;
   overscroll-behavior: contain;
   color: var(--hs-lightbox-muted);
-  background: rgba(20, 38, 48, 0.72);
+  background: rgba(20, 38, 48, 0.9);
   font: 500 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   text-align: center;
   overflow-wrap: anywhere;
@@ -302,10 +312,6 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
     padding: 6px 0 62px;
   }
 
-  .hs-lightbox__image {
-    border-radius: 6px;
-  }
-
   .hs-lightbox__caption {
     max-height: 112px;
     margin-block-start: 8px;
@@ -348,8 +354,10 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .hs-lightbox__original,
   .hs-lightbox__control,
-  .hs-lightbox__image {
+  .hs-lightbox__image,
+  .hs-lightbox__image.is-ready {
     transition: none;
+    animation: none;
   }
 }
 

@@ -143,6 +143,21 @@ try {
 	assert.equal(await dialog.getByRole('img', { name: 'Первая карта' }).getAttribute('draggable'), 'false');
 	assert.equal(await dialog.locator('.hs-lightbox__stage').evaluate(element => getComputedStyle(element).userSelect), 'none');
   await dialog.locator('.hs-lightbox__image.is-ready').waitFor();
+  const appearance = await dialog.evaluate(element => {
+    const image = getComputedStyle(element.querySelector('.hs-lightbox__image'));
+    return {
+      backdrop: getComputedStyle(element, '::backdrop').backgroundColor,
+      surface: getComputedStyle(element.querySelector('.hs-lightbox__surface')).backgroundColor,
+      border: image.borderTopWidth,
+      shadow: image.boxShadow,
+      animation: image.animationName,
+    };
+  });
+  assert.equal(appearance.backdrop, 'rgba(0, 0, 0, 0)', 'page remains visible behind the enlarged image');
+  assert.equal(appearance.surface, 'rgba(0, 0, 0, 0)', 'viewer adds no panel background');
+  assert.equal(appearance.border, '0px', 'image has no decorative frame');
+  assert.equal(appearance.shadow, 'none', 'transparent image has no rectangular shadow');
+  assert.equal(appearance.animation, 'hs-lightbox-image-enter', 'opening uses a gentle zoom animation');
   assert.equal(await page.evaluate(() => window.lightboxPreloadAllocations), 1, 'a two-image gallery preloads its one neighbour once');
   assert.equal(await dialog.getByText('1 из 2').isVisible(), true);
   assert.equal(await dialog.getByText('Первая карта', { exact: true }).last().isVisible(), true);
@@ -242,6 +257,12 @@ try {
   }
   await page.keyboard.press('Escape');
   assert.deepEqual(pageErrors, []);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await first.click();
+  await dialog.locator('.hs-lightbox__image.is-ready').waitFor();
+  assert.equal(await dialog.locator('.hs-lightbox__image').evaluate(element => getComputedStyle(element).animationName), 'none', 'reduced-motion preference removes the zoom animation');
+  await page.keyboard.press('Escape');
+  await dialog.waitFor({ state: 'hidden' });
   console.log('content-lightbox-browser: pass');
 } finally {
   if (browser) await browser.close();
