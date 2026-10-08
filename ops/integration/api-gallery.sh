@@ -18,7 +18,7 @@ if [[ "${HS_GALLERY_PERF_PHASE:-after}" == before ]]; then
     baseline="${HS_GALLERY_BASELINE_COMMIT:?Specify the measured baseline commit}"
     if [[ ! "$baseline" =~ ^[0-9a-f]{40}$ ]]; then echo 'Baseline must be an exact commit SHA' >&2; exit 2; fi
     # Replace only this plugin inside the owned disposable site; source remains untouched.
-    for asset in hs-api-gallery.php hs-api-gallery/class-admin.php hs-api-gallery/class-catalog.php hs-api-gallery/editor.css hs-api-gallery/editor.js; do
+    for asset in hs-api-gallery.php hs-api-gallery/class-admin.php hs-api-gallery/class-catalog.php hs-api-gallery/class-importer.php hs-api-gallery/editor.css hs-api-gallery/editor.js; do
         git show "$baseline:wordpress/mu-plugins/$asset" > "$site/wp-content/mu-plugins/$asset"
     done
 fi

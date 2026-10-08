@@ -721,21 +721,21 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
-        "line": 175
+        "line": 177
       },
       {
         "name": "_hs_api_gallery_snapshot",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
-        "line": 174
+        "line": 176
       },
       {
         "name": "_hs_api_gallery_source",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
-        "line": 176
+        "line": 178
       },
       {
         "name": "_hs_archetype_key",
@@ -1281,7 +1281,7 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
-        "line": 173
+        "line": 175
       },
       {
         "name": "_wp_attachment_image_alt",

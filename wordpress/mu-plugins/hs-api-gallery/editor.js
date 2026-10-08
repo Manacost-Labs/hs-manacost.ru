@@ -209,16 +209,25 @@
     byId('library').disabled = true; byId('format').disabled = true;
     const ids = [];
     try {
-      for (let index = 0; index < items.length; index += 1) {
-        if (!dialog.open || token !== session) return;
-        const [key, item] = items[index];
-        status(sprintf(__('Сохраняем изображения в медиатеку: %1$d из %2$d…', 'manacost'), index + 1, items.length));
-        if (!imported.has(key)) {
-          const data = await request('hs_api_gallery_import', { library: item.library, object_id: item.id, variant: item.variant });
-          imported.set(key, data.attachment_id);
+      let next = 0, completed = 0, failure;
+      const progress = () => status(sprintf(__('Сохраняем изображения в медиатеку: %1$d из %2$d…', 'manacost'), completed, items.length));
+      progress();
+      const upload = async () => {
+        while (next < items.length && dialog.open && token === session && !failure) {
+          const index = next++, [key, item] = items[index];
+          try {
+            if (!imported.has(key)) {
+              const data = await request('hs_api_gallery_import', { library: item.library, object_id: item.id, variant: item.variant });
+              imported.set(key, data.attachment_id);
+            }
+            ids[index] = imported.get(key); completed += 1;
+            if (dialog.open && token === session) progress();
+          } catch (error) { failure ||= error; }
         }
-        ids.push(imported.get(key));
-      }
+      };
+      // Bound server/image-processing work; drain in-flight writes before retrying.
+      await Promise.all(Array.from({ length: Math.min(2, items.length) }, upload));
+      if (failure) throw failure;
       if (!dialog.open || token !== session) return;
       const ratings = byId('ratings').checked ? '1' : '0';
       dialog.close();

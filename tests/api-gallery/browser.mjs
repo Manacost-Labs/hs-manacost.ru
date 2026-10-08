@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {measurePicker} from './performance.mjs';
+import {measureImports} from './import-performance.mjs';
 const env=Object.fromEntries(readFileSync('.artifacts/integration/runtime.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
 const fixture=JSON.parse(readFileSync('.artifacts/api-gallery/integration-report.json','utf8'));
 const base=`http://127.0.0.1:${env.WP_TEST_PORT}`;
@@ -43,6 +44,7 @@ try {
  await page.getByText('Найдено: 2',{exact:true}).waitFor();
  assert.equal(await page.locator('#hs-api-gallery-more').isVisible(),false,'No redundant pagination after last page');
  await measurePicker(page);
+ await measureImports(page);
  for(const width of [1440,1024,768,480,390,320]) {
   await page.setViewportSize({width,height:1000});
   await page.waitForFunction(()=>[...document.querySelectorAll('#hs-api-gallery-results img')].every(image=>image.complete&&image.naturalWidth>0));
@@ -281,5 +283,5 @@ try {
  assert.ok(zoomOverflow<=1);report.zoom=true;
  assert.deepEqual(report.errors,[]);
  report.ok=true;console.log(JSON.stringify({ok:true,votes:report.votes,security:report.security,preview:report.preview,autosave:report.autosave,revision_restore:report.revision_restore,zoom:report.zoom,layouts:report.layouts.length,errors:report.errors}));
-} catch(error) {report.ok=false;report.failure=error.message.slice(0,650);console.log(JSON.stringify({ok:false,failure:report.failure,errors:report.errors}));process.exitCode=1;}
+} catch(error) {report.ok=false;report.failure=error.message.slice(0,650);report.test_location=error.stack?.split('\n').filter(line=>line.includes('/tests/api-gallery/')).join('\n');await page.screenshot({path:'.artifacts/api-gallery/screenshots/failure.png'});console.log(JSON.stringify({ok:false,failure:report.failure,test_location:report.test_location,errors:report.errors}));process.exitCode=1;}
 finally {writeFileSync('.artifacts/api-gallery/browser-report.json',JSON.stringify(report,null,2));await browser.close();}
