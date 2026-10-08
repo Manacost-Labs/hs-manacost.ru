@@ -11,6 +11,13 @@ enable reader ratings, then click **Настроить галерею**. After i
 image, the native gallery modal opens for captions, order, columns, size and
 links. Confirm it to insert the normal `[gallery ids="…"]` shortcode.
 
+Clicking a card image toggles selection. The separate selected list includes
+thumbnails, individual removal and **Очистить**; filters and the next-step action
+remain visible while browsing. Each new creation session starts with no selected
+cards, including after cancelling native gallery settings. Library/format and
+the ratings preference persist; search is cleared. Closing during import stops
+future requests and cannot reopen stale native settings in a new session.
+
 The native gallery pencil reopens the same settings. `hs_ratings="1"` preserves
 the ratings checkbox. Selecting TagDiv Slide Gallery disables ratings; enabling
 ratings selects the ordinary gallery. The current scope is Classic Editor
@@ -73,8 +80,11 @@ the operator's responsibility.
 
 ## Layout and compatibility
 
-The native figure, local image, caption and link remain intact. Five 44 px star
-targets sit beneath the caption, with transparent background and inherited fonts.
+The native figure, local image, caption and link remain intact. Compact 18 px
+stars sit beneath the caption, with transparent background and inherited fonts.
+Pointer targets are 28 × 32 px with 4 px gaps; devices with a coarse pointer keep
+44 × 44 px targets. The ordinary article column fits three rated cards when three
+columns are selected, with a 160 px desktop minimum; touch layouts retain 224 px.
 Rated galleries retain the selected maximum column count, reducing columns when
 necessary to fit the star row. CSS is scoped to `.hs-gallery-rated` and
 `.hs-gallery-rating`, follows the existing 4 px spacing scale and permits zoom.

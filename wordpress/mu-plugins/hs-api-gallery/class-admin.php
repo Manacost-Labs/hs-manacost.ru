@@ -55,8 +55,8 @@ final class Admin {
 		}
 		wp_enqueue_media( array( 'post' => $post_id ) );
 		$url = plugins_url( 'hs-api-gallery/', dirname( __DIR__ ) . '/hs-api-gallery.php' );
-		wp_enqueue_style( 'hs-api-gallery-editor', $url . 'editor.css', array(), '1.0.0' );
-		wp_enqueue_script( 'hs-api-gallery-editor', $url . 'editor.js', array( 'media-editor', 'media-views', 'wp-i18n' ), '1.0.0', true );
+		wp_enqueue_style( 'hs-api-gallery-editor', $url . 'editor.css', array(), '1.0.1' );
+		wp_enqueue_script( 'hs-api-gallery-editor', $url . 'editor.js', array( 'media-editor', 'media-views', 'wp-i18n' ), '1.0.1', true );
 		wp_add_inline_script(
 			'hs-api-gallery-editor',
 			'window.hsApiGalleryEditor=' . wp_json_encode(
@@ -83,7 +83,7 @@ final class Admin {
 				<h2 id="hs-api-gallery-title"><?php esc_html_e( 'Создать галерею из API', 'manacost' ); ?></h2>
 				<button type="button" class="button" id="hs-api-gallery-close"><?php esc_html_e( 'Закрыть', 'manacost' ); ?></button>
 			</div>
-			<p><?php esc_html_e( 'Выберите изображения. Они сохранятся в медиатеке, затем откроются обычные настройки галереи WordPress.', 'manacost' ); ?></p>
+			<p class="hs-api-gallery__intro"><?php esc_html_e( 'Нажмите на карту, чтобы выбрать её. Порядок, подписи и колонки настроите на следующем шаге.', 'manacost' ); ?></p>
 			<form id="hs-api-gallery-search">
 				<div class="hs-api-gallery__filters">
 					<label><?php esc_html_e( 'Библиотека', 'manacost' ); ?><select id="hs-api-gallery-library">
@@ -101,11 +101,19 @@ final class Admin {
 				</div>
 			</form>
 			<p id="hs-api-gallery-status" role="status" aria-live="polite"></p>
-			<div id="hs-api-gallery-results" aria-label="<?php esc_attr_e( 'Объекты библиотеки', 'manacost' ); ?>"></div>
-			<button type="button" class="button" id="hs-api-gallery-more" hidden><?php esc_html_e( 'Показать ещё', 'manacost' ); ?></button>
-			<div class="hs-api-gallery__selection">
-				<strong id="hs-api-gallery-count"></strong>
-				<div id="hs-api-gallery-selected"></div>
+			<div class="hs-api-gallery__body">
+				<div class="hs-api-gallery__catalog">
+					<div id="hs-api-gallery-results" aria-label="<?php esc_attr_e( 'Объекты библиотеки', 'manacost' ); ?>"></div>
+					<button type="button" class="button" id="hs-api-gallery-more" hidden><?php esc_html_e( 'Показать ещё', 'manacost' ); ?></button>
+				</div>
+				<aside class="hs-api-gallery__selection" aria-label="<?php esc_attr_e( 'Выбранные изображения', 'manacost' ); ?>">
+					<div class="hs-api-gallery__selection-header">
+						<strong id="hs-api-gallery-count" aria-live="polite" aria-atomic="true"></strong>
+						<button type="button" class="button" id="hs-api-gallery-clear" disabled><?php esc_html_e( 'Очистить', 'manacost' ); ?></button>
+					</div>
+					<p id="hs-api-gallery-empty"><?php esc_html_e( 'Выбранные карты появятся здесь.', 'manacost' ); ?></p>
+					<div id="hs-api-gallery-selected"></div>
+				</aside>
 			</div>
 			<div class="hs-api-gallery__footer">
 				<label><input type="checkbox" id="hs-api-gallery-ratings" /> <?php esc_html_e( 'Добавить оценки читателей: 5 звёзд под каждым изображением', 'manacost' ); ?></label>

@@ -31,7 +31,7 @@
     groups.get(post).push(node);
   });
   for (const [post, nodes] of groups) {
-    if (config.preview) { nodes.forEach(node => text(node, __('Оценки станут доступны после публикации.', 'manacost'))); continue; }
+    if (config.preview) { nodes.forEach(node => text(node, __('Оценки после публикации', 'manacost'))); continue; }
     let nonce;
     request({ action: 'hs_api_gallery_state', post_id: post }).then(state => {
       nonce = state.nonce;
