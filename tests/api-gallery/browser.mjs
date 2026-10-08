@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import {measurePicker} from './performance.mjs';
 const env=Object.fromEntries(readFileSync('.artifacts/integration/runtime.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1)]));
 const fixture=JSON.parse(readFileSync('.artifacts/api-gallery/integration-report.json','utf8'));
 const base=`http://127.0.0.1:${env.WP_TEST_PORT}`;
@@ -9,6 +10,8 @@ const context=await browser.newContext({viewport:{width:1440,height:1000}});
 // Stub only external image transport; the picker, media import, SQL and editor run unchanged.
 async function providerImages(target) {
  await target.route('https://api.kolodahearthstone.com/uploads/hs-gallery-fixture/*',route=>route.fulfill({status:200,contentType:'image/png',body:readFileSync('.artifacts/integration/site/wp-content/uploads/hs-gallery-fixture.png')}));
+ await target.route('https://hearthstone.wiki.gg/wiki/Special:Redirect/file/TEST_DIAMOND_*',route=>route.fulfill({status:301,headers:{location:route.request().url().replace('/wiki/Special:Redirect/file/','/images/'),'cross-origin-resource-policy':'same-origin'}}));
+ await target.route('https://hearthstone.wiki.gg/images/TEST_DIAMOND_*',route=>route.fulfill({status:200,contentType:'image/png',body:readFileSync('.artifacts/integration/site/wp-content/uploads/hs-gallery-fixture.png')}));
 }
 await providerImages(context);
 const page=await context.newPage();
@@ -39,6 +42,7 @@ try {
  await page.locator('#hs-api-gallery-results input[type=checkbox]').first().waitFor();
  await page.getByText('Найдено: 2',{exact:true}).waitFor();
  assert.equal(await page.locator('#hs-api-gallery-more').isVisible(),false,'No redundant pagination after last page');
+ await measurePicker(page);
  for(const width of [1440,1024,768,480,390,320]) {
   await page.setViewportSize({width,height:1000});
   await page.waitForFunction(()=>[...document.querySelectorAll('#hs-api-gallery-results img')].every(image=>image.complete&&image.naturalWidth>0));

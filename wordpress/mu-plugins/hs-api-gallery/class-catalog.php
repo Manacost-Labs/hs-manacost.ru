@@ -11,6 +11,21 @@ defined( 'ABSPATH' ) || exit;
 
 /** List supported provider libraries. */
 final class Catalog {
+	/** Preferred static variants; intersect before resolving image URLs. */
+	private const IMAGE_VARIANTS = array(
+		'card'       => true,
+		'hero'       => true,
+		'static'     => true,
+		'diamond'    => true,
+		'art'        => true,
+		'full_art'   => true,
+		'golden'     => true,
+		'signature'  => true,
+		'framed'     => true,
+		'horizontal' => true,
+		'crop'       => true,
+		'wiki'       => true,
+	);
 	/**
 	 * List supported provider libraries.
 	 *
@@ -53,6 +68,16 @@ final class Catalog {
 		if ( isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] ) || strlen( $url ) > 2048 ) {
 			return '';
 		}
+		$redirect = '/wiki/Special:Redirect/file/';
+		if ( 'hearthstone.wiki.gg' === $parts['host'] && str_starts_with( $parts['path'] ?? '', $redirect ) ) {
+			$file = rawurldecode( substr( $parts['path'], strlen( $redirect ) ) );
+			if ( strpbrk( $file, '/\\' ) || preg_match( '/[\x00-\x1f\x7f]/', $file ) || ! preg_match( '/\.(?:png|jpe?g|webp)$/i', $file ) ) {
+				return '';
+			}
+			// Wiki's redirect response has CORP same-origin; public image files permit embedding.
+			$image = 'https://hearthstone.wiki.gg/images/' . rawurlencode( str_replace( ' ', '_', $file ) );
+			return strlen( $image ) <= 2048 ? $image : '';
+		}
 		return $url;
 	}
 
@@ -68,7 +93,7 @@ final class Catalog {
 		$name   = self::display_name( $row, $id );
 		$images = array();
 		$source = is_array( $row['images'] ?? null ) ? $row['images'] : array();
-		foreach ( array( 'card', 'hero', 'static', 'diamond', 'art', 'full_art', 'golden', 'signature', 'framed', 'horizontal', 'crop', 'wiki' ) as $variant ) {
+		foreach ( array_keys( array_intersect_key( self::IMAGE_VARIANTS, $source ) ) as $variant ) {
 			$url = is_string( $source[ $variant ] ?? null ) ? self::image_url( $source[ $variant ] ) : '';
 			if ( $url ) {
 				$images[ $variant ] = $url;
