@@ -24,6 +24,11 @@ foreach (['TEST_HTML'=>'gallery_file','TEST_LARGE'=>'gallery_file','TEST_REDIREC
 }
 hs_gallery_assert(get_children(['post_parent'=>$post_id,'post_type'=>'attachment'])===[],'Rejected imports leave no attachment');
 $ids=[];
+$diamond=Importer::import($post_id,'diamond-cards','TEST_DIAMOND_1','diamond');
+hs_gallery_assert(!is_wp_error($diamond),'Diamond image imports from public static URL');
+hs_gallery_assert(hash_file('sha256',wp_get_original_image_path($diamond))===hash_file('sha256',WP_CONTENT_DIR.'/uploads/hs-gallery-fixture.png'),'Diamond source bytes unchanged');
+hs_gallery_assert(Importer::import($post_id,'diamond-cards','TEST_DIAMOND_1','diamond')===$diamond,'Diamond retry reuses frozen snapshot');
+wp_delete_attachment($diamond,true);
 foreach (['TEST_CARD_1','TEST_CARD_2'] as $object) {
     $id=Importer::import($post_id,'constructed-cards',$object,'card');
     if (is_wp_error($id)) { throw new RuntimeException('Image import: '.$id->get_error_code().' '.$id->get_error_message()); }

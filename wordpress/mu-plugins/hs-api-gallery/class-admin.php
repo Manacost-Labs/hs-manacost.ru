@@ -55,8 +55,8 @@ final class Admin {
 		}
 		wp_enqueue_media( array( 'post' => $post_id ) );
 		$url = plugins_url( 'hs-api-gallery/', dirname( __DIR__ ) . '/hs-api-gallery.php' );
-		wp_enqueue_style( 'hs-api-gallery-editor', $url . 'editor.css', array(), '1.0.2' );
-		wp_enqueue_script( 'hs-api-gallery-editor', $url . 'editor.js', array( 'media-editor', 'media-views', 'wp-i18n' ), '1.0.1', true );
+		wp_enqueue_style( 'hs-api-gallery-editor', $url . 'editor.css', array(), '1.0.3' );
+		wp_enqueue_script( 'hs-api-gallery-editor', $url . 'editor.js', array( 'media-editor', 'media-views', 'wp-i18n' ), '1.0.3', true );
 		wp_add_inline_script(
 			'hs-api-gallery-editor',
 			'window.hsApiGalleryEditor=' . wp_json_encode(
@@ -83,7 +83,7 @@ final class Admin {
 				<h2 id="hs-api-gallery-title"><?php esc_html_e( 'Создать галерею из API', 'manacost' ); ?></h2>
 				<button type="button" class="button" id="hs-api-gallery-close"><?php esc_html_e( 'Закрыть', 'manacost' ); ?></button>
 			</div>
-			<p class="hs-api-gallery__intro"><?php esc_html_e( 'Нажмите на карту, чтобы выбрать её. Порядок, подписи и колонки настроите на следующем шаге.', 'manacost' ); ?></p>
+			<p class="hs-api-gallery__intro"><?php esc_html_e( 'Выберите карты нажатием на изображение, затем настройте галерею WordPress.', 'manacost' ); ?></p>
 			<form id="hs-api-gallery-search">
 				<div class="hs-api-gallery__filters">
 					<label><?php esc_html_e( 'Библиотека', 'manacost' ); ?><select id="hs-api-gallery-library">

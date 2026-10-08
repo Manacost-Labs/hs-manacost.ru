@@ -9,6 +9,15 @@
   const selected = new Map();
   const imported = new Map();
   const cache = new Map();
+  let rendered = new Map();
+  const previewSources = new WeakMap();
+  const previews = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting && entry.target.isConnected) {
+        entry.target.src = previewSources.get(entry.target); previews.unobserve(entry.target);
+      }
+    }
+  }, { root: dialog.querySelector('.hs-api-gallery__catalog'), rootMargin: '160px 0px' }) : null;
   let catalog = { items: [], page: 0, next: true };
   let generation = 0;
   let session = 0;
@@ -25,6 +34,12 @@
   const category = () => `${byId('library').value}:${byId('format').value}`;
   const itemKey = (library, item, variant) => `${library}:${item.id}:${variant}`;
   const status = text => { byId('status').textContent = text; };
+
+  function preview(image, url, eager = false) {
+    previewSources.set(image, url);
+    if (previews && !eager) previews.observe(image);
+    else image.src = url;
+  }
 
   async function request(action, values) {
     const response = await fetch(config.url, {
@@ -57,21 +72,38 @@
     }
   }
 
-  function card(item) {
+  function card(item, eager) {
     const library = byId('library').value;
     const node = document.createElement('div'); node.className = 'hs-api-gallery__item';
-    const image = document.createElement('img'); image.alt = ''; image.loading = 'lazy';
+    const image = document.createElement('img'); image.alt = ''; image.decoding = 'async';
+    const picture = document.createElement('span'); picture.className = 'hs-api-gallery__preview'; picture.append(image);
+    let retry;
+    image.onerror = () => {
+      image.hidden = true;
+      const message = document.createElement('span'); message.textContent = __('Изображение недоступно', 'manacost');
+      if (!picture.querySelector('span')) picture.append(message);
+      if (!retry) {
+        retry = document.createElement('button'); retry.type = 'button'; retry.className = 'button hs-api-gallery__retry';
+        retry.textContent = __('Повторить загрузку', 'manacost');
+        retry.setAttribute('aria-label', sprintf(__('Повторить загрузку: %s', 'manacost'), item.name));
+        retry.onclick = () => { image.hidden = false; picture.querySelector('span')?.remove(); retry.hidden = true; image.removeAttribute('src'); image.src = previewSources.get(image); };
+        node.append(retry);
+      }
+      retry.disabled = importing;
+      retry.hidden = false;
+    };
+    image.onload = () => { image.hidden = false; picture.querySelector('span')?.remove(); if (retry) retry.hidden = true; };
     const choice = document.createElement('select');
     choice.setAttribute('aria-label', sprintf(__('Изображение: %s', 'manacost'), item.name));
     for (const variant of Object.keys(item.images)) choice.add(new Option(labels[variant] || variant, variant));
     const current = [...selected.values()].find(s => s.library === library && s.id === item.id);
     if (current) choice.value = current.variant;
-    image.src = item.images[choice.value];
+    preview(image, item.images[choice.value], eager);
     const label = document.createElement('label'); label.className = 'hs-api-gallery__choice';
     const check = document.createElement('input'); check.type = 'checkbox';
     check.checked = selected.has(itemKey(library, item, choice.value)); check.disabled = importing;
     const name = document.createElement('span'); name.className = 'hs-api-gallery__name';
-    name.append(check, document.createTextNode(item.name)); label.append(image, name);
+    name.append(check, document.createTextNode(item.name)); label.append(picture, name);
     node.classList.toggle('is-selected', check.checked); choice.disabled = importing;
     check.onchange = () => {
       const key = itemKey(library, item, choice.value);
@@ -81,9 +113,13 @@
       node.classList.toggle('is-selected', check.checked);
       updateSelection();
     };
-    choice.onchange = () => { image.src = item.images[choice.value]; check.checked = selected.has(itemKey(library, item, choice.value)); node.classList.toggle('is-selected', check.checked); };
-    node.append(label, choice);
-    return node;
+    choice.onchange = () => { preview(image, item.images[choice.value], true); check.checked = selected.has(itemKey(library, item, choice.value)); node.classList.toggle('is-selected', check.checked); };
+    if (choice.options.length > 1) node.append(label, choice);
+    else {
+      const variant = document.createElement('span'); variant.className = 'hs-api-gallery__variant'; variant.textContent = labels[choice.value] || choice.value;
+      node.append(label, variant);
+    }
+    return {node, check, choice, image, library, item};
   }
 
   function filtered() {
@@ -93,7 +129,19 @@
 
   function render() {
     const items = filtered();
-    byId('results').replaceChildren(...items.slice(0, limit).map(card));
+    const next = new Map();
+    const nodes = items.slice(0, limit).map((item, index) => {
+      const entry = rendered.get(item) || card(item, index < 4);
+      entry.check.checked = selected.has(itemKey(entry.library, item, entry.choice.value));
+      entry.check.disabled = importing; entry.choice.disabled = importing;
+      const retry = entry.node.querySelector('.hs-api-gallery__retry'); if (retry) retry.disabled = importing;
+      entry.node.classList.toggle('is-selected', entry.check.checked);
+      next.set(item, entry); return entry.node;
+    });
+    for (const [item, entry] of rendered) { if (!next.has(item) && previews) previews.unobserve(entry.image); }
+    const results = byId('results');
+    if (results.children.length !== nodes.length || nodes.some((node, index) => results.children[index] !== node)) results.replaceChildren(...nodes);
+    rendered = next;
     byId('more').hidden = loading || (!catalog.next && items.length <= limit);
     updateSelection();
   }
@@ -132,6 +180,7 @@
     generation += 1; loading = false; limit = 80;
     catalog = cache.get(category()) || { items: [], page: 0, next: true };
     byId('format-label').hidden = byId('library').value !== 'constructed-cards';
+    dialog.classList.toggle('has-format', !byId('format-label').hidden);
     render();
     if (!catalog.page) load(Boolean(byId('query').value.trim()));
     else status(sprintf(__('Загружено: %d', 'manacost'), catalog.items.length));

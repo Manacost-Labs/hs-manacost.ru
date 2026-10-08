@@ -27,11 +27,19 @@ class ApiGalleryPolicy(unittest.TestCase):
             with self.subTest(url=url):
                 self.assertFalse(self.evaluate('Manacost\\ApiGallery\\Catalog::image_url(' + json.dumps(url) + ')'))
 
+    def test_wiki_redirects_use_embeddable_static_image(self):
+        url = 'https://hearthstone.wiki.gg/wiki/Special:Redirect/file/VAC_446_Premium2.png'
+        self.assertEqual(self.evaluate('Manacost\\ApiGallery\\Catalog::image_url(' + json.dumps(url) + ')'),
+                         'https://hearthstone.wiki.gg/images/VAC_446_Premium2.png')
+        for filename in ['%2e%2e%2fprivate.png', 'folder/card.png', 'card%5cprivate.png', 'card%00.png', 'ю' * 600 + '.png']:
+            candidate = 'https://hearthstone.wiki.gg/wiki/Special:Redirect/file/' + filename
+            self.assertFalse(self.evaluate('Manacost\\ApiGallery\\Catalog::image_url(' + json.dumps(candidate) + ')'))
+
     def test_api_image_variants_are_not_arbitrary_urls(self):
         row = {'card_id': 'TEST_1', 'name': {'ru': 'Тест'}, 'images': {
-            'card': 'https://api.kolodahearthstone.com/uploads/test.png',
+            'golden': 'https://api.kolodahearthstone.com/uploads/gold.png',
             'full_art_source': 'https://evil.test/not-an-image',
-            'golden': 'https://api.kolodahearthstone.com/uploads/gold.png'}}
+            'card': 'https://api.kolodahearthstone.com/uploads/test.png'}}
         data = self.evaluate('Manacost\\ApiGallery\\Catalog::normalize(' +
                              'json_decode(' + json.dumps(json.dumps(row)) + ',true))')
         self.assertEqual(data['name'], 'Тест')

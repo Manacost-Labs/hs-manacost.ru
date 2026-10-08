@@ -6,6 +6,7 @@
   "endpoints": {
     "catalog": "https://api.kolodahearthstone.com/api/v1/{allowlisted-library}",
     "image_hosts": ["api.kolodahearthstone.com", "hearthstone.wiki.gg", "art.hearthstonejson.com", "d15f34w2p8l1cc.cloudfront.net"],
+    "wiki_images": "Normalize Special:Redirect/file static filenames to public /images/ URLs; reject separators/control bytes. The redirect has CORP same-origin.",
     "wordpress": "same-origin wp-admin/admin-ajax.php; private catalog/import and public state/vote"
   },
   "authentication": {"provider": "public GET, no credentials", "editor": "upload_files + edit_post and nonce", "vote": "published gallery membership, nonce, origin and signed random identity/account pseudonym"},

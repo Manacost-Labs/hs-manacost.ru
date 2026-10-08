@@ -19,6 +19,23 @@ the ratings preference persist; search is cleared. Closing during import stops
 future requests and cannot reopen stale native settings in a new session.
 On short screens (up to 700 px high), the dialog itself also scrolls so the
 catalog retains a usable height and all controls remain reachable.
+Libraries with one image variant show its label instead of a redundant dropdown.
+Broken previews show an explicit message and an individual retry button. Wiki
+file redirects are normalized to their public `/images/` PNG/JPEG/WebP paths,
+because the redirect response blocks cross-origin embedding. Source allowlists,
+download limits and immutable attachment snapshots still apply.
+
+Catalog cards are reused across loading/status and selection changes. The first
+four previews load immediately; the rest load within the catalog and a nearby
+row. The selected list remains immediate. Five comparable authenticated AJAX samples on
+137 valid fixture objects are saved by the gallery browser suite. For the old
+implementation, run `HS_GALLERY_PERF_PHASE=before` with an exact
+`HS_GALLERY_BASELINE_COMMIT`; only the disposable integration plugin is replaced.
+`HS_GALLERY_PERF_SAMPLES` supports 5–20 samples. Readiness includes the first
+loaded image; initial-library images settle before timing begins.
+Server TTFB is measured through the same authenticated AJAX action with the
+browser idle; browser-request timing is retained separately. SQL and peak memory
+come from the guarded local fixture, with no production instrumentation.
 
 The native gallery pencil reopens the same settings. `hs_ratings="1"` preserves
 the ratings checkbox. Selecting TagDiv Slide Gallery disables ratings; enabling
