@@ -47,6 +47,17 @@ try {
   report.layouts.push({surface:'picker',width,...bounds});
   await page.screenshot({path:`.artifacts/api-gallery/screenshots/picker-${width}.png`});
  }
+ for(const viewport of [{width:390,height:844},{width:320,height:568},{width:768,height:390}]) {
+  await page.setViewportSize(viewport);
+  const catalog=page.locator('.hs-api-gallery__catalog');
+  assert.ok((await catalog.boundingBox()).height>=160,'Short viewports keep a usable card catalog');
+  for(const selector of ['#hs-api-gallery-query','#hs-api-gallery-results input[type=checkbox]','#hs-api-gallery-clear','#hs-api-gallery-create','#hs-api-gallery-close']) {
+   const control=page.locator(selector).first();await control.scrollIntoViewIfNeeded();
+   const bounds=await control.boundingBox();
+   assert.ok(bounds.y>=0&&bounds.y+bounds.height<=viewport.height,'Picker controls remain reachable in short viewports');
+  }
+ }
+ report.short_viewports=true;
  await page.setViewportSize({width:1440,height:1000});
  const heroResponse=page.waitForResponse(response=>response.url().includes('/admin-ajax.php')&&response.request().postData()?.includes('hs_api_gallery_catalog'));
  await page.locator('#hs-api-gallery-library').selectOption('heroes');

@@ -17,6 +17,8 @@ remain visible while browsing. Each new creation session starts with no selected
 cards, including after cancelling native gallery settings. Library/format and
 the ratings preference persist; search is cleared. Closing during import stops
 future requests and cannot reopen stale native settings in a new session.
+On short screens (up to 700 px high), the dialog itself also scrolls so the
+catalog retains a usable height and all controls remain reachable.
 
 The native gallery pencil reopens the same settings. `hs_ratings="1"` preserves
 the ratings checkbox. Selecting TagDiv Slide Gallery disables ratings; enabling
