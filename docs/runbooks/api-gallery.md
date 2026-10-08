@@ -37,6 +37,23 @@ Server TTFB is measured through the same authenticated AJAX action with the
 browser idle; browser-request timing is retained separately. SQL and peak memory
 come from the guarded local fixture, with no production instrumentation.
 
+“Настроить галерею” saves at most two images concurrently, then opens the native
+WordPress settings with attachments in their original selection order. Progress
+counts completed snapshots. An error stops the remaining queue, waits for the
+in-flight writes and retains successful attachments for retry. Closing the
+picker stops the queue and cannot open settings in a later creation session.
+Each new snapshot has a unique filename, including when two libraries share a
+provider ID. Existing snapshots and their original bytes remain unchanged.
+
+The import benchmark records five cold six-image galleries after one warmup,
+including the native settings and all six attachment tiles. Fresh attachment IDs
+are used in every sample. The local provider fixture models one 400 ms and five
+200 ms image responses per gallery; API resolution, WordPress imports, metadata
+and media-frame queries run normally. Selection previews settle before timing;
+each phase starts with a fresh editor and matching catalog state. Per-import TTFB, SQL and peak memory are
+recorded separately from total readiness and browser long tasks. These samples
+measure the bounded concurrency change, not production network speed.
+
 The native gallery pencil reopens the same settings. `hs_ratings="1"` preserves
 the ratings checkbox. Selecting TagDiv Slide Gallery disables ratings; enabling
 ratings selects the ordinary gallery. The current scope is Classic Editor

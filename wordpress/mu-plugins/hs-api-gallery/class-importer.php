@@ -154,10 +154,12 @@ final class Importer {
 		if ( ! $bytes || $bytes > self::MAX_BYTES || ! $size || $size[0] * $size[1] > 24000000 || ! isset( $types[ $mime ] ) ) {
 			return new \WP_Error( 'gallery_file', __( 'Нужен файл изображения до 8 МБ и 24 мегапикселей.', 'manacost' ) );
 		}
-		$sha        = hash_file( 'sha256', $tmp );
+		$sha = hash_file( 'sha256', $tmp );
+		// Libraries may reuse provider IDs; concurrent snapshots need distinct filenames.
+		$filename   = 'koloda-' . $item['id'] . '-' . $variant . '-' . wp_generate_uuid4() . '.' . $types[ $mime ];
 		$attachment = media_handle_sideload(
 			array(
-				'name'     => sanitize_file_name( 'koloda-' . $item['id'] . '-' . $variant . '.' . $types[ $mime ] ),
+				'name'     => sanitize_file_name( $filename ),
 				'tmp_name' => $tmp,
 			),
 			$post_id,

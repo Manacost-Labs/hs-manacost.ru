@@ -29,6 +29,8 @@ add_filter('pre_http_request', static function ($previous, $args, $url) {
         return ['headers'=>['content-type'=>'image/png'],'body'=>'','response'=>['code'=>200,'message'=>'OK'],'cookies'=>[]];
     }
     if (str_starts_with($path, '/uploads/hs-gallery-fixture/')) {
+        // Controlled remote latency for cold import samples, including out-of-order completion.
+        if (preg_match('/TEST_TRINKET_(\d+)\.png$/', $path, $match)) { usleep((int)$match[1]%6===4 ? 400000 : 200000); }
         if (isset($args['filename'])) { copy($file, $args['filename']); }
         return ['headers'=>[], 'body'=>file_get_contents($file), 'response'=>['code'=>200,'message'=>'OK'], 'cookies'=>[]];
     }
@@ -36,6 +38,7 @@ add_filter('pre_http_request', static function ($previous, $args, $url) {
     if (str_contains($path, '/diamond-cards') || str_contains($path, '/trinkets')) {
         parse_str(wp_parse_url($url, PHP_URL_QUERY) ?? '', $query);
         $page=max(1,(int)($query['page']??1));
+        if (preg_match('/^TEST_(?:TRINKET|DIAMOND)_(\d+)$/', basename($path), $requested)) { $page=1+intdiv((int)$requested[1]-1,100); }
         foreach (range(($page-1)*100+1,min($page*100,137)) as $number) {
             $rows[]=str_contains($path, '/diamond-cards') ?
                 ['base_card'=>['card_id'=>'TEST_DIAMOND_'.$number], 'name'=>['ru'=>'Алмазная карта '.$number], 'images'=>['diamond'=>'https://hearthstone.wiki.gg/wiki/Special:Redirect/file/TEST_DIAMOND_'.$number.'_Premium2.png']] :
@@ -53,9 +56,21 @@ add_filter('pre_http_request', static function ($previous, $args, $url) {
     foreach ($rows as $row) { if ($id === $row['card_id']) { $body=['data'=>$row]; } }
     return ['headers'=>['content-type'=>'application/json'], 'body'=>wp_json_encode($body), 'response'=>['code'=>200,'message'=>'OK'], 'cookies'=>[]];
 },10,3);
+// Make both workers choose their media filename before either moves its file.
+add_filter('wp_unique_filename',static function ($filename) {
+    if (($_POST['action']??'')!=='hs_api_gallery_import' || ($_POST['object_id']??'')!=='TEST_CARD_2' || !in_array($_POST['library']??'', ['heroes','coins'],true)) { return $filename; }
+    $root=wp_upload_dir()['basedir'].'/hs-gallery-fixture-barrier-'.(int)($_POST['post_id']??0).'-';
+    file_put_contents($root.$_POST['library'], 'ready');
+    for ($attempt=0;$attempt<200;++$attempt) {
+        clearstatcache();
+        if (is_file($root.'heroes') && is_file($root.'coins')) { return $filename; }
+        usleep(10000);
+    }
+    throw new RuntimeException('The owned filename collision probe needs two workers');
+});
 // Local-only request metrics; the AJAX body and application logic are unchanged.
 add_action('admin_init',static function () {
-    if (!wp_doing_ajax() || ($_POST['action']??'')!=='hs_api_gallery_catalog') { return; }
+    if (!wp_doing_ajax() || !in_array($_POST['action']??'', ['hs_api_gallery_catalog','hs_api_gallery_import'],true)) { return; }
     ob_start(static function ($body) {
         global $wpdb;
         header('X-HS-Gallery-Queries: '.$wpdb->num_queries);

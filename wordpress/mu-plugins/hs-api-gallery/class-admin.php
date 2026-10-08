@@ -56,7 +56,7 @@ final class Admin {
 		wp_enqueue_media( array( 'post' => $post_id ) );
 		$url = plugins_url( 'hs-api-gallery/', dirname( __DIR__ ) . '/hs-api-gallery.php' );
 		wp_enqueue_style( 'hs-api-gallery-editor', $url . 'editor.css', array(), '1.0.3' );
-		wp_enqueue_script( 'hs-api-gallery-editor', $url . 'editor.js', array( 'media-editor', 'media-views', 'wp-i18n' ), '1.0.3', true );
+		wp_enqueue_script( 'hs-api-gallery-editor', $url . 'editor.js', array( 'media-editor', 'media-views', 'wp-i18n' ), '1.0.4', true );
 		wp_add_inline_script(
 			'hs-api-gallery-editor',
 			'window.hsApiGalleryEditor=' . wp_json_encode(
