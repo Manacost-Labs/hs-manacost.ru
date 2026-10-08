@@ -1,10 +1,19 @@
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def is_owned_artifact_worktree(path: Path, root: Path, worktrees: set[Path]) -> bool:
+    return (
+        path.is_file()
+        and path.relative_to(root).parts[0] == ".artifacts"
+        and path.parent.resolve() in worktrees
+    )
 
 
 class RepositoryPolicyTests(unittest.TestCase):
@@ -67,12 +76,36 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertEqual([], sorted(set(failures)))
 
     def test_no_nested_git_repositories(self) -> None:
+        result = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=ROOT, check=True, text=True, capture_output=True,
+        )
+        worktrees = {Path(line.removeprefix("worktree ")).resolve()
+                     for line in result.stdout.splitlines() if line.startswith("worktree ")}
         nested = [
             str(path.relative_to(ROOT))
             for path in ROOT.rglob(".git")
             if path != ROOT / ".git"
+            and not is_owned_artifact_worktree(path, ROOT, worktrees)
         ]
         self.assertEqual([], nested)
+
+    def test_only_registered_artifact_worktrees_are_exempt(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            registered = root / ".artifacts" / "registered" / ".git"
+            foreign = root / ".artifacts" / "foreign" / ".git"
+            source = root / "wordpress" / "nested" / ".git"
+            for path in (registered, foreign, source):
+                path.parent.mkdir(parents=True)
+                path.write_text("gitdir: synthetic-test-pointer\n")
+            worktrees = {registered.parent.resolve(), source.parent.resolve()}
+            self.assertTrue(is_owned_artifact_worktree(registered, root, worktrees))
+            self.assertFalse(is_owned_artifact_worktree(foreign, root, worktrees))
+            self.assertFalse(is_owned_artifact_worktree(source, root, worktrees))
+            registered.unlink()
+            registered.mkdir()
+            self.assertFalse(is_owned_artifact_worktree(registered, root, worktrees))
 
     def test_all_domains_are_owned_by_this_repository(self) -> None:
         site = json.loads((ROOT / "config/site.json").read_text(encoding="utf-8"))

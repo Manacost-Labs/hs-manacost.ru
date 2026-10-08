@@ -172,6 +172,8 @@ async function login(page: Page): Promise<void> {
   const password = process.env.WP_TEST_ADMIN_PASSWORD;
   if (!username || !password) throw new Error('Integration admin credentials are missing');
   await page.goto('/wp-login.php');
+  // Core focuses this field after 200 ms; wait before typing into either input.
+  await expect(page.locator('#user_login')).toBeFocused();
   await page.getByLabel('Username or Email Address').fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: 'Log In' }).click();
