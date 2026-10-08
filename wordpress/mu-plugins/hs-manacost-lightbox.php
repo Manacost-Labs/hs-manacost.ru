@@ -49,7 +49,7 @@ function hs_manacost_lightbox_is_live_editor(): bool {
  */
 function hs_manacost_lightbox_asset_version( string $asset ): string {
 	$versions = array(
-		'lightbox.css' => '3a330e349dcf',
+		'lightbox.css' => '9bdf91fffdbd',
 		'lightbox.js'  => '373ab9d1789d',
 	);
 
