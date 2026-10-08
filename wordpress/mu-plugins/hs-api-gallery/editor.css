@@ -46,3 +46,8 @@
   .hs-api-gallery__item { padding: 4px; }
   #hs-api-gallery-dialog h2 { font-size: 18px; }
 }
+/* Short screens scroll the dialog instead of collapsing the catalog. */
+@media (max-height: 700px) {
+  #hs-api-gallery-dialog { overflow: auto; }
+  .hs-api-gallery__body { flex: none; block-size: 320px; }
+}

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS API Gallery
  * Description: Native WordPress galleries with immutable Koloda images and optional reader ratings.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Requires at least: 6.9
  * Requires PHP: 8.2
  * Text Domain: manacost
