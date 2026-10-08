@@ -1,0 +1,22 @@
+{
+  "name": "koloda-gallery-snapshots",
+  "owner": "hs-api-gallery first-party MU plugin",
+  "purpose": "Immutable images in native galleries and optional article-scoped ratings.",
+  "direction": "bidirectional",
+  "endpoints": {
+    "catalog": "https://api.kolodahearthstone.com/api/v1/{allowlisted-library}",
+    "image_hosts": ["api.kolodahearthstone.com", "hearthstone.wiki.gg", "art.hearthstonejson.com", "d15f34w2p8l1cc.cloudfront.net"],
+    "wordpress": "same-origin wp-admin/admin-ajax.php; private catalog/import and public state/vote"
+  },
+  "authentication": {"provider": "public GET, no credentials", "editor": "upload_files + edit_post and nonce", "vote": "published gallery membership, nonce, origin and signed random identity/account pseudonym"},
+  "data_classes": ["public object names/images", "immutable media provenance", "scores and pseudonymous voter keys"],
+  "timeout_seconds": 8,
+  "retry": {"max_attempts": 1, "redirects": "at most 2 allowed-host image redirects; 8 seconds each", "backoff": "explicit retry; shared client handles 429 Retry-After and stale data"},
+  "idempotency": "Connection-scoped MariaDB lease and article/library/object/variant snapshot key; unique vote index supports atomic update/removal.",
+  "rate_limit": "One image/request, 40 selections, 100 rows/page, 200 page cap; one vote/second per voter/article.",
+  "observability": {"hooks": ["hs_api_gallery_imported", "hs_api_gallery_vote_saved", "manacost_koloda_api_result"], "fields": "public IDs and safe outcome/cache age; no identities"},
+  "degradation": "Retain selection/partial attachments on failure; local galleries and votes survive provider outages.",
+  "disable_switch": {"constant": "HS_API_GALLERY_ENABLED", "disabled_value": false, "owner": "site operator"},
+  "privacy": "Guest functional cookie only on voting; no IP/fingerprint/outbound account data. Account export/erasure; one-year identity anonymization preserves historical averages.",
+  "rollback": "Revert exact SHA through pipeline; preserve media, native shortcodes and vote table. No destructive uninstall."
+}

@@ -128,6 +128,7 @@ change-impact:
 
 integration:
 	@ops/integration/run.sh
+	@ops/integration/api-gallery.sh
 
 visual:
 	@RUN_VISUAL=1 ops/integration/run.sh
