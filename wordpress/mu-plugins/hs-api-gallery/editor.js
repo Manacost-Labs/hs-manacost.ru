@@ -11,6 +11,7 @@
   const cache = new Map();
   let catalog = { items: [], page: 0, next: true };
   let generation = 0;
+  let session = 0;
   let loading = false;
   let searchRequested = false;
   let importing = false;
@@ -40,13 +41,18 @@
   function updateSelection() {
     byId('count').textContent = sprintf(__('Выбрано: %d из 40', 'manacost'), selected.size);
     byId('create').disabled = !selected.size || importing;
+    byId('clear').disabled = !selected.size || importing;
+    byId('empty').hidden = Boolean(selected.size);
     byId('selected').replaceChildren();
     for (const [key, item] of selected) {
       const remove = document.createElement('button');
       remove.type = 'button'; remove.className = 'button'; remove.disabled = importing;
-      remove.textContent = `${item.name} · ${labels[item.variant]} ×`;
-      remove.setAttribute('aria-label', sprintf(__('Убрать: %s', 'manacost'), item.name));
-      remove.onclick = () => { selected.delete(key); render(); };
+      const thumbnail = document.createElement('img'); thumbnail.src = item.images[item.variant]; thumbnail.alt = '';
+      const name = document.createElement('span'); name.textContent = `${item.name} · ${labels[item.variant]}`;
+      const cross = document.createElement('span'); cross.textContent = '×'; cross.setAttribute('aria-hidden', 'true');
+      remove.append(thumbnail, name, cross);
+      remove.setAttribute('aria-label', sprintf(__('Убрать: %s', 'manacost'), `${item.name} · ${labels[item.variant]}`));
+      remove.onclick = () => { selected.delete(key); render(); (byId('selected').querySelector('button') || byId('query')).focus(); };
       byId('selected').append(remove);
     }
   }
@@ -61,19 +67,22 @@
     const current = [...selected.values()].find(s => s.library === library && s.id === item.id);
     if (current) choice.value = current.variant;
     image.src = item.images[choice.value];
-    const label = document.createElement('label');
+    const label = document.createElement('label'); label.className = 'hs-api-gallery__choice';
     const check = document.createElement('input'); check.type = 'checkbox';
     check.checked = selected.has(itemKey(library, item, choice.value)); check.disabled = importing;
-    label.append(check, document.createTextNode(item.name));
+    const name = document.createElement('span'); name.className = 'hs-api-gallery__name';
+    name.append(check, document.createTextNode(item.name)); label.append(image, name);
+    node.classList.toggle('is-selected', check.checked); choice.disabled = importing;
     check.onchange = () => {
       const key = itemKey(library, item, choice.value);
       if (check.checked && selected.size >= 40) { check.checked = false; status(__('Можно выбрать до 40 изображений за один раз.', 'manacost')); return; }
       if (check.checked) selected.set(key, { ...item, library, variant: choice.value });
       else selected.delete(key);
+      node.classList.toggle('is-selected', check.checked);
       updateSelection();
     };
-    choice.onchange = () => { image.src = item.images[choice.value]; check.checked = selected.has(itemKey(library, item, choice.value)); };
-    node.append(image, label, choice);
+    choice.onchange = () => { image.src = item.images[choice.value]; check.checked = selected.has(itemKey(library, item, choice.value)); node.classList.toggle('is-selected', check.checked); };
+    node.append(label, choice);
     return node;
   }
 
@@ -128,9 +137,13 @@
     else status(sprintf(__('Загружено: %d', 'manacost'), catalog.items.length));
   }
 
-  byId('open').onclick = () => { dialog.showModal(); if (!catalog.page) switchCategory(); };
+  byId('open').onclick = () => {
+    session += 1; selected.clear(); byId('query').value = ''; limit = 80;
+    dialog.showModal(); switchCategory(); byId('query').focus();
+  };
   byId('close').onclick = () => dialog.close();
-  dialog.addEventListener('close', () => { generation += 1; loading = false; });
+  dialog.addEventListener('close', () => { session += 1; generation += 1; loading = false; });
+  byId('clear').onclick = () => { selected.clear(); render(); byId('query').focus(); };
   byId('library').onchange = switchCategory;
   byId('format').onchange = switchCategory;
   byId('search').onsubmit = event => {
@@ -142,12 +155,13 @@
   byId('create').onclick = async () => {
     const items = [...selected.entries()];
     if (!items.length || importing) return;
+    const token = session;
     importing = true; generation += 1; loading = false; render();
     byId('library').disabled = true; byId('format').disabled = true;
     const ids = [];
     try {
       for (let index = 0; index < items.length; index += 1) {
-        if (!dialog.open) return;
+        if (!dialog.open || token !== session) return;
         const [key, item] = items[index];
         status(sprintf(__('Сохраняем изображения в медиатеку: %1$d из %2$d…', 'manacost'), index + 1, items.length));
         if (!imported.has(key)) {
@@ -156,7 +170,7 @@
         }
         ids.push(imported.get(key));
       }
-      if (!dialog.open) return;
+      if (!dialog.open || token !== session) return;
       const ratings = byId('ratings').checked ? '1' : '0';
       dialog.close();
       const frame = wp.media.gallery.edit(`[gallery ids="${ids.join(',')}" columns="3" size="medium" link="file" hs_ratings="${ratings}"]`);
@@ -164,7 +178,7 @@
         wp.media.editor.insert(wp.media.gallery.shortcode(selection).string());
         selected.clear(); updateSelection();
       });
-    } catch (error) { status(`${error.message} ${__('Выбор сохранён — можно повторить загрузку.', 'manacost')}`); }
+    } catch (error) { if (token === session) status(`${error.message} ${__('Выбор сохранён — можно повторить загрузку.', 'manacost')}`); }
     finally { importing = false; byId('library').disabled = false; byId('format').disabled = false; render(); }
   };
 

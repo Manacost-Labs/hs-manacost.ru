@@ -141,8 +141,8 @@ final class Gallery {
 			return;
 		}
 		$url = plugins_url( 'hs-api-gallery/', dirname( __DIR__ ) . '/hs-api-gallery.php' );
-		wp_enqueue_style( 'hs-api-gallery-ratings', $url . 'ratings.css', array(), '1.0.0' );
-		wp_enqueue_script( 'hs-api-gallery-ratings', $url . 'ratings.js', array( 'wp-i18n' ), '1.0.0', true );
+		wp_enqueue_style( 'hs-api-gallery-ratings', $url . 'ratings.css', array(), '1.0.1' );
+		wp_enqueue_script( 'hs-api-gallery-ratings', $url . 'ratings.js', array( 'wp-i18n' ), '1.0.1', true );
 		wp_add_inline_script(
 			'hs-api-gallery-ratings',
 			'window.hsGalleryRatings=' . wp_json_encode(

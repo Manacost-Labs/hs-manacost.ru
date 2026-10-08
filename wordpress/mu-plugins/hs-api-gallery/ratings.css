@@ -1,30 +1,37 @@
 .gallery.hs-gallery-rated {
+  --hs-gallery-item-min: 160px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(224px, calc(100% / var(--hs-gallery-columns, 3) - 16px))), 1fr));
-  gap: 16px; margin-inline: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(var(--hs-gallery-item-min), calc(100% / var(--hs-gallery-columns, 3) - 12px))), 1fr));
+  gap: 12px; margin-inline: 0;
 }
 .gallery.hs-gallery-rated > .gallery-item { inline-size: auto; max-inline-size: none; margin: 0; min-inline-size: 0; padding-inline: 0; }
 .gallery.hs-gallery-rated .gallery-icon img { max-inline-size: 100%; block-size: auto; }
 .gallery.hs-gallery-rated br { display: none; }
 .hs-gallery-rating {
-  display: grid; justify-items: center; gap: 4px; margin-block: 8px 12px;
+  display: grid; justify-items: center; gap: 4px; margin-block: 4px;
   color: inherit; background: transparent; font: inherit; line-height: 1.4;
   min-inline-size: 0; overflow-wrap: anywhere;
 }
-.hs-gallery-rating__stars { display: flex; justify-content: center; flex-wrap: wrap; inline-size: 100%; }
+.hs-gallery-rating__stars { display: flex; justify-content: center; flex-wrap: nowrap; gap: 4px; max-inline-size: 100%; }
 .hs-gallery-rating .hs-gallery-rating__stars button {
   display: inline-flex; align-items: center; justify-content: center;
-  flex: 0 0 44px; inline-size: 44px; min-block-size: 44px; padding: 0; margin: 0;
+  flex: 0 0 28px; inline-size: 28px; min-block-size: 32px; padding: 0; margin: 0;
   border: 0; border-radius: 3px; background: transparent; color: #666;
-  font-size: 25px; line-height: 1; cursor: pointer; box-shadow: none;
+  font-size: 18px; line-height: 1; cursor: pointer; box-shadow: none;
 }
 .hs-gallery-rating .hs-gallery-rating__stars button.is-filled { color: #9a5b00; }
 .hs-gallery-rating .hs-gallery-rating__stars button:disabled { cursor: default; opacity: .65; }
 .hs-gallery-rating button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-.hs-gallery-rating__summary { font-size: .85em; text-align: center; min-block-size: 2.8em; }
+.hs-gallery-rating__summary { font-size: 12px; line-height: 1.4; text-align: center; min-block-size: 1.4em; }
 .hs-gallery-rating .hs-gallery-rating__remove {
   padding: 6px; min-block-size: 44px; max-inline-size: 100%; white-space: normal;
   font: inherit; font-size: .8em; color: inherit; background: transparent;
   border: 0; text-decoration: underline; cursor: pointer;
 }
 .hs-gallery-rating [hidden] { display: none; }
+/* Coarse pointers retain separated 44px targets; the grid adapts to their width. */
+@media (any-pointer: coarse) {
+  .gallery.hs-gallery-rated { --hs-gallery-item-min: 224px; }
+  .hs-gallery-rating__stars { gap: 0; }
+  .hs-gallery-rating .hs-gallery-rating__stars button { flex-basis: 44px; inline-size: 44px; min-block-size: 44px; }
+}
