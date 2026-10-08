@@ -92,6 +92,8 @@ jobs:
           RUN_VISUAL: '1'
           RUN_PERFORMANCE: '1'
         run: ops/integration/run.sh
+      - name: Check native API galleries and reader ratings with full TagDiv
+        run: ops/integration/api-gallery.sh
       - name: Upload admin performance reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -108,4 +110,8 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            .artifacts/api-gallery/browser-report.json
+            .artifacts/api-gallery/integration-report.json
+            .artifacts/api-gallery/editor-integrity.json
+            .artifacts/api-gallery/screenshots/
           retention-days: 14

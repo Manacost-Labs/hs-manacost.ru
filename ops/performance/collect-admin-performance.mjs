@@ -46,6 +46,8 @@ const contextOptions = {
 async function login(context) {
   const page = await context.newPage();
   await page.goto(`${baseURL}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+  // Core's delayed autofocus must finish before either credential is entered.
+  await page.waitForFunction(() => document.activeElement?.id === 'user_login');
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: /Log In|Войти/i }).click();

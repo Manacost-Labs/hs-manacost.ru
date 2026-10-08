@@ -21,6 +21,55 @@
   "rules": [
     {
       "patterns": [
+        "wordpress/mu-plugins/hs-api-gallery.php",
+        "wordpress/mu-plugins/hs-api-gallery/**",
+        "tests/test_api_gallery.py",
+        "tests/api-gallery/**",
+        "tests/fixtures/api-gallery-integration.php",
+        "docs/runbooks/api-gallery.md",
+        "config/integrations/koloda-gallery.json",
+        "ops/integration/api-gallery.sh"
+      ],
+      "owner": "api-image-gallery",
+      "classified": true,
+      "risk": "high",
+      "surfaces": [
+        "editor",
+        "admin",
+        "media",
+        "external-api",
+        "database",
+        "frontend",
+        "privacy",
+        "accessibility"
+      ],
+      "domains": [
+        "test.hs-manacost.ru",
+        "hs-manacost.ru",
+        "hs-manacost.com"
+      ],
+      "skills": [
+        "wordpress-article-editor",
+        "wordpress-admin-ui",
+        "wp-plugin-development",
+        "wordpress-external-integrations",
+        "wordpress-privacy-consent",
+        "wordpress-media-integrity",
+        "wordpress-database-migrations",
+        "newspaper-tagdiv",
+        "wordpress-accessibility",
+        "playwright"
+      ],
+      "checks": [
+        "make code-quality",
+        "make contracts",
+        "make integration",
+        "make visual",
+        "./ops/smoke-check.sh staging"
+      ]
+    },
+    {
+      "patterns": [
         "services/articles-mcp/**",
         "docs/runbooks/articles-mcp.md"
       ],

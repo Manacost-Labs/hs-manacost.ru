@@ -717,6 +717,27 @@
         "line": 217
       },
       {
+        "name": "_hs_api_gallery_sha256",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
+        "line": 175
+      },
+      {
+        "name": "_hs_api_gallery_snapshot",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
+        "line": 174
+      },
+      {
+        "name": "_hs_api_gallery_source",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
+        "line": 176
+      },
+      {
         "name": "_hs_archetype_key",
         "resolved": true,
         "api": "update_post_meta",
@@ -1251,6 +1272,20 @@
       {
         "name": "_wp_attachment_image_alt",
         "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-gallery.php",
+        "line": 93
+      },
+      {
+        "name": "_wp_attachment_image_alt",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-importer.php",
+        "line": 173
+      },
+      {
+        "name": "_wp_attachment_image_alt",
+        "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/hs-manacost-inline-deck/includes/class-hs-manacost-inline-deck.php",
         "line": 488
@@ -1403,6 +1438,27 @@
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
         "line": 724
+      },
+      {
+        "name": "hs_api_gallery_schema",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
+        "line": 31
+      },
+      {
+        "name": "hs_api_gallery_schema",
+        "resolved": true,
+        "api": "update_option",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
+        "line": 56
+      },
+      {
+        "name": "hs_api_gallery_schema",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
+        "line": 173
       },
       {
         "name": "hs_decks_announcement_button_text",
@@ -2158,6 +2214,34 @@
         "line": 99
       },
       {
+        "name": "wp_ajax_hs_api_gallery_catalog",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 18
+      },
+      {
+        "name": "wp_ajax_hs_api_gallery_import",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 19
+      },
+      {
+        "name": "wp_ajax_hs_api_gallery_state",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 20
+      },
+      {
+        "name": "wp_ajax_hs_api_gallery_vote",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 22
+      },
+      {
         "name": "wp_ajax_hs_deck_archetypes_page",
         "resolved": true,
         "api": "add_action",
@@ -2240,6 +2324,20 @@
         "api": "add_action",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
         "line": 100
+      },
+      {
+        "name": "wp_ajax_nopriv_hs_api_gallery_state",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 21
+      },
+      {
+        "name": "wp_ajax_nopriv_hs_api_gallery_vote",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 23
       },
       {
         "name": "wp_ajax_nopriv_hs_deck_archetypes_page",
@@ -2419,6 +2517,13 @@
         "api": "wp_schedule_single_event",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-rest-controller.php",
         "line": 360
+      },
+      {
+        "name": "hs_api_gallery_expire_votes",
+        "resolved": true,
+        "api": "wp_schedule_event",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
+        "line": 58
       },
       {
         "name": "hs_local_image_optimizer_process_attachment",
@@ -2708,6 +2813,20 @@
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-kolodahearthstone-spoilers/wp-spoilers.php",
         "line": 26
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-admin.php",
+        "line": 34
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 106
       },
       {
         "name": "edit_post",
@@ -3051,6 +3170,20 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
         "line": 303
+      },
+      {
+        "name": "upload_files",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-admin.php",
+        "line": 34
+      },
+      {
+        "name": "upload_files",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
+        "line": 106
       }
     ]
   }
