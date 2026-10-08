@@ -332,6 +332,7 @@ try {
     page.waitForResponse(response => response.request().method() === 'DELETE' && response.url().includes('/comments/')),
     rapidB.getByRole('button', { name: 'Удалить' }).click(),
   ]);
+  await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий B' }).waitFor({ state: 'detached' });
   assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий B' }).count(), 0,
     'confirmed deletion removes a reconciled comment even when it is beyond the first page');
   assert.equal(await page.locator('.mc-comments__body').filter({ hasText: 'Быстрый комментарий A' }).count(), 1,
