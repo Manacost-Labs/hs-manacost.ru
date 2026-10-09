@@ -39,7 +39,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
 }
 
 .hs-lightbox::backdrop {
-  background: transparent;
+  background: rgba(12, 20, 26, 0.38);
 }
 
 .hs-lightbox__surface {
@@ -186,6 +186,13 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   max-height: 100%;
   margin: 0;
   overflow: hidden;
+  pointer-events: none;
+}
+
+.hs-lightbox__image,
+.hs-lightbox__caption,
+.hs-lightbox__error {
+  pointer-events: auto;
 }
 
 .hs-lightbox__image {
@@ -285,7 +292,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   inset-inline-end: clamp(12px, 6vw, 88px);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-width: 950px) and (max-height: 520px) {
   .hs-lightbox__surface {
     padding-block-start: max(8px, env(safe-area-inset-top));
     padding-inline-start: max(8px, env(safe-area-inset-left));
@@ -296,6 +303,11 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
     width: 44px;
     padding: 0;
     overflow: hidden;
+  }
+
+  .hs-lightbox__toolbar {
+    min-height: 44px;
+    padding-block-end: 4px;
   }
 
   .hs-lightbox__original-label {
@@ -309,7 +321,7 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   }
 
   .hs-lightbox__stage {
-    padding: 6px 0 62px;
+    padding: 6px 0 54px;
   }
 
   .hs-lightbox__caption {
@@ -326,11 +338,11 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   }
 
   .hs-lightbox__previous {
-    inset-inline-start: calc(50% - 52px);
+    inset-inline-start: 8px;
   }
 
   .hs-lightbox__next {
-    inset-inline-end: calc(50% - 52px);
+    inset-inline-end: 8px;
   }
 }
 

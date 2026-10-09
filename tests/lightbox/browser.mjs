@@ -153,7 +153,7 @@ try {
       animation: image.animationName,
     };
   });
-  assert.equal(appearance.backdrop, 'rgba(0, 0, 0, 0)', 'page remains visible behind the enlarged image');
+  assert.equal(appearance.backdrop, 'rgba(12, 20, 26, 0.38)', 'gentle dimming keeps the page visible behind the enlarged image');
   assert.equal(appearance.surface, 'rgba(0, 0, 0, 0)', 'viewer adds no panel background');
   assert.equal(appearance.border, '0px', 'image has no decorative frame');
   assert.equal(appearance.shadow, 'none', 'transparent image has no rectangular shadow');
@@ -184,6 +184,15 @@ try {
   await dialog.waitFor({ state: 'hidden' });
   assert.equal(await bare.evaluate(element => document.activeElement === element), true, 'clicking outside the image restores focus');
 
+  await bare.click();
+  await dialog.locator('.hs-lightbox__image.is-ready').waitFor();
+  await dialog.locator('.hs-lightbox__image').click();
+  assert.equal(await dialog.isVisible(), true, 'tapping the image does not close it');
+  const emptyArea = await dialog.locator('.hs-lightbox__figure').boundingBox();
+  await page.mouse.click(emptyArea.x + 2, emptyArea.y + 2);
+  await dialog.waitFor({ state: 'hidden' });
+  assert.equal(await bare.evaluate(element => document.activeElement === element), true, 'tapping empty space around the image closes the viewer');
+
   await page.evaluate(() => window.addCommentImage());
   await page.getByRole('link', { name: 'Открыть изображение к комментарию' }).click();
   await dialog.waitFor({ state: 'visible' });
@@ -196,6 +205,7 @@ try {
   for (const viewport of [
     { width: 320, height: 640 },
     { width: 390, height: 844 },
+    { width: 844, height: 390 },
     { width: 768, height: 1024 },
     { width: 1024, height: 768 },
     { width: 1440, height: 900 },
@@ -215,6 +225,8 @@ try {
         imageCaptionGap: caption.getBoundingClientRect().top - image.getBoundingClientRect().bottom,
         overflow: document.documentElement.scrollWidth - innerWidth,
         viewport: innerWidth,
+        toolbarHeight: dialog.querySelector('.hs-lightbox__toolbar').getBoundingClientRect().height,
+        stagePadding: getComputedStyle(dialog.querySelector('.hs-lightbox__stage')).paddingLeft,
         controls: controls.map(rect => ({ width: rect.width, height: rect.height })),
       };
     });
@@ -223,6 +235,10 @@ try {
     assert.ok(Math.abs(geometry.viewport - geometry.dialogRight) <= 1 && Math.abs(geometry.viewport - geometry.surfaceRight) <= 1, `modal must paint through the full viewport at ${viewport.width}px`);
     assert.ok(geometry.imageCaptionGap <= 24, `caption stays attached at ${viewport.width}px: ${geometry.imageCaptionGap}`);
     assert.ok(geometry.controls.every(control => control.width >= 44 && control.height >= 44), `modal controls keep 44px targets at ${viewport.width}px`);
+    if (viewport.width <= 600 || viewport.height <= 520) {
+      assert.ok(geometry.toolbarHeight <= 48, `compact phone toolbar leaves more room for the image at ${viewport.width}px`);
+      assert.equal(geometry.stagePadding, '0px', 'portrait and landscape phones use the full available image width');
+    }
     if (viewport.width === 320 && process.env.LIGHTBOX_MOBILE_SCREENSHOT) await page.screenshot({ path: process.env.LIGHTBOX_MOBILE_SCREENSHOT });
   }
   await page.keyboard.press('Escape');
@@ -263,6 +279,19 @@ try {
   assert.equal(await dialog.locator('.hs-lightbox__image').evaluate(element => getComputedStyle(element).animationName), 'none', 'reduced-motion preference removes the zoom animation');
   await page.keyboard.press('Escape');
   await dialog.waitFor({ state: 'hidden' });
+
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await phone.goto(origin);
+  const phoneOpener = phone.locator('.wp-block-gallery a').first();
+  await phoneOpener.tap();
+  const phoneDialog = phone.getByRole('dialog', { name: 'Просмотр изображения' });
+  await phoneDialog.getByText('1 из 2').waitFor();
+  await phoneDialog.getByRole('button', { name: 'Следующее изображение' }).tap();
+  await phoneDialog.getByText('2 из 2').waitFor();
+  await phoneDialog.getByRole('button', { name: 'Закрыть' }).tap();
+  await phoneDialog.waitFor({ state: 'hidden' });
+  assert.equal(await phoneOpener.evaluate(element => document.activeElement === element), true, 'touch opening, navigation and closing restore the opener');
+  await phone.close();
   console.log('content-lightbox-browser: pass');
 } finally {
   if (browser) await browser.close();
