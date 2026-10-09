@@ -187,8 +187,12 @@ echo json_encode($GLOBALS['assets']);'''
 
     def test_deleted_comments_are_not_rendered_in_a_thread(self):
         comments = (PHP.parent / 'comments.js').read_text()
-        self.assertIn("item.status !== 'deleted'", comments)
-        self.assertIn('rows.filter(visibleRow).map(commentNode)', comments)
+        visible_row = comments[comments.index('function visibleRow('):comments.index('function showThreadStatus(')]
+        self.assertIn("item.status !== 'deleted'", visible_row)
+        # The keyed renderer draws only visible rows and drops cached nodes for any row that stopped being visible;
+        # comments-flows.mjs flow 10 exercises deleted and private-reset rows in a browser.
+        self.assertIn('const next = rows.filter(visibleRow), ids = new Set(next.map(item => item.id));', comments)
+        self.assertIn('if (!ids.has(id)) { entry.node.remove(); rendered.delete(id); }', comments)
 
     def test_comment_composer_uses_a_compact_named_image_attachment_action(self):
         shell = (PHP.parent / 'comments.php').read_text()

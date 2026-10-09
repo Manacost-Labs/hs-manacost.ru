@@ -111,6 +111,12 @@ const server = createServer(async (request, response) => {
       { kind: 'fire', count: 0, selected: false },
     ] }) }); return;
   }
+  if (/^\/reader-api\/v1\/comments\/[0-9a-f-]{36}$/i.test(request.url) && request.method === 'DELETE') {
+    for await (const _chunk of request) { /* Version is asserted by comments-browser. */ }
+    const removed = request.url.split('/').at(-1);
+    comments = comments.filter(comment => comment.id !== removed);
+    json(response, 200, {}); return;
+  }
   if (request.url.startsWith('/reader-api/v1/community/export') && request.method === 'GET') {
     const cursor = new URL(request.url, 'http://fixture').searchParams.get('cursor');
     exportCalls.push(cursor);
@@ -149,8 +155,8 @@ try {
   browser = await chromium.launch({ headless: true, ...(process.env.READER_TEST_CHROMIUM ? { executablePath: process.env.READER_TEST_CHROMIUM } : {}) });
   const page = await browser.newPage();
   page.setDefaultTimeout(4000);
-  const loadComments = async () => { await page.goto(`${origin}/`); await page.getByLabel('Комментарий').waitFor(); };
-  const submit = async body => { await page.getByLabel('Комментарий').fill(body); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
+  const loadComments = async () => { await page.goto(`${origin}/`); await page.getByLabel('Комментарий', { exact: true }).waitFor(); };
+  const submit = async body => { await page.getByLabel('Комментарий', { exact: true }).fill(body); await page.getByRole('button', { name: 'Опубликовать' }).click(); };
 
   // Reading starts alongside identity verification, but private pending rows wait for identity.
   hold.me = hold.comments = true;
@@ -200,7 +206,7 @@ try {
     colorScheme: getComputedStyle(root).colorScheme,
     composerBackground: getComputedStyle(root.querySelector('[data-comments-form]')).backgroundColor,
   })), {
-    background: 'rgba(0, 0, 0, 0)', color: 'rgb(24, 48, 59)', colorScheme: 'light', composerBackground: 'rgba(0, 0, 0, 0)',
+    background: 'rgba(0, 0, 0, 0)', color: 'rgb(39, 56, 67)', colorScheme: 'light', composerBackground: 'rgba(0, 0, 0, 0)',
   });
   assert.equal(await page.getByText('Мой ожидающий').count(), 1);
   assert.equal(await page.getByText('Чужой ожидающий').count(), 0);
@@ -376,7 +382,111 @@ try {
   await loadComments();
   await expect(page.locator('[data-comments-me]')).toContainText('Зулут');
   await expect(page.locator('[data-comments-me] img')).toHaveAttribute('src', avatarUrl);
-  console.log('comments-flows: pass (9 focused flows)');
+
+  // 10. Reconciling one changed row keeps unrelated comment nodes and keyboard focus.
+  meFields = {}; meVersion = 1; refreshStatus = 200; postStatus = 201;
+  const neighbour = author({ id: otherId, name: 'Соседний читатель', profileUrl: `/account/?reader=${otherId}`, paidSubscriber: false });
+  const zeroReactions = [{ kind: 'like', count: 2, selected: false }, { kind: 'thanks', count: 0, selected: false }, { kind: 'fire', count: 0, selected: false }];
+  const keyed = ['a1', 'a2', 'a3'].map((prefix, index) => row({
+    id: `${prefix}3e4567-e89b-42d3-a456-426614174000`, createdAt: 1600000000000 + index,
+    body: `Соседний комментарий ${index + 1}`, author: neighbour, reactions: zeroReactions,
+  }));
+  const keyedIds = keyed.map(item => item.id);
+  const rowNodes = () => page.evaluate(ids => ids.map(value => window.__keyedRows.get(value) === document.querySelector(`[data-comment-id="${value}"]`)), keyedIds);
+  const focusedControl = () => page.evaluate(() => ({
+    row: document.activeElement?.closest('[data-comments-list] [data-comment-id]')?.dataset.commentId ?? null,
+    text: document.activeElement?.textContent ?? '', reaction: document.activeElement?.dataset.reaction ?? null,
+  }));
+  comments = keyed;
+  await loadComments();
+  await page.getByText('Соседний комментарий 3').waitFor();
+  await page.waitForFunction(count => document.querySelectorAll('[data-comments-list] [data-reaction]').length === count, keyed.length * 3);
+  await page.evaluate(() => { window.__keyedRows = new Map([...document.querySelectorAll('[data-comments-list] [data-comment-id]')].map(node => [node.dataset.commentId, node])); });
+  await submit('Новый ответ в ключевом списке');
+  await page.getByText('Комментарий опубликован.').waitFor();
+  comments = [keyed[0], { ...keyed[1], version: 2, body: 'Соседний комментарий 2 исправлен' }, keyed[2],
+    row({ body: 'Новый ответ в ключевом списке', reactions: zeroReactions })];
+  await page.locator(`[data-comment-id="${keyed[0].id}"]`).getByRole('button', { name: 'Ответить' }).focus();
+  await page.getByText('Соседний комментарий 2 исправлен').waitFor();
+  assert.deepEqual(await rowNodes(), [true, false, true], 'only the changed row is rebuilt during reconciliation');
+  assert.deepEqual(await focusedControl(), { row: keyed[0].id, text: 'Ответить', reaction: null }, 'an unchanged reply control keeps keyboard focus');
+  assert.equal(await page.getByText('Новый ответ в ключевом списке').count(), 1);
+
+  await submit('Повторная правка соседа');
+  await page.getByText('Комментарий опубликован.').waitFor();
+  comments = [{ ...keyed[0], version: 2, body: 'Соседний комментарий 1 исправлен' }, comments[1], keyed[2], comments[3]];
+  await page.locator(`[data-comment-id="${keyed[2].id}"] [data-reaction="like"]`).focus();
+  await page.getByText('Соседний комментарий 1 исправлен').waitFor();
+  assert.deepEqual((await rowNodes())[2], true, 'an untouched row survives a second reconciliation');
+  assert.deepEqual(await focusedControl(), { row: keyed[2].id, text: 'Нравится2', reaction: 'like' }, 'a focused reaction remains the active control');
+
+  await page.evaluate(() => { window.__keyedRows = new Map([...document.querySelectorAll('[data-comments-list] [data-comment-id]')].map(node => [node.dataset.commentId, node])); });
+  hold.comments = true; // Focus the row before its replacement arrives, so the rebuild has to move focus.
+  await submit('Правка сфокусированной строки');
+  await page.getByText('Комментарий опубликован.').waitFor();
+  while (!held.comments.length) await new Promise(resolve => setTimeout(resolve, 20));
+  comments = [comments[0], { ...keyed[1], version: 3, body: 'Соседний комментарий 2 исправлен снова' }, keyed[2], comments[3]];
+  await page.locator(`[data-comment-id="${keyed[1].id}"]`).getByRole('button', { name: 'Ответить' }).focus();
+  hold.comments = false; release('comments', 200, { items: comments, nextCursor: null });
+  await page.getByText('Соседний комментарий 2 исправлен снова').waitFor();
+  assert.equal((await rowNodes())[1], false, 'the focused row itself is rebuilt');
+  assert.deepEqual(await focusedControl(), { row: keyed[1].id, text: 'Ответить', reaction: null }, 'a rebuilt row restores focus to its equivalent action, not the profile link');
+
+  const ownDelete = page.locator(`[data-comment-id="${commentId}"]`).getByRole('button', { name: 'Удалить' });
+  await ownDelete.focus();
+  page.once('dialog', dialog => dialog.accept());
+  await page.keyboard.press('Enter');
+  await page.locator(`[data-comment-id="${commentId}"]`).waitFor({ state: 'detached' });
+  const fallback = await focusedControl();
+  assert.ok(keyedIds.includes(fallback.row), `deleting the focused row moves focus to a neighbouring comment control: ${JSON.stringify(fallback)}`);
+
+  // A cached row the server now reports deleted must lose its node; the reader's own pending row appears.
+  const pendingId = '623e4567-e89b-42d3-a456-426614174000';
+  comments = [comments[0], comments[1], { ...keyed[2], status: 'deleted', version: 2, body: null, author: null },
+    row({ id: pendingId, createdAt: 1700000000001, status: 'pending', body: 'Мой ожидающий в ключевом списке', author: author({ profileUrl: null, avatarUrl: null, avatarVersion: null, paidSubscriber: false }) })];
+  await submit('Обновление удалённой строки');
+  await page.getByText('Мой ожидающий в ключевом списке').waitFor();
+  assert.equal(await page.locator(`[data-comment-id="${keyed[2].id}"]`).count(), 0, 'a cached row reported deleted is removed from the DOM');
+  assert.equal(await page.getByText('Соседний комментарий 3').count(), 0, 'deleted text does not survive in a reused node');
+  assert.equal(await page.locator(`[data-comments-list] [data-comment-id="${pendingId}"][data-pending="true"]`).count(), 1);
+
+  // Clicking outside while deletion waits must win over the remembered disabled button.
+  hold.comments = true;
+  await submit('Удаление с уходом фокуса');
+  await page.getByText('Комментарий опубликован.').waitFor();
+  await expect.poll(() => held.comments.length).toBeGreaterThan(0);
+  let beginDelete, finishDelete;
+  const deletionStarted = new Promise(resolve => { beginDelete = resolve; });
+  const deletionAllowed = new Promise(resolve => { finishDelete = resolve; });
+  const deletionUrl = `**/reader-api/v1/comments/${commentId}`;
+  const holdDelete = async route => {
+    if (route.request().method() === 'DELETE') { beginDelete(); await deletionAllowed; }
+    await route.continue();
+  };
+  await page.route(deletionUrl, holdDelete);
+  await ownDelete.focus();
+  page.once('dialog', dialog => dialog.accept());
+  await page.keyboard.press('Enter');
+  await deletionStarted;
+  await page.mouse.click(1, 1);
+  assert.equal(await page.evaluate(() => document.activeElement === document.body), true);
+  finishDelete();
+  await page.locator(`[data-comment-id="${commentId}"]`).waitFor({ state: 'detached' });
+  assert.equal(await page.evaluate(() => document.activeElement === document.body), true, 'deletion must not steal focus after a click outside the list');
+  await page.unroute(deletionUrl, holdDelete);
+  hold.comments = false;
+  while (held.comments.length) release('comments', 200, { items: comments, nextCursor: null });
+  await expect(page.getByLabel('Комментарий', { exact: true })).toBeEnabled();
+
+  postStatus = 401; await submit('Сессия истекла');
+  await page.getByRole('link', { name: 'Войти через HearthPulse', exact: true }).waitFor();
+  await page.getByText('Соседний комментарий 2 исправлен снова').waitFor();
+  assert.equal(await page.locator('[data-comments-list]').getByRole('button', { name: 'Удалить' }).count(), 0, 'expired identity leaves no owner actions on reused rows');
+  assert.equal(await page.locator('[data-comments-list] [data-pending="true"]').count(), 0, 'expired identity reveals no pending rows');
+  assert.equal(await page.locator(`[data-comment-id="${pendingId}"], [data-comment-id="${keyed[2].id}"]`).count(), 0, 'private reset drops the cached pending and deleted rows');
+  assert.equal(await page.getByText('Мой ожидающий в ключевом списке').count(), 0);
+  postStatus = 201;
+  console.log('comments-flows: pass (10 focused flows)');
 } finally {
   for (const values of Object.values(held)) for (const request of values) request.response.destroy();
   await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));

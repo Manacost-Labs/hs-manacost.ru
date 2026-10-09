@@ -1,15 +1,15 @@
-/* Shared Reader primitives. All values stay scoped away from Newspaper. */
+/* Reader-scoped primitives. */
 .mc-reader-ui {
-  --mc-r-background: #f3f5f6;
-  --mc-r-surface: #fff;
-  --mc-r-surface-subtle: #f7f9fa;
-  --mc-r-ink: #18303b;
+  --mc-r-background: #f3efe6;
+  --mc-r-surface: #faf8f3;
+  --mc-r-surface-subtle: #f3efe6;
+  --mc-r-ink: #273843;
   --mc-r-muted: #58636d;
-  --mc-r-primary: #9b630e;
-  --mc-r-primary-hover: #7d4f0b;
-  --mc-r-primary-soft: #f5ebdd;
-  --mc-r-outline: #667983;
-  --mc-r-outline-subtle: #d8e0e4;
+  --mc-r-primary: #8a5c18;
+  --mc-r-primary-hover: #6f4912;
+  --mc-r-primary-soft: #f3e8d3;
+  --mc-r-outline: #747068;
+  --mc-r-outline-subtle: #d8d2c7;
   --mc-r-focus: #0b6e99;
   --mc-r-success: #0f6b48;
   --mc-r-error: #b42318;
@@ -22,11 +22,12 @@
   --mc-ui-focus: var(--mc-r-focus);
   --mc-ui-danger: var(--mc-r-error);
   --mc-ui-on-accent: #fff;
-  --mc-ui-field: var(--mc-r-surface);
+  --mc-ui-field: #fff;
   --mc-ui-accent-hover: var(--mc-r-primary-hover);
   --mc-ui-radius: 6px;
   --mc-ui-body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mc-ui-display: var(--mc-ui-body);
+  --mc-ui-heading: Georgia, "Times New Roman", serif;
   box-sizing: border-box;
   color: var(--mc-ui-text);
   font: 400 16px/1.55 var(--mc-ui-body);
@@ -37,7 +38,7 @@
 .mc-reader-ui *,
 .mc-reader-ui *::before,
 .mc-reader-ui *::after { box-sizing: border-box; }
-.td-main-content-wrap.mc-reader-page { padding: 0; background: var(--mc-r-background, #f3f5f6); }
+.td-main-content-wrap.mc-reader-page { padding: 0; background: var(--mc-r-background, #f3efe6); }
 .mc-reader-page .td-page-content { margin: 0; padding: 0; }
 .mc-reader-ui [hidden] { display: none !important; }
 .mc-reader-ui .mc-ui-button {
@@ -84,8 +85,8 @@
 .mc-reader-ui .mc-ui-button:disabled,
 .mc-reader-ui .mc-ui-control:disabled {
   border-color: var(--mc-r-outline-subtle);
-  background: #edf1f2;
-  color: #7a858b;
+  background: #eeeae2;
+  color: #6f7478;
   cursor: not-allowed;
 }
 .mc-reader-ui .mc-ui-control {
