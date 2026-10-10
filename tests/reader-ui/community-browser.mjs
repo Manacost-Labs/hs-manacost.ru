@@ -50,9 +50,10 @@ const requestBody = async request => {
 };
 
 let rows, community, reactionStatus, holdPermission, holdReaction, holdHydration, heldPermissions, heldReactions, heldHydrations;
-let reactionWrites, hydrationCalls, deleteWrites, banWrites, unbanWrites, banListCalls, commentPosts, bans;
+let reactionWrites, hydrationCalls, deleteWrites, banWrites, unbanWrites, banListCalls, commentPosts, bans, postedComment, threadCalls;
 function reset({ moderator = false, blocked = false } = {}) {
   rows = [comment()]; community = { canModerateComments: moderator, commentingBlocked: blocked };
+  postedComment = null; threadCalls = 0;
   reactionStatus = 200; holdPermission = holdReaction = holdHydration = false;
   heldPermissions = []; heldReactions = []; heldHydrations = [];
   reactionWrites = []; hydrationCalls = 0; deleteWrites = []; banWrites = []; unbanWrites = []; banListCalls = []; commentPosts = 0; bans = [];
@@ -88,7 +89,7 @@ const server = createServer(async (request, response) => {
     return;
   }
   if (request.url === '/reader-api/v1/bootstrap') { json(response, 200, me()); return; }
-  if (request.url.startsWith('/reader-api/v1/threads/7/comments') && request.method === 'GET') { json(response, 200, { items: rows, nextCursor: null }); return; }
+  if (request.url.startsWith('/reader-api/v1/threads/7/comments') && request.method === 'GET') { threadCalls++; json(response, 200, { items: rows, nextCursor: null }); return; }
   if (request.url === '/reader-api/v1/community/me') {
     if (holdPermission) { request.resume(); heldPermissions.push(response); return; }
     json(response, 200, community); return;
@@ -123,7 +124,7 @@ const server = createServer(async (request, response) => {
     json(response, 200, cursor ? { items: bans.slice(20), nextCursor: null } : { items: bans.slice(0, 20), nextCursor: bans.length > 20 ? nextCursor : null }); return;
   }
   if (request.url.startsWith('/reader-api/v1/moderation/bans/') && request.method === 'PUT') { unbanWrites.push(await requestBody(request)); json(response, 200, { ban: { id: firstBanId, blocked: false, version: 2 } }); return; }
-  if (request.url === '/reader-api/v1/threads/7/comments' && request.method === 'POST') { commentPosts++; await requestBody(request); json(response, 201, { comment: comment() }); return; }
+  if (request.url === '/reader-api/v1/threads/7/comments' && request.method === 'POST') { commentPosts++; await requestBody(request); json(response, 201, { comment: postedComment ?? comment() }); return; }
   if (request.url.startsWith(`/reader-api/v1/readers/${authorId}/avatar`)) { response.writeHead(200, { 'content-type': 'image/svg+xml' }); response.end('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="20"/></svg>'); return; }
   response.writeHead(404); response.end();
 });
@@ -137,14 +138,14 @@ try {
   const draft = () => page.getByRole('textbox', { name: 'Комментарий', exact: true });
   const reaction = kind => page.locator(`[data-comment-id="${commentId}"] [data-reaction="${kind}"]`);
   const moderation = () => page.getByText('Модерация', { exact: true });
-  const load = async () => { await page.goto(`${origin}/`); await page.getByRole('button', { name: /Нравится/ }).waitFor(); await draft().waitFor(); };
+  const load = async () => { await page.goto(`${origin}/`); await page.getByRole('button', { name: /Нравится/ }).first().waitFor(); await draft().waitFor(); };
   const confirm = () => page.once('dialog', dialog => dialog.accept());
 
   reset(); await page.setViewportSize({ width: 320, height: 760 }); await load();
   assert.equal(await page.locator(`[data-comment-id="${commentId}"] [data-reaction]`).count(), 3, 'all three reaction kinds render');
   assert.equal(await page.locator('.mc-comments__author-badge--twitch svg').count(), 1, 'Twitch mark is SVG');
   assert.equal(await page.locator('.mc-comments__author-badge--youtube svg').count(), 1, 'YouTube mark is SVG');
-  assert.match(await page.locator('.mc-comments__avatar').first().getAttribute('src'), new RegExp(`/readers/${authorId}/avatar`), 'public author avatar is used');
+  assert.match(await page.locator('[data-comments-list] .mc-comments__avatar').first().getAttribute('src'), new RegExp(`/readers/${authorId}/avatar`), 'public author avatar is used');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, '320px shell has no overflow');
   assert.ok((await reaction('like').boundingBox()).height >= 44, 'reaction touch target is at least 44px');
   assert.equal(await moderation().count(), 0, 'regular readers have no moderator UI');
@@ -241,6 +242,77 @@ try {
   assert.equal(await draft().inputValue(), 'Черновик заблокированного читателя');
 	assert.equal(await page.locator('[data-comments-data]').count(), 0, 'privacy tools do not clutter every article composer');
   assert.equal(commentPosts, 0);
+
+  // Keyed controls: an unrelated render and the 1s reconcile keep groups, open menus and focus.
+  const secondId = '723e4567-e89b-42d3-a456-426614174000', postedId = '823e4567-e89b-42d3-a456-426614174000';
+  const reconciled = async calls => {
+    await Promise.race([
+      new Promise(resolve => { const ready = () => threadCalls > calls ? resolve() : setTimeout(ready, 10); ready(); }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('thread was not reconciled')), 3000)),
+    ]);
+    await page.waitForTimeout(150);
+  };
+  const publish = async text => {
+    await draft().fill(text); await page.getByRole('button', { name: 'Опубликовать' }).click();
+    await page.getByText('Комментарий опубликован.').waitFor();
+  };
+  reset({ moderator: true });
+  rows = [comment(), comment({ id: secondId, createdAt: 1700000000001, body: 'Соседний комментарий' })];
+  postedComment = comment({ id: postedId, createdAt: 1700000000002, body: 'Новый комментарий' });
+  await load(); await page.locator(`[data-comment-id="${secondId}"] [data-community-admin]`).waitFor();
+  const controlIds = [commentId, secondId];
+  await page.evaluate(ids => {
+    window.__controls = ids.map(id => [document.querySelector(`[data-comment-id="${id}"] .mc-comments__reactions`), document.querySelector(`[data-comment-id="${id}"] [data-community-admin]`)]);
+  }, controlIds);
+  await page.locator(`[data-comment-id="${secondId}"] [data-community-admin] summary`).click();
+  await publish('Новый комментарий');
+  const callsBeforeReconcile = threadCalls;
+  await page.locator(`[data-comment-id="${secondId}"] [data-reaction="thanks"]`).focus();
+  await reconciled(callsBeforeReconcile);
+  assert.deepEqual(await page.evaluate(ids => ids.map((id, index) => [
+    window.__controls[index][0] === document.querySelector(`[data-comment-id="${id}"] .mc-comments__reactions`),
+    window.__controls[index][1] === document.querySelector(`[data-comment-id="${id}"] [data-community-admin]`),
+  ]), controlIds), [[true, true], [true, true]], 'unrelated renders keep reaction groups and moderation controls');
+  assert.equal(await page.locator(`[data-comment-id="${secondId}"] details[data-community-admin]`).evaluate(node => node.open), true, 'an open moderation menu stays open');
+  assert.deepEqual(await page.evaluate(() => [document.activeElement?.closest('[data-comment-id]')?.dataset.commentId, document.activeElement?.dataset.reaction]),
+    [secondId, 'thanks'], 'a focused reaction keeps focus through reconciliation');
+  assert.equal(await page.locator(`[data-comment-id="${postedId}"] [data-reaction]`).count(), 3, 'a new row receives its own reactions');
+  assert.equal(await page.locator(`[data-comment-id="${postedId}"] [data-community-admin]`).count(), 1, 'a new row receives moderation controls');
+
+  // Same version, new server selection: a reused group must toggle the latest row, not a captured one.
+  reset(); postedComment = comment({ id: postedId, createdAt: 1700000000002, body: 'Новый комментарий' });
+  await load();
+  assert.equal(await reaction('like').getAttribute('aria-pressed'), 'false');
+  rows = [comment({ reactions: reactions('like', [6, 2, 1]) })];
+  const callsBeforeSelection = threadCalls;
+  await publish('Новый комментарий');
+  await reconciled(callsBeforeSelection);
+  await page.waitForFunction(id => document.querySelector(`[data-comment-id="${id}"] [data-reaction="like"]`).getAttribute('aria-pressed') === 'true', commentId);
+  await reaction('like').click();
+  await page.waitForFunction(id => document.querySelector(`[data-comment-id="${id}"] [data-reaction="like"]`).getAttribute('aria-pressed') === 'false'
+    && !document.querySelector(`[data-comment-id="${id}"] [data-reaction="like"]`).disabled, commentId);
+  assert.deepEqual(reactionWrites.at(-1), { reaction: null }, 'a reloaded selected reaction toggles off');
+  await reaction('thanks').click();
+  await page.waitForFunction(id => document.querySelector(`[data-comment-id="${id}"] [data-reaction="thanks"]`).getAttribute('aria-pressed') === 'true', commentId);
+  assert.deepEqual(reactionWrites.map(write => write.reaction), [null, 'thanks'], 'later choices use the latest row');
+
+  // Session reset leaves no private selection or moderator action behind.
+  reset({ moderator: true }); rows = [comment({ reactions: reactions('fire') })];
+  await load(); await page.waitForFunction(() => document.querySelector('[data-reaction="fire"]').getAttribute('aria-pressed') === 'true');
+  await moderation().click();
+  const staleDelete = await page.getByRole('button', { name: 'Удалить комментарий' }).elementHandle();
+  holdReaction = true; await reaction('thanks').click(); await waitForQueuedRequest(heldReactions, 'reaction');
+  rows = [comment()];
+  const expiredReaction = heldReactions.shift(); json(expiredReaction.response, 401, { error: 'not_authenticated' }); holdReaction = false;
+  await page.getByRole('link', { name: 'Войти через HearthPulse' }).waitFor();
+  assert.equal(await page.locator('[data-community-admin]').count(), 0, 'session reset removes moderator controls');
+  assert.equal(await page.locator('[data-reaction][aria-pressed="true"]').count(), 0, 'session reset clears the previous reader selection');
+  await staleDelete.evaluate(button => button.click()); await page.waitForTimeout(100);
+  assert.equal(deleteWrites.length, 0, 'a detached moderator control cannot act after session reset');
+  await page.getByRole('button', { name: /Нравится/ }).waitFor();
+  const writesAfterReset = reactionWrites.length;
+  await reaction('like').click(); await page.waitForTimeout(100);
+  assert.equal(reactionWrites.length, writesAfterReset, 'a reused reaction after logout offers login instead of writing');
 
   reset({ moderator: true }); holdPermission = true;
   await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded' }); await page.getByRole('button', { name: /Нравится/ }).waitFor();

@@ -213,7 +213,7 @@ try {
     if (width >= 1180) {
       assert.ok(outerAlignment.main.width > outerAlignment.inner.width, 'theme outer wrapper must remain distinct from the inner content container');
     }
-    assert.equal(outerAlignment.mainBackground, 'rgb(243, 245, 246)', 'the cabinet must use the cool paper background from the Reader design contract');
+    assert.equal(outerAlignment.mainBackground, 'rgb(243, 239, 230)', 'the cabinet must use the warm paper background from the Reader design contract');
   };
 
   parserDelay = 900; footerDelay = 1400;
@@ -405,7 +405,9 @@ try {
         };
       });
       assert.equal(mark.active, true, `author mark must be keyboard reachable at ${width}px`);
-      assert.equal(mark.parentClass, 'mc-reader__identity-line', `author mark must remain beside the name at ${width}px`);
+      assert.equal(mark.parentClass, 'mc-reader__social-marks', `author mark must sit in the social row below the bio at ${width}px`);
+      assert.ok(await link.evaluate(element => element.parentElement.previousElementSibling?.matches('[data-reader-preview-bio]')
+        && !element.closest('.mc-reader__identity-line')), `social row follows the bio, apart from name and badges at ${width}px`);
       assert.ok(mark.width >= 44 && mark.height >= 44, `author mark must keep a 44px touch target at ${width}px`);
       assert.ok(mark.width <= 48, `author mark must stay icon-sized beside the name at ${width}px`);
       assert.equal(mark.focusVisible, true, `author mark must expose keyboard focus at ${width}px`);
@@ -443,7 +445,7 @@ try {
     const style = getComputedStyle(element);
     return { background: style.backgroundColor, borderLeft: style.borderLeftWidth, radius: style.borderRadius, shadow: style.boxShadow };
   });
-  assert.equal(overviewVisual.background, 'rgb(255, 255, 255)');
+  assert.equal(overviewVisual.background, 'rgb(250, 248, 243)', 'the profile uses the warm Reader surface token');
   assert.equal(overviewVisual.borderLeft, '1px', 'the profile must not use an ornamental amber rail');
   assert.equal(overviewVisual.radius, '8px', 'the generated Reader Tailwind layer must preserve the shared surface geometry');
   assert.equal(overviewVisual.shadow, 'none', 'the profile surface must remain shadow-free');

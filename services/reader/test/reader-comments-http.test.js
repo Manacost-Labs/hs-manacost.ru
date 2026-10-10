@@ -12,7 +12,7 @@ function fixture(t, enabled = true) {
   const issuer = 'https://hearthpulse.net/identity';
   const profiles = new ReaderProfiles({ db: store.db, issuer });
   const comments = new ReaderComments({ db: store.db, issuer });
-  const identity = { profile: async () => ({ displayName: 'Читатель' }) };
+  const identity = { verify: async () => true, profile: async () => ({ displayName: 'Читатель' }) };
   const editorial = { get: async ids => new Map(ids.map(postId => [postId, { postId, allowed: postId === 17, title: 'Пилот', path: '/pilot/' }])) };
   const entitlements = { get: async ids => new Map(ids.map(id => [id, id === 'paid-reader'])) };
   const handle = createReaderHandler({ origin, store, profiles, identity, csrfKey: randomBytes(32),

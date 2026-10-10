@@ -51,13 +51,28 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
   const favoriteRoutes = createFavoriteRoutes({ community, store, profiles, identity, validWrite, json, csrf });
   let windowStart = Date.now();
   const buckets = new Map();
+  /** A stored profile already has its name, so only the active subject is verified upstream. */
+  async function accountReader(id, signal) {
+    const session = store.getSession(id);
+    if (profiles && session && profiles.row(session.userId)) {
+      const verified = await verifiedWriter(store, identity, id, signal);
+      if (!verified) return null;
+      const row = profiles.row(verified.session.userId);
+      if (row) return { session: verified.session, profile: profiles.dto(row) };
+    }
+    const verified = await verifiedReader(store, identity, id, signal);
+    if (!verified) return null;
+    return { session: verified.session, displayName: verified.profile.displayName,
+      profile: profiles?.getOrCreate(verified.session.userId, verified.profile.displayName) };
+  }
+  const account = (id, { profile, displayName }) => ({ user: { displayName: profile?.displayName ?? displayName },
+    csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) });
   async function bootstrap(url, id, signal) {
     if ([...url.searchParams.keys()].some(key => key !== 'postId') || url.searchParams.getAll('postId').length > 1) return json(400, { error: 'invalid_request' });
-    const verified = await verifiedReader(store, identity, id, signal);
+    const verified = await accountReader(id, signal);
     if (!verified) return json(401, { error: 'not_authenticated' });
-    const profile = profiles?.getOrCreate(verified.session.userId, verified.profile.displayName);
-    const body = { user: { displayName: profile?.displayName ?? verified.profile.displayName }, csrfToken: csrf(id),
-      profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) };
+    const { profile } = verified;
+    const body = account(id, verified);
     const postId = url.searchParams.get('postId');
     if (postId === null) return json(200, body);
     const numericPostId = Number(postId);
@@ -156,11 +171,9 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
       return response;
     }
     if (url.pathname === '/reader-api/v1/me' && request.method === 'GET') {
-      const verified = await verifiedReader(store, identity, id, signal);
+      const verified = await accountReader(id, signal);
       if (!verified) return json(401, { error: 'not_authenticated' });
-      const profile = profiles?.getOrCreate(verified.session.userId, verified.profile.displayName);
-      return json(200, { user: { displayName: profile?.displayName ?? verified.profile.displayName },
-        csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) });
+      return json(200, account(id, verified));
     }
     if (url.pathname === '/reader-api/v1/ad-status' && request.method === 'GET') return await adStatus(id, signal);
     if (url.pathname === '/reader-api/v1/bootstrap' && request.method === 'GET') return await bootstrap(url, id, signal);
