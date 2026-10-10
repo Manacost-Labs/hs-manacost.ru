@@ -5,6 +5,7 @@ import { ReaderStore } from '../core.js';
 import { createReaderHandler } from '../http.js';
 import { createIdentityClient } from '../identity-client.js';
 import { ReaderProfiles } from '../profiles.js';
+import { createPaidTitleClient } from '../community-clients.js';
 
 const origin = 'https://test.hs-manacost.ru';
 function fixture() {
@@ -50,10 +51,17 @@ test('anonymous, browser-bound login, no-store profile and authoritative revocat
 
 test('private ad status gives paid HearthPulse readers an ad-free fail-closed gate', async () => {
   const store = new ReaderStore({ encryptionKey: randomBytes(32) });
-  let paid = true; let entitlementAvailable = true; let profileCalls = 0;
+  let paid = true; let entitlementAvailable = true; let fresh = true; let profileCalls = 0;
   const identity = { profile: async () => { profileCalls += 1; return { displayName: 'Reader' }; }, verify: async () => true };
+  const entitlements = createPaidTitleClient({ clientId: 'manacost-reader-staging', clientSecret: 'z'.repeat(43) }, async (_url, request) => {
+    if (!entitlementAvailable) throw new Error('synthetic provider outage');
+    const now = Date.now();
+    return Response.json({ entitlements: JSON.parse(request.body).subjects.map(subject => ({
+      subject, paid, checkedAt: now - 1000, validUntil: fresh ? now + 60000 : now - 1,
+    })) });
+  });
   const handle = createReaderHandler({ origin, store, identity, csrfKey: randomBytes(32),
-    community: { entitlements: { get: async ids => entitlementAvailable ? new Map(ids.map(id => [id, paid])) : new Map() } } });
+    community: { entitlements } });
   try {
     const session = store.createSession({ userId: 'paid-reader', upstreamToken: 'token', ttlMs: 300000 });
     const headers = { cookie: `__Host-manacost_reader=${session.id}` };
@@ -64,6 +72,10 @@ test('private ad status gives paid HearthPulse readers an ad-free fail-closed ga
     assert.deepEqual(await subscribed.json(), { adFree: true });
     paid = false;
     assert.deepEqual(await (await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }))).json(), { adFree: false });
+    fresh = false;
+    assert.deepEqual(await (await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }))).json(), { adFree: true });
+    paid = true;
+    assert.deepEqual(await (await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }))).json(), { adFree: true });
     entitlementAvailable = false;
     assert.deepEqual(await (await handle(new Request(`${origin}/reader-api/v1/ad-status`, { headers }))).json(), { adFree: true });
     assert.equal(profileCalls, 0, 'the ad gate verifies only the active token, never userinfo');
