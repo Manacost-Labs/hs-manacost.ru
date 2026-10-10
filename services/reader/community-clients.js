@@ -131,10 +131,12 @@ export function createPaidTitleClient({ clientId, clientSecret }, transport = fe
           const item = data.entitlements[index];
           if (!exactKeys(item, ['subject', 'paid', 'checkedAt', 'validUntil']) || item.subject !== subjects[index]
             || typeof item.paid !== 'boolean') return new Map();
-          const valid = item.paid === true && Number.isSafeInteger(item.checkedAt) && Number.isSafeInteger(item.validUntil)
+          const fresh = Number.isSafeInteger(item.checkedAt) && Number.isSafeInteger(item.validUntil)
             && item.checkedAt <= now && item.checkedAt > now - 1800000 && item.validUntil > now
             && item.validUntil <= item.checkedAt + 1800000;
-          result.set(item.subject, valid);
+          // Unknown subscription evidence must not enable ads for a paid reader.
+          if (!fresh) return new Map();
+          result.set(item.subject, item.paid);
         }
         return result;
       } catch { return new Map(); }

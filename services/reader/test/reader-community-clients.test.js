@@ -107,11 +107,15 @@ test('paid title is subject-bound, fresh, and fails closed without breaking comm
     return Response.json(body);
   });
   assert.equal((await client({ entitlements: [paid] }).get(['reader-a'])).get('reader-a'), true);
+  assert.equal((await client({ entitlements: [{ ...paid, paid: false }] }).get(['reader-a'])).get('reader-a'), false);
   for (const item of [
     { ...paid, subject: 'reader-b' }, { ...paid, paid: 'true' },
     { ...paid, checkedAt: now - 1800001 }, { ...paid, validUntil: now - 1 },
     { ...paid, validUntil: now + 1800001 }, { ...paid, checkedAt: now + 60000 },
-  ]) assert.notEqual((await client({ entitlements: [item] }).get(['reader-a'])).get('reader-a'), true);
+    { ...paid, paid: false, validUntil: now - 1 },
+  ]) assert.equal((await client({ entitlements: [item] }).get(['reader-a'])).size, 0, 'invalid evidence stays unknown, not unpaid');
+  assert.equal((await client({ entitlements: [paid, { ...paid, subject: 'reader-b', validUntil: now - 1 }] })
+    .get(['reader-a', 'reader-b'])).size, 0, 'an invalid batch does not expose partial subscription claims');
   const unavailable = createPaidTitleClient(options, async () => { throw new Error('private provider information'); });
   assert.equal((await unavailable.get(['reader-a'])).size, 0);
 });
