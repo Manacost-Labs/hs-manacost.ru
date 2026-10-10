@@ -74,7 +74,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          tools: wp-cli
+          tools: wp-cli:2.12.0@sha256:ce34ddd838f7351d6759068d09793f26755463b4a4610a5a5c0a97b68220d85c
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
