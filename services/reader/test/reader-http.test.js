@@ -330,6 +330,39 @@ test('bootstrap favorite state keeps postId validation and the editorial session
   } finally { f.store.close(); }
 });
 
+test('bootstrap starts the editorial lookup alongside verification only for a local session', async () => {
+  const editorialCalls = [];
+  let editorialFails = false;
+  const community = {
+    favorites: { status: () => false },
+    favoriteEditorial: { get: async ids => {
+      editorialCalls.push(ids);
+      if (editorialFails) throw new Error('editorial outage');
+      return new Map(ids.map(id => [id, { allowed: true }]));
+    } },
+  };
+  const f = accountFixture({ community });
+  try {
+    f.profiles.getOrCreate('local-subject', 'Локальное имя');
+    const held = f.holdVerify();
+    const pending = get(f, '/reader-api/v1/bootstrap?postId=7');
+    await held.waiting;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(editorialCalls, [[7]], 'the editorial lookup does not wait for HearthPulse');
+    held.release(true);
+    assert.deepEqual((await (await pending).json()).favorite, { postId: 7, saved: false });
+    for (const query of ['postId=0', 'postId=x', 'other=1']) await get(f, `/reader-api/v1/bootstrap?${query}`);
+    assert.equal(editorialCalls.length, 1, 'invalid input never reaches WordPress');
+    editorialFails = true;
+    assert.equal((await get(f, '/reader-api/v1/bootstrap?postId=7')).status, 503);
+    f.identity.verify = async () => false;
+    assert.equal((await get(f, '/reader-api/v1/bootstrap?postId=7')).status, 401, 'revocation wins over an editorial outage');
+    const calls = editorialCalls.length;
+    assert.equal((await f.handle(new Request(`${origin}/reader-api/v1/bootstrap?postId=7`))).status, 401);
+    assert.equal(editorialCalls.length, calls, 'an anonymous probe never reaches WordPress');
+  } finally { f.store.close(); }
+});
+
 test('MCP OAuth handling still runs before the account routes', async () => {
   const seen = [];
   const mcpOAuth = async (request, url) => {

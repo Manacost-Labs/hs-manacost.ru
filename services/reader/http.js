@@ -69,15 +69,21 @@ export function createReaderHandler({ origin, store, identity, csrfKey, profiles
     csrfToken: csrf(id), profileUrl: identity.profileUrl ?? null, ...(profile ? { profile } : {}) });
   async function bootstrap(url, id, signal) {
     if ([...url.searchParams.keys()].some(key => key !== 'postId') || url.searchParams.getAll('postId').length > 1) return json(400, { error: 'invalid_request' });
+    const postId = url.searchParams.get('postId');
+    const numericPostId = Number(postId);
+    const lookup = postId !== null && Number.isSafeInteger(numericPostId) && numericPostId > 0
+      && community?.favorites && community.favoriteEditorial;
+    // The public editorial predicate does not depend on identity. Start it after
+    // the local session gate; the session recheck below still lets logout win.
+    const editorial = lookup && store.getSession(id) ? community.favoriteEditorial.get([numericPostId], signal) : null;
+    editorial?.catch(() => {});
     const verified = await accountReader(id, signal);
     if (!verified) return json(401, { error: 'not_authenticated' });
     const { profile } = verified;
     const body = account(id, verified);
-    const postId = url.searchParams.get('postId');
     if (postId === null) return json(200, body);
-    const numericPostId = Number(postId);
-    if (!Number.isSafeInteger(numericPostId) || numericPostId < 1 || !community?.favorites || !community.favoriteEditorial) return json(404, { error: 'not_found' });
-    const [articles] = await Promise.all([community.favoriteEditorial.get([numericPostId], signal)]);
+    if (!editorial) return json(404, { error: 'not_found' });
+    const articles = await editorial;
     const current = store.getSession(id);
     if (!current || current.userId !== verified.session.userId || current.upstreamToken !== verified.session.upstreamToken) return json(401, { error: 'not_authenticated' });
     if (articles.get(numericPostId)?.allowed !== true) return json(404, { error: 'not_found' });
