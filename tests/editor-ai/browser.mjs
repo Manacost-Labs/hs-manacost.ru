@@ -48,12 +48,20 @@ try {
   };
   const apply = () => dialog.getByRole('button', { name: 'Применить изменения' }).click();
   const close = () => dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await setContent(''); await open('proofread');
+  await expect(dialog.getByRole('button', { name: 'Отправить текст', exact: true })).toBeDisabled();
+  await expect(dialog.locator('#hs-editor-ai-status')).toContainText('Добавьте текст');
+  await close();
   const payload = { post_id: post, mode: 'proofread', source: 'Тест.', context: 'Тест.' };
   const denied = await context.request.post(`${base}/wp-json/hs-editor-ai/v1/jobs`, { headers: { 'X-WP-Nonce': 'invalid' }, data: payload });
   assert.equal(denied.status(), 403);
+  const emptyId = '0'.repeat(32);
+  const deniedRun = await context.request.post(`${base}/wp-json/hs-editor-ai/v1/jobs/${emptyId}/run`, { headers: { 'X-WP-Nonce': 'invalid' }, data: {} });
+  assert.equal(deniedRun.status(), 403);
   const anonymous = await browser.newContext();
   const unauth = await anonymous.request.post(`${base}/wp-json/hs-editor-ai/v1/jobs`, { data: payload });
   assert.equal(unauth.status(), 401);
+  assert.equal((await anonymous.request.post(`${base}/wp-json/hs-editor-ai/v1/jobs/${emptyId}/run`, { data: {} })).status(), 401);
   await anonymous.close();
   report.checks.push('real cookie authentication and invalid nonce rejection');
 
@@ -61,7 +69,16 @@ try {
   await setContent(original);
   const stable = await getContent();
   await select('Лирой Дженкинс');
-  await open('cards'); await run(); await apply();
+  await open('cards');
+  await expect(dialog.locator('#hs-editor-ai-input')).toHaveText('Лирой Дженкинс');
+  const dispatch = page.waitForResponse(response => response.request().method() === 'POST' && /\/jobs\/[a-f0-9]{32}\/run$/.test(response.url()));
+  await run();
+  assert.equal((await dispatch).status(), 200);
+  await expect(dialog.locator('#hs-editor-ai-after mark')).not.toHaveCount(0);
+  await expect(dialog.locator('#hs-editor-ai-after')).toContainText('[hs_card');
+  await close(); await open('cards');
+  await expect(dialog.getByRole('button', { name: 'Применить изменения' })).toBeVisible();
+  await apply();
   assert.equal(await getContent(), stable.replace('Лирой Дженкинс', '[hs_card id="EX1_116"]Лирой Дженкинс[/hs_card]'));
   await page.evaluate(() => window.tinymce.get('content').undoManager.undo());
   assert.equal(await getContent(), stable);
@@ -74,15 +91,48 @@ try {
   await select('3 мнаны'); await open('proofread'); await run(); await apply();
   assert.equal(await getContent(), stable.replace('3 мнаны', '3 маны'));
   report.checks.push('punctuation mode preserves other words');
-  await setContent(original); await open('editor'); await run(); await apply();
+  await setContent(original); await open('editor'); await run();
+  await expect(dialog.locator('#hs-editor-ai-before')).not.toContainText('<p>');
+  await dialog.getByLabel('Показать HTML-разметку').check();
+  await expect(dialog.locator('#hs-editor-ai-before')).toContainText('<p>');
+  await dialog.getByLabel('Показать HTML-разметку').uncheck();
+  await apply();
   assert.equal(await getContent(), stable.replace('3 мнаны', '3 маны'));
   report.checks.push('whole article editing with separate semantic review');
+  report.checks.push('immediate authenticated dispatch, safe highlighted preview, markup toggle, retained proposal');
 
   await setContent(original); await open('proofread'); await run();
   await setContent('<p>Автор уже изменил текст.</p>'); await apply();
   await expect(dialog.locator('#hs-editor-ai-status')).toContainText('Статья изменилась');
   assert.equal(await getContent(), '<p>Автор уже изменил текст.</p>');
   await close(); report.checks.push('stale suggestion cannot overwrite changes');
+
+  await setContent('<p>Текст при временной ошибке: 3 мнаны.</p>');
+  const retained = await getContent();
+  await open('proofread');
+  const temporaryFailure = route => route.request().method() === 'POST'
+    ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Сервис временно недоступен.' }) })
+    : route.continue();
+  await page.route('**/wp-json/hs-editor-ai/v1/jobs', temporaryFailure);
+  await dialog.getByRole('button', { name: 'Отправить текст', exact: true }).click();
+  await expect(dialog.locator('#hs-editor-ai-status')).toContainText('Сервис временно недоступен');
+  assert.equal(await getContent(), retained);
+  await page.unroute('**/wp-json/hs-editor-ai/v1/jobs', temporaryFailure);
+  await dialog.getByRole('button', { name: 'Повторить отправку', exact: true }).click();
+  await expect(dialog.locator('#hs-editor-ai-status')).toContainText('Предложение готово');
+  await apply();
+  report.checks.push('empty text, visible service failure and successful retry without lost text');
+
+  await setContent('<p>Фоновая обработка: 3 мнаны. &lt;img src=x onerror=alert(1)&gt;</p>');
+  await open('proofread');
+  await dialog.getByRole('button', { name: 'Отправить текст', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Продолжить писать', exact: true })).toBeVisible();
+  await close(); await open('proofread');
+  await expect(dialog.locator('#hs-editor-ai-status')).toContainText('Предложение готово');
+  await expect(dialog.locator('.hs-editor-ai-compare img, .hs-editor-ai-compare script')).toHaveCount(0);
+  await expect(dialog.locator('#hs-editor-ai-after')).toContainText('<img src=x onerror=alert(1)>');
+  await apply();
+  report.checks.push('background close/reopen and HTML entities remain inert text in preview');
 
   for (const width of [320, 390, 600, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });

@@ -17,6 +17,10 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 		return $pre;
 	}
 	update_option( 'hs_editor_ai_test_calls', (int) get_option( 'hs_editor_ai_test_calls', 0 ) + 1, false );
+	$delay = min( 1500, max( 0, (int) get_option( 'hs_editor_ai_test_delay_ms', 0 ) ) );
+	if ( $delay ) {
+		usleep( $delay * 1000 );
+	}
 	$variant = get_option( 'hs_editor_ai_test_response', 'normal' );
 	if ( 'timeout' === $variant ) {
 		return new WP_Error( 'transport', 'PRIVATE PROVIDER DETAIL' );
@@ -50,11 +54,20 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 }, 10, 3 );
 // Deterministic browser polling in a stack whose WP-Cron is disabled.
 add_filter( 'rest_request_before_callbacks', function ( $response, $handler, $request ) {
-	if ( 'GET' === $request->get_method() && preg_match( '~^/hs-editor-ai/v1/jobs/([a-f0-9]{32})$~', $request->get_route(), $match ) ) {
+	if ( ! get_option( 'hs_editor_ai_test_performance' ) && 'GET' === $request->get_method() && preg_match( '~^/hs-editor-ai/v1/jobs/([a-f0-9]{32})$~', $request->get_route(), $match ) ) {
 		$job = get_transient( 'hs_editor_ai_' . $match[1] );
 		if ( is_array( $job ) && ( $job['user'] ?? 0 ) === get_current_user_id() ) {
 			Manacost\EditorAi\Jobs::process( $match[1] );
 		}
+	}
+	return $response;
+}, 10, 3 );
+// Numeric diagnostics exist only in this explicitly enabled local test fixture.
+add_filter( 'rest_post_dispatch', function ( $response, $server, $request ) {
+	if ( get_option( 'hs_editor_ai_test_performance' ) && str_starts_with( $request->get_route(), '/hs-editor-ai/v1/jobs' ) ) {
+		global $wpdb;
+		$response->header( 'X-AI-Test-Queries', (string) $wpdb->num_queries );
+		$response->header( 'X-AI-Test-Memory', (string) round( memory_get_peak_usage( true ) / 1048576, 2 ) );
 	}
 	return $response;
 }, 10, 3 );
