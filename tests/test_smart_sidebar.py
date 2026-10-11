@@ -16,17 +16,19 @@ class SmartSidebarTest(unittest.TestCase):
         $filters = [];
         $actions = [];
         $styles = [];
+        $scripts = [];
         function add_filter($hook, $callback) {{ $GLOBALS['filters'][$hook] = $callback; }}
         function add_action($hook, $callback) {{ $GLOBALS['actions'][$hook] = $callback; }}
         function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
         function wp_enqueue_style($handle, $src, $deps, $version) {{ $GLOBALS['styles'][$handle] = $src; }}
+        function wp_enqueue_script($handle, $src, $deps, $version, $footer) {{ $GLOBALS['scripts'][$handle] = ['src' => $src, 'deps' => $deps, 'footer' => $footer]; }}
         function is_admin() {{ return {json.dumps(admin)}; }}
         function get_template() {{ return {json.dumps(theme)}; }}
         require {json.dumps(str(PLUGIN))};
         $original = json_decode({json.dumps(json.dumps(value))}, true);
         $result = call_user_func($filters['option_td_011'], $original);
         call_user_func($actions['wp_enqueue_scripts']);
-        echo json_encode(['result' => $result, 'original' => $original, 'styles' => $styles]);
+        echo json_encode(['result' => $result, 'original' => $original, 'styles' => $styles, 'scripts' => $scripts]);
         '''
         completed = subprocess.run([shutil.which('php'), '-r', script], capture_output=True, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -54,6 +56,16 @@ class SmartSidebarTest(unittest.TestCase):
         })
         self.assertEqual(self.settings({}, admin=True)['styles'], [])
         self.assertEqual(self.settings({}, theme='twentytwentysix')['styles'], [])
+
+    def test_stable_controller_depends_on_the_native_library_and_is_public_only(self):
+        self.assertEqual(self.settings({})['scripts'], {
+            'manacost-smart-sidebar': {
+                'src': '/wp-content/mu-plugins/manacost-smart-sidebar.js',
+                'deps': ['tdSmartSidebar'], 'footer': True
+            }
+        })
+        self.assertEqual(self.settings({}, admin=True)['scripts'], [])
+        self.assertEqual(self.settings({}, theme='twentytwentysix')['scripts'], [])
 
     def test_article_html_trim_keeps_the_native_sidebar_script(self):
         sidebar = '<script src="/tdSmartSidebar.js" id="tdSmartSidebar-js"></script>'

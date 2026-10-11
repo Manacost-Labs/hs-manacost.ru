@@ -23,6 +23,7 @@
       "patterns": [
         "wordpress/mu-plugins/manacost-smart-sidebar.php",
         "wordpress/mu-plugins/manacost-smart-sidebar.css",
+        "wordpress/mu-plugins/manacost-smart-sidebar.js",
         "tests/test_smart_sidebar.py",
         "tests/visual/smart-sidebar.spec.ts"
       ],
