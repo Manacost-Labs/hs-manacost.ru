@@ -1,6 +1,7 @@
-/* Keep one positioning model across direction changes. The sidebar retains its
- * normal width and layout space; scrolling only changes its vertical offset. */
-body .td-main-sidebar > .manacost-smart-sidebar {
+/* Free movement preserves the document position on reversal. At either viewport
+ * edge, fixed positioning stays smooth even while JavaScript is busy. */
+body .td-main-sidebar > .manacost-smart-sidebar,
+body .td-is-sticky > .manacost-smart-sidebar {
 	position: relative !important;
 	width: auto !important;
 	top: 0 !important;
@@ -8,8 +9,28 @@ body .td-main-sidebar > .manacost-smart-sidebar {
 	transform: translateY(var(--manacost-sidebar-offset, 0px));
 }
 
+.manacost-sidebar-space {
+	display: none;
+}
+
+@media (min-width: 768px) {
+	body .td-main-sidebar > .manacost-sidebar-pinned,
+	body .td-is-sticky > .manacost-sidebar-pinned {
+		position: fixed !important;
+		box-sizing: border-box;
+		width: var(--manacost-sidebar-width) !important;
+		top: var(--manacost-sidebar-top) !important;
+		transform: none;
+	}
+
+	.manacost-sidebar-pinned + .manacost-sidebar-space {
+		display: block;
+	}
+}
+
 @media (max-width: 767px) {
-	body .td-main-sidebar > .manacost-smart-sidebar {
+	body .td-main-sidebar > .manacost-smart-sidebar,
+	body .td-is-sticky > .manacost-smart-sidebar {
 		position: static !important;
 		transform: none;
 	}

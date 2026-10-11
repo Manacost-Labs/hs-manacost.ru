@@ -3,7 +3,7 @@ import path from 'node:path';
 
 // Exercise our controller with the exact Newspaper library and markup. The
 // isolated WP fixture omits commercial Composer, so supply only its environment.
-async function sidebarFixture(page: Page, width: number, height = 1200, admin = false) {
+async function sidebarFixture(page: Page, width: number, height = 1200, admin = false, composer = false) {
   await page.setViewportSize({ width, height: 900 });
   await page.setContent(`<!doctype html><html lang="ru"><head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,17 +12,17 @@ async function sidebarFixture(page: Page, width: number, height = 1200, admin = 
       header { height: 200px; }
       .td-pb-row { display: grid; grid-template-columns: 2fr 1fr; gap: 24px;
         max-width: 1068px; margin: auto; padding: 0 16px; }
-      .td-main-sidebar { position: relative; min-width: 0; }
-      .td-ss-main-content { height: 5000px; }
-      .td-ss-main-sidebar { height: ${height}px; background: #f7f2e6; }
+      .td-main-sidebar, .td-is-sticky { position: relative; min-width: 0; }
+      .fixture-content { height: 5000px; }
+      .fixture-sidebar { height: ${height}px; background: #f7f2e6; }
       .clearfix { clear: both; }
       a { display: block; padding: 16px; }
       footer { height: 400px; }
       @media (max-width: 767px) { .td-pb-row { display: block; } }
     </style></head><body class="${admin ? 'admin-bar' : ''}">
     <header>Манакост</header><div class="td-pb-row">
-      <main><div class="td-ss-main-content">Содержание статьи</div></main>
-      <aside class="td-main-sidebar"><div class="td-ss-main-sidebar">
+      <main><div class="fixture-content ${composer ? 'wpb_wrapper' : 'td-ss-main-content'}">Содержание статьи</div></main>
+      <aside class="${composer ? 'vc_column td-is-sticky' : 'td-main-sidebar'}"><div class="fixture-sidebar ${composer ? 'wpb_wrapper' : 'td-ss-main-sidebar'}" data-sticky-offset="${composer ? 20 : 0}">
         <a href="#support">Поддержите нашу команду</a><h2>VIP</h2>
         <a href="#guide">Мета-отчёт по Полям Сражений</a>
       </div></aside></div><footer>Футер</footer></body></html>`);
@@ -42,8 +42,10 @@ async function sidebarFixture(page: Page, width: number, height = 1200, admin = 
   await page.evaluate(() => {
     const runtime = window as any;
     const sidebar = new runtime.tdSmartSidebar.item();
-    sidebar.sidebar_jquery_obj = runtime.jQuery('.td-ss-main-sidebar');
-    sidebar.content_jquery_obj = runtime.jQuery('.td-ss-main-content');
+    sidebar.sidebar_jquery_obj = runtime.jQuery('.fixture-sidebar');
+    sidebar.content_jquery_obj = runtime.jQuery('.fixture-content');
+    sidebar.offset = Number(sidebar.sidebar_jquery_obj.attr('data-sticky-offset'));
+    sidebar.enabled_on = [false, true, true, true];
     runtime.tdSmartSidebar.add_item(sidebar);
     runtime.tdSmartSidebar.td_events_resize();
     window.addEventListener('scroll', () => runtime.tdSmartSidebar.compute());
@@ -61,7 +63,7 @@ test('long sidebar follows scrolling, remains reachable and stops before the foo
     const sidebar = page.locator('.td-ss-main-sidebar');
     await expect(page.getByRole('link', { name: 'Поддержите нашу команду' })).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 1600));
-    await expect(sidebar).toHaveCSS('position', 'relative');
+    await expect(sidebar).toHaveCSS('position', 'fixed');
     await expect.poll(async () => (await sidebar.boundingBox())?.y).toBe(-300);
     const first = await sidebar.boundingBox();
     await page.evaluate(() => window.scrollTo(0, 2000));
@@ -101,7 +103,7 @@ test('short sidebar follows at the top and accounts for the admin bar', async ({
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await sidebarFixture(page, 1440, 300, true);
   await page.evaluate(() => window.scrollTo(0, 1600));
-  await expect(page.locator('.td-ss-main-sidebar')).toHaveCSS('position', 'relative');
+  await expect(page.locator('.td-ss-main-sidebar')).toHaveCSS('position', 'fixed');
   expect((await page.locator('.td-ss-main-sidebar').boundingBox())!.y).toBe(32);
 });
 
@@ -164,4 +166,48 @@ test('focusing a visible sidebar link does not move the panel or the page', asyn
   await expect(page.getByRole('link', { name: 'Мета-отчёт по Полям Сражений' })).toBeInViewport();
   expect((await sidebar.boundingBox())!.y).toBe(0);
   expect(await page.evaluate(() => scrollY)).toBe(1600);
+});
+
+
+for (const height of [300, 1200]) {
+  test(`the browser keeps a ${height}px pinned sidebar still while scroll handlers are delayed`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop-1440');
+    await sidebarFixture(page, 1440, height);
+    await page.evaluate(() => scrollTo(0, 1600));
+    await expect.poll(async () => (await page.locator('.td-ss-main-sidebar').boundingBox())?.y).toBe(Math.min(0, 900 - height));
+    const client = await page.context().newCDPSession(page);
+    const { root } = await client.send('DOM.getDocument');
+    const { nodeId } = await client.send('DOM.querySelector', { nodeId: root.nodeId, selector: '.td-ss-main-sidebar' });
+    const before = await client.send('DOM.getBoxModel', { nodeId });
+    // Async scrolling continues on the compositor while page JavaScript is busy.
+    await client.send('Emulation.setScriptExecutionDisabled', { value: true });
+    try {
+      await page.mouse.move(600, 400);
+      await page.mouse.wheel(0, 180);
+      await page.waitForTimeout(150);
+      const after = await client.send('DOM.getBoxModel', { nodeId });
+      expect(after.model.border[1]).toBeCloseTo(before.model.border[1], 0);
+    } finally {
+      await client.send('Emulation.setScriptExecutionDisabled', { value: false });
+      await client.detach();
+    }
+  });
+}
+
+test('Composer column pairs use stable positioning and retain their configured offset', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440');
+  await sidebarFixture(page, 1440, 300, false, true);
+  const sidebar = page.locator('.fixture-sidebar');
+  await expect(sidebar).toHaveClass(/manacost-smart-sidebar/);
+  expect(await page.evaluate(() => (window as any).tdSmartSidebar.items.length)).toBe(0);
+  await page.evaluate(() => scrollTo(0, 1600));
+  await expect.poll(async () => (await sidebar.boundingBox())?.y).toBe(20);
+  await expect(sidebar).toHaveCSS('position', 'fixed');
+  const before = await sidebar.boundingBox();
+  await page.evaluate(() => scrollTo(0, 1580));
+  await expect.poll(async () => (await sidebar.boundingBox())?.y).toBe(before!.y);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect(sidebar).toHaveCSS('position', 'static');
+  expect(await page.getByRole('link').count()).toBe(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Manacost Smart Sidebar
  * Description: Keeps Newspaper's public sidebar stable when scroll direction changes.
- * Version: 1.1.0
+ * Version: 1.2.0
  *
  * @package Manacost
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/** Enables the native markup and scopes stable positioning to classic sidebars. */
+/** Enables native markup and stable public article/Composer sidebar positioning. */
 final class Manacost_Smart_Sidebar {
 	/** Loads positioning and keyboard support after the native library. */
 	public static function enqueue_styles(): void {
@@ -21,14 +21,14 @@ final class Manacost_Smart_Sidebar {
 			'manacost-smart-sidebar',
 			plugin_dir_url( __FILE__ ) . 'manacost-smart-sidebar.css',
 			array(),
-			'1.1.0'
+			'1.2.0'
 		);
 
 		wp_enqueue_script(
 			'manacost-smart-sidebar',
 			plugin_dir_url( __FILE__ ) . 'manacost-smart-sidebar.js',
 			array( 'tdSmartSidebar' ),
-			'1.1.0',
+			'1.2.0',
 			true
 		);
 	}
