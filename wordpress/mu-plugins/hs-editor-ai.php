@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Editor AI
  * Description: Reviewed card shortcodes, EditorTeam editing and proofreading.
- * Version: 1.0.1
+ * Version: 1.1.0
  *
  * @package Manacost
  */

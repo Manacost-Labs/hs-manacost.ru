@@ -79,6 +79,33 @@ final class Jobs {
 				'callback'            => array( self::class, 'status' ),
 			)
 		);
+		register_rest_route(
+			'hs-editor-ai/v1',
+			'/jobs/(?P<id>[a-f0-9]{32})/run',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => array( self::class, 'allowed' ),
+				'callback'            => array( self::class, 'dispatch' ),
+			)
+		);
+	}
+
+	/**
+	 * Run an already authorized job in a separate browser request; cron is backup.
+	 *
+	 * @param \WP_REST_Request $request Owner lookup, authenticated with REST nonce.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public static function dispatch( \WP_REST_Request $request ) {
+		$status = self::status( $request );
+		if ( is_wp_error( $status ) ) {
+			return $status;
+		}
+		if ( ! Provider::enabled() ) {
+			return new \WP_Error( 'editor_ai_disabled', __( 'ИИ отключён. Исходный текст сохранён.', 'manacost' ), array( 'status' => 503 ) );
+		}
+		self::process( (string) $request['id'], true );
+		return self::status( $request );
 	}
 
 	/**
@@ -175,6 +202,7 @@ final class Jobs {
 		return rest_ensure_response(
 			array(
 				'state'  => $job['state'],
+				'phase'  => $job['phase'] ?? $job['state'],
 				'result' => $job['result'] ?? '',
 				'error'  => $job['error'] ?? '',
 			)
@@ -184,10 +212,11 @@ final class Jobs {
 	/**
 	 * Background worker. A duplicate callback never repeats a model call.
 	 *
-	 * @param string $id Opaque job ID.
+	 * @param string $id           Opaque job ID.
+	 * @param bool   $split_review Limit an HTTP worker to one bounded model call.
 	 * @return void
 	 */
-	public static function process( string $id ): void {
+	public static function process( string $id, bool $split_review = false ): void {
 		$job = get_transient( 'hs_editor_ai_' . $id );
 		if ( ! is_array( $job ) || 'queued' !== ( $job['state'] ?? '' ) ) {
 			return;
@@ -197,13 +226,28 @@ final class Jobs {
 			return;
 		}
 		try {
+			// Another worker may have finished between our first read and lock.
+			$job = get_transient( 'hs_editor_ai_' . $id );
+			if ( ! is_array( $job ) || 'queued' !== ( $job['state'] ?? '' ) ) {
+				return;
+			}
 			if ( ! user_can( (int) $job['user'], 'edit_post', (int) $job['post_id'] ) ) {
 				self::finish( $id, $job, new \WP_Error( 'editor_ai_forbidden', __( 'Права на статью изменились.', 'manacost' ) ) );
 				return;
 			}
 			$job['state'] = 'running';
 			set_transient( 'hs_editor_ai_' . $id, $job, self::TTL );
-			$result = self::generate( $job );
+			$result = self::generate( $job, $id, $split_review );
+			if ( is_array( $result ) ) {
+				$job['candidate'] = $result['candidate'];
+				$job['state']     = 'queued';
+				$job['phase']     = 'review';
+				set_transient( 'hs_editor_ai_' . $id, $job, self::TTL );
+				if ( ! wp_next_scheduled( 'hs_editor_ai_process', array( $id ) ) && ! wp_schedule_single_event( time(), 'hs_editor_ai_process', array( $id ) ) ) {
+					self::finish( $id, $job, new \WP_Error( 'editor_ai_queue', __( 'Проверка временно недоступна. Исходный текст сохранён.', 'manacost' ) ) );
+				}
+				return;
+			}
 			self::finish( $id, $job, $result );
 		} catch ( \Throwable $exception ) {
 			self::finish( $id, $job, new \WP_Error( 'editor_ai_worker', __( 'Обработка остановлена. Исходный текст сохранён.', 'manacost' ) ) );
@@ -216,12 +260,17 @@ final class Jobs {
 	 * Generate validated suggestions and independently review full editing.
 	 *
 	 * @param array<string,mixed> $job Authorized worker state.
-	 * @return string|\WP_Error
+	 * @param string              $id Job identity for review progress.
+	 * @param bool                $split_review Defer review to a separate request.
+	 * @return string|array{candidate:string}|\WP_Error
 	 */
-	private static function generate( array $job ) {
+	private static function generate( array $job, string $id, bool $split_review ) {
 		$source = (string) $job['source'];
-		$mode   = (string) $job['mode'];
-		$cards  = 'cards' === $mode ? Catalog::candidates( $source, Catalog::all() ) : array();
+		if ( 'review' === ( $job['phase'] ?? '' ) && is_string( $job['candidate'] ?? null ) ) {
+			return self::review( $source, $job['candidate'] );
+		}
+		$mode  = (string) $job['mode'];
+		$cards = 'cards' === $mode ? Catalog::candidates( $source, Catalog::all() ) : array();
 		if ( 'cards' === $mode && ! $cards ) {
 			return new \WP_Error( 'editor_ai_catalog', __( 'В словарях сайта не найдены подходящие карты. Уточните их названия в выделении.', 'manacost' ) );
 		}
@@ -243,6 +292,22 @@ final class Jobs {
 		if ( is_wp_error( $result ) || 'editor' !== $mode || $source === $result ) {
 			return $result;
 		}
+		if ( $split_review ) {
+			return array( 'candidate' => $result );
+		}
+		$job['phase'] = 'review';
+		set_transient( 'hs_editor_ai_' . $id, $job, self::TTL );
+		return self::review( $source, $result );
+	}
+
+	/**
+	 * Independently verify a validated candidate; no repeated primary generation.
+	 *
+	 * @param string $source Original article.
+	 * @param string $result Validated, private candidate.
+	 * @return string|\WP_Error
+	 */
+	private static function review( string $source, string $result ) {
 		$review = Provider::complete(
 			Prompts::review(),
 			array(
@@ -269,7 +334,7 @@ final class Jobs {
 		if ( ! is_array( $current ) || ! in_array( $current['state'] ?? '', array( 'queued', 'running' ), true ) ) {
 			return;
 		}
-		unset( $job['source'], $job['context'] );
+		unset( $job['source'], $job['context'], $job['candidate'] );
 		$job['state']  = is_wp_error( $result ) ? 'failed' : 'ready';
 		$job['error']  = is_wp_error( $result ) ? $result->get_error_message() : '';
 		$job['result'] = is_string( $result ) ? $result : '';
