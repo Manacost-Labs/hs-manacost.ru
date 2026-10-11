@@ -11,6 +11,16 @@
 				sidebar.offset = offset;
 				sidebar.element.style.setProperty('--manacost-sidebar-offset', offset + 'px');
 			}
+			// Let the compositor hold a pinned edge. Counter-scrolling a relative
+			// transform on every event visibly bounces when the main thread is busy.
+			const viewportTop = sidebar.position - scrollY;
+			const pinned = sidebar.enabled && sidebar.position > sidebar.start && sidebar.position < sidebar.end
+				&& (Math.abs(viewportTop - sidebar.top) < 0.5
+					|| Math.abs(viewportTop - Math.min(sidebar.top, innerHeight - sidebar.height)) < 0.5);
+			if (pinned) {
+				sidebar.element.style.setProperty('--manacost-sidebar-top', viewportTop + 'px');
+			}
+			sidebar.element.classList.toggle('manacost-sidebar-pinned', pinned);
 		}
 
 		function follow(sidebar) {
@@ -27,22 +37,36 @@
 		}
 
 		function measure(sidebar) {
-			const bounds = sidebar.element.getBoundingClientRect();
-			sidebar.start = bounds.top + scrollY - (innerWidth >= 768 ? sidebar.offset : 0);
-			sidebar.height = bounds.height;
-			sidebar.end = Math.max(sidebar.start, sidebar.content.getBoundingClientRect().bottom + scrollY - bounds.height);
-			sidebar.top = document.body.classList.contains('admin-bar') ? (innerWidth > 782 ? 32 : 46) : 0;
-			sidebar.enabled = innerWidth >= 768 && sidebar.end > sidebar.start;
+			const pinned = innerWidth >= 768 && sidebar.element.classList.contains('manacost-sidebar-pinned');
+			const bounds = (pinned ? sidebar.space : sidebar.element).getBoundingClientRect();
+			const start = bounds.top + scrollY - (!pinned && innerWidth >= 768 ? sidebar.offset : 0);
+			sidebar.element.style.setProperty('--manacost-sidebar-width', bounds.width + 'px');
+			const height = sidebar.element.getBoundingClientRect().height;
+			sidebar.space.style.height = height + 'px';
+			const end = Math.max(start, sidebar.content.getBoundingClientRect().bottom + scrollY - height);
+			const top = sidebar.topOffset + (document.body.classList.contains('admin-bar') ? (innerWidth > 782 ? 32 : 46) : 0);
+			const interval = window.tdViewport?.getCurrentIntervalIndex();
+			const enabled = innerWidth >= 768 && end > start && (!sidebar.enabledOn || sidebar.enabledOn[interval]);
+			// A positioning change can trigger an observer without changing layout.
+			// Do not undo keyboard reveal in that notification.
+			if (sidebar.start === start && sidebar.height === height && sidebar.end === end
+				&& sidebar.width === bounds.width && sidebar.top === top && sidebar.enabled === enabled) {
+				return;
+			}
+			Object.assign(sidebar, { start, height, end, top, enabled, width: bounds.width });
 			follow(sidebar);
 		}
 
-		document.querySelectorAll('.td-main-sidebar > .td-ss-main-sidebar').forEach(element => {
-			const content = element.closest('.td-pb-row')?.querySelector('.td-ss-main-content');
-			if (!content) {
+		function register(element, content, topOffset = 0, enabledOn) {
+			if (!element || !content || sidebars.some(sidebar => sidebar.element === element)) {
 				return;
 			}
 			element.classList.add('manacost-smart-sidebar');
-			const sidebar = { element, content, offset: 0, position: element.getBoundingClientRect().top + scrollY };
+			const space = document.createElement('div');
+			space.className = 'manacost-sidebar-space';
+			space.setAttribute('aria-hidden', 'true');
+			element.after(space);
+			const sidebar = { element, content, space, topOffset, enabledOn, offset: 0, position: element.getBoundingClientRect().top + scrollY };
 			sidebars.push(sidebar);
 			measure(sidebar);
 			if (typeof ResizeObserver !== 'undefined') {
@@ -50,24 +74,30 @@
 				observer.observe(element);
 				observer.observe(content);
 			}
-		});
-
-		if (!sidebars.length) {
-			return;
 		}
 
-		// Composer sidebars keep their native controller. Only classic columns
-		// managed above are removed, so two controllers cannot reposition them.
-		function detachNativeItems() {
+		document.querySelectorAll('.td-main-sidebar > .td-ss-main-sidebar').forEach(element => {
+			register(element, element.closest('.td-pb-row')?.querySelector('.td-ss-main-content'));
+		});
+
+		// Composer registers column pairs directly, without the classic markup.
+		// Keep its configured offset/breakpoints and remove each managed native item.
+		function registerNativeItems() {
 			const native = window.tdSmartSidebar;
 			if (native) {
+				native.items.forEach(item => {
+					const element = item.sidebar_jquery_obj[0];
+					if (element?.parentElement.classList.contains('td-is-sticky')) {
+						register(element, item.content_jquery_obj[0], Number(item.offset) || 0, item.enabled_on);
+					}
+				});
 				native.items = native.items.filter(item => !sidebars.some(sidebar => item.sidebar_jquery_obj[0] === sidebar.element));
 				native.hasItems = native.items.length > 0;
 			}
 		}
-		detachNativeItems();
+		registerNativeItems();
 		window.addEventListener('load', () => {
-			detachNativeItems();
+			registerNativeItems();
 			sidebars.forEach(measure);
 		}, { once: true });
 		window.addEventListener('scroll', () => sidebars.forEach(follow), { passive: true });
