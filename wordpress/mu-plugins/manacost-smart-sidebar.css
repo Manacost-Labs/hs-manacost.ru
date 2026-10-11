@@ -1,0 +1,7 @@
+/* Native Newspaper positioning can keep a keyboard-focused link above the
+ * viewport in a tall sidebar. Let the browser reveal it in document flow.
+ * Override inline positioning only while a keyboard focus ring is visible. */
+body .td-main-sidebar > .td-ss-main-sidebar:has(:focus-visible) {
+	position: static !important;
+	width: auto !important;
+}
