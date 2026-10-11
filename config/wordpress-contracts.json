@@ -17,13 +17,6 @@
   "contracts": {
     "post_meta": [
       {
-        "name": "_aioseo_title",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 209
-      },
-      {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
@@ -1093,76 +1086,6 @@
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-rest-controller.php",
         "line": 362
-      },
-      {
-        "name": "_manacost_seo_custom_description",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 278
-      },
-      {
-        "name": "_manacost_seo_custom_description",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 373
-      },
-      {
-        "name": "_manacost_seo_custom_title",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 277
-      },
-      {
-        "name": "_manacost_seo_custom_title",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 372
-      },
-      {
-        "name": "_manacost_seo_disable",
-        "resolved": true,
-        "api": "update_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 325
-      },
-      {
-        "name": "_manacost_seo_disable",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 811
-      },
-      {
-        "name": "_manacost_seo_extra_keywords",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 276
-      },
-      {
-        "name": "_manacost_seo_extra_keywords",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 458
-      },
-      {
-        "name": "_manacost_seo_primary_keyword",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 275
-      },
-      {
-        "name": "_manacost_seo_primary_keyword",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 457
       },
       {
         "name": "_rank_proof",
@@ -2876,13 +2799,6 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial-control.php",
         "line": 86
-      },
-      {
-        "name": "edit_post",
-        "resolved": true,
-        "api": "current_user_can",
-        "file": "wordpress/mu-plugins/manacost-aioseo-addon.php",
-        "line": 321
       },
       {
         "name": "edit_post",

@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Учётки, на которые раскатано рабочее место.
  *
  * Фаза 4: добавить сюда 49 (ArsenalFK).
+ *
+ * @return list<int>
  */
 function hs_ew_rollout_user_ids(): array {
 	return [
@@ -35,6 +37,8 @@ function hs_ew_is_enabled(): bool {
 
 /**
  * Типы записей, где работает рабочее место.
+ *
+ * @return list<string>
  */
 function hs_ew_post_types(): array {
 	return [ 'post', 'page' ];
@@ -45,6 +49,8 @@ function hs_ew_post_types(): array {
  *
  * Это именно скрытие, а не удаление: галочка в «Настройках экрана» остаётся
  * и возвращает панель на место.
+ *
+ * @return list<string>
  */
 function hs_ew_hidden_boxes(): array {
 	return [
@@ -115,13 +121,18 @@ add_action(
  *
  * Вешаемся на add_meta_boxes_{$post_type}, а не на общий add_meta_boxes:
  * он срабатывает последним, и только там видны панели, зарегистрированные
- * именно на нём — например, Manacost SEO Addon.
+ * именно на нём.
  */
 foreach ( hs_ew_post_types() as $hs_ew_post_type ) {
 	add_action( 'add_meta_boxes_' . $hs_ew_post_type, 'hs_ew_rearrange_boxes', 9999 );
 }
 unset( $hs_ew_post_type );
 
+/**
+ * Собирает панели рабочего места после регистрации метабоксов.
+ *
+ * @param mixed $post Запись из WordPress-хука.
+ */
 function hs_ew_rearrange_boxes( $post ): void {
 	if ( ! hs_ew_is_enabled() || ! $post instanceof WP_Post ) {
 		return;
@@ -133,39 +144,13 @@ function hs_ew_rearrange_boxes( $post ): void {
 		return;
 	}
 
-	hs_ew_move_meta_box( $post_type, 'manacost-aioseo-addon', 'normal', 'low' );
 	hs_ew_merge_tooltip_boxes( $post_type );
 }
 
 /**
- * Переносит метабокс в другой контекст/приоритет, не трогая его callback.
- */
-function hs_ew_move_meta_box( string $screen, string $box_id, string $to_context, string $to_priority ): bool {
-	global $wp_meta_boxes;
-
-	if ( empty( $wp_meta_boxes[ $screen ] ) || ! is_array( $wp_meta_boxes[ $screen ] ) ) {
-		return false;
-	}
-
-	foreach ( $wp_meta_boxes[ $screen ] as $context => $priorities ) {
-		foreach ( (array) $priorities as $priority => $boxes ) {
-			if ( empty( $boxes[ $box_id ] ) ) {
-				continue;
-			}
-
-			$box = $boxes[ $box_id ];
-			unset( $wp_meta_boxes[ $screen ][ $context ][ $priority ][ $box_id ] );
-			$wp_meta_boxes[ $screen ][ $to_context ][ $to_priority ][ $box_id ] = $box;
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
  * Три панели HS Tooltip и функции их отрисовки.
+ *
+ * @return array<string, string>
  */
 function hs_ew_tooltip_parts(): array {
 	return [

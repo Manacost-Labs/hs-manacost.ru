@@ -26,15 +26,9 @@
       "expected_path": "wordpress/plugins/hs-manacost-inline-deck/includes/class-hs-manacost-inline-deck.php"
     },
     {
-      "id": "article-schema",
-      "query": "enrich article schema and OpenGraph tags",
-      "source": ["wordpress/mu-plugins/manacost-aioseo-addon.php", "wordpress/mu-plugins/manacost-guide-pdf.php"],
-      "expected_path": "wordpress/mu-plugins/manacost-aioseo-addon.php"
-    },
-    {
       "id": "guide-pdf",
       "query": "export article guide as PDF and plain text",
-      "source": ["wordpress/mu-plugins/manacost-guide-pdf.php", "wordpress/mu-plugins/manacost-aioseo-addon.php"],
+      "source": ["wordpress/mu-plugins/manacost-guide-pdf.php"],
       "expected_path": "wordpress/mu-plugins/manacost-guide-pdf.php"
     },
     {

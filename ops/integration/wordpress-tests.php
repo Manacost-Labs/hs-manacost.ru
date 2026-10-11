@@ -45,6 +45,24 @@ hs_integration_assert(!is_wp_error($postId), 'article publication failed');
 $postId = (int) $postId;
 update_option('hs_integration_post_id', $postId, false);
 
+// Retiring the custom SEO addon leaves AIOSEO and historical metadata authoritative.
+update_post_meta($postId, '_manacost_seo_custom_title', 'Historical addon title');
+update_post_meta($postId, '_manacost_seo_custom_description', 'Historical addon description');
+$seoInput = (object) ['post_id' => $postId, 'title' => '', 'description' => '', 'keywords' => ''];
+$seoBefore = clone $seoInput;
+hs_integration_assert(
+    apply_filters('aioseo_get_post', $seoInput) == $seoBefore,
+    'retired SEO addon still overrides AIOSEO fields'
+);
+$postColumns = apply_filters('manage_post_posts_columns', ['title' => 'Title']);
+hs_integration_assert(!isset($postColumns['manacost_seo_addon']), 'retired SEO column is still registered');
+do_action('add_meta_boxes_post', get_post($postId));
+foreach ($GLOBALS['wp_meta_boxes']['post'] ?? [] as $priorities) {
+    foreach ($priorities as $boxes) {
+        hs_integration_assert(!isset($boxes['manacost-aioseo-addon']), 'retired SEO editor panel is still registered');
+    }
+}
+
 $rsyaPostId = wp_insert_post([
     'post_title'   => 'RSYA manual page',
     'post_name'    => 'rsya-manual-page',
@@ -99,6 +117,8 @@ wp_update_post([
 ]);
 $revisions = wp_get_post_revisions($postId);
 hs_integration_assert(count($revisions) >= 1, 'wp_get_post_revisions returned no revision');
+hs_integration_assert(get_post_meta($postId, '_manacost_seo_custom_title', true) === 'Historical addon title', 'article save changed historical SEO title');
+hs_integration_assert(get_post_meta($postId, '_manacost_seo_custom_description', true) === 'Historical addon description', 'article save changed historical SEO description');
 
 $autosaveId = wp_create_post_autosave([
     'post_ID' => $postId,

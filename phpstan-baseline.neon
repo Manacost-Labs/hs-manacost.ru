@@ -79,18 +79,6 @@ parameters:
 			path: wordpress/mu-plugins/hs-manacost-s3-offload/src/Hydrator.php
 
 		-
-			message: '#^Call to function is_array\(\) with non\-empty\-array\<WP_Term\> will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: wordpress/mu-plugins/manacost-aioseo-addon.php
-
-		-
-			message: '#^Instanceof between WP_Term and WP_Term will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: wordpress/mu-plugins/manacost-aioseo-addon.php
-
-		-
 			message: '#^Call to function method_exists\(\) with ''autoptimizeCache'' and ''clearall'' will always evaluate to false\.$#'
 			identifier: function.impossibleType
 			count: 1
