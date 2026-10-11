@@ -132,7 +132,7 @@ class BoostyIconTest(unittest.TestCase):
             completed.stdout.index("site-partnership"),
         )
 
-    def test_injects_a_boosty_strip_into_the_footer(self) -> None:
+    def test_injects_a_boosty_strip_before_the_padded_footer(self) -> None:
         script = f"""
         define('ABSPATH', '/');
         $actions = [];
@@ -152,13 +152,14 @@ class BoostyIconTest(unittest.TestCase):
         )
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertIn('class="manacost-boosty-footer"', completed.stdout)
+        self.assertIn('class="manacost-boosty-footer td-container-wrap"', completed.stdout)
         self.assertIn('href="https://boosty.to/kolodahearthstone"', completed.stdout)
         self.assertIn("Поддержите Manacost на Boosty", completed.stdout)
         self.assertLess(
-            completed.stdout.index("td-footer-wrapper"),
             completed.stdout.index("manacost-boosty-footer"),
+            completed.stdout.index("td-footer-wrapper"),
         )
+        self.assertIn('</aside><div class="td-footer-wrapper">', completed.stdout)
 
 
 if __name__ == "__main__":
