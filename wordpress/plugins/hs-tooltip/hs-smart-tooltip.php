@@ -1797,7 +1797,10 @@ function hs_smart_tooltip_render_bgs_span(string $label_html, array $entry): str
     if ($entry['img'] === '') {
         return $label_html;
     }
-    $img = esc_url($entry['img']);
+    $raw_img = esc_url($entry['img']);
+    $img = hs_smart_tooltip_koloda_image_url($entry['img']) !== ''
+        ? esc_url(hs_smart_tooltip_image_proxy_url($entry['img']))
+        : $raw_img;
     $tier_html = '';
     $tier = isset($entry['tech']) ? (int) $entry['tech'] : 0;
     $type = isset($entry['type']) ? (string) $entry['type'] : '';
@@ -1812,7 +1815,7 @@ function hs_smart_tooltip_render_bgs_span(string $label_html, array $entry): str
         }
     }
     return '<span class="hs-card-tooltip hs-card-tooltip-bg hs-rarity-' . esc_attr($entry['rarity']) .
-        '" data-image="' . $img . '" data-image-raw="' . $img . '">' .
+        '" data-image="' . $img . '" data-image-raw="' . $raw_img . '">' .
         $tier_html . $label_html . '</span>';
 }
 
@@ -1991,6 +1994,10 @@ function hs_smart_tooltip_rebuild_bgs_dictionary(): array
     }
     if (empty($by_id)) {
         return ['ok' => false, 'count' => 0, 'message' => 'no BG cards in API response'];
+    }
+    $by_id = hs_smart_tooltip_add_koloda_bgs_cards($by_id);
+    if (is_wp_error($by_id)) {
+        return ['ok' => false, 'count' => 0, 'message' => 'Koloda: ' . $by_id->get_error_code()];
     }
     $path = plugin_dir_path(__FILE__) . 'hs_bgs_dictionary.json';
     $payload = wp_json_encode(['by_id' => $by_id], JSON_UNESCAPED_UNICODE);

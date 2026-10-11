@@ -2034,7 +2034,7 @@
         "resolved": true,
         "api": "add_shortcode",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1862
+        "line": 1865
       },
       {
         "name": "hs_card",
@@ -2225,7 +2225,7 @@
         "resolved": true,
         "api": "add_action",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1897
+        "line": 1900
       },
       {
         "name": "wp_ajax_manacost_arena_filter",
@@ -2721,7 +2721,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1870
+        "line": 1873
       },
       {
         "name": "edit_pages",
@@ -2910,7 +2910,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1870
+        "line": 1873
       },
       {
         "name": "edit_posts",
@@ -3043,7 +3043,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 2009
+        "line": 2016
       },
       {
         "name": "manage_options",

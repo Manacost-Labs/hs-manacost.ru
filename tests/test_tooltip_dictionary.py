@@ -26,6 +26,19 @@ class TooltipDictionaryTests(unittest.TestCase):
             with self.subTest(scenario=scenario):
                 self.run_fixture(scenario)
 
+    def test_bgs_sha_search_shortcode_and_failure(self):
+        dictionary = json.loads((ROOT / "wordpress/plugins/hs-tooltip/hs_bgs_dictionary.json").read_text())
+        card = json.loads((ROOT / "tests/fixtures/tooltip-koloda-bgs-cards.json").read_text())[0]
+        self.assertEqual(dictionary["by_id"][card["card_id"]]["img"], card["images"]["card"])
+        for scenario in ("success", "timeout", "unauthorized", "rate_limit", "server_error",
+                         "malformed", "stale", "partial", "duplicate", "wrong_page", "unsafe_image", "disabled", "empty"):
+            with self.subTest(scenario=scenario):
+                self.run_fixture("bg_" + scenario)
+        result = subprocess.run(["php", "tests/fixtures/tooltip-dictionary.php", "proxy", card["images"]["card"]],
+                                cwd=ROOT, capture_output=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith(b"\x89PNG"))
+
     def test_koloda_image_proxy(self):
         image = json.loads((ROOT / "tests/fixtures/tooltip-koloda-cards.json").read_text())[0]["images"]["card"]
         result = subprocess.run(["php", "tests/fixtures/tooltip-dictionary.php", "proxy", image],

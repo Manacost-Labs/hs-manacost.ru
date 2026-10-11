@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Only framed constructed-card images on the provider's fixed HTTPS host.
+ * Only card images on the provider's fixed HTTPS host.
  *
  * @param string $url Provider image URL.
  * @return string Validated image URL or empty string.
@@ -24,7 +24,7 @@ function hs_smart_tooltip_koloda_image_url( string $url ): string {
 		|| ( $parts['host'] ?? '' ) !== 'api.kolodahearthstone.com'
 		|| isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] )
 		|| strlen( $url ) > 2048 || preg_match( '/[\x00-\x20\x7f]/', $url )
-		|| ! preg_match( '#^/uploads/constructed-related/[A-Za-z0-9_-]+\.(?:png|webp|jpe?g)$#D', $parts['path'] ?? '' )
+		|| ! preg_match( '#^/uploads/(?:constructed-related|cards)/[A-Za-z0-9_-]+\.(?:png|webp|jpe?g)$#D', $parts['path'] ?? '' )
 	) {
 		return '';
 	}
@@ -35,7 +35,7 @@ function hs_smart_tooltip_koloda_image_url( string $url ): string {
  * Map public provider fields into the existing tooltip entry format.
  *
  * @param array<string,mixed> $row Provider card.
- * @return array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,set_icon?:string}}|null|WP_Error
+ * @return array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,set_icon?:string,type?:string,techLevel?:int}}|null|WP_Error
  */
 function hs_smart_tooltip_koloda_entry( array $row ) {
 	$id    = $row['card_id'] ?? null;
@@ -103,12 +103,13 @@ function hs_smart_tooltip_koloda_pagination( array $pagination, int $page, int $
  * Normalize one complete page and reject invalid or duplicated records.
  *
  * @param array<int,mixed> $rows Provider rows.
- * @return array<string,array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,set_icon?:string}}|null>|WP_Error
+ * @param bool             $bgs Use Battlegrounds schema.
+ * @return array<string,array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,set_icon?:string,type?:string,techLevel?:int}}|null>|WP_Error
  */
-function hs_smart_tooltip_koloda_page_entries( array $rows ) {
+function hs_smart_tooltip_koloda_page_entries( array $rows, bool $bgs = false ) {
 	$entries = array();
 	foreach ( $rows as $row ) {
-		$entry = is_array( $row ) ? hs_smart_tooltip_koloda_entry( $row ) : new WP_Error( 'tooltip_koloda_card' );
+		$entry = is_array( $row ) ? ( $bgs ? hs_smart_tooltip_koloda_bgs_entry( $row ) : hs_smart_tooltip_koloda_entry( $row ) ) : new WP_Error( 'tooltip_koloda_card' );
 		if ( is_wp_error( $entry ) ) {
 			return $entry;
 		}
@@ -124,9 +125,10 @@ function hs_smart_tooltip_koloda_page_entries( array $rows ) {
 /**
  * Read a complete fresh catalog only during manual/cron dictionary rebuilding.
  *
- * @return array<string,array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,set_icon?:string}}>|WP_Error
+ * @param bool $bgs Read the Battlegrounds catalog.
+ * @return array<string,array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,set_icon?:string,type?:string,techLevel?:int}}>|WP_Error
  */
-function hs_smart_tooltip_koloda_catalog() {
+function hs_smart_tooltip_koloda_catalog( bool $bgs = false ) {
 	if ( ! class_exists( 'Manacost_Koloda_API' ) ) {
 		return new WP_Error( 'tooltip_koloda_client' );
 	}
@@ -138,7 +140,7 @@ function hs_smart_tooltip_koloda_catalog() {
 			return new WP_Error( 'tooltip_koloda_budget' );
 		}
 		$result = Manacost_Koloda_API::get(
-			'/api/v1/constructed-cards',
+			$bgs ? '/api/v1/cards' : '/api/v1/constructed-cards',
 			array(
 				'page'     => $page,
 				'per_page' => 100,
@@ -163,7 +165,7 @@ function hs_smart_tooltip_koloda_catalog() {
 			return new WP_Error( 'tooltip_koloda_changed' );
 		}
 		$expected     = $metadata;
-		$page_entries = hs_smart_tooltip_koloda_page_entries( $rows );
+		$page_entries = hs_smart_tooltip_koloda_page_entries( $rows, $bgs );
 		if ( is_wp_error( $page_entries ) ) {
 			return $page_entries;
 		}
@@ -205,4 +207,86 @@ function hs_smart_tooltip_add_koloda_cards( array $dictionary ) {
 		}
 	}
 	return $dictionary;
+}
+
+/**
+ * Normalize a Battlegrounds minion or spell using the existing BG schema.
+ *
+ * @param array<string,mixed> $row Provider card.
+ * @return array{id:string,dbf:string,entry:array{img:string,rarity:string,name:string,type:string,techLevel:int}}|WP_Error
+ */
+function hs_smart_tooltip_koloda_bgs_entry( array $row ) {
+	$id    = $row['card_id'] ?? null;
+	$name  = $row['name']['ru'] ?? null;
+	$type  = $row['card_type']['slug'] ?? null;
+	$dbf   = $row['dbf'] ?? null;
+	$image = $row['images']['card'] ?? null;
+	$tech  = $row['tavern_tier'] ?? 0;
+	if ( ! is_string( $id ) || ! preg_match( '/^[A-Za-z][A-Za-z0-9_]{1,119}$/D', $id )
+		|| ! is_string( $name ) || trim( $name ) === '' || strlen( $name ) > 512
+		|| ! in_array( $type, array( 'minion', 'spell' ), true )
+		|| ! is_int( $dbf ) || $dbf < 1 || ! is_int( $tech ) || $tech < 0 || $tech > 7
+		|| ! is_string( $image ) || hs_smart_tooltip_koloda_bgs_image_url( $image, $id ) === ''
+	) {
+		return new WP_Error( 'tooltip_koloda_bg_card' );
+	}
+	$rarities = array(
+		1 => 'common',
+		2 => 'common',
+		3 => 'rare',
+		4 => 'rare',
+		5 => 'epic',
+		6 => 'legendary',
+		7 => 'legendary',
+	);
+	return array(
+		'id'    => $id,
+		'dbf'   => (string) $dbf,
+		'entry' => array(
+			'img'       => hs_smart_tooltip_koloda_bgs_image_url( $image, $id ),
+			'rarity'    => $rarities[ $tech ] ?? 'common',
+			'name'      => wp_strip_all_tags( $name ),
+			'type'      => 'spell' === $type ? 'BATTLEGROUND_SPELL' : 'MINION',
+			'techLevel' => $tech,
+		),
+	);
+}
+
+/**
+ * Supplement BG IDs while preserving all existing HSJSON entries.
+ *
+ * @param array<string|int,array<string,mixed>> $by_id Existing BG dictionary.
+ * @return array<string|int,array<string,mixed>>|WP_Error
+ */
+function hs_smart_tooltip_add_koloda_bgs_cards( array $by_id ) {
+	$catalog = hs_smart_tooltip_koloda_catalog( true );
+	if ( is_wp_error( $catalog ) ) {
+		return $catalog;
+	}
+	foreach ( $catalog as $id => $card ) {
+		if ( ! isset( $by_id[ $id ] ) ) {
+			$by_id[ $id ] = $card['entry'];
+		}
+	}
+	return $by_id;
+}
+
+/**
+ * Allow the provider's exact HSJSON fallback for this BG card ID.
+ *
+ * @param string $url Provider image.
+ * @param string $id Validated card ID.
+ * @return string Approved image or empty string.
+ */
+function hs_smart_tooltip_koloda_bgs_image_url( string $url, string $id ): string {
+	$koloda = hs_smart_tooltip_koloda_image_url( $url );
+	if ( '' !== $koloda ) {
+		return $koloda;
+	}
+	foreach ( array( '256x', '512x' ) as $size ) {
+		if ( 'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/' . $size . '/' . $id . '.png' === $url ) {
+			return $url;
+		}
+	}
+	return '';
 }

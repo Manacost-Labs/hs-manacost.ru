@@ -1,0 +1,18 @@
+[
+  {
+    "card_id": "BG36_111",
+    "dbf": 131720,
+    "name": {
+      "ru": "Ша Страха",
+      "en": "Sha of Fear"
+    },
+    "card_type": {
+      "slug": "minion",
+      "name_ru": "Существо"
+    },
+    "tavern_tier": 7,
+    "images": {
+      "card": "https://api.kolodahearthstone.com/uploads/cards/BG36_111.png?v=2026-10-11%2015%3A17%3A06"
+    }
+  }
+]

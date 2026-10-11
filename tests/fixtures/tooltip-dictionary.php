@@ -4,7 +4,8 @@ define('ABSPATH', '/');
 define('HOUR_IN_SECONDS', 3600);
 define('MINUTE_IN_SECONDS', 60);
 define('DAY_IN_SECONDS', 86400);
-$scenario = $argv[1] === 'render' ? 'success' : $argv[1];
+$bgs = str_starts_with($argv[1], 'bg_');
+$scenario = $argv[1] === 'render' ? 'success' : ($bgs ? substr($argv[1], 3) : $argv[1]);
 if ($scenario === 'disabled') { define('MANACOST_KOLODA_API_ENABLED', false); }
 $cache = [];
 $http_calls = [];
@@ -59,10 +60,12 @@ function wp_safe_remote_get($url, $args) {
     if ($scenario === 'timeout') { return new WP_Error('http_request_failed'); }
     parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $query);
     $page = (int) ($query['page'] ?? 1);
-    $rows = array_slice($GLOBALS['rows'], ($page - 1) * 2, 2);
-    $pagination = ['page' => $page, 'per_page' => 2, 'total' => 4, 'total_pages' => 2, 'has_next' => $page === 1];
+    $all = str_contains($url, '/api/v1/cards?') ? $GLOBALS['bg_rows'] : $GLOBALS['rows'];
+    $size = str_contains($url, '/api/v1/cards?') ? 1 : 2;
+    $rows = array_slice($all, ($page - 1) * $size, $size);
+    $pagination = ['page' => $page, 'per_page' => $size, 'total' => count($all), 'total_pages' => 2, 'has_next' => $page === 1];
     if ($scenario === 'partial' && $page === 2) { array_pop($rows); }
-    if ($scenario === 'duplicate' && $page === 2) { $rows[0] = $GLOBALS['rows'][0]; }
+    if ($scenario === 'duplicate' && $page === 2) { $rows[0] = $all[0]; }
     if ($scenario === 'wrong_page') { $pagination['page'] = 99; }
     if ($scenario === 'empty') { $rows = []; $pagination['total'] = 0; $pagination['total_pages'] = 1; $pagination['has_next'] = false; }
     if ($scenario === 'unsafe_image') { $rows[0]['images']['card'] = 'https://localhost/private.png'; }
@@ -82,6 +85,12 @@ register_shutdown_function(function () use ($temp) {
 copy($source . '/hs-smart-tooltip.php', $temp . '/hs-smart-tooltip.php');
 foreach (glob($source . '/includes/*.php') as $file) { copy($file, $temp . '/includes/' . basename($file)); }
 $rows = json_decode(file_get_contents(__DIR__ . '/tooltip-koloda-cards.json'), true);
+$bg_rows = json_decode(file_get_contents(__DIR__ . '/tooltip-koloda-bgs-cards.json'), true);
+$bg_rows[] = ['card_id' => 'BG19_010', 'dbf' => 64038, 'name' => ['ru' => 'Сточная крыса'], 'card_type' => ['slug' => 'minion'], 'tavern_tier' => 2, 'images' => ['card' => 'https://api.kolodahearthstone.com/uploads/cards/BG19_010.png']];
+$bg_old = json_decode(file_get_contents($source . '/hs_bgs_dictionary.json'), true);
+unset($bg_old['by_id']['BG36_111']);
+$bg_before = json_encode($bg_old, JSON_UNESCAPED_UNICODE);
+file_put_contents($temp . '/hs_bgs_dictionary.json', $bg_before);
 $old = json_decode(file_get_contents($source . '/hs_dictionary.json'), true);
 foreach ($rows as $row) {
     unset($old['by_id'][$row['card_id']], $old['by_id'][$row['dbf']]);
@@ -111,11 +120,38 @@ if ($scenario === 'proxy' || $scenario === 'proxy_reject') {
     throw new RuntimeException('Image proxy must handle the request');
 }
 if ($scenario === 'stale') {
-    foreach ([1, 2] as $page) { Manacost_Koloda_API::get('/api/v1/constructed-cards', ['page' => $page, 'per_page' => 100]); }
+    foreach ([1, 2] as $page) { Manacost_Koloda_API::get($bgs ? '/api/v1/cards' : '/api/v1/constructed-cards', ['page' => $page, 'per_page' => 100]); }
     foreach ($cache as &$entry) { if (is_array($entry) && isset($entry['fresh_until'])) { $entry['fresh_until'] = time() - 1; } }
     unset($entry);
     $scenario = 'timeout';
 }
+function verify_bg(): string {
+    global $hsjson, $bg_old, $bg_before, $bg_rows, $temp, $scenario, $http_calls;
+    $hsjson = [];
+    foreach ($bg_old['by_id'] as $id => $entry) {
+        $hsjson[] = ['id' => $id, 'name' => $entry['name'], 'set' => 'BATTLEGROUNDS', 'type' => $entry['type'], 'techLevel' => $entry['techLevel']];
+    }
+    $result = hs_smart_tooltip_rebuild_bgs_dictionary();
+    if ($scenario !== 'success') {
+        check(!$result['ok'], 'Failed BG import must fail rebuild');
+        check(file_get_contents($temp . '/hs_bgs_dictionary.json') === $bg_before, 'BG failure preserves dictionary bytes');
+        return '';
+    }
+    check($result['ok'], 'BG rebuild succeeds');
+    check(hs_smart_tooltip_koloda_bgs_image_url('https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BGMinionAbilityTest.png', 'BGMinionAbilityTest') !== '', 'Accept exact provider HSJSON fallback');
+    check(hs_smart_tooltip_koloda_bgs_image_url('https://art.hearthstonejson.com/private.png', 'BGMinionAbilityTest') === '', 'Reject other HSJSON paths');
+    $dict = json_decode(file_get_contents($temp . '/hs_bgs_dictionary.json'), true);
+    check($dict['by_id']['BG19_010'] === $bg_old['by_id']['BG19_010'], 'Existing BG entry survives unchanged');
+    check($dict['by_id']['BG36_111']['img'] === $bg_rows[0]['images']['card'], 'Sha uses Koloda image');
+    $calls = count($http_calls);
+    $results = hs_smart_tooltip_run_search(hs_smart_tooltip_get_bgs_search_catalog(), 'Ша Страха', 15);
+    check(in_array('BG36_111', array_column($results, 'id'), true), 'Sha appears in BG editor search');
+    $html = hs_smart_tooltip_bgs_shortcode(['id' => 'BG36_111'], 'Ша Страха');
+    check(str_contains($html, 'hs-card-tooltip') && str_contains($html, 'hs_tooltip_img='), 'Sha shortcode renders image proxy');
+    check(count($http_calls) === $calls, 'BG search/render remains local');
+    return '<p>' . $html . '</p>';
+}
+if ($bgs) { verify_bg(); echo "PASS\n"; exit; }
 $result = hs_smart_tooltip_rebuild_main_dictionary();
 if ($scenario !== 'success') {
     check(!$result['ok'], 'Failed/partial provider response must fail rebuild');
@@ -151,4 +187,5 @@ foreach ($rows as $row) {
     check(str_contains($html, 'hs-card-tooltip') && str_contains($html, 'hs_tooltip_img='), 'Shortcode renders tooltip with image proxy');
 }
 check(count($http_calls) === $calls_before_render, 'Search and rendering use local dictionary');
+if ($argv[1] === 'render') { $rendered .= verify_bg(); }
 echo $argv[1] === 'render' ? $rendered : "PASS\n";
