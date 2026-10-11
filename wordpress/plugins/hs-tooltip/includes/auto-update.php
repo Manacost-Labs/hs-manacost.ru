@@ -13,6 +13,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/koloda.php';
+
 const HS_TOOLTIP_HSJSON_API_URL   = 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.collectible.json';
 const HS_TOOLTIP_HSJSON_RENDER_BASE = 'https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/';
 const HS_TOOLTIP_MAIN_CRON_HOOK   = 'hs_tooltip_main_dict_cron';
@@ -322,6 +324,10 @@ function hs_smart_tooltip_rebuild_main_dictionary(): array
 
         $built = hs_smart_tooltip_build_dictionary_from_cards($cards);
         unset($cards);
+        $built = hs_smart_tooltip_add_koloda_cards($built);
+        if (is_wp_error($built)) {
+            return ['ok' => false, 'count' => 0, 'message' => 'Koloda: ' . $built->get_error_code()];
+        }
         $count = (int) $built['count'];
         if ($count < HS_TOOLTIP_MAIN_MIN_CARDS) {
             return ['ok' => false, 'count' => $count, 'message' => sprintf('health-check: %d < минимума %d', $count, HS_TOOLTIP_MAIN_MIN_CARDS)];

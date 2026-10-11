@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Smart Tooltip
  * Description: Adds Hearthstone card tooltips using a prebuilt dictionary.
- * Version: 1.1.10
+ * Version: 1.1.11
  * Requires at least: 5.9
  * Requires PHP: 8.0
  * Text Domain: hs-smart-tooltip
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('HS_SMART_TOOLTIP_VERSION', '1.1.10');
+define('HS_SMART_TOOLTIP_VERSION', '1.1.11');
 define('HS_SMART_TOOLTIP_FRONTEND_SCRIPT', 'hs-tooltip-v115.js');
 
 const HS_TOOLTIP_CACHE_GROUP = 'hs_smart_tooltip';
@@ -844,7 +844,7 @@ function hs_smart_tooltip_handle_image_proxy(): void
     }
     $url = trim($raw);
     for ($i = 0; $i < 2; $i++) {
-        if (str_contains($url, '%3A') || str_contains($url, '%2F')) {
+        if (!preg_match('#^https?://#i', $url) && (str_contains($url, '%3A') || str_contains($url, '%2F'))) {
             $url = rawurldecode($url);
         }
     }
@@ -865,8 +865,13 @@ function hs_smart_tooltip_handle_image_proxy(): void
         'api.hearthstonejson.com',
         'art.hearthstonejson.com',
         'static.wikia.nocookie.net',
+        'api.kolodahearthstone.com',
     ];
     if (!in_array($host, $allowed, true)) {
+        status_header(403);
+        exit;
+    }
+    if ($host === 'api.kolodahearthstone.com' && hs_smart_tooltip_koloda_image_url($url) === '') {
         status_header(403);
         exit;
     }
@@ -886,7 +891,7 @@ function hs_smart_tooltip_handle_image_proxy(): void
 
     $response = wp_safe_remote_get($url, [
         'timeout' => 15,
-        'redirection' => 3,
+        'redirection' => $host === 'api.kolodahearthstone.com' ? 0 : 3,
         'user-agent' => 'HS-Smart-Tooltip/' . HS_SMART_TOOLTIP_VERSION,
     ]);
     if (is_wp_error($response)) {
