@@ -28,7 +28,7 @@ context-economy --project "$PWD" retrieve 'restore image from storage' \
 make quality-retrieval-eval
 ```
 
-`config/retrieval-eval.json` содержит шесть размеченных запросов к реальному
+`config/retrieval-eval.json` содержит пять размеченных запросов к реальному
 коду и один запрос, для которого в выбранных файлах нет ответа. Локальный
 прогон не обращается к модели. Для сравнения с нативными embedding/rerank
 OpenRouter запустите `context-economy --project "$PWD" retrieval-eval

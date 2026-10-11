@@ -7,7 +7,6 @@ Use this map to find the owner before changing the article editor.
 | Classic Editor | `wordpress/plugins/classic-editor` | Primary classic editing mode and editor selection | Changing mode can alter markup and operator workflow |
 | Advanced Editor Tools | `wordpress/plugins/tinymce-advanced` | TinyMCE toolbar and editing capabilities | Button duplication and serialization differences |
 | Editor workspace | `wordpress/mu-plugins/hs-editor-workspace.php` | Scoped screen cleanup and HS Tooltip tabs | Rollout currently targets specific users; do not widen silently |
-| AIOSEO add-on | `wordpress/mu-plugins/manacost-aioseo-addon.php` | Editorial SEO metadata | Save-order, capability and duplicate-field conflicts |
 | AIOSEO | `wordpress/plugins/all-in-one-seo-pack` | SEO panel and metadata | Heavy panel and metadata integrity |
 | Tooltip tooling | `wordpress/plugins/hs-tooltip` | Article-specific tooltip controls | Existing metadata and shortcode compatibility |
 | Separator quick insert | `wordpress/plugins/separator-placeholder-quick-insert` | Classic and block editor separator insertion | Nonce/REST and dual-editor behavior |

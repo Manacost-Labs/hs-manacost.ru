@@ -28,7 +28,6 @@ Read [references/host-policy.md](references/host-policy.md) before changing cano
 ## Source ownership
 
 - Domain/canonical/noindex mirror behavior: `wordpress/mu-plugins/manacost-domain-mirror.php`.
-- Project SEO enrichment and fallback schema: `wordpress/mu-plugins/manacost-aioseo-addon.php`.
 - AIOSEO runtime settings and editorial post metadata: production data, not Git source. Inspect read-only and change through supported WordPress/AIOSEO APIs.
 - Staging robots headers and robots response: `ops/nginx/staging.conf` plus WordPress behavior.
 - Theme presentation: use `newspaper-tagdiv`; do not patch the Newspaper parent theme for metadata ownership.
