@@ -1297,14 +1297,14 @@
         "resolved": false,
         "api": "get_option",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 523
+        "line": 524
       },
       {
         "name": "@constant:HS_TOOLTIP_BGS_SETTINGS_KEY",
         "resolved": false,
         "api": "update_option",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 532
+        "line": 533
       },
       {
         "name": "@constant:HS_TOOLTIP_MAIN_SETTINGS",
@@ -2446,14 +2446,14 @@
         "resolved": false,
         "api": "wp_schedule_event",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 566
+        "line": 567
       },
       {
         "name": "@constant:HS_TOOLTIP_MAIN_CRON_HOOK",
         "resolved": false,
         "api": "wp_schedule_event",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 463
+        "line": 464
       },
       {
         "name": "@constant:Kolodahs_Manacost_Sync::CRON_SYNC",
@@ -3120,7 +3120,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 404
+        "line": 405
       },
       {
         "name": "manage_options",
