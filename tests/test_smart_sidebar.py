@@ -58,6 +58,7 @@ class SmartSidebarTest(unittest.TestCase):
     def test_article_html_trim_keeps_the_native_sidebar_script(self):
         sidebar = '<script src="/tdSmartSidebar.js" id="tdSmartSidebar-js"></script>'
         unused = '<script src="/tdToTop.js" id="tdToTop-js"></script>'
+        counter = '<script src="/tdAjaxCount.js" id="tdAjaxCount-js"></script>'
         trim = ROOT / 'wordpress/mu-plugins/hs-manacost-newspaper-trim.php'
         script = f'''
         define('ABSPATH', '/');
@@ -68,7 +69,7 @@ class SmartSidebarTest(unittest.TestCase):
         function is_preview() {{ return false; }}
         function is_single() {{ return true; }}
         require {json.dumps(str(trim))};
-        echo hs_manacost_newspaper_trim_front_html({json.dumps(sidebar + unused)});
+        echo hs_manacost_newspaper_trim_front_html({json.dumps(sidebar + unused + counter)});
         '''
         completed = subprocess.run([shutil.which('php'), '-r', script], capture_output=True, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)

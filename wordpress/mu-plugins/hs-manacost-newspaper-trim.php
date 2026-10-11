@@ -2,152 +2,167 @@
 /**
  * Plugin Name: HS Manacost Newspaper Asset Trim
  * Description: Keeps heavy Newspaper article scripts off listing pages where they are not used.
+ *
+ * @package Manacost
  */
 
-defined('ABSPATH') || exit;
+defined( 'ABSPATH' ) || exit;
 
-if (! is_admin() && ! (defined('DOING_AJAX') && DOING_AJAX) && ! defined('AI_EXTERNAL_JS')) {
-    define('AI_EXTERNAL_JS', true);
+if ( ! is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) && ! defined( 'AI_EXTERNAL_JS' ) ) {
+	define( 'AI_EXTERNAL_JS', true );
 }
 
-function hs_manacost_newspaper_is_listing_front(): bool
-{
-    return ! is_admin()
-        && ! is_feed()
-        && ! is_preview()
-        && (is_front_page() || is_home());
+/** Whether the public homepage listing is being rendered. */
+function hs_manacost_newspaper_is_listing_front(): bool {
+	return ! is_admin()
+		&& ! is_feed()
+		&& ! is_preview()
+		&& ( is_front_page() || is_home() );
 }
 
-function hs_manacost_newspaper_is_public_single(): bool
-{
-    return ! is_admin()
-        && ! is_feed()
-        && ! is_preview()
-        && is_single();
+/** Whether a public article is being rendered. */
+function hs_manacost_newspaper_is_public_single(): bool {
+	return ! is_admin()
+		&& ! is_feed()
+		&& ! is_preview()
+		&& is_single();
 }
 
-function hs_manacost_newspaper_should_guard_public_search(): bool
-{
-    return ! is_admin()
-        && ! is_feed()
-        && ! is_preview()
-        && ! is_user_logged_in();
+/** Whether the anonymous frontend search needs rate limiting. */
+function hs_manacost_newspaper_should_guard_public_search(): bool {
+	return ! is_admin()
+		&& ! is_feed()
+		&& ! is_preview()
+		&& ! is_user_logged_in();
 }
 
-function hs_manacost_newspaper_disable_native_ajax_counter(): void
-{
-    if (! hs_manacost_newspaper_is_public_single() || ! class_exists('tagdiv_options')) {
-        return;
-    }
+/** Disable the duplicate native AJAX view counter on public articles. */
+function hs_manacost_newspaper_disable_native_ajax_counter(): void {
+	if ( ! hs_manacost_newspaper_is_public_single() || ! class_exists( 'tagdiv_options' ) ) {
+		return;
+	}
 
-    tagdiv_options::get('tds_ajax_post_view_count');
-    if (is_array(tagdiv_options::$td_options)) {
-        tagdiv_options::$td_options['tds_ajax_post_view_count'] = '';
-    }
+	tagdiv_options::get( 'tds_ajax_post_view_count' );
+	if ( is_array( tagdiv_options::$td_options ) ) {
+		tagdiv_options::$td_options['tds_ajax_post_view_count'] = '';
+	}
 }
 
-add_action('wp', 'hs_manacost_newspaper_disable_native_ajax_counter', 0);
-add_filter('hs_manacost_disable_td_ajax_post_view_count', '__return_true');
+add_action( 'wp', 'hs_manacost_newspaper_disable_native_ajax_counter', 0 );
+add_filter( 'hs_manacost_disable_td_ajax_post_view_count', '__return_true' );
 
-add_action('wp_enqueue_scripts', function () {
-    if (! hs_manacost_newspaper_is_listing_front()) {
-        return;
-    }
+add_action(
+	'wp_enqueue_scripts',
+	function () {
+		if ( ! hs_manacost_newspaper_is_listing_front() ) {
+			return;
+		}
 
-    foreach (array('tdPostImages', 'tdSocialSharing', 'tdModalPostImages') as $handle) {
-        wp_dequeue_script($handle);
-        wp_deregister_script($handle);
-    }
-}, 1000);
+		foreach ( array( 'tdPostImages', 'tdSocialSharing', 'tdModalPostImages' ) as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+	},
+	1000
+);
 
-add_action('template_redirect', function () {
-    if (! hs_manacost_newspaper_is_listing_front() && ! hs_manacost_newspaper_is_public_single()) {
-        return;
-    }
+add_action(
+	'template_redirect',
+	function () {
+		if ( ! hs_manacost_newspaper_is_listing_front() && ! hs_manacost_newspaper_is_public_single() ) {
+			return;
+		}
 
-    hs_manacost_newspaper_disable_native_ajax_counter();
-    ob_start('hs_manacost_newspaper_trim_front_html');
-}, 0);
+		hs_manacost_newspaper_disable_native_ajax_counter();
+		ob_start( 'hs_manacost_newspaper_trim_front_html' );
+	},
+	0
+);
 
-add_action('wp_footer', function () {
-    if (! hs_manacost_newspaper_should_guard_public_search()) {
-        return;
-    }
-    ?>
+add_action(
+	'wp_footer',
+	function () {
+		if ( ! hs_manacost_newspaper_should_guard_public_search() ) {
+			return;
+		}
+		?>
 <script id="hs-newspaper-search-guard">
 (function () {
-    var minChars = 3;
-    var delayMs = 450;
+	var minChars = 3;
+	var delayMs = 450;
 
-    function normalize(value) {
-        return (value || '').replace(/\s+/g, ' ').trim();
-    }
+	function normalize(value) {
+		return (value || '').replace(/\s+/g, ' ').trim();
+	}
 
-    function inputValue(selector) {
-        var node = document.querySelector(selector);
-        return node ? normalize(node.value) : '';
-    }
+	function inputValue(selector) {
+		var node = document.querySelector(selector);
+		return node ? normalize(node.value) : '';
+	}
 
-    function guardMethod(objectName, methodName, selector) {
-        var timer = null;
+	function guardMethod(objectName, methodName, selector) {
+		var timer = null;
 
-        function install() {
-            var target = window[objectName];
-            if (!target || typeof target[methodName] !== 'function' || target[methodName].hsGuarded) {
-                return;
-            }
+		function install() {
+			var target = window[objectName];
+			if (!target || typeof target[methodName] !== 'function' || target[methodName].hsGuarded) {
+				return;
+			}
 
-            var original = target[methodName];
-            target[methodName] = function () {
-                var context = this;
-                var args = arguments;
-                var query = selector ? inputValue(selector) : '';
+			var original = target[methodName];
+			target[methodName] = function () {
+				var context = this;
+				var args = arguments;
+				var query = selector ? inputValue(selector) : '';
 
-                if (query && query.length < minChars) {
-                    return;
-                }
+				if (query && query.length < minChars) {
+					return;
+				}
 
-                window.clearTimeout(timer);
-                timer = window.setTimeout(function () {
-                    original.apply(context, args);
-                }, delayMs);
-            };
-            target[methodName].hsGuarded = true;
-        }
+				window.clearTimeout(timer);
+				timer = window.setTimeout(function () {
+					original.apply(context, args);
+				}, delayMs);
+			};
+			target[methodName].hsGuarded = true;
+		}
 
-        install();
-        document.addEventListener('DOMContentLoaded', install);
-        window.setTimeout(install, 1500);
-    }
+		install();
+		document.addEventListener('DOMContentLoaded', install);
+		window.setTimeout(install, 1500);
+	}
 
-    guardMethod('tdAjaxSearch', 'do_ajax_call', '#td-header-search');
-    guardMethod('tdAjaxSearch', 'do_ajax_call_mob', '#td-header-search-mob');
+	guardMethod('tdAjaxSearch', 'do_ajax_call', '#td-header-search');
+	guardMethod('tdAjaxSearch', 'do_ajax_call_mob', '#td-header-search-mob');
 })();
 </script>
-    <?php
-}, 1000);
+		<?php
+	},
+	1000
+);
 
 /**
+ * Trim unused frontend scripts while preserving the native sidebar.
+ *
  * @param mixed $html HTML to filter.
  * @return mixed
  */
-function hs_manacost_newspaper_trim_front_html($html)
-{
-    if (! is_string($html) || $html === '') {
-        return $html;
-    }
+function hs_manacost_newspaper_trim_front_html( $html ) {
+	if ( ! is_string( $html ) || '' === $html ) {
+		return $html;
+	}
 
-    if (hs_manacost_newspaper_is_public_single()) {
-        $html = hs_manacost_newspaper_strip_ajax_count($html);
-    }
+	if ( hs_manacost_newspaper_is_public_single() ) {
+		$html = hs_manacost_newspaper_strip_ajax_count( $html );
+	}
 
-    foreach (array('tdToTop-js') as $script_id) {
-        $pattern = '#<script\b(?=[^>]*\bid=["\']' . preg_quote($script_id, '#') . '["\'])[^>]*>\s*</script>\s*#i';
-        $html = preg_replace($pattern, '', $html);
-    }
+	foreach ( array( 'tdToTop-js' ) as $script_id ) {
+		$pattern = '#<script\b(?=[^>]*\bid=["\']' . preg_quote( $script_id, '#' ) . '["\'])[^>]*>\s*</script>\s*#i';
+		$html    = preg_replace( $pattern, '', $html );
+	}
 
-    if (strpos($html, 'yandex-metrica-watch/watch.js') !== false) {
-        $replacement = <<<'JS'
+	if ( strpos( $html, 'yandex-metrica-watch/watch.js' ) !== false ) {
+		$replacement = <<<'JS'
 if (w.opera == "[object Opera]") {
             d.addEventListener("DOMContentLoaded", function () { w.setTimeout(f, 15000); }, false);
         } else if (d.readyState === "complete") {
@@ -157,32 +172,33 @@ if (w.opera == "[object Opera]") {
         }
 JS;
 
-        $html = preg_replace(
-            '#if\s*\(\s*w\.opera\s*==\s*"\[object Opera\]"\s*\)\s*\{\s*d\.addEventListener\("DOMContentLoaded",\s*f,\s*false\);\s*\}\s*else\s*\{\s*f\(\);\s*\}#',
-            $replacement,
-            $html,
-            1
-        );
-    }
+		$html = preg_replace(
+			'#if\s*\(\s*w\.opera\s*==\s*"\[object Opera\]"\s*\)\s*\{\s*d\.addEventListener\("DOMContentLoaded",\s*f,\s*false\);\s*\}\s*else\s*\{\s*f\(\);\s*\}#',
+			$replacement,
+			$html,
+			1
+		);
+	}
 
-    return $html;
+	return $html;
 }
 
 /**
+ * Remove the duplicate native view-counter script and initialization.
+ *
  * @param string $html HTML to filter.
  * @return string|null
  */
-function hs_manacost_newspaper_strip_ajax_count($html)
-{
-    $html = preg_replace(
-        '#<script\b(?=[^>]*\bid=["\']tdAjaxCount-js["\'])[^>]*>\s*</script>\s*#i',
-        '',
-        $html
-    );
+function hs_manacost_newspaper_strip_ajax_count( $html ) {
+	$html = preg_replace(
+		'#<script\b(?=[^>]*\bid=["\']tdAjaxCount-js["\'])[^>]*>\s*</script>\s*#i',
+		'',
+		$html
+	);
 
-    return preg_replace(
-        '#<script\b(?=[^>]*\bid=["\']td-generated-footer-js["\'])[^>]*>.*?tdAjaxCount\.tdGetViewsCountsAjax\s*\([^;]*;\s*.*?</script>\s*#is',
-        '',
-        $html
-    );
+	return preg_replace(
+		'#<script\b(?=[^>]*\bid=["\']td-generated-footer-js["\'])[^>]*>.*?tdAjaxCount\.tdGetViewsCountsAjax\s*\([^;]*;\s*.*?</script>\s*#is',
+		'',
+		$html
+	);
 }
