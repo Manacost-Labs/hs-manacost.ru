@@ -9,6 +9,8 @@
  * галочкой в «Настройках экрана», данные записей не затрагиваются.
  *
  * Раскатка постепенная — список учёток в hs_ew_rollout_user_ids().
+ *
+ * @package HSManacost
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,12 +25,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return list<int>
  */
 function hs_ew_rollout_user_ids(): array {
-	return [
-		1,  // ArdasmanLL
-		48, // alexey_03
-	];
+	return array(
+		1,  // ArdasmanLL.
+		48, // alexey_03.
+	);
 }
 
+/**
+ * Проверяет участие текущей учётки в раскатке рабочего места.
+ *
+ * @return bool
+ */
 function hs_ew_is_enabled(): bool {
 	$user_id = get_current_user_id();
 
@@ -41,7 +48,7 @@ function hs_ew_is_enabled(): bool {
  * @return list<string>
  */
 function hs_ew_post_types(): array {
-	return [ 'post', 'page' ];
+	return array( 'post', 'page' );
 }
 
 /**
@@ -53,18 +60,18 @@ function hs_ew_post_types(): array {
  * @return list<string>
  */
 function hs_ew_hidden_boxes(): array {
-	return [
-		'postexcerpt',               // Отрывок
-		'slugdiv',                   // Ярлык
-		'trackbacksdiv',             // Отправить обратные ссылки
-		'postcustom',                // Произвольные поля
-		'commentsdiv',               // Комментарии
-		'commentstatusdiv',          // Обсуждение
-		'members-cp',                // Content Permissions (Members)
-		'perfmatters',               // Perfmatters
-		'rocket_post_exclude',       // WP Rocket Options
-		'compatibility_fixture_bad', // Bad Fixture (wp-manacost-decks_old)
-	];
+	return array(
+		'postexcerpt',               // Отрывок.
+		'slugdiv',                   // Ярлык.
+		'trackbacksdiv',             // Отправить обратные ссылки.
+		'postcustom',                // Произвольные поля.
+		'commentsdiv',               // Комментарии.
+		'commentstatusdiv',          // Обсуждение.
+		'members-cp',                // Content Permissions (Members).
+		'perfmatters',               // Perfmatters.
+		'rocket_post_exclude',       // WP Rocket Options.
+		'compatibility_fixture_bad', // Bad Fixture (wp-manacost-decks_old).
+	);
 }
 
 /**
@@ -101,7 +108,7 @@ add_filter(
 );
 
 /**
- * hs-admin-load-trim.php вырезает метабокс WP Rocket целиком, из-за чего его
+ * Плагин hs-admin-load-trim.php вырезает метабокс WP Rocket целиком, из-за чего его
  * нельзя вернуть галочкой. Снимаем вырезку — панель будет просто скрыта.
  */
 add_action(
@@ -153,11 +160,11 @@ function hs_ew_rearrange_boxes( $post ): void {
  * @return array<string, string>
  */
 function hs_ew_tooltip_parts(): array {
-	return [
+	return array(
 		'hs_tooltip_search'     => 'hs_smart_tooltip_render_search_box',
 		'hs_tooltip_bgs_search' => 'hs_smart_tooltip_render_bgs_search_box',
 		'hs_tooltip_toggle'     => 'hs_smart_tooltip_render_toggle_box',
-	];
+	);
 }
 
 /**
@@ -181,6 +188,9 @@ function hs_ew_tooltip_available(): bool {
  * Разметку не переписываем — зовём те же функции отрисовки, поэтому ID полей
  * (#hs-tooltip-search и прочие) сохраняются и hs-tooltip-admin.js продолжает
  * работать без изменений.
+ *
+ * @param string $screen Экран редактора.
+ * @return void
  */
 function hs_ew_merge_tooltip_boxes( string $screen ): void {
 	if ( ! hs_ew_tooltip_available() ) {
@@ -201,6 +211,12 @@ function hs_ew_merge_tooltip_boxes( string $screen ): void {
 	);
 }
 
+/**
+ * Отрисовывает панель вставки карт.
+ *
+ * @param WP_Post $post Текущая запись.
+ * @return void
+ */
 function hs_ew_render_tooltip_workspace( WP_Post $post ): void {
 	if ( ! hs_ew_tooltip_available() ) {
 		return;
@@ -243,20 +259,20 @@ function hs_ew_render_tooltip_workspace( WP_Post $post ): void {
 add_action(
 	'admin_enqueue_scripts',
 	static function ( $hook ) {
-		if ( ! hs_ew_is_enabled() || ! in_array( $hook, [ 'post.php', 'post-new.php' ], true ) ) {
+		if ( ! hs_ew_is_enabled() || ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			return;
 		}
 
-		$assets = [
+		$assets = array(
 			'css' => __DIR__ . '/hs-editor-workspace/workspace.css',
 			'js'  => __DIR__ . '/hs-editor-workspace/workspace.js',
-		];
+		);
 
 		if ( file_exists( $assets['css'] ) ) {
 			wp_enqueue_style(
 				'hs-editor-workspace',
 				plugins_url( 'hs-editor-workspace/workspace.css', __FILE__ ),
-				[],
+				array(),
 				(string) filemtime( $assets['css'] )
 			);
 		}
@@ -265,7 +281,7 @@ add_action(
 			wp_enqueue_script(
 				'hs-editor-workspace',
 				plugins_url( 'hs-editor-workspace/workspace.js', __FILE__ ),
-				[],
+				array(),
 				(string) filemtime( $assets['js'] ),
 				true
 			);
