@@ -31,7 +31,7 @@ HTML;
  */
 function manacost_boosty_footer_strip_markup(): string {
 	return <<<'HTML'
-<aside class="manacost-boosty-footer" aria-label="Поддержка Manacost на Boosty">
+<aside class="manacost-boosty-footer td-container-wrap" aria-label="Поддержка Manacost на Boosty">
 	<a class="manacost-boosty-footer__link" href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" aria-label="Поддержать Manacost на Boosty">
 		<span class="manacost-boosty-footer__icon" aria-hidden="true"></span>
 		<span>Поддержите Manacost на Boosty</span>
@@ -62,7 +62,7 @@ function manacost_inject_telegram_news_strip( string $html ): string {
 	}
 
 	$footer_pattern = '/(<div\b[^>]*\bclass=(?:["\'])[^"\']*\btd-footer-wrapper\b[^"\']*(?:["\'])[^>]*>)/i';
-	$injected       = preg_replace( $footer_pattern, '$1' . manacost_boosty_footer_strip_markup(), $html, 1 );
+	$injected       = preg_replace( $footer_pattern, manacost_boosty_footer_strip_markup() . '$1', $html, 1 );
 
 	return is_string( $injected ) ? $injected : $html;
 }
@@ -122,7 +122,7 @@ function manacost_render_telegram_news_strip_style(): void {
 			box-sizing: border-box;
 			clear: both;
 			color: #fff;
-			margin: 0;
+			margin: 0 auto;
 			width: 100%;
 		}
 
