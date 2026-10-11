@@ -223,13 +223,8 @@ try {
 
   reset({ moderator: true }); bans = Array.from({ length: 21 }, (_, index) => ban(index === 0 ? firstBanId : banId(index), index + 1)); await load();
   assert.deepEqual(banListCalls, [], 'ban pagination is not automatic');
-  await page.getByText('Заблокированные читатели', { exact: true }).click(); await page.getByRole('button', { name: 'Показать ещё блокировки' }).waitFor();
-  assert.deepEqual(banListCalls, [null], 'first ban page is user initiated');
-  assert.equal(await page.locator('.mc-comments__bans li').count(), 20, 'first ban page is limited to 20');
-  await page.getByRole('button', { name: 'Показать ещё блокировки' }).click(); await page.waitForFunction(() => document.querySelectorAll('.mc-comments__bans li').length === 21);
-  assert.deepEqual(banListCalls, [null, nextCursor], 'next ban page is lazy and cursor based');
-  await page.getByRole('button', { name: 'Разрешить комментировать' }).first().click(); await page.getByText('Комментирование снова разрешено.').waitFor();
-  assert.deepEqual(unbanWrites.at(-1), { version: 1 }, 'unban sends version');
+  assert.equal(await page.locator('.mc-comments__bans').count(), 0, 'blocked-reader panel does not clutter comments');
+  assert.deepEqual(banListCalls, [], 'removed panel makes no ban-list requests');
 
   reset({ moderator: true }); await load(); await moderation().click(); await page.getByRole('button', { name: 'Запретить комментировать' }).waitFor(); confirm();
   await page.getByRole('button', { name: 'Запретить комментировать' }).click(); await page.getByText('Комментирование запрещено.').waitFor();

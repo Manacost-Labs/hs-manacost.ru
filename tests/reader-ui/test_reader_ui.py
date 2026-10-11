@@ -181,7 +181,7 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn("'X-Reader-CSRF'", (PHP.parent / 'comments.js').read_text())
         self.assertNotIn('actor:', community)
         self.assertNotIn('role:', community)
-        for label in ('Нравится', 'Спасибо', 'Огонь', 'Удалить комментарий', 'Запретить комментировать', 'Разрешить комментировать'):
+        for label in ('Нравится', 'Спасибо', 'Огонь', 'Удалить комментарий', 'Запретить комментировать'):
             self.assertIn(label, community)
         self.assertIn('Администратор', (PHP.parent / 'comments.js').read_text())
 
@@ -233,18 +233,19 @@ echo json_encode($GLOBALS['assets']);'''
         for native_api in ('wp_get_current_user', 'get_current_user_id', 'wp_insert_comment', 'wp_list_comments', 'comment_form'):
             self.assertNotIn(native_api, self.php)
 
-    def test_account_notice_matches_the_actual_community_flag(self):
+    def test_account_omits_secondary_panels_and_repeated_copy(self):
         fixture = "define('ABSPATH','/fixture/'); function hs_manacost_reader_is_account_request(){return true;} function esc_attr($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html($s){return htmlspecialchars($s,ENT_QUOTES,'UTF-8');} function esc_html__($s,$domain=''){return esc_html($s);} "
         for enabled in (False, True):
             setup = fixture + 'function hs_reader_comments_enabled(){return ' + ('true' if enabled else 'false') + ';} require $argv[1]; echo hs_manacost_reader_account_shell();'
             html = subprocess.run(['php', '-r', setup, str(PHP)], capture_output=True, text=True, check=True).stdout
-            self.assertEqual('Комментарии сейчас недоступны.' in html, not enabled)
-            self.assertEqual('Комментарии публикуются сразу.' in html, enabled)
-            self.assertEqual('aria-labelledby="mc-reader-publication-title" hidden' in html, not enabled)
+            for removed in ('Данные обсуждений', 'Профиль в комментариях', 'Профиль Манакоста не изменяет', 'Личная подборка', 'data-reader-publish-profile'):
+                self.assertNotIn(removed, html)
+            for retained in ('Личный кабинет', 'Сохранённые статьи', 'data-reader-save-profile', 'data-reader-avatar-input'):
+                self.assertIn(retained, html)
     def test_account_headings_and_live_status_are_semantic(self):
-        self.assertIn('<p class="mc-reader__masthead-kicker">Профиль Манакоста</p>', self.php)
+        self.assertNotIn('mc-reader__masthead-kicker', self.php)
         self.assertIn('<h1 class="mc-reader__eyebrow">Личный кабинет</h1>', self.php)
-        self.assertIn('<p class="mc-reader__profile-kicker">Ваш профиль</p>', self.php)
+        self.assertNotIn('Ваш профиль</p>', self.php)
         self.assertIn('id="mc-reader-profile-title"', self.php)
         self.assertIn('data-reader-identity', self.php)
         self.assertIn('hs_manacost_reader_author_mark', self.php)
@@ -266,13 +267,13 @@ echo json_encode($GLOBALS['assets']);'''
         for obsolete_tab_markup in ('data-reader-tabs', 'data-reader-tab-profile', 'data-reader-tab-favorites', 'role="tablist"', 'role="tabpanel"'):
             self.assertNotIn(obsolete_tab_markup, self.php)
 
-    def test_comment_data_controls_live_in_account_not_article_composer(self):
+    def test_comment_data_controls_do_not_clutter_account_or_composer(self):
         comments_php = (PHP.parent / 'comments.php').read_text()
         self.assertNotIn('data-comments-data', comments_php)
         self.assertNotIn('Мои данные в комментариях', comments_php)
-        self.assertIn('data-reader-community-data', self.php)
-        self.assertIn('data-reader-comments-export', self.php)
-        self.assertIn('data-reader-comments-erase', self.php)
+        self.assertNotIn('data-reader-community-data', self.php)
+        self.assertNotIn('data-reader-comments-export', self.php)
+        self.assertNotIn('data-reader-comments-erase', self.php)
         self.assertIn('/reader-api/v1/community/export', self.js)
         self.assertIn("confirm: 'erase-community'", self.js)
 
@@ -316,18 +317,18 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertIn("error.message === 'invalid_profile'", self.js)
         self.assertIn("options.onRefresh( { preserveDraft: true, acceptVersion: true } )", self.profile_js)
         self.assertIn('editorStatus.textContent === message', self.profile_js)
-    def test_profile_editor_explains_scope_and_unavailable_comments(self):
-        self.assertIn('Профиль Манакоста не изменяет профиль HearthPulse.', self.php)
-        self.assertIn('Комментарии сейчас недоступны.', self.php)
+    def test_profile_editor_keeps_fields_without_explanatory_panels(self):
+        self.assertNotIn('Профиль Манакоста не изменяет профиль HearthPulse.', self.php)
+        self.assertNotIn('Комментарии сейчас недоступны.', self.php)
         self.assertIn('Изменить профиль', self.php)
         self.assertIn('Где меня найти', self.php)
-        self.assertIn('Обновить данные', self.php)
+        self.assertIn('Сохранить изменения', self.php)
         self.assertNotIn('data-reader-public-consent', self.php)
-        self.assertIn('Twitch / YouTube', self.php)
+        self.assertNotIn('Twitch / YouTube', self.php)
         self.assertIn('data-reader-favorites', self.php)
         self.assertNotIn('data-reader-tab-favorites', self.php)
         self.assertIn('/reader-api/v1/favorites', self.js)
-        self.assertIn('Личная подборка', self.php)
+        self.assertNotIn('Личная подборка', self.php)
         self.assertIn('IntersectionObserver', self.js)
     def test_profile_link_expiry_and_private_state(self):
         for value in ("url.origin === 'https://hearthpulse.net'", '! url.username', '! url.password', 'data.profileUrl', 'identity.replaceChildren()', 'actions.replaceChildren()', "window.addEventListener( 'pageshow'", "window.addEventListener( 'focus'"):
@@ -338,7 +339,7 @@ echo json_encode($GLOBALS['assets']);'''
         for value in ('const requestController = new AbortController()', 'const requestGeneration = ++generation', 'current( requestController, requestGeneration )', 'logoutInFlight = true'):
             self.assertIn(value, self.js)
     def test_copy_is_public_and_honest(self):
-        self.assertIn('Профиль Манакоста', self.php)
+        self.assertNotIn('Профиль Манакоста', self.php)
         self.assertIn('Личный кабинет', self.php)
         self.assertNotIn('Закладки пока недоступны.', self.php)
         self.assertNotIn('reader API', self.php)
