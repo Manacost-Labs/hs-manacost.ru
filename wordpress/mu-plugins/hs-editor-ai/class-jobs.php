@@ -313,7 +313,8 @@ final class Jobs {
 			array(
 				'original'  => wp_strip_all_tags( $source ),
 				'candidate' => wp_strip_all_tags( $result ),
-			)
+			),
+			true
 		);
 		if ( is_wp_error( $review ) ) {
 			return $review;

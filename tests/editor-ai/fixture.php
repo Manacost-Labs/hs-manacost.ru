@@ -30,6 +30,11 @@ add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	}
 	$request = json_decode( $args['body'], true );
 	$input = json_decode( $request['messages'][0]['content'], true );
+	$format = $request['output_config']['format'] ?? array();
+	$expected = isset( $input['original'] ) ? array( 'approved' ) : array( 'edits' );
+	if ( 'json_schema' !== ( $format['type'] ?? '' ) || ( $format['schema']['required'] ?? null ) !== $expected || false !== ( $format['schema']['additionalProperties'] ?? null ) ) {
+		throw new RuntimeException( 'Structured response contract is required' );
+	}
 	if ( isset( $input['original'] ) ) {
 		$result = array( 'approved' => 'reject-review' !== $variant );
 	} else {

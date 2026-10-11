@@ -116,3 +116,8 @@ dialog-open and send-to-review timings, and browser long tasks. This proves queu
 and UI latency, **not real Claude inference performance**. No article text,
 credentials or session values enter the reports. Code rollback restores the
 cron-only dispatch path; no schema or content migration is involved.
+
+The Messages API constrains editing output to an `edits` JSON schema and the
+independent review to an `approved` boolean schema through `output_config.format`.
+The plugin still rejects truncation, malformed responses and invalid content;
+there is no automatic retry of a paid model request.
