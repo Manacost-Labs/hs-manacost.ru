@@ -1,0 +1,18 @@
+{
+  "name": "editor-anthropic",
+  "owner": "editor-ai-tools",
+  "purpose": "Explicitly requested article suggestions: card annotation, literary editing and proofreading",
+  "direction": "outbound",
+  "endpoints": ["https://api.anthropic.com/v1/messages"],
+  "authentication": {"method": "Authorization Bearer", "secret_variables": ["HS_EDITOR_AI_API_KEY", "HS_EDITOR_AI_KEY_FILE"]},
+  "data_classes": ["selected article text", "unpublished article context", "public card identities", "editorial style rules"],
+  "timeout_seconds": 75,
+  "retry": {"max_attempts": 1, "retryable_conditions": [], "backoff": "manual; bounded shared cooldown after HTTP 429"},
+  "idempotency": {"key": "owner + post + mode + source + context SHA256", "provider": "not_supported", "compensation": "atomic owner/worker leases, recent result reuse, no automatic retry after ambiguous timeout"},
+  "rate_limit": {"per_editor_per_hour": 20, "concurrency_per_editor": 1, "http_429": "respect numeric Retry-After between 60 and 3600 seconds; no retry"},
+  "observability": {"hook": "hs_editor_ai_outcome", "fields": ["opaque job id", "mode", "state", "redacted error code", "elapsed seconds"], "excludes": ["credentials", "article text", "provider error bodies"]},
+  "degradation": "Suggestions remain separate. Failure, incomplete JSON, stale content or failed integrity review preserves the original post. No automatic save/publication.",
+  "disable_switch": {"constant": "HS_EDITOR_AI_ENABLED", "disabled_value": false, "owner": "site administrator"},
+  "retention": {"queue_and_result_ttl_seconds": 1800, "pending_deadline_seconds": 300, "scope": "owning editor only", "provider_retention": "governed by the Anthropic API account terms; no zero-retention guarantee"},
+  "model": "claude-opus-5-5"
+}

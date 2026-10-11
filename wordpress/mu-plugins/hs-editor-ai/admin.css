@@ -1,0 +1,26 @@
+#hs-editor-ai-dialog {
+	box-sizing: border-box;
+	width: min(1000px, calc(100vw - 24px));
+	max-height: calc(100dvh - 24px);
+	padding: 20px;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	color: #1d2327;
+}
+#hs-editor-ai-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+#hs-editor-ai-dialog h2 { margin: 0; font-size: 20px; }
+#hs-editor-ai-dialog .hs-editor-ai-header,
+#hs-editor-ai-dialog .hs-editor-ai-footer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#hs-editor-ai-dialog .hs-editor-ai-header { justify-content: space-between; }
+#hs-editor-ai-dialog .hs-editor-ai-footer { margin-top: 20px; }
+#hs-editor-ai-dialog .button { min-height: 44px; white-space: normal; }
+#hs-editor-ai-dialog .hs-editor-ai-compare:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+#hs-editor-ai-dialog .hs-editor-ai-compare section { min-width: 0; }
+#hs-editor-ai-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 45dvh; overflow: auto; margin: 0; padding: 12px; background: #f6f7f7; font: inherit; border: 1px solid #dcdcde; }
+#hs-editor-ai-dialog [hidden] { display: none !important; }
+.hs-editor-ai-open { margin-bottom: 4px !important; }
+@media (max-width: 600px) {
+	#hs-editor-ai-dialog { padding: 12px; }
+	#hs-editor-ai-dialog .hs-editor-ai-compare:not([hidden]) { grid-template-columns: 1fr; }
+	#hs-editor-ai-dialog pre { max-height: 25dvh; }
+}
