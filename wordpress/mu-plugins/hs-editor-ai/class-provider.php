@@ -44,9 +44,10 @@ final class Provider {
 	 *
 	 * @param string              $system Fixed operation instructions.
 	 * @param array<string,mixed> $input Untrusted article data.
+	 * @param bool                $review Whether this is the independent review contract.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public static function complete( string $system, array $input ) {
+	public static function complete( string $system, array $input, bool $review = false ) {
 		if ( ! self::enabled() ) {
 			return new \WP_Error( 'editor_ai_disabled', __( 'ИИ отключён или серверный API-ключ не настроен.', 'manacost' ) );
 		}
@@ -60,7 +61,13 @@ final class Provider {
 		$body         = array(
 			'model'         => 'claude-opus-5-5',
 			'max_tokens'    => 16000,
-			'output_config' => array( 'effort' => 'low' ),
+			'output_config' => array(
+				'effort' => 'low',
+				'format' => array(
+					'type'   => 'json_schema',
+					'schema' => self::schema( $review ),
+				),
+			),
 			'system'        => $system,
 			'messages'      => array(
 				array(
@@ -100,6 +107,35 @@ final class Provider {
 			return new \WP_Error( 'editor_ai_http_' . $status, __( 'Anthropic отклонил запрос. Проверьте доступ к модели, баланс и лимиты API.', 'manacost' ) );
 		}
 		return self::decode( wp_remote_retrieve_body( $response ) );
+	}
+
+	/**
+	 * Constrain generation at the provider; local content guards remain mandatory.
+	 *
+	 * @param bool $review Independent review instead of editing.
+	 * @return array<string,mixed> Supported Anthropic JSON schema.
+	 */
+	private static function schema( bool $review ): array {
+		$properties = $review ? array( 'approved' => array( 'type' => 'boolean' ) ) : array(
+			'edits' => array(
+				'type'  => 'array',
+				'items' => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'segment'     => array( 'type' => 'integer' ),
+						'replacement' => array( 'type' => 'string' ),
+					),
+					'required'             => array( 'segment', 'replacement' ),
+					'additionalProperties' => false,
+				),
+			),
+		);
+		return array(
+			'type'                 => 'object',
+			'properties'           => $properties,
+			'required'             => array_keys( $properties ),
+			'additionalProperties' => false,
+		);
 	}
 
 	/**
