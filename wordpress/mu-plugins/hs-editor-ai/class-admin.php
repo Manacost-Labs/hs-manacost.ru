@@ -66,8 +66,8 @@ final class Admin {
 			return;
 		}
 		$base = plugin_dir_url( __FILE__ );
-		wp_enqueue_style( 'hs-editor-ai', $base . 'admin.css', array(), '1.0.0' );
-		wp_enqueue_script( 'hs-editor-ai', $base . 'admin.js', array(), '1.0.0', true );
+		wp_enqueue_style( 'hs-editor-ai', $base . 'admin.css', array(), '1.0.1' );
+		wp_enqueue_script( 'hs-editor-ai', $base . 'admin.js', array(), '1.0.1', true );
 		wp_localize_script(
 			'hs-editor-ai',
 			'hsEditorAi',

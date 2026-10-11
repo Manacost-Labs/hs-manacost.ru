@@ -1,5 +1,8 @@
 #hs-editor-ai-dialog {
 	box-sizing: border-box;
+	position: fixed;
+	inset: 12px auto auto max(12px, calc((100vw - 1000px) / 2));
+	margin: 0;
 	width: min(1000px, calc(100vw - 24px));
 	max-height: calc(100dvh - 24px);
 	padding: 20px;

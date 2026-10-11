@@ -127,6 +127,12 @@ try {
   await touchPage.setViewportSize({ width: 844, height: 390 });
   await touchPage.locator('.hs-editor-ai-open[data-mode="proofread"]').tap();
   await expect(touchDialog.getByRole('button', { name: 'Закрыть', exact: true })).toBeVisible();
+  await touchPage.setViewportSize({ width: 390, height: 844 });
+  // Isolate dialog geometry when a legacy panel widens the phone layout.
+  await touchPage.evaluate(() => { document.body.style.minWidth = '609px'; });
+  const touchBounds = await touchDialog.evaluate(element => ({right:element.getBoundingClientRect().right, width:visualViewport.width, top:element.getBoundingClientRect().top}));
+  assert.ok(touchBounds.right <= touchBounds.width && touchBounds.top >= 0, JSON.stringify(touchBounds));
+  await touchDialog.getByRole('button', { name: 'Закрыть', exact: true }).tap();
   await touchContext.close();
   report.checks.push('phone touch selection/apply and landscape dialog');
 
