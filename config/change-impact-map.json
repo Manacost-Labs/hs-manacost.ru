@@ -21,6 +21,47 @@
   "rules": [
     {
       "patterns": [
+        "wordpress/mu-plugins/hs-editor-ai.php",
+        "wordpress/mu-plugins/hs-editor-ai/**",
+        "tests/test_editor_ai.py",
+        "tests/editor-ai/**",
+        "config/integrations/editor-anthropic.json",
+        "docs/runbooks/editor-ai.md"
+      ],
+      "owner": "editor-ai-tools",
+      "classified": true,
+      "risk": "high",
+      "surfaces": [
+        "editor",
+        "wp-admin",
+        "external-api",
+        "privacy"
+      ],
+      "domains": [
+        "hs-manacost.ru",
+        "hs-manacost.com",
+        "test.hs-manacost.ru"
+      ],
+      "skills": [
+        "wordpress-article-editor",
+        "wordpress-admin-ui",
+        "wordpress-external-integrations",
+        "wordpress-privacy-consent",
+        "wordpress-accessibility",
+        "wp-plugin-development",
+        "playwright"
+      ],
+      "checks": [
+        "make check",
+        "make code-quality",
+        "make contracts",
+        "make integration",
+        "make visual",
+        "./ops/smoke-check.sh staging"
+      ]
+    },
+    {
+      "patterns": [
         "wordpress/mu-plugins/hs-api-gallery.php",
         "wordpress/mu-plugins/hs-api-gallery/**",
         "tests/test_api_gallery.py",
