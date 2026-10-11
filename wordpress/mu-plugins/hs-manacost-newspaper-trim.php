@@ -10,7 +10,7 @@ if (! is_admin() && ! (defined('DOING_AJAX') && DOING_AJAX) && ! defined('AI_EXT
     define('AI_EXTERNAL_JS', true);
 }
 
-function hs_manacost_newspaper_is_listing_front()
+function hs_manacost_newspaper_is_listing_front(): bool
 {
     return ! is_admin()
         && ! is_feed()
@@ -18,7 +18,7 @@ function hs_manacost_newspaper_is_listing_front()
         && (is_front_page() || is_home());
 }
 
-function hs_manacost_newspaper_is_public_single()
+function hs_manacost_newspaper_is_public_single(): bool
 {
     return ! is_admin()
         && ! is_feed()
@@ -26,7 +26,7 @@ function hs_manacost_newspaper_is_public_single()
         && is_single();
 }
 
-function hs_manacost_newspaper_should_guard_public_search()
+function hs_manacost_newspaper_should_guard_public_search(): bool
 {
     return ! is_admin()
         && ! is_feed()
@@ -34,7 +34,7 @@ function hs_manacost_newspaper_should_guard_public_search()
         && ! is_user_logged_in();
 }
 
-function hs_manacost_newspaper_disable_native_ajax_counter()
+function hs_manacost_newspaper_disable_native_ajax_counter(): void
 {
     if (! hs_manacost_newspaper_is_public_single() || ! class_exists('tagdiv_options')) {
         return;
@@ -127,6 +127,10 @@ add_action('wp_footer', function () {
     <?php
 }, 1000);
 
+/**
+ * @param mixed $html HTML to filter.
+ * @return mixed
+ */
 function hs_manacost_newspaper_trim_front_html($html)
 {
     if (! is_string($html) || $html === '') {
@@ -137,7 +141,7 @@ function hs_manacost_newspaper_trim_front_html($html)
         $html = hs_manacost_newspaper_strip_ajax_count($html);
     }
 
-    foreach (array('tdToTop-js', 'tdSmartSidebar-js') as $script_id) {
+    foreach (array('tdToTop-js') as $script_id) {
         $pattern = '#<script\b(?=[^>]*\bid=["\']' . preg_quote($script_id, '#') . '["\'])[^>]*>\s*</script>\s*#i';
         $html = preg_replace($pattern, '', $html);
     }
@@ -164,6 +168,10 @@ JS;
     return $html;
 }
 
+/**
+ * @param string $html HTML to filter.
+ * @return string|null
+ */
 function hs_manacost_newspaper_strip_ajax_count($html)
 {
     $html = preg_replace(
