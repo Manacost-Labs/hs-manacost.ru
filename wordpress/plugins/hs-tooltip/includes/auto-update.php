@@ -100,7 +100,7 @@ function hs_smart_tooltip_set_icon_map(): array
         'EVENT'                     => "Event_-_SVG_logo.svg",
         'CAVERNS_OF_TIME'           => "Caverns_of_Time_-_SVG_logo.svg",
         'CATACLYSM'                 => "CATACLYSM_-_SVG_logo.svg",
-        'BE'                        => 'Reign_of_the_Black_Empire_-_SVG_logo.svg',
+        'BE'                        => 'reign_of_the_black_empire_-_svg_logo.svg',
     ];
 }
 
