@@ -85,11 +85,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		}
 		$public[ $key ] = $value;
 	}
-	$comments_enabled = function_exists( 'hs_reader_comments_enabled' ) && hs_reader_comments_enabled();
-	$comments_note    = $comments_enabled
-		? 'Комментарии публикуются сразу. Обновить данные автора в уже написанных комментариях можно здесь отдельным действием.'
-		: 'Комментарии сейчас недоступны.';
-	$default_avatar   = function_exists( 'hs_manacost_reader_default_avatar_url' ) ? hs_manacost_reader_default_avatar_url() : '';
+	$default_avatar = function_exists( 'hs_manacost_reader_default_avatar_url' ) ? hs_manacost_reader_default_avatar_url() : '';
 	return '<section class="mc-reader mc-reader-ui" aria-label="Кабинет читателя" data-mc-reader-root'
 		. ' data-me-endpoint="' . esc_attr( $public['me_endpoint'] ) . '"'
 		. ' data-profile-endpoint="' . esc_attr( $public['profile_endpoint'] ) . '"'
@@ -99,27 +95,25 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. ' data-logout-endpoint="' . esc_attr( $public['logout_endpoint'] ) . '"'
 		. ' data-login-endpoint="' . esc_attr( $public['login_endpoint'] ) . '">'
 		. '<div class="mc-reader__shell"><header class="mc-reader__masthead"><div class="mc-reader__title-group">'
-		. '<p class="mc-reader__masthead-kicker">Профиль Манакоста</p><h1 class="mc-reader__eyebrow">Личный кабинет</h1></div>'
+		. '<h1 class="mc-reader__eyebrow">Личный кабинет</h1></div>'
 		. '<details class="mc-reader__account-menu" data-reader-account-menu hidden><summary>' . hs_manacost_reader_account_icon( 'account' ) . 'Аккаунт' . hs_manacost_reader_account_icon( 'chevron' ) . '</summary><div class="mc-reader__account-actions" data-reader-account-actions></div></details></header>'
 		. '<p class="mc-reader__status" data-reader-status role="status" aria-live="polite">Проверяем вход…</p>'
 		. '<div class="mc-reader__actions" data-reader-actions></div>'
 		. '<section class="mc-reader__profile" aria-labelledby="mc-reader-profile-title" data-reader-profile-overview hidden>'
-		. '<p class="mc-reader__profile-kicker">Ваш профиль</p>'
 		. '<div class="mc-reader__identity-wrap"><div class="mc-reader__avatar" role="img" aria-label="Фото профиля">'
 		. '<img data-reader-avatar-image alt="" hidden><span data-reader-avatar-placeholder aria-hidden="true">М</span></div>'
 		. '<div class="mc-reader__identity-copy"><div class="mc-reader__identity-line"><h2 id="mc-reader-profile-title" class="mc-reader__identity" data-reader-identity></h2><span class="mc-reader__paid-badge" data-reader-paid role="img" aria-label="Платный подписчик" title="Платный подписчик" hidden>' . hs_manacost_reader_account_icon( 'crown' ) . '<span>Платный подписчик</span></span><span class="mc-reader__admin-badge" data-reader-administrator hidden>Администратор</span></div>'
 		. '<p class="mc-reader__bio" data-reader-preview-bio></p><div class="mc-reader__social-marks">' . hs_manacost_reader_author_mark( 'twitch' ) . hs_manacost_reader_author_mark( 'youtube' ) . '</div><div class="mc-reader__profile-controls"><aside class="mc-reader__class-mark" aria-label="Любимый класс"><img class="mc-reader__crest" data-reader-class-crest alt="" width="36" height="36" hidden><div><p>Любимый класс</p><strong data-reader-preview-class></strong></div></aside><button class="mc-reader__button mc-ui-button" data-reader-open-editor type="button">' . hs_manacost_reader_account_icon( 'edit' ) . '<span>Изменить профиль</span></button></div><p class="mc-reader__draft-note" data-reader-preview-label hidden role="status" aria-live="polite"></p></div></div></section>'
-			. '<section class="mc-reader__favorites" aria-labelledby="mc-reader-favorites-title" data-reader-favorites hidden><header class="mc-reader__favorites-head"><div><p class="mc-reader__profile-kicker">Личная подборка</p><h2 id="mc-reader-favorites-title">Сохранённые статьи</h2><p class="mc-ui-help">Материалы, к которым вы хотите вернуться.</p></div></header><span class="mc-reader__favorites-sentinel" data-reader-favorites-sentinel aria-hidden="true"></span><p class="mc-reader__favorites-status" data-reader-favorites-status role="status" aria-live="polite"></p><ul class="mc-reader__favorites-list" data-reader-favorites-list></ul><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-favorites-more type="button" hidden>Показать ещё</button></section>'
-			. '<section class="mc-reader__community-data" aria-labelledby="mc-reader-community-data-title" data-reader-community-data hidden><header><p class="mc-reader__profile-kicker">Управление данными</p><h2 id="mc-reader-community-data-title">Данные обсуждений</h2><p class="mc-ui-help">Здесь можно скачать свои комментарии или удалить их вместе с публичным профилем. Кабинет читателя останется без изменений.</p></header><div class="mc-reader__community-data-actions"><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" type="button" data-reader-comments-export>Скачать мои комментарии</button><button class="mc-reader__button mc-ui-button mc-ui-button--text" type="button" data-reader-comments-erase>Удалить комментарии и публичный профиль</button></div><p class="mc-reader__community-data-status" data-reader-community-data-status role="status" aria-live="polite"></p></section>'
+			. '<section class="mc-reader__favorites" aria-labelledby="mc-reader-favorites-title" data-reader-favorites hidden><header class="mc-reader__favorites-head"><div><h2 id="mc-reader-favorites-title">Сохранённые статьи</h2></div></header><span class="mc-reader__favorites-sentinel" data-reader-favorites-sentinel aria-hidden="true"></span><p class="mc-reader__favorites-status" data-reader-favorites-status role="status" aria-live="polite"></p><ul class="mc-reader__favorites-list" data-reader-favorites-list></ul><button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-favorites-more type="button" hidden>Показать ещё</button></section>'
 		. '<form class="mc-reader__workspace" data-reader-profile-editor hidden aria-labelledby="mc-reader-editor-title">'
-		. '<div class="mc-reader__editor-head"><div><p class="mc-reader__editor-kicker">Профиль читателя</p><h2 id="mc-reader-editor-title">Настройки профиля</h2><p class="mc-ui-help">Так вас увидят в обсуждениях Манакоста.</p></div><button class="mc-reader__button mc-ui-button mc-ui-button--text" data-reader-cancel-editor type="button">' . hs_manacost_reader_account_icon( 'close' ) . '<span>Закрыть</span></button></div>'
+		. '<div class="mc-reader__editor-head"><div><h2 id="mc-reader-editor-title">Настройки профиля</h2></div><button class="mc-reader__button mc-ui-button mc-ui-button--text" data-reader-cancel-editor type="button">' . hs_manacost_reader_account_icon( 'close' ) . '<span>Закрыть</span></button></div>'
 		. '<p class="mc-reader__editor-status" data-reader-editor-status role="status" aria-live="polite"></p>'
 		. '<div class="mc-reader__editor-grid"><section class="mc-reader__preview" aria-label="Фото профиля">'
 		. '<span class="mc-ui-label">Фото профиля</span><div class="mc-reader__avatar mc-reader__avatar--editor" data-reader-editor-avatar role="img" aria-label="Предпросмотр фото">'
 		. '<img data-reader-editor-avatar-image alt="" hidden><span data-reader-editor-avatar-placeholder aria-hidden="true">М</span></div>'
 		. '<div class="mc-reader__avatar-controls"><label class="mc-reader__upload mc-ui-button mc-ui-button--secondary" for="mc-reader-avatar">' . hs_manacost_reader_account_icon( 'camera' ) . '<span>Выбрать фото</span>'
 		. '<input id="mc-reader-avatar" data-reader-avatar-input type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="mc-reader-avatar-help"></label>'
-		. '<p id="mc-reader-avatar-help" class="mc-reader__help mc-ui-help">JPEG, PNG или WebP до 4 МБ. Фото сохраняется сразу.</p>'
+		. '<p id="mc-reader-avatar-help" class="mc-reader__help mc-ui-help">До 4 МБ · JPEG, PNG, WebP. Сохраняется сразу.</p>'
 		. '<button class="mc-reader__text-button mc-ui-button mc-ui-button--text" data-reader-remove-avatar type="button" hidden>' . hs_manacost_reader_account_icon( 'trash' ) . '<span>Удалить фото</span></button></div></section>'
 		. '<div class="mc-reader__fields" aria-label="Данные профиля">'
 		. '<label class="mc-reader__field" for="mc-reader-display-name"><span class="mc-ui-label">Имя в Манакосте</span>'
@@ -128,7 +122,7 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<label class="mc-reader__field" for="mc-reader-bio"><span class="mc-ui-label">О себе</span>'
 		. '<textarea class="mc-ui-control" id="mc-reader-bio" data-reader-bio rows="3" aria-describedby="mc-reader-bio-count"></textarea></label>'
 		. '<span id="mc-reader-bio-count" class="mc-reader__counter" data-reader-bio-count>0 / 280</span>'
-		. '<fieldset class="mc-reader__social-fields"><legend class="mc-ui-label">Где меня найти</legend><p class="mc-reader__social-help mc-ui-help" data-reader-social-help>Необязательно. Ссылки появятся в обсуждениях после обновления профиля ниже.</p><div class="mc-reader__social-grid">'
+		. '<fieldset class="mc-reader__social-fields"><legend class="mc-ui-label">Где меня найти</legend><p class="mc-reader__social-help mc-ui-help" data-reader-social-help>Необязательно.</p><div class="mc-reader__social-grid">'
 		. '<label class="mc-reader__field" for="mc-reader-twitch"><span class="mc-reader__social-label">' . hs_manacost_reader_account_icon( 'twitch' ) . '<span>Twitch</span></span><input class="mc-ui-control" id="mc-reader-twitch" data-reader-twitch type="url" inputmode="url" autocomplete="url" placeholder="https://twitch.tv/your_channel"></label>'
 		. '<label class="mc-reader__field" for="mc-reader-youtube"><span class="mc-reader__social-label">' . hs_manacost_reader_account_icon( 'youtube' ) . '<span>YouTube</span></span><input class="mc-ui-control" id="mc-reader-youtube" data-reader-youtube type="url" inputmode="url" autocomplete="url" placeholder="https://youtube.com/@your_channel" aria-describedby="mc-reader-youtube-help"></label>'
 		. '</div><p id="mc-reader-youtube-help" class="mc-reader__social-help mc-ui-help">YouTube: канал вида @имя или /channel/UC…</p></fieldset>'
@@ -141,11 +135,6 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<div class="mc-reader__form-actions"><button class="mc-reader__button mc-ui-button" data-reader-save-profile type="submit">' . hs_manacost_reader_account_icon( 'check' ) . '<span>Сохранить изменения</span></button>'
 		. '<button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-retry-profile type="button" hidden>' . hs_manacost_reader_account_icon( 'retry' ) . '<span>Повторить</span></button>'
 		. '<button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-reload-version type="button" hidden>' . hs_manacost_reader_account_icon( 'retry' ) . '<span>Обновить версию</span></button></div>'
-		. '<section class="mc-reader__publication" aria-labelledby="mc-reader-publication-title"' . ( $comments_enabled ? '' : ' hidden' ) . '><h3 id="mc-reader-publication-title">Профиль в комментариях</h3>'
-		. '<p class="mc-ui-help">Уже оставляли комментарии? Обновите имя, фото, описание, любимый класс и ссылки Twitch / YouTube сразу во всех своих комментариях и публичном профиле. Новый комментарий писать не нужно.</p>'
-		. '<p class="mc-ui-help" data-reader-publication-help>Сначала сохраните изменения, затем обновите данные в комментариях.</p>'
-		. '<button class="mc-reader__button mc-ui-button mc-ui-button--secondary" data-reader-publish-profile type="button" disabled>' . hs_manacost_reader_account_icon( 'retry' ) . '<span>Обновить в комментариях</span></button></section>'
-		. '<p class="mc-reader__note">Профиль Манакоста не изменяет профиль HearthPulse. ' . esc_html( $comments_note ) . '</p>'
 		. '</div></div></form><footer class="mc-reader__footer"><a class="mc-reader__back" href="/">'
 		. hs_manacost_reader_account_icon( 'back' ) . '<span>' . esc_html__( 'Вернуться к материалам', 'hs-manacost-reader' ) . '</span></a></footer></div></section>';
 }
