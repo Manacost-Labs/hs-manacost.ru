@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "environment": "integration",
+  "screen": "Classic Editor AI: enqueue to usable Apply control",
+  "authenticated_role": "administrator in existing rollout",
+  "dataset_size": 1,
+  "sample_count": 5,
+  "cache_state": "warm",
+  "viewport": "1440x900",
+  "network": "loopback",
+  "provider": "instant deterministic Anthropic HTTP boundary, not real inference",
+  "baseline_parent": "7a995177fe352e821e444247e6a132cfc7f838cb",
+  "metrics": [
+    {
+      "name": "ttfb_ms",
+      "unit": "ms",
+      "before": 13,
+      "after": 12.5,
+      "budget": 1500
+    },
+    {
+      "name": "interactive_ms",
+      "unit": "ms",
+      "before": 62081.3,
+      "after": 834.2,
+      "budget": 2500
+    },
+    {
+      "name": "sql_queries",
+      "unit": "queries",
+      "before": 22,
+      "after": 22,
+      "budget": 120
+    },
+    {
+      "name": "peak_memory_mb",
+      "unit": "MB",
+      "before": 6,
+      "after": 6,
+      "budget": 160
+    },
+    {
+      "name": "long_tasks",
+      "unit": "count",
+      "before": 0,
+      "after": 0,
+      "budget": 4
+    }
+  ],
+  "functional_checks": {
+    "behavior": true,
+    "permissions": true,
+    "desktop": true,
+    "mobile": true,
+    "error_path": true
+  },
+  "definitions": {
+    "ttfb_ms": "p95 enqueue POST TTFB, separate five-sample endpoint probe after excluded warm-up",
+    "interactive_ms": "p95 explicit Send to proposal with Apply enabled, including queue wait",
+    "sql_queries": "enqueue POST query count",
+    "peak_memory_mb": "enqueue POST peak PHP memory",
+    "long_tasks": "browser tasks over 50 ms during the operation"
+  },
+  "journey_before": [
+    {
+      "interactive_ms": 59056.90000000596,
+      "ttfb_ms": 21.5,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 37
+    },
+    {
+      "interactive_ms": 60588,
+      "ttfb_ms": 34.899999998509884,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 51.600000001490116
+    },
+    {
+      "interactive_ms": 62081.29999999702,
+      "ttfb_ms": 22.19999999552965,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 52.20000000298023
+    },
+    {
+      "interactive_ms": 60559.20000000298,
+      "ttfb_ms": 44.30000000447035,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 45.399999998509884
+    },
+    {
+      "interactive_ms": 62076.60000000149,
+      "ttfb_ms": 38.80000000447035,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 53.5
+    }
+  ],
+  "journey_after": [
+    {
+      "interactive_ms": 834.2000000029802,
+      "ttfb_ms": 41.900000005960464,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 62.29999999701977
+    },
+    {
+      "interactive_ms": 823.7000000029802,
+      "ttfb_ms": 22.599999994039536,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 42.70000000298023
+    },
+    {
+      "interactive_ms": 823,
+      "ttfb_ms": 23.799999997019768,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 52.899999998509884
+    },
+    {
+      "interactive_ms": 825.7000000029802,
+      "ttfb_ms": 37.19999999552965,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 50.29999999701977
+    },
+    {
+      "interactive_ms": 827.1000000014901,
+      "ttfb_ms": 37.20000000298023,
+      "long_tasks": 0,
+      "sql_queries": 22,
+      "peak_memory_mb": 6,
+      "dialog_open_ms": 50.5
+    }
+  ],
+  "enqueue_before": [
+    {
+      "ttfb_ms": 8.5,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 13,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 9.899999998509884,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 12.699999995529652,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 9.700000002980232,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    }
+  ],
+  "enqueue_after": [
+    {
+      "ttfb_ms": 10.699999995529652,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 11.699999995529652,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 11.100000001490116,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 12,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    },
+    {
+      "ttfb_ms": 12.5,
+      "sql_queries": 22,
+      "peak_memory_mb": 6
+    }
+  ],
+  "limitations": [
+    "One disposable draft, not a production-scale admin performance claim.",
+    "Controlled minute cron baseline; immediate dispatch after, same role/content size/cache/browser.",
+    "Navigation median TTFB 34.9 to 37.2 ms is recorded separately; endpoint p95 is the scoped gate.",
+    "Actual Claude time remains additional and was not measured by this benchmark."
+  ]
+}

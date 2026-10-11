@@ -245,60 +245,12 @@
       const next = adminActions(item.id); built.set(next, fields);
       if (prior) prior.replaceWith(next); else node.append(next);
     }
-    function bansPanel() {
-      const details = element('details', 'mc-comments__bans'); details.dataset.communityAdmin = '';
-      const list = element('ul'), more = element('button', 'mc-ui-button mc-ui-button--secondary', 'Показать ещё блокировки');
-      more.type = 'button'; more.hidden = true;
-      details.append(element('summary', '', 'Заблокированные читатели'), list, more);
-      let cursor = null, loading = false;
-      async function load(append = false) {
-        if (loading) return;
-        loading = true; more.disabled = true;
-        try {
-          if (!await requireModerator() || !details.isConnected) return;
-          const { response, data } = await binding.request('/reader-api/v1/moderation/bans' + (append && cursor ? '?cursor=' + cursor : ''));
-          if (authError(response)) return;
-          if (!response.ok || !Array.isArray(data?.items) || data.items.length > 20
-            || !data.items.every(item => validBan(item) && uuid.test(item.id) && item.blocked)
-            || (data.nextCursor !== null && (!uuid.test(data.nextCursor) || data.nextCursor === cursor))) throw new Error();
-          if (!append) list.replaceChildren();
-          for (const item of data.items) list.append(banRow(item));
-          cursor = data.nextCursor; more.hidden = !cursor;
-          if (!list.children.length) list.append(element('li', '', 'Заблокированных читателей нет.'));
-        } catch (error) {
-          if (error.message !== 'stale') binding.say('Не удалось загрузить блокировки. Закройте и откройте список, чтобы повторить.');
-        } finally { loading = false; more.disabled = false; }
-      }
-      function banRow(item) {
-        const row = element('li');
-        row.append(element('span', '', typeof item.profile?.name === 'string' ? item.profile.name : 'Читатель'));
-        const button = element('button', 'mc-ui-button mc-ui-button--text', 'Разрешить комментировать'); button.type = 'button';
-        button.addEventListener('click', async () => {
-          if (button.disabled) return;
-          button.disabled = true;
-          try {
-            if (!await requireModerator()) return;
-            const { response, data } = await sendJson('/reader-api/v1/moderation/bans/' + item.id, 'PUT', { version: item.version });
-            if (authError(response)) return;
-            if (response.status === 409) { cursor = null; await load(); binding.say('Список обновлён. Повторите действие при необходимости.'); return; }
-            if (!response.ok || !validBan(data?.ban) || data.ban.blocked) throw new Error();
-            cursor = null; await load(); binding.say('Комментирование снова разрешено.');
-          } catch (error) { if (error.message !== 'stale') binding.say('Не удалось снять запрет. Попробуйте ещё раз.'); }
-          finally { button.disabled = false; }
-        });
-        row.append(button); return row;
-      }
-      more.addEventListener('click', () => { void load(true); });
-      details.addEventListener('toggle', () => { if (details.open) { cursor = null; void load(); } });
-      return details;
-    }
     function renderControls() {
       const items = new Map(binding.getRows().filter(item => uuid.test(item.id)).map(item => [item.id, item]));
       for (const node of binding.root.querySelectorAll('[data-comments-list] [data-comment-id]')) {
         const item = items.get(node.dataset.commentId);
         syncReactions(node, item); syncAdmin(node, item);
       }
-      if (moderator && !binding.root.querySelector('.mc-comments__bans')) binding.root.append(bansPanel());
     }
     function render() {
       if (session !== binding.sessionKey()) reset();

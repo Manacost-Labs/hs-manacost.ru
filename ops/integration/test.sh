@@ -42,3 +42,6 @@ printf 'WordPress integration behaviour: OK\n'
 cp "$ROOT_DIR/.artifacts/integration/media-upload-report.json" "$ROOT_DIR/.artifacts/integration/site/.integration/"
 cp "$ROOT_DIR/ops/integration/media-upload-check.php" "$ROOT_DIR/.artifacts/integration/site/.integration/"
 "${compose[@]}" run --rm cli eval-file /var/www/html/.integration/media-upload-check.php
+
+# Explicitly requested editor suggestions, tested only on this disposable stack.
+"$ROOT_DIR/tests/editor-ai/run.sh"

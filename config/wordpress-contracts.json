@@ -2370,6 +2370,27 @@
     ],
     "rest_routes": [
       {
+        "name": "hs-editor-ai/v1/jobs",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 42
+      },
+      {
+        "name": "hs-editor-ai/v1/jobs/(?P<id>[a-f0-9]{32})",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 73
+      },
+      {
+        "name": "hs-editor-ai/v1/jobs/(?P<id>[a-f0-9]{32})/run",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 82
+      },
+      {
         "name": "manacost-reader/v1/favorites",
         "resolved": true,
         "api": "register_rest_route",
@@ -2447,6 +2468,27 @@
         "api": "wp_schedule_event",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
         "line": 58
+      },
+      {
+        "name": "hs_editor_ai_expire",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 176
+      },
+      {
+        "name": "hs_editor_ai_process",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 176
+      },
+      {
+        "name": "hs_editor_ai_process",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 246
       },
       {
         "name": "hs_local_image_optimizer_process_attachment",
@@ -2783,6 +2825,27 @@
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-admin.php",
+        "line": 36
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 122
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 192
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-editor-cloudflare-deferred-purge.php",
         "line": 54
       },
@@ -2876,6 +2939,13 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-admin-ajax-guard.php",
         "line": 482
+      },
+      {
+        "name": "edit_posts",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 33
       },
       {
         "name": "edit_posts",
