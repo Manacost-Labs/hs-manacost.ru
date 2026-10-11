@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Smart Tooltip
  * Description: Adds Hearthstone card tooltips using a prebuilt dictionary.
- * Version: 1.1.10
+ * Version: 1.1.11
  * Requires at least: 5.9
  * Requires PHP: 8.0
  * Text Domain: hs-smart-tooltip
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('HS_SMART_TOOLTIP_VERSION', '1.1.10');
+define('HS_SMART_TOOLTIP_VERSION', '1.1.11');
 define('HS_SMART_TOOLTIP_FRONTEND_SCRIPT', 'hs-tooltip-v115.js');
 
 const HS_TOOLTIP_CACHE_GROUP = 'hs_smart_tooltip';
@@ -844,7 +844,7 @@ function hs_smart_tooltip_handle_image_proxy(): void
     }
     $url = trim($raw);
     for ($i = 0; $i < 2; $i++) {
-        if (str_contains($url, '%3A') || str_contains($url, '%2F')) {
+        if (!preg_match('#^https?://#i', $url) && (str_contains($url, '%3A') || str_contains($url, '%2F'))) {
             $url = rawurldecode($url);
         }
     }
@@ -865,8 +865,13 @@ function hs_smart_tooltip_handle_image_proxy(): void
         'api.hearthstonejson.com',
         'art.hearthstonejson.com',
         'static.wikia.nocookie.net',
+        'api.kolodahearthstone.com',
     ];
     if (!in_array($host, $allowed, true)) {
+        status_header(403);
+        exit;
+    }
+    if ($host === 'api.kolodahearthstone.com' && hs_smart_tooltip_koloda_image_url($url) === '') {
         status_header(403);
         exit;
     }
@@ -886,7 +891,7 @@ function hs_smart_tooltip_handle_image_proxy(): void
 
     $response = wp_safe_remote_get($url, [
         'timeout' => 15,
-        'redirection' => 3,
+        'redirection' => $host === 'api.kolodahearthstone.com' ? 0 : 3,
         'user-agent' => 'HS-Smart-Tooltip/' . HS_SMART_TOOLTIP_VERSION,
     ]);
     if (is_wp_error($response)) {
@@ -1792,7 +1797,10 @@ function hs_smart_tooltip_render_bgs_span(string $label_html, array $entry): str
     if ($entry['img'] === '') {
         return $label_html;
     }
-    $img = esc_url($entry['img']);
+    $raw_img = esc_url($entry['img']);
+    $img = hs_smart_tooltip_koloda_image_url($entry['img']) !== ''
+        ? esc_url(hs_smart_tooltip_image_proxy_url($entry['img']))
+        : $raw_img;
     $tier_html = '';
     $tier = isset($entry['tech']) ? (int) $entry['tech'] : 0;
     $type = isset($entry['type']) ? (string) $entry['type'] : '';
@@ -1807,7 +1815,7 @@ function hs_smart_tooltip_render_bgs_span(string $label_html, array $entry): str
         }
     }
     return '<span class="hs-card-tooltip hs-card-tooltip-bg hs-rarity-' . esc_attr($entry['rarity']) .
-        '" data-image="' . $img . '" data-image-raw="' . $img . '">' .
+        '" data-image="' . $img . '" data-image-raw="' . $raw_img . '">' .
         $tier_html . $label_html . '</span>';
 }
 
@@ -1986,6 +1994,10 @@ function hs_smart_tooltip_rebuild_bgs_dictionary(): array
     }
     if (empty($by_id)) {
         return ['ok' => false, 'count' => 0, 'message' => 'no BG cards in API response'];
+    }
+    $by_id = hs_smart_tooltip_add_koloda_bgs_cards($by_id);
+    if (is_wp_error($by_id)) {
+        return ['ok' => false, 'count' => 0, 'message' => 'Koloda: ' . $by_id->get_error_code()];
     }
     $path = plugin_dir_path(__FILE__) . 'hs_bgs_dictionary.json';
     $payload = wp_json_encode(['by_id' => $by_id], JSON_UNESCAPED_UNICODE);

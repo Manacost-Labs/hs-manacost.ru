@@ -20,8 +20,18 @@ deptrac:
           value: wordpress/mu-plugins/(manacost-social-links|hs-manacost-newspaper-trim)\.php
     - name: VendorPlugins
       collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: wordpress/plugins/.*
+          must_not:
+            - type: directory
+              value: wordpress/plugins/hs-tooltip/includes/koloda\.php
+    # This adapter consumes the shared public-data client and legacy tooltip helpers.
+    - name: TooltipKolodaAdapter
+      collectors:
         - type: directory
-          value: wordpress/plugins/.*
+          value: wordpress/plugins/hs-tooltip/includes/koloda\.php
     - name: VendorThemes
       collectors:
         - type: directory
@@ -30,4 +40,5 @@ deptrac:
     FirstParty: []
     NewspaperAdapters: [VendorPlugins, VendorThemes]
     VendorPlugins: [VendorPlugins, VendorThemes]
+    TooltipKolodaAdapter: [FirstParty, VendorPlugins]
     VendorThemes: [VendorThemes, VendorPlugins]

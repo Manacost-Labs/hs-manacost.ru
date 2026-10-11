@@ -1,7 +1,7 @@
 {
   "name": "koloda-hearthstone-data",
   "owner": "hs-manacost first-party MU-plugins",
-  "purpose": "Shared server-side access to public Hearthstone card libraries and statistics for future site features.",
+  "purpose": "Shared server-side access to public Hearthstone card libraries and statistics; hs-tooltip supplements its local dictionary from the complete constructed-card and Battlegrounds catalogs during manual/cron rebuilding.",
   "direction": "outbound",
   "endpoints": {
     "host": "https://api.kolodahearthstone.com",
@@ -14,8 +14,8 @@
   "data_classes": ["public card/game content", "aggregated gameplay statistics", "operational outcome and cache age"],
   "timeout_seconds": 5,
   "retry": {"max_attempts": 1, "retryable_conditions": ["transport failure", "429", "5xx", "invalid response"], "backoff": "No immediate retries; later caller may retry after 30 seconds, honoring Retry-After up to 3600 seconds. 429 cooldown shared across resources."},
-  "idempotency": "GET only; no provider mutations, automatic refresh commands or inbound callbacks",
-  "rate_limit": {"expected_limit": "provider has not published a quota for these public endpoints", "handling": "5 minute per-query fresh cache, at most 100 rows requested, one 5-second request per miss, shared 429 backoff"},
+  "idempotency": "GET only; no provider mutations or inbound callbacks. Tooltip rebuild validates a complete fresh catalog before writing the local dictionary (atomic replacement for the main dictionary); failed imports preserve the existing file.",
+  "rate_limit": {"expected_limit": "provider has not published a quota for these public endpoints", "handling": "5 minute per-query fresh cache, at most 100 rows requested, one 5-second request per miss, shared 429 backoff. Tooltip rebuild: at most 100 sequential pages and a 120-second budget; abort on a stale, partial, duplicate or changing catalog."},
   "observability": {"hook": "manacost_koloda_api_result", "fields": ["public API path without query", "safe outcome code", "cached age in seconds"], "correlation": "path and observation time; no payloads, cookies, user identifiers or credentials"},
   "degradation": "Return WP_Error on cold-cache failure. For transport/schema/429/5xx faults return last successful data for up to 24 hours with stale=true and an error code. Caller must display age or fallback. No HTTP calls at plugin load, editor save or page render unless explicitly invoked by a future feature.",
   "disable_switch": {"constant": "MANACOST_KOLODA_API_ENABLED", "disabled_value": false, "owner": "site operator; checked before cached data or HTTP"},

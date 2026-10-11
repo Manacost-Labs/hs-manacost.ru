@@ -1,0 +1,70 @@
+[
+  {
+    "card_id": "BE_036",
+    "dbf": 128132,
+    "name": {
+      "ru": "МАТРИАРХ",
+      "en": "M.O.T.H.E.R."
+    },
+    "card_set": "BE",
+    "card_type": {
+      "slug": "MINION",
+      "name_ru": "Существо"
+    },
+    "rarity": "LEGENDARY",
+    "images": {
+      "card": "https://api.kolodahearthstone.com/uploads/constructed-related/BE_036.png?v=2026-10-11%2016%3A26%3A40"
+    }
+  },
+  {
+    "card_id": "BE_EVENT_100",
+    "dbf": 132669,
+    "name": {
+      "ru": "Прибытие Древних богов",
+      "en": "Arrival of the Old Gods"
+    },
+    "card_set": "EVENT",
+    "card_type": {
+      "slug": "SPELL",
+      "name_ru": "Заклинание"
+    },
+    "rarity": "EPIC",
+    "images": {
+      "card": "https://api.kolodahearthstone.com/uploads/constructed-related/BE_EVENT_100.png?v=2026-10-11%2016%3A26%3A40"
+    }
+  },
+  {
+    "card_id": "BE_EVENT_101",
+    "dbf": 132671,
+    "name": {
+      "ru": "Прибытие титанов",
+      "en": "Arrival of the Titans"
+    },
+    "card_set": "EVENT",
+    "card_type": {
+      "slug": "SPELL",
+      "name_ru": "Заклинание"
+    },
+    "rarity": "EPIC",
+    "images": {
+      "card": "https://api.kolodahearthstone.com/uploads/constructed-related/BE_EVENT_101.png?v=2026-10-11%2016%3A26%3A40"
+    }
+  },
+  {
+    "card_id": "BE_EVENT_102",
+    "dbf": 132673,
+    "name": {
+      "ru": "Темное терраформирование",
+      "en": "Dark Terraforming"
+    },
+    "card_set": "EVENT",
+    "card_type": {
+      "slug": "SPELL",
+      "name_ru": "Заклинание"
+    },
+    "rarity": "EPIC",
+    "images": {
+      "card": "https://api.kolodahearthstone.com/uploads/constructed-related/BE_EVENT_102.png?v=2026-10-11%2016%3A26%3A40"
+    }
+  }
+]
