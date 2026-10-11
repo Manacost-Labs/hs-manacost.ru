@@ -1,17 +1,17 @@
 <?php
 /**
  * Plugin Name: Manacost Smart Sidebar
- * Description: Enables Newspaper's native scrolling sidebar on public pages.
- * Version: 1.0.0
+ * Description: Keeps Newspaper's public sidebar stable when scroll direction changes.
+ * Version: 1.1.0
  *
  * @package Manacost
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/** Keeps the native sidebar behavior in source without writing theme settings. */
+/** Enables the native markup and scopes stable positioning to classic sidebars. */
 final class Manacost_Smart_Sidebar {
-	/** Keeps keyboard-focused links visible instead of pinning them off-screen. */
+	/** Loads positioning and keyboard support after the native library. */
 	public static function enqueue_styles(): void {
 		if ( is_admin() || 'Newspaper_new' !== get_template() ) {
 			return;
@@ -21,7 +21,15 @@ final class Manacost_Smart_Sidebar {
 			'manacost-smart-sidebar',
 			plugin_dir_url( __FILE__ ) . 'manacost-smart-sidebar.css',
 			array(),
-			'1.0.0'
+			'1.1.0'
+		);
+
+		wp_enqueue_script(
+			'manacost-smart-sidebar',
+			plugin_dir_url( __FILE__ ) . 'manacost-smart-sidebar.js',
+			array( 'tdSmartSidebar' ),
+			'1.1.0',
+			true
 		);
 	}
 
@@ -46,4 +54,4 @@ final class Manacost_Smart_Sidebar {
 }
 
 add_filter( 'option_td_011', array( Manacost_Smart_Sidebar::class, 'enable_public_sidebar' ) );
-add_action( 'wp_enqueue_scripts', array( Manacost_Smart_Sidebar::class, 'enqueue_styles' ) );
+add_action( 'wp_enqueue_scripts', array( Manacost_Smart_Sidebar::class, 'enqueue_styles' ), 20 );

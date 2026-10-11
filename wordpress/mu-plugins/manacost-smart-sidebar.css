@@ -1,7 +1,16 @@
-/* Native Newspaper positioning can keep a keyboard-focused link above the
- * viewport in a tall sidebar. Let the browser reveal it in document flow.
- * Override inline positioning only while a keyboard focus ring is visible. */
-body .td-main-sidebar > .td-ss-main-sidebar:has(:focus-visible) {
-	position: static !important;
+/* Keep one positioning model across direction changes. The sidebar retains its
+ * normal width and layout space; scrolling only changes its vertical offset. */
+body .td-main-sidebar > .manacost-smart-sidebar {
+	position: relative !important;
 	width: auto !important;
+	top: 0 !important;
+	bottom: auto !important;
+	transform: translateY(var(--manacost-sidebar-offset, 0px));
+}
+
+@media (max-width: 767px) {
+	body .td-main-sidebar > .manacost-smart-sidebar {
+		position: static !important;
+		transform: none;
+	}
 }
