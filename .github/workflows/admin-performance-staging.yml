@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: hs-manacost-admin-performance-staging
-  cancel-in-progress: true
+  group: hs-manacost-admin-performance-staging-${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  cancel-in-progress: false
 
 jobs:
   measure:
@@ -19,7 +19,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, linux, x64, hs-manacost-production]
-    timeout-minutes: 20
+    timeout-minutes: 30
     environment: staging
     env:
       WP_TEST_BASE_URL: https://test.hs-manacost.ru
@@ -79,6 +79,12 @@ jobs:
               "$report_path" || evaluation_failed=1
           done
           exit "$evaluation_failed"
+      - name: Verify five cold slow-mobile frontend samples per route
+        if: always() && steps.credentials.outputs.enabled == 'true'
+        env:
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+        run: node ops/performance/collect-frontend-performance.mjs .artifacts/admin-performance/reports
       - name: Diagnose authenticated article save
         if: always() && steps.credentials.outputs.enabled == 'true'
         env:
