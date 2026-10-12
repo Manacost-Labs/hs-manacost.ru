@@ -76,3 +76,52 @@ service has a 6 GiB memory cap and stops on OOM. Test the bounded version before
 activating timers. Do not put HS_S3_DRY_RUN in the permanent environment: a
 dry-run exits successfully without creating a backup. The first current prefix
 is empty; previous offload backups use a separate prefix and remain untouched.
+
+## Initial-copy throughput and bounded recovery
+
+The initial two-transfer run copied only 18,620 objects / 2,248,335,647 bytes
+when observed against the 2,199,069-object inventory. A 24-hour timeout cannot
+be assumed sufficient. A separate private pilot made 16 copies of the same
+unchanged 1,335,086-byte PNG per concurrency level. All 48 copies succeeded;
+elapsed times were 49.945 seconds with two workers, 35.615 with four and 6.236
+with eight. This small test supports a bounded increase; it does not predict
+whole-library completion time or establish sustained provider capacity.
+
+`HS_S3_WORKERS` defaults to eight and accepts only integers 1–16. The copy and
+full check limit API transactions to 16 per second, with a bounded burst equal
+to the worker count. The service keeps its 6 GiB memory cap, directory-based
+listing and OOM stop. Aggregate copy progress is logged every five minutes;
+one-line statistics do not include individual active object paths. Initial
+copies may run up to seven days. Daily timer triggers do not start a second
+invocation of an already active service. No success is reported until the full
+check, byte restore sample and manifest publication pass.
+
+For an operator-approved restart, stop only the project snapshot service and
+its invocation-bound initial-restore watcher before installing from a clean
+committed checkout. Retain `current` and all version prefixes. Restarting sync
+checks existing objects and continues the incomplete copy; a stopped invocation
+is not a completed backup. Recreate the initial-restore watcher bound to the new
+service invocation and installed source revision. Start the snapshot with
+`systemctl start --no-block` and allow the watcher nine days: the seven-day
+snapshot timeout, the restore service's eight-hour timeout and additional time
+for the capacity gate. A failed snapshot never proves restoration; after any
+scheduled incremental retry, re-arm the watcher against that invocation and the
+same installed revision. Media uploads remain available during copying, so live
+source drift may legitimately fail the full check and require this retry.
+
+Before starting, check the reverse ordering dependencies with
+`systemctl list-dependencies --before hs-manacost-s3-backup.service`.
+No DB, deploy or other backup job may be ordered after this long oneshot or share
+its application lock. The installed
+credential helper uses static access-key references rather than expiring session
+tokens. Request throttling applies to copy and check, not the separate directory
+listings. Reduce throughput to four workers first; `HS_S3_WORKERS=2` remains
+available, but a first copy may then require multiple interrupted/incremental
+runs. Stop the active invocation before changing installed helper files.
+
+Claude Opus 5.5 max approved the concurrency change subject to the dependency
+check above. The installed unit's only reverse ordering dependency was
+`shutdown.target`, and the owned backup helpers contain no shared lock. A real
+September-only dry-run against a separate private pilot prefix passed with the
+new limits, without copying objects or publishing manifests. These checks do
+not establish full backup completion.
