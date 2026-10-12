@@ -5,6 +5,7 @@ import struct
 import shutil
 import subprocess
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 
@@ -213,14 +214,14 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn("manacost-site-navigation", result["styles"])
         self.assertIn("manacost-boosty-promo", result["styles"])
 
-    def test_promo_images_offer_small_renditions_without_delaying_visible_content(self) -> None:
+    def test_promo_images_offer_small_renditions_and_allow_the_site_lazy_loader(self) -> None:
         for homepage in (True, False):
             result = self.run_plugin(is_front_page=homepage)
             markup = result["shortcode" if homepage else "sidebar"]
             basename = "homepage-banner" if homepage else "banner"
             self.assertIn('loading="lazy"', markup)
-            self.assertIn('data-no-lazy="1"', markup)
-            self.assertIn('sizes="auto,', markup)
+            self.assertNotIn('data-no-lazy=', markup)
+            self.assertIn('sizes="(max-width: 767px) calc(100vw - 40px), 350px"', markup)
             self.assertIn('srcset="', markup)
             for width in (400, 800):
                 self.assertIn(f"{basename}-{width}.webp", markup)
@@ -231,6 +232,41 @@ class BoostyPromoTest(unittest.TestCase):
                 self.assertEqual(width, struct.unpack("<H", data[26:28])[0] & 0x3FFF)
                 original = HOMEPAGE_BANNER if homepage else BANNER
                 self.assertLess(len(data), original.stat().st_size)
+
+    def test_rocket_defers_promo_sources_and_preserves_the_no_script_fallback(self) -> None:
+        rocket_image = ROOT / "wordpress/plugins/wp-rocket/inc/Dependencies/RocketLazyload/Image.php"
+        script = f"""
+        require {json.dumps(str(rocket_image))};
+        $image = new WP_Rocket\\Dependencies\\RocketLazyload\\Image();
+        function absint($value) {{ return abs((int) $value); }}
+        function esc_url($value) {{ return $value; }}
+        function apply_filters($hook, $value, ...$args) {{
+            return $hook === 'rocket_lazyload_html'
+                ? $GLOBALS['image']->lazyloadResponsiveAttributes($value) : $value;
+        }}
+        function wpm_apply_filters_typed($type, $hook, $value) {{ return $value; }}
+        $markup = stream_get_contents(STDIN);
+        echo $image->lazyloadImages($markup, $markup, false);
+        """
+        for homepage in (True, False):
+            markup = self.run_plugin(is_front_page=homepage)["shortcode" if homepage else "sidebar"]
+            result = subprocess.run([PHP_BINARY, "-r", script], input=markup,
+                                    text=True, capture_output=True, check=True)
+            active, fallback = result.stdout.split("<noscript>", 1)
+            images = []
+            class ImageAttributes(HTMLParser):
+                def handle_starttag(self, tag, attrs):
+                    if tag == "img":
+                        images.append(dict(attrs))
+            ImageAttributes().feed(active)
+            self.assertEqual(1, len(images))
+            self.assertTrue(images[0]["src"].startswith("data:image/"))
+            self.assertNotIn("srcset", images[0])
+            self.assertIn("400w", images[0]["data-lazy-srcset"])
+            self.assertIn("800w", images[0]["data-lazy-srcset"])
+            self.assertEqual("350px", images[0]["data-lazy-sizes"].split(", ")[-1])
+            self.assertIn('width="117', active)
+            self.assertIn(markup.split("<img", 1)[1].split("</a>", 1)[0], fallback)
 
     def test_replaces_only_the_legacy_article_sidebar_banner(self) -> None:
         result = self.run_plugin(is_front_page=False)
