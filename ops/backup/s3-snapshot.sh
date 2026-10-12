@@ -10,6 +10,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/storage-credentials.sh"
 source_remote=${HS_S3_SOURCE_REMOTE%/}
 backup_remote=${HS_S3_BACKUP_REMOTE%/}
 retention_days=${HS_S3_RETENTION_DAYS:-90}
+workers=${HS_S3_WORKERS:-8}
+
+[[ "$workers" =~ ^([1-9]|1[0-6])$ ]] \
+    || { echo 'S3 workers must be an integer from 1 to 16' >&2; exit 2; }
 
 [[ "$source_remote" == *:*/* ]] || { echo "S3 source must include remote, bucket and prefix" >&2; exit 2; }
 [[ "$backup_remote" == *:*/* ]] || { echo "S3 backup must include remote, bucket and prefix" >&2; exit 2; }
@@ -36,7 +40,7 @@ rclone lsf "$source_remote" --recursive --files-only --format ps --separator $'\
     >"$temporary_directory/$timestamp.tsv"
 [[ -s "$temporary_directory/$timestamp.tsv" ]] || { echo 'S3 source is empty; refusing snapshot' >&2; exit 1; }
 
-sync_options=(--log-level NOTICE)
+sync_options=(--log-level NOTICE --stats 5m --stats-one-line --stats-log-level NOTICE)
 if [[ ${HS_S3_DRY_RUN:-0} == 1 ]]; then
     sync_options=(--dry-run --log-level ERROR)
 fi
@@ -46,9 +50,10 @@ rclone sync "$source_remote" "$current" \
     --s3-no-check-bucket \
     --server-side-across-configs \
     --checksum \
-    --checkers 4 \
-    --transfers 2 \
-    \
+    --checkers "$workers" \
+    --transfers "$workers" \
+    --tpslimit 16 \
+    --tpslimit-burst "$workers" \
     "${sync_options[@]}"
 
 if [[ ${HS_S3_DRY_RUN:-0} == 1 ]]; then
@@ -58,7 +63,7 @@ fi
 
 # Check every object (hash where available, otherwise size), then restore a
 # representative original and compare bytes before publishing the manifest.
-rclone check "$source_remote" "$current" --checkers 4
+rclone check "$source_remote" "$current" --checkers "$workers" --tpslimit 16 --tpslimit-burst "$workers"
 # Describe the verified destination, rather than the earlier live-source listing.
 rclone lsf "$current" --recursive --files-only --format ps --separator $'\t' \
     >"$temporary_directory/$timestamp.tsv"

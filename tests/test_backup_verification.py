@@ -82,6 +82,37 @@ class BackupVerificationTest(unittest.TestCase):
         self.assertFalse(any(c[1] in ['copyto', 'purge'] for c in self.calls()))
         self.assertNotIn('S3 snapshot verified', result.stdout)
 
+    def test_default_workers_are_bounded_and_copy_progress_contains_no_paths(self) -> None:
+        result = self.run_script('s3-snapshot.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        sync = next(c for c in self.calls() if c[1] == 'sync')
+        check = next(c for c in self.calls() if c[1] == 'check')
+        self.assertEqual(sync[sync.index('--transfers') + 1], '8')
+        self.assertEqual(sync[sync.index('--checkers') + 1], '8')
+        self.assertEqual(check[check.index('--checkers') + 1], '8')
+        for call in [sync, check]:
+            self.assertEqual(call[call.index('--tpslimit') + 1], '16')
+        self.assertIn('--stats-one-line', sync)
+        self.assertEqual(sync[sync.index('--stats') + 1], '5m')
+        self.assertEqual(sync[sync.index('--stats-log-level') + 1], 'NOTICE')
+        self.assertNotIn('--fast-list', sync)
+
+    def test_operator_can_reduce_workers_without_removing_request_limit(self) -> None:
+        result = self.run_script('s3-snapshot.sh', HS_S3_WORKERS='2')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        sync = next(c for c in self.calls() if c[1] == 'sync')
+        self.assertEqual(sync[sync.index('--transfers') + 1], '2')
+        self.assertEqual(sync[sync.index('--checkers') + 1], '2')
+        self.assertEqual(sync[sync.index('--tpslimit') + 1], '16')
+
+    def test_invalid_worker_limits_fail_before_storage_io(self) -> None:
+        for workers in ['0', '17', '999', '01', '-1', 'invalid']:
+            with self.subTest(workers=workers):
+                self.calls_file.unlink(missing_ok=True)
+                result = self.run_script('s3-snapshot.sh', HS_S3_WORKERS=workers)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.calls(), [])
+
     def test_failed_verification_cannot_publish_success_manifest(self) -> None:
         result = self.run_script('s3-snapshot.sh', CHECK_EXIT='1')
         self.assertNotEqual(result.returncode, 0)

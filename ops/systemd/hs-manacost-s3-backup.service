@@ -16,4 +16,4 @@ PrivateTmp=true
 UMask=0077
 MemoryMax=6G
 OOMPolicy=stop
-TimeoutStartSec=24h
+TimeoutStartSec=7d
