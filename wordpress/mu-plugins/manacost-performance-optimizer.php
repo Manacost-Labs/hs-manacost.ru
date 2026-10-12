@@ -2,13 +2,15 @@
 /**
  * Plugin Name: Manacost Performance Optimizer
  * Description: Public-page performance hardening for hs-manacost.ru without delaying partner advertising.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Manacost
  *
  * @package Manacost
  */
 
 defined( 'ABSPATH' ) || exit;
+
+require_once __DIR__ . '/manacost-performance-optimizer/thumbnail-loading.php';
 
 /** Applies bounded performance changes to anonymous public pages. */
 final class Manacost_Performance_Optimizer {
@@ -53,6 +55,10 @@ final class Manacost_Performance_Optimizer {
 			$html = self::delay_liveinternet_counter( $html );
 		}
 
+		if ( self::feature_enabled( 'MANACOST_NATIVE_THUMBNAILS_ENABLED', true ) ) {
+			$html = Manacost_Thumbnail_Loading::optimize_html( $html );
+		}
+
 		if ( strpos( $html, 'manacost-perf-active' ) === false ) {
 			$html = self::inject_into_head( $html, '<meta name="manacost-perf-active" content="1">' . "\n" );
 		}
@@ -84,7 +90,7 @@ final class Manacost_Performance_Optimizer {
 		}
 
 		$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-		if ( ! in_array( strtolower( $host ), array( self::PRIMARY_HOST, self::MIRROR_HOST ), true ) ) {
+		if ( ! in_array( strtolower( $host ), array( self::PRIMARY_HOST, self::MIRROR_HOST, 'test.hs-manacost.ru' ), true ) ) {
 			return false;
 		}
 
@@ -528,7 +534,7 @@ JS;
 	 * @param string $name Attribute name.
 	 * @return string
 	 */
-	private static function extract_attr( string $tag, string $name ): string {
+	public static function extract_attr( string $tag, string $name ): string {
 		if ( preg_match( '/\s' . preg_quote( $name, '/' ) . '=(["\'])(.*?)\1/i', $tag, $match ) ) {
 			return html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		}
