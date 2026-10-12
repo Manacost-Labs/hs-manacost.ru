@@ -22,14 +22,16 @@ for (const deleted of [true, false]) {
     return {status: deleted ? 404 : 200};
   };
   if (deleted) await deleteUploadFixture(rest, 123);
-  else await assert.rejects(deleteUploadFixture(rest, 123), /Lost response/);
+  else await assert.rejects(deleteUploadFixture(rest, 123), error =>
+    error.name === 'UploadFixtureCleanupError' && error.deleteStatus === null
+      && error.verifyStatus === 200 && !error.message.includes('Lost response'));
   assert.deepEqual(calls, [['media/123?force=true', 'DELETE'], ['media/123?context=edit', 'GET']]);
 }
 let requests = 0;
 await assert.rejects(deleteUploadFixture(async () => { requests++; }, '../posts/1'), /Invalid/);
 assert.equal(requests, 0);
 await assert.rejects(deleteUploadFixture(async (_route, method) => method === 'DELETE'
-  ? {status: 200, data: {deleted: true}} : {status: 200}, 123), /still exists/);
+  ? {status: 200, data: {deleted: true}} : {status: 200}, 123), /absence was not confirmed/);
 '''], cwd=ROOT, capture_output=True, text=True, timeout=10,
         )
         self.assertEqual(0, result.returncode, result.stderr)
