@@ -71,6 +71,41 @@ def budgets() -> dict[str, object]:
 
 
 class AdminPerformanceAutomationTests(unittest.TestCase):
+    def test_upload_cleanup_reports_status_without_private_response(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import { deleteUploadFixture } from './ops/performance/delete-upload-fixture.mjs';
+for (const scenario of ['lost-delete', 'denied-delete', 'failed-verify']) {
+  const calls = [];
+  const rest = async (route, method = 'GET') => {
+    calls.push(method);
+    if (method === 'DELETE') {
+      if (scenario === 'lost-delete') throw new Error('private-token');
+      return { status: 403, data: { private: 'private-token' } };
+    }
+    if (scenario === 'failed-verify') throw new TypeError('private-token');
+    return { status: scenario === 'lost-delete' ? 404 : 200 };
+  };
+  let caught;
+  try { await deleteUploadFixture(rest, 123); } catch (error) { caught = error; }
+  assert.deepEqual(calls, ['DELETE', 'GET']);
+  if (scenario === 'lost-delete') assert.equal(caught, undefined);
+  else {
+    assert.equal(caught.name, 'UploadFixtureCleanupError');
+    assert.equal(caught.deleteStatus, 403);
+    assert.equal(caught.verifyStatus, scenario === 'failed-verify' ? null : 200);
+    assert.ok(!caught.message.includes('private-token'));
+    assert.ok(!JSON.stringify(caught).includes('private-token'));
+  }
+}
+console.log('PASS');
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script], cwd=ROOT,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def run_staging_preflight(
         self, credentials: dict[str, str]
     ) -> tuple[subprocess.CompletedProcess[str], str, str]:

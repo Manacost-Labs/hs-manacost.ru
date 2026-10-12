@@ -44,12 +44,26 @@ await context.addInitScript(() => {
   }
 });
 const page = await context.newPage();
+const pendingRequests = new Map();
+let mainResponseStatus = null;
+page.on('request', request => pendingRequests.set(request, {
+  resource_type: request.resourceType(),
+  origin_class: new URL(request.url()).origin === new URL(baseURL).origin ? 'staging' : 'external',
+}));
+page.on('response', response => {
+  if (response.request().isNavigationRequest()
+      && response.request().frame() === page.mainFrame()) mainResponseStatus = response.status();
+});
+page.on('requestfinished', request => pendingRequests.delete(request));
+page.on('requestfailed', request => pendingRequests.delete(request));
 const samples = [];
 const openSamples = [];
 const fixtureTitle = `Admin performance probe ${Date.now()}`;
 let postId;
 let cleaned = false;
 let savedContent = '';
+let stage = 'login';
+let failure = null;
 
 const isSaveResponse = response => {
   const request = response.request();
@@ -58,6 +72,8 @@ const isSaveResponse = response => {
 };
 
 async function submitPublishButton() {
+  stage = 'article-save';
+  mainResponseStatus = null;
   const started = performance.now();
   let responseMs;
   const [response] = await Promise.all([
@@ -81,6 +97,8 @@ async function submitPublishButton() {
 }
 
 async function measureEditorOpen(id) {
+  stage = 'editor-open';
+  mainResponseStatus = null;
   const started = performance.now();
   const response = await page.goto(
     `${baseURL}/wp-admin/post.php?post=${id}&action=edit`,
@@ -206,6 +224,14 @@ try {
       throw new Error('Unchanged article content was modified during save');
     }
   }
+} catch (error) {
+  failure = {
+    stage,
+    error_type: ['TimeoutError', 'AbortError', 'TypeError', 'Error'].includes(error.name)
+      ? error.name : 'Error',
+    main_response_status: mainResponseStatus,
+    pending_requests: [...pendingRequests.values()].slice(0, 20),
+  };
 } finally {
   if (!postId) postId = Number(new URL(page.url()).searchParams.get('post')) || undefined;
   try {
@@ -222,6 +248,7 @@ try {
       target_p95_ms: 1500,
       fixture_post_id: postId ?? null,
       fixture_cleaned: cleaned,
+      failure,
     }, null, 2)}\n`);
     await writeFile(path.join(outputDirectory, 'open-article-diagnostic.json'), `${JSON.stringify({
       environment: 'staging',
@@ -232,6 +259,7 @@ try {
       fixture_bytes: Buffer.byteLength(savedContent ?? '', 'utf8'),
       samples: openSamples,
       fixture_cleaned: cleaned,
+      failure,
     }, null, 2)}\n`);
     await context.close();
     await browser.close();

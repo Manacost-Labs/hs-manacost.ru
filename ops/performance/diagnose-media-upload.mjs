@@ -221,6 +221,10 @@ try {
       report.cleanup_failed = true;
       report.cleanup_error_type = error.name === 'TimeoutError' ? 'timeout' : 'request-or-check-failed';
       if (error instanceof DiagnosticFailure) report.cleanup_failed_check = error.message;
+      if (error.name === 'UploadFixtureCleanupError') {
+        report.cleanup_delete_status = error.deleteStatus;
+        report.cleanup_verify_status = error.verifyStatus;
+      }
     }
   }
   report.success = report.success && report.fixtures_cleaned;
