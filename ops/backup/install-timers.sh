@@ -8,8 +8,10 @@ ENV_FILE=/etc/hs-manacost/backup.env
 [[ -f "$ENV_FILE" ]] || { echo "Create $ENV_FILE from ops/backup/backup.env.example first" >&2; exit 1; }
 [[ $(stat -c '%a' "$ENV_FILE") == 600 ]] || { echo "$ENV_FILE must have mode 0600" >&2; exit 1; }
 
-install -m 0644 "$ROOT_DIR"/ops/systemd/hs-manacost-*.service /etc/systemd/system/
-install -m 0644 "$ROOT_DIR"/ops/systemd/hs-manacost-*.timer /etc/systemd/system/
+[[ $(stat -c '%u' "$ENV_FILE") == 0 ]] || { echo "$ENV_FILE must be root-owned" >&2; exit 1; }
+for unit in hs-manacost-s3-backup.service hs-manacost-s3-backup.timer hs-manacost-restore-drill.service hs-manacost-restore-drill.timer; do
+    install -m 0644 "$ROOT_DIR/ops/systemd/$unit" /etc/systemd/system/
+done
 systemctl daemon-reload
 systemctl enable --now hs-manacost-s3-backup.timer hs-manacost-restore-drill.timer
 systemctl list-timers hs-manacost-s3-backup.timer hs-manacost-restore-drill.timer --no-pager

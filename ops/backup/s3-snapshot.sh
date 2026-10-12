@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
+# shellcheck source=ops/backup/storage-credentials.sh
+source "$(dirname "${BASH_SOURCE[0]}")/storage-credentials.sh"
 
 : "${HS_S3_SOURCE_REMOTE:?source rclone remote and bucket are required}"
 : "${HS_S3_BACKUP_REMOTE:?independent backup rclone remote and bucket are required}"
@@ -17,8 +20,10 @@ fi
 
 # The source and destination must not resolve to the same remote bucket. A second
 # prefix in the production bucket is not a backup against bucket loss.
-source_bucket=${source_remote%%/*}
-backup_bucket=${backup_remote%%/*}
+source_bucket=${source_remote#*:}
+source_bucket=${source_bucket%%/*}
+backup_bucket=${backup_remote#*:}
+backup_bucket=${backup_bucket%%/*}
 [[ "$source_bucket" != "$backup_bucket" ]] || { echo "S3 backup destination must use an independent bucket" >&2; exit 2; }
 
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -27,17 +32,45 @@ versions="$backup_remote/versions/$timestamp"
 temporary_directory=$(mktemp -d)
 trap 'rm -rf "$temporary_directory"' EXIT
 
+rclone lsf "$source_remote" --recursive --files-only --format ps --separator $'\t' --fast-list \
+    >"$temporary_directory/$timestamp.tsv"
+[[ -s "$temporary_directory/$timestamp.tsv" ]] || { echo 'S3 source is empty; refusing snapshot' >&2; exit 1; }
+
+sync_options=(--log-level NOTICE)
+if [[ ${HS_S3_DRY_RUN:-0} == 1 ]]; then
+    sync_options=(--dry-run --log-level ERROR)
+fi
 rclone sync "$source_remote" "$current" \
     --backup-dir "$versions" \
-    --checkers 16 \
-    --transfers 8 \
+    --s3-acl private \
+    --s3-no-check-bucket \
+    --server-side-across-configs \
+    --checksum \
+    --checkers 4 \
+    --transfers 2 \
     --fast-list \
-    --log-level NOTICE
+    "${sync_options[@]}"
 
-rclone lsf "$current" --recursive --files-only --format pst \
-    >"$temporary_directory/$timestamp.tsv"
-rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/$timestamp.tsv"
+if [[ ${HS_S3_DRY_RUN:-0} == 1 ]]; then
+    printf 'S3 snapshot dry-run complete; no objects or manifests changed\n'
+    exit 0
+fi
 
+# Check every object (hash where available, otherwise size), then restore a
+# representative original and compare bytes before publishing the manifest.
+rclone check "$source_remote" "$current" --checkers 4 --fast-list
+sample=${HS_S3_RESTORE_SAMPLE:-$(awk -F '\t' '$2 > 0 {print $1; exit}' "$temporary_directory/$timestamp.tsv")}
+[[ -n "$sample" ]] || { echo 'No non-empty S3 restore sample' >&2; exit 1; }
+rclone copyto "$source_remote/$sample" "$temporary_directory/source-sample"
+rclone copyto "$current/$sample" "$temporary_directory/restored-sample"
+[[ -s "$temporary_directory/source-sample" && -s "$temporary_directory/restored-sample" ]] || exit 1
+cmp --silent "$temporary_directory/source-sample" "$temporary_directory/restored-sample" \
+    || { echo 'S3 restore sample differs from source' >&2; exit 1; }
+rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/$timestamp.tsv" --s3-acl private
+rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/latest.tsv" --s3-acl private
+
+# Retention is a separate operator decision, never enabled by default.
+if [[ ${HS_S3_APPLY_RETENTION:-0} == 1 ]]; then
 cutoff=$(date -u -d "$retention_days days ago" +%Y%m%dT%H%M%SZ)
 while IFS= read -r directory; do
     directory=${directory%/}
@@ -45,5 +78,7 @@ while IFS= read -r directory; do
         rclone purge "$backup_remote/versions/$directory"
     fi
 done < <(rclone lsf "$backup_remote/versions" --dirs-only --max-depth 1 2>/dev/null || true)
+
+fi
 
 printf 'S3 snapshot verified: %s\n' "$timestamp"
