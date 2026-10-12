@@ -72,6 +72,8 @@ for required_path in \
   "$workspace_real/wordpress/plugins" \
   "$workspace_real/wordpress/themes/Newspaper_new" \
   "$workspace_real/public" \
+  "$workspace_real/public/pwa-icons/icon-192.png" \
+  "$workspace_real/public/pwa-icons/icon-512.png" \
   "$target_root/wp-config.php" \
   "$target_root/wp-content"; do
   if [[ ! -e "$required_path" ]]; then
@@ -98,6 +100,7 @@ backup_path() {
 
 backup_path 'wp-content/mu-plugins'
 backup_path 'wp-content/themes/Newspaper_new'
+backup_path 'pwa-icons'
 for plugin_dir in "$workspace_real"/wordpress/plugins/*; do
   [[ -d "$plugin_dir" ]] || continue
   backup_path "wp-content/plugins/$(basename "$plugin_dir")"
@@ -141,6 +144,8 @@ for public_file in "$workspace_real"/public/*; do
   [[ -f "$public_file" ]] || continue
   install -o koloda -g koloda -m 0644 "$public_file" "$target_root/$(basename "$public_file")"
 done
+# Sync only the owned directory; never delete files from the WordPress root.
+sync_owned_tree "$workspace_real/public/pwa-icons" "$target_root/pwa-icons"
 
 run_wp() {
   runuser -u koloda -- env \
