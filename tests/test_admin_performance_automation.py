@@ -175,7 +175,15 @@ class AdminPerformanceAutomationTests(unittest.TestCase):
             steps.index("Install locked browser package"),
         )
         self.assertIn("run: npm ci --ignore-scripts", steps)
-        self.assertEqual(16, steps.count("secrets."))
+        frontend_name = "Verify five cold slow-mobile frontend samples per route"
+        if f"      - name: {frontend_name}\n" in steps:
+            frontend = steps.split(f"      - name: {frontend_name}\n", 1)[1].split("      - ", 1)[0]
+            for secret_name in ("STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD"):
+                self.assertIn(f"secrets.{secret_name}", frontend)
+            self.assertNotIn("STAGING_DIAGNOSTIC", frontend)
+            self.assertEqual(18, steps.count("secrets."))
+        else:
+            self.assertEqual(16, steps.count("secrets."))
 
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
