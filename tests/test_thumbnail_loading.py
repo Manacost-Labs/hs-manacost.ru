@@ -44,6 +44,7 @@ class ThumbnailLoadingTest(unittest.TestCase):
         script = f"""
         define('ABSPATH', '/');
         function add_action($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+        function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
         function esc_url($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         {setup}
@@ -124,6 +125,17 @@ class ThumbnailLoadingTest(unittest.TestCase):
         self.assertEqual(self.render(body), body)
         page = self.page('<template><template></template>' + body + '</template>')
         self.assertEqual(self.render(page), page)
+
+    def test_unclosed_raw_text_and_comments_are_protected_to_end_of_document(self) -> None:
+        early = ''.join(thumbnail(i) for i in range(14))
+        for opening in ['<script>', '<style>', '<textarea>', '<noscript>', '<!--']:
+            with self.subTest(opening=opening):
+                page = self.page(early + opening + thumbnail(14))
+                self.assertEqual(self.render(page), page)
+                prefix = self.page(early + thumbnail(14))
+                tail = opening + (' .entry-thumb{background-position:left top}' if opening == '<style>' else '<style>.entry-thumb{background-position:left top}</style>') + thumbnail(15)
+                result = self.render(prefix + tail)
+                self.assertTrue(result.endswith(tail))
 
     def test_composer_positions_keep_the_same_css_cascade_and_media(self) -> None:
         css = '<style>.tdi_30 .entry-thumb{background-position:30% 40% !important;}.tdi_29 .entry-thumb{background-position: center 30%;}@media(max-width:767px){.tdi_29 .entry-thumb{background-position:left top;}}</style>'

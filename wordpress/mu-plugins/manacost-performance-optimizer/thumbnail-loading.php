@@ -25,8 +25,8 @@ final class Manacost_Thumbnail_Loading {
 			return $html;
 		}
 		$attributes = '(?:[^"\'<>]|"[^"]*"|\'[^\']*\')*';
-		$pattern    = '~<!--[\s\S]*?-->|<(script|style|textarea|template|noscript)\b' . $attributes
-			. '>[\s\S]*?</\1\s*>|(<span\b' . $attributes . '>)(\s*</span\s*>)?|<' . $attributes . '>~i';
+		$pattern    = '~<!--[\s\S]*?(?:-->|\z)|<(script|style|textarea|template|noscript)\b' . $attributes
+			. '>[\s\S]*?(?:</\1\s*>|\z)|(<span\b' . $attributes . '>)(\s*</span\s*>)?|<' . $attributes . '>~i';
 		$seen       = 0;
 		$converted  = 0;
 		$result     = preg_replace_callback(
@@ -76,8 +76,8 @@ final class Manacost_Thumbnail_Loading {
 	 */
 	private static function preserve_composer_positions( string $html ): string {
 		$attributes = '(?:[^"\'<>]|"[^"]*"|\'[^\']*\')*';
-		$pattern    = '~<!--[\s\S]*?-->|<(script|textarea|noscript)\b' . $attributes
-			. '>[\s\S]*?</\1\s*>|(<style\b' . $attributes . '>[\s\S]*?</style\s*>)~i';
+		$pattern    = '~<!--[\s\S]*?(?:-->|\z)|<(script|textarea|noscript)\b' . $attributes
+			. '>[\s\S]*?(?:</\1\s*>|\z)|(<style\b' . $attributes . '>[\s\S]*?</style\s*>)~i';
 		return preg_replace_callback(
 			$pattern,
 			static function ( array $style ): string {
