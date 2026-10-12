@@ -213,6 +213,25 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn("manacost-site-navigation", result["styles"])
         self.assertIn("manacost-boosty-promo", result["styles"])
 
+    def test_promo_images_offer_small_renditions_without_delaying_visible_content(self) -> None:
+        for homepage in (True, False):
+            result = self.run_plugin(is_front_page=homepage)
+            markup = result["shortcode" if homepage else "sidebar"]
+            basename = "homepage-banner" if homepage else "banner"
+            self.assertIn('loading="lazy"', markup)
+            self.assertIn('data-no-lazy="1"', markup)
+            self.assertIn('sizes="auto,', markup)
+            self.assertIn('srcset="', markup)
+            for width in (400, 800):
+                self.assertIn(f"{basename}-{width}.webp", markup)
+                asset = BANNER.parent / f"{basename}-{width}.webp"
+                data = asset.read_bytes()
+                self.assertEqual(b"RIFF", data[:4])
+                self.assertEqual(b"VP8 ", data[12:16])
+                self.assertEqual(width, struct.unpack("<H", data[26:28])[0] & 0x3FFF)
+                original = HOMEPAGE_BANNER if homepage else BANNER
+                self.assertLess(len(data), original.stat().st_size)
+
     def test_replaces_only_the_legacy_article_sidebar_banner(self) -> None:
         result = self.run_plugin(is_front_page=False)
 

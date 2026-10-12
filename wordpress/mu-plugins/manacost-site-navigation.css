@@ -1,3 +1,23 @@
+/* Native navigation keeps browser history, document loading and links intact. */
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+
+	::view-transition-group(root),
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation-duration: 160ms;
+		animation-timing-function: ease-out;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	@view-transition {
+		navigation: none;
+	}
+}
+
 /* Composer's generated menu font has no fallback on some visitor devices. */
 @media (min-width: 1200px) {
 	.td-header-wrap .td-header-menu-wrap .sf-menu {
