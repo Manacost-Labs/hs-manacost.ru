@@ -35,7 +35,10 @@ final class Manacost_Thumbnail_Loading {
 				if ( empty( $matches[2] ) ) {
 					return $matches[0];
 				}
-				$classes = preg_split( '/\s+/', trim( Manacost_Performance_Optimizer::extract_attr( $matches[2], 'class' ) ) ) ?: array();
+				$classes = preg_split( '/\s+/', trim( Manacost_Performance_Optimizer::extract_attr( $matches[2], 'class' ) ) );
+				if ( false === $classes ) {
+					return $matches[0];
+				}
 				if ( ! in_array( 'entry-thumb', $classes, true ) || ! in_array( 'td-thumb-css', $classes, true ) ) {
 					return $matches[0];
 				}
@@ -56,7 +59,7 @@ final class Manacost_Thumbnail_Loading {
 			return $html;
 		}
 		$result = self::preserve_composer_positions( $result );
-		$css = '<style id="' . self::STYLE_ID . '">'
+		$css    = '<style id="' . self::STYLE_ID . '">'
 			. '.entry-thumb>.manacost-native-thumbnail{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;object-fit:cover;object-position:var(--manacost-thumbnail-position,center center);border-radius:inherit;pointer-events:none}'
 			. '</style>';
 		return preg_replace( '~</head\s*>~i', $css . '</head>', $result, 1 ) ?? $html;
@@ -96,8 +99,9 @@ final class Manacost_Thumbnail_Loading {
 	/**
 	 * Builds a decorative native image inside the existing thumbnail box.
 	 *
-	 * @param string       $tag     Existing opening span tag.
-	 * @param list<string> $classes Existing class names.
+	 * @param string $tag     Existing opening span tag.
+	 * @param array  $classes Existing class names.
+	 * @phpstan-param list<string> $classes
 	 * @return string Empty when the thumbnail has another loader or custom styling.
 	 */
 	private static function convert_thumbnail( string $tag, array $classes ): string {
@@ -118,8 +122,8 @@ final class Manacost_Thumbnail_Loading {
 			1
 		) ?? $tag;
 		return $new_tag . '<img class="manacost-native-thumbnail skip-lazy" src="' . esc_url( $background['url'] )
-			. '" loading="lazy" decoding="async" data-no-lazy="1" alt="" aria-hidden="true" style="object-position:'
-			. 'var(--manacost-thumbnail-position,' . esc_attr( $background['position'] ) . ')' . '">';
+			. '" loading="lazy" decoding="async" data-no-lazy="1" alt="" aria-hidden="true" style="object-position:var(--manacost-thumbnail-position,'
+			. esc_attr( $background['position'] ) . ')">';
 	}
 
 	/**
@@ -158,6 +162,10 @@ final class Manacost_Thumbnail_Loading {
 			}
 			$remaining .= ';--manacost-thumbnail-position:' . $position;
 		}
-		return array( 'url' => $url, 'style' => trim( $remaining, '; ' ), 'position' => $position );
+		return array(
+			'url'      => $url,
+			'style'    => trim( $remaining, '; ' ),
+			'position' => $position,
+		);
 	}
 }
