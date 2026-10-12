@@ -25,8 +25,13 @@
 
 		function follow(sidebar) {
 			if (!sidebar.enabled) {
+				sidebar.focusScroll = null;
 				sidebar.position = sidebar.start;
+			} else if (sidebar.focusScroll === scrollY && sidebar.element.contains(document.activeElement)) {
+				// A queued scroll/resize notification must not undo keyboard reveal.
+				sidebar.position = clamp(sidebar.position, sidebar.start, sidebar.end);
 			} else {
+				sidebar.focusScroll = null;
 				const bottom = scrollY + Math.min(sidebar.top, innerHeight - sidebar.height);
 				const top = scrollY + sidebar.top;
 				// Preserve document position on reversal, until the opposite edge is
@@ -112,7 +117,13 @@
 			}
 			const bounds = event.target.getBoundingClientRect();
 			const adjustment = bounds.top < sidebar.top + 64 ? sidebar.top + 64 - bounds.top : Math.min(0, innerHeight - 16 - bounds.bottom);
-			sidebar.position = clamp(sidebar.position + adjustment, sidebar.start, sidebar.end);
+			if (adjustment === 0) {
+				return;
+			}
+			// The compositor can move a fixed sidebar before its scroll handler runs.
+			const documentTop = sidebar.element.getBoundingClientRect().top + scrollY;
+			sidebar.position = clamp(documentTop + adjustment, sidebar.start, sidebar.end);
+			sidebar.focusScroll = scrollY;
 			render(sidebar);
 		});
 	}
