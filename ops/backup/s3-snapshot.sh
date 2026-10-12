@@ -32,7 +32,7 @@ versions="$backup_remote/versions/$timestamp"
 temporary_directory=$(mktemp -d)
 trap 'rm -rf "$temporary_directory"' EXIT
 
-rclone lsf "$source_remote" --recursive --files-only --format ps --separator $'\t' --fast-list \
+rclone lsf "$source_remote" --recursive --files-only --format ps --separator $'\t' \
     >"$temporary_directory/$timestamp.tsv"
 [[ -s "$temporary_directory/$timestamp.tsv" ]] || { echo 'S3 source is empty; refusing snapshot' >&2; exit 1; }
 
@@ -48,7 +48,7 @@ rclone sync "$source_remote" "$current" \
     --checksum \
     --checkers 4 \
     --transfers 2 \
-    --fast-list \
+    \
     "${sync_options[@]}"
 
 if [[ ${HS_S3_DRY_RUN:-0} == 1 ]]; then
@@ -58,7 +58,10 @@ fi
 
 # Check every object (hash where available, otherwise size), then restore a
 # representative original and compare bytes before publishing the manifest.
-rclone check "$source_remote" "$current" --checkers 4 --fast-list
+rclone check "$source_remote" "$current" --checkers 4
+# Describe the verified destination, rather than the earlier live-source listing.
+rclone lsf "$current" --recursive --files-only --format ps --separator $'\t' \
+    >"$temporary_directory/$timestamp.tsv"
 sample=${HS_S3_RESTORE_SAMPLE:-$(awk -F '\t' '$2 > 0 {print $1; exit}' "$temporary_directory/$timestamp.tsv")}
 [[ -n "$sample" ]] || { echo 'No non-empty S3 restore sample' >&2; exit 1; }
 rclone copyto "$source_remote/$sample" "$temporary_directory/source-sample"
@@ -66,8 +69,8 @@ rclone copyto "$current/$sample" "$temporary_directory/restored-sample"
 [[ -s "$temporary_directory/source-sample" && -s "$temporary_directory/restored-sample" ]] || exit 1
 cmp --silent "$temporary_directory/source-sample" "$temporary_directory/restored-sample" \
     || { echo 'S3 restore sample differs from source' >&2; exit 1; }
-rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/$timestamp.tsv" --s3-acl private
-rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/latest.tsv" --s3-acl private
+rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/$timestamp.tsv" --s3-acl private --s3-no-check-bucket
+rclone copyto "$temporary_directory/$timestamp.tsv" "$backup_remote/manifests/latest.tsv" --s3-acl private --s3-no-check-bucket
 
 # Retention is a separate operator decision, never enabled by default.
 if [[ ${HS_S3_APPLY_RETENTION:-0} == 1 ]]; then

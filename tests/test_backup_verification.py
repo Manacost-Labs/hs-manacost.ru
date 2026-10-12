@@ -128,11 +128,41 @@ class BackupVerificationTest(unittest.TestCase):
         source = (ROOT / 'ops/backup/install-timers.sh').read_text()
         self.assertIn('storage-credentials.sh', source)
         self.assertIn('source-revision', source)
-        self.assertIn('git -C "$ROOT_DIR" rev-parse HEAD', source)
+        self.assertIn('git -C "$ROOT_DIR" rev-parse --verify HEAD', source)
         for name, script in [('s3-backup', 's3-snapshot.sh'), ('restore-drill', 'restore-drill.sh')]:
             unit = (ROOT / f'ops/systemd/hs-manacost-{name}.service').read_text()
             self.assertIn('ExecStart=/usr/local/libexec/hs-manacost-backup/' + script, unit)
             self.assertNotIn('ExecStart=/srv/projects/', unit)
+
+    def test_manifest_uploads_need_no_bucket_creation_permission(self) -> None:
+        result = self.run_script('s3-snapshot.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        uploads = [call for call in self.calls() if call[1] == 'copyto' and '/manifests/' in call[3]]
+        self.assertEqual(len(uploads), 2)
+        self.assertTrue(all('--s3-no-check-bucket' in call for call in uploads))
+
+    def test_git_failure_stops_installer_before_any_write(self) -> None:
+        import re
+        source = (ROOT / 'ops/backup/install-timers.sh').read_text()
+        start = source.index('source_status=') if 'source_status=' in source else source.index('[[ -z $(git')
+        fragment = source[start:source.index('for service in')]
+        fake = self.directory / 'git'
+        fake.write_text('#!/bin/sh\nexit 128\n')
+        fake.chmod(0o755)
+        result = subprocess.run(['bash', '-ec', fragment + '\nprintf WRITES_STARTED'], env=self.env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('WRITES_STARTED', result.stdout)
+
+    def test_installer_blocks_activating_oneshot(self) -> None:
+        import re
+        source = (ROOT / 'ops/backup/install-timers.sh').read_text()
+        fragment = re.search(r'for service in .*?\ndone', source, re.S).group(0)
+        fake = self.directory / 'systemctl'
+        fake.write_text('#!/bin/sh\nif [ "$1" = show ]; then echo activating; exit 0; fi\nexit 3\n')
+        fake.chmod(0o755)
+        result = subprocess.run(['bash', '-ec', fragment + '\nprintf WRITES_STARTED'], env=self.env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('WRITES_STARTED', result.stdout)
 
     def test_restore_uses_latest_snapshot_actual_database_and_private_password_file(self) -> None:
         result = self.run_script('restore-drill.sh')

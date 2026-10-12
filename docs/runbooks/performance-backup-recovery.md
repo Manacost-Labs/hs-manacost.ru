@@ -58,3 +58,21 @@ check failure cannot publish success, empty source cannot archive an existing
 backup, same-bucket aliases fail, missing credentials fail before I/O, dry-run
 cannot copy, corrupt restoration fails, newest snapshot/actual database/password
 boundaries work, and the installer touches only four owned units.
+
+## Independent review and memory gate
+
+Claude Opus 5.5 max reviewed the bounded snapshot/installer design through the
+subscription CLI. Its three concrete blockers are corrected: manifest uploads
+do not require CreateBucket, Git status/revision errors stop installation before
+writes, and activating oneshot jobs block replacement. Manifests enumerate the
+checked destination. Source changes during a run can fail verification; retry
+an incremental run, never label a failed run successful. Bucket independence
+within one provider is not protection against compromised credentials.
+
+The full-library inventory contained 2,199,069 objects / 186,837,880,747 bytes.
+The initial global fast-list dry-run reached about 6 GiB RSS and was stopped
+without remote writes. Directory-based listing replaces fast-list, and the S3
+service has a 6 GiB memory cap and stops on OOM. Test the bounded version before
+activating timers. Do not put HS_S3_DRY_RUN in the permanent environment: a
+dry-run exits successfully without creating a backup. The first current prefix
+is empty; previous offload backups use a separate prefix and remain untouched.
