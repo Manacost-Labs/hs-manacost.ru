@@ -267,7 +267,7 @@ final class Manacost_Article_Cover {
 	/**
 	 * Aligns one matching preload during the same pass as image priorities.
 	 *
-	 * @param WP_HTML_Tag_Processor  $processor  Parser positioned at a LINK.
+	 * @param WP_HTML_Tag_Processor $processor  Parser positioned at a LINK.
 	 * @param array<string, string> $attributes Final responsive cover attributes.
 	 * @param string                $source_url Original cover URL.
 	 * @return void
