@@ -30,9 +30,10 @@ posts, postmeta and options, then compare a restored S3 sample with the source.
 The 10 GiB temporary MariaDB data directory is RAM-backed, with a 12 GiB memory
 limit; ensure headroom before running. Production is never the restore target.
 
-Install only the backup and restore-drill timers after verification. Their
-ExecStart uses the canonical source checkout, so its committed source must be
-available there. Do not replace unrelated offload units. The snapshot is not
+Install only the backup and restore-drill timers after verification. The installer requires a clean committed checkout, waits for existing jobs to
+finish, copies the three scripts into the owned runtime directory and records
+the exact source revision. Services run those copies, independently of subsequent
+checkout changes. Do not replace unrelated offload units. The snapshot is not
 complete until the full listing/copy/check and manifest publication succeed.
 
 ## Observed evidence, 2026-10-12

@@ -124,6 +124,16 @@ class BackupVerificationTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual({p.name for p in destination.iterdir()}, expected)
 
+    def test_installed_services_use_copied_scripts_and_record_the_commit(self) -> None:
+        source = (ROOT / 'ops/backup/install-timers.sh').read_text()
+        self.assertIn('storage-credentials.sh', source)
+        self.assertIn('source-revision', source)
+        self.assertIn('git -C "$ROOT_DIR" rev-parse HEAD', source)
+        for name, script in [('s3-backup', 's3-snapshot.sh'), ('restore-drill', 'restore-drill.sh')]:
+            unit = (ROOT / f'ops/systemd/hs-manacost-{name}.service').read_text()
+            self.assertIn('ExecStart=/usr/local/libexec/hs-manacost-backup/' + script, unit)
+            self.assertNotIn('ExecStart=/srv/projects/', unit)
+
     def test_restore_uses_latest_snapshot_actual_database_and_private_password_file(self) -> None:
         result = self.run_script('restore-drill.sh')
         self.assertEqual(result.returncode, 0, result.stderr)
