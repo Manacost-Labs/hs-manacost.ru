@@ -130,10 +130,34 @@ check_staging() {
   done
 }
 
+check_pwa_icons() {
+  local domain="$1" ip="$2" insecure="${3:-false}" size
+  for size in 192 512; do
+    request "$domain" "$ip" "/pwa-icons/icon-$size.png" '200' "$insecure"
+    if [[ "$(header_value 'Content-Type')" != image/png* ]]; then
+      echo "FAIL: $domain via $ip returned a non-PNG PWA icon" >&2
+      return 1
+    fi
+    python3 - "$temporary_directory/body" "$size" <<'PY'
+import struct
+import sys
+
+with open(sys.argv[1], "rb") as icon:
+    header = icon.read(24)
+expected = int(sys.argv[2])
+if (len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n"
+        or header[12:16] != b"IHDR"
+        or struct.unpack(">II", header[16:24]) != (expected, expected)):
+    raise SystemExit(f"FAIL: PWA icon must be a {expected}x{expected} PNG")
+PY
+  done
+}
+
 check_production_domain() {
   local domain="$1"
   request "$domain" "$origin_ip" '/' '200' true
   request "$domain" "$origin_ip" "$image_path" '200' true
+  check_pwa_icons "$domain" "$origin_ip" true
 
   for index in "${!edge_ips[@]}"; do
     if skip_edge_for_maintenance "${edge_regions[$index]}"; then
@@ -145,6 +169,7 @@ check_production_domain() {
       echo "FAIL: $domain via ${edge_ips[$index]} did not return an image content type" >&2
       return 1
     fi
+    check_pwa_icons "$domain" "${edge_ips[$index]}"
   done
 
   local ip insecure _attempt
