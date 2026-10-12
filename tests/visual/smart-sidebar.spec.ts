@@ -68,7 +68,8 @@ test('long sidebar follows scrolling, remains reachable and stops before the foo
     const first = await sidebar.boundingBox();
     await page.evaluate(() => window.scrollTo(0, 2000));
     await expect.poll(async () => (await sidebar.boundingBox())?.y).toBeCloseTo(first!.y, 0);
-    await page.getByRole('link', { name: 'Поддержите нашу команду' }).focus();
+    // Drive actual keyboard navigation so :focus-visible matches the user's path.
+    await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Поддержите нашу команду' })).toBeFocused();
     await expect(page.getByRole('link', { name: 'Поддержите нашу команду' })).toBeInViewport();
     await page.keyboard.press('Tab');
@@ -85,6 +86,29 @@ test('long sidebar follows scrolling, remains reachable and stops before the foo
     await expect.poll(async () => (await sidebar.boundingBox())?.y).toBe(200);
   }
   expect(errors).toEqual([]);
+});
+
+test('a queued scroll notification cannot hide keyboard focus under a fixed menu', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440');
+  await sidebarFixture(page, 900);
+  await page.evaluate(() => {
+    const menu = document.createElement('div');
+    menu.style.cssText = 'position:fixed;inset:0 0 auto;height:48px;z-index:100;background:white';
+    document.body.append(menu);
+    scrollTo(0, 1600);
+  });
+  await expect(page.locator('.td-ss-main-sidebar')).toHaveCSS('position', 'fixed');
+  await page.evaluate(() => scrollTo(0, 2000));
+  await page.keyboard.press('Tab');
+  const link = page.getByRole('link', { name: 'Поддержите нашу команду' });
+  await expect(link).toBeFocused();
+  await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
+  await expect.poll(() => link.evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    return document.elementFromPoint(bounds.left + 8, bounds.top + 8)?.closest('a') === element;
+  })).toBe(true);
+  await page.evaluate(() => scrollTo(0, 4500));
+  await expect(page.locator('.td-ss-main-sidebar')).toHaveCSS('position', 'relative');
 });
 
 test('phone and 200% zoom layouts keep the whole sidebar in document flow', async ({ page }, info) => {
