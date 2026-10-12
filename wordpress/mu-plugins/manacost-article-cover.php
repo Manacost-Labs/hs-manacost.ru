@@ -1,15 +1,15 @@
 <?php
 /**
  * Plugin Name: Manacost Article Cover Loading
- * Description: Keeps the Newspaper article cover eager and its preload aligned with the rendered image.
- * Version: 1.2.0
+ * Description: Prioritizes the Newspaper article cover while keeping deferred content images out of its network priority.
+ * Version: 1.3.0
  *
  * @package Manacost
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/** Optimizes only the public article cover, not images in the article body. */
+/** Prioritizes the public article cover without changing content image sources. */
 final class Manacost_Article_Cover {
 	private const MOBILE_MIN_WIDTH = 640;
 	private const MOBILE_MAX_WIDTH = 768;
@@ -93,6 +93,30 @@ final class Manacost_Article_Cover {
 
 		$html = self::align_preload( $cover->get_updated_html(), $attributes, $source_url );
 		return self::defer_mobile_module_thumbnails( $html );
+	}
+
+	/**
+	 * Leaves deferred attachment images at the browser's normal priority.
+	 *
+	 * Rocket can retain a high priority from post content while deferring its URL.
+	 * Covers, ads, eager images and explicit lazy-load exclusions remain intact.
+	 *
+	 * @param WP_HTML_Tag_Processor $processor Parser positioned at an active IMG.
+	 * @return void
+	 */
+	private static function normalize_lazy_content_priority( WP_HTML_Tag_Processor $processor ): void {
+		$loading = strtolower( (string) $processor->get_attribute( 'loading' ) );
+		if ( 'high' !== strtolower( (string) $processor->get_attribute( 'fetchpriority' ) )
+			|| 'eager' === $loading || null !== $processor->get_attribute( 'data-no-lazy' ) ) {
+			return;
+		}
+		$classes = $processor->get_attribute( 'class' );
+		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)wp-image-\d+(?:\s|$)/', $classes ) ) {
+			return;
+		}
+		if ( 'lazy' === $loading || is_string( $processor->get_attribute( 'data-lazy-src' ) ) ) {
+			$processor->remove_attribute( 'fetchpriority' );
+		}
 	}
 
 	/**
@@ -214,36 +238,66 @@ final class Manacost_Article_Cover {
 	 * @return string
 	 */
 	private static function align_preload( string $html, array $attributes, string $source_url ): string {
-		$processor = new WP_HTML_Tag_Processor( $html );
-		while ( $processor->next_tag( array( 'tag_name' => 'LINK' ) ) ) {
-			if ( 'preload' !== $processor->get_attribute( 'rel' ) || 'image' !== $processor->get_attribute( 'as' ) ) {
+		$processor      = new WP_HTML_Tag_Processor( $html );
+		$template_depth = 0;
+		$in_noscript    = false;
+		while ( $processor->next_tag( array( 'tag_closers' => 'visit' ) ) ) {
+			$tag = $processor->get_tag();
+			// With scripting enabled, NOSCRIPT remains inert until its own closer.
+			if ( $in_noscript || 'NOSCRIPT' === $tag ) {
+				$in_noscript = 'NOSCRIPT' === $tag ? ! $processor->is_tag_closer() : true;
 				continue;
 			}
-			$href = $processor->get_attribute( 'href' );
-			if ( ! is_string( $href ) ) {
+			if ( 'TEMPLATE' === $tag ) {
+				$template_depth = max( 0, $template_depth + ( $processor->is_tag_closer() ? -1 : 1 ) );
 				continue;
 			}
-			// Nginx negotiates formats on the original URL; do not force a sidecar.
-			$original = preg_replace( '/(\.(?:jpe?g|png))\.(?:webp|avif)(?=[?#]|$)/i', '$1', $href );
-			if ( ! in_array( $href, array( $source_url, $attributes['src'] ), true ) && ! in_array( $original, array( $source_url, $attributes['src'] ), true ) ) {
+			if ( $template_depth ) {
 				continue;
 			}
-			$preload_attributes = array(
-				'href'        => 'src',
-				'imagesrcset' => 'srcset',
-				'imagesizes'  => 'sizes',
-			);
-			foreach ( $preload_attributes as $name => $source ) {
-				if ( '' === $attributes[ $source ] ) {
-					$processor->remove_attribute( $name );
-				} else {
-					$processor->set_attribute( $name, $attributes[ $source ] );
-				}
+			if ( 'IMG' === $tag ) {
+				self::normalize_lazy_content_priority( $processor );
+			} elseif ( 'LINK' === $tag ) {
+				self::align_preload_tag( $processor, $attributes, $source_url );
 			}
-			$processor->set_attribute( 'fetchpriority', 'high' );
 		}
-
 		return $processor->get_updated_html();
+	}
+
+	/**
+	 * Aligns one matching preload during the same pass as image priorities.
+	 *
+	 * @param WP_HTML_Tag_Processor $processor  Parser positioned at a LINK.
+	 * @param array<string, string> $attributes Final responsive cover attributes.
+	 * @param string                $source_url Original cover URL.
+	 * @return void
+	 */
+	private static function align_preload_tag( WP_HTML_Tag_Processor $processor, array $attributes, string $source_url ): void {
+		if ( 'preload' !== $processor->get_attribute( 'rel' ) || 'image' !== $processor->get_attribute( 'as' ) ) {
+			return;
+		}
+		$href = $processor->get_attribute( 'href' );
+		if ( ! is_string( $href ) ) {
+			return;
+		}
+		// Nginx negotiates formats on the original URL; do not force a sidecar.
+		$original = preg_replace( '/(\.(?:jpe?g|png))\.(?:webp|avif)(?=[?#]|$)/i', '$1', $href );
+		if ( ! in_array( $href, array( $source_url, $attributes['src'] ), true ) && ! in_array( $original, array( $source_url, $attributes['src'] ), true ) ) {
+			return;
+		}
+		$preload_attributes = array(
+			'href'        => 'src',
+			'imagesrcset' => 'srcset',
+			'imagesizes'  => 'sizes',
+		);
+		foreach ( $preload_attributes as $name => $source ) {
+			if ( '' === $attributes[ $source ] ) {
+				$processor->remove_attribute( $name );
+			} else {
+				$processor->set_attribute( $name, $attributes[ $source ] );
+			}
+		}
+		$processor->set_attribute( 'fetchpriority', 'high' );
 	}
 }
 

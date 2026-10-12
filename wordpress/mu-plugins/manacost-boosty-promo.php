@@ -46,7 +46,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-site-navigation',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
 			array(),
-			'1.6.0'
+			'1.7.0'
 		);
 
 		wp_enqueue_style(

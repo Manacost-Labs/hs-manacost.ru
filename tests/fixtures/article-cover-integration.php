@@ -23,6 +23,43 @@ hs_integration_assert($cover_parser->get_attribute('data-no-lazy') === '1', 'Roc
 hs_integration_assert($cover_parser->get_attribute('alt') === 'Обложка & колоды', 'cover alt text changed');
 hs_integration_assert($cover_parser->get_attribute('width') === '1176' && $cover_parser->get_attribute('height') === '597', 'cover dimensions changed');
 hs_integration_assert(str_contains($cover_result, $cover_body_image), 'below-fold image was changed');
+$cover_lazy_priority_image = '<img class="wp-image-123 size-full" src="placeholder.gif" data-lazy-src="https://hs-manacost.ru/body-priority.jpg" data-lazy-srcset="body-small.jpg 300w, body.jpg 1200w" width="1200" height="600" fetchpriority="high">';
+$cover_native_lazy_image = '<img class="wp-image-124" src="native-lazy.jpg" loading="lazy" fetchpriority="high">';
+$cover_eager_image = '<img class="wp-image-125" src="eager.jpg" loading="eager" fetchpriority="high">';
+$cover_optout_image = '<img class="wp-image-126" src="optout.jpg" loading="lazy" data-no-lazy="1" fetchpriority="high">';
+$cover_inert_image = '<template>' . $cover_native_lazy_image . '</template><noscript>' . $cover_native_lazy_image . '</noscript>';
+$cover_priority_page = str_replace('</body>', $cover_lazy_priority_image . $cover_native_lazy_image . $cover_eager_image . $cover_optout_image . $cover_inert_image . '</body>', $cover_page);
+$cover_priority_result = Manacost_Article_Cover::optimize_html($cover_priority_page);
+$cover_parser = new WP_HTML_Tag_Processor($cover_priority_result);
+$cover_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'wp-image-123']);
+hs_integration_assert($cover_parser->get_attribute('fetchpriority') === null, 'lazy body image competes with the cover');
+hs_integration_assert($cover_parser->get_attribute('data-lazy-src') === 'https://hs-manacost.ru/body-priority.jpg', 'body source URL changed');
+hs_integration_assert($cover_parser->get_attribute('data-lazy-srcset') === 'body-small.jpg 300w, body.jpg 1200w', 'body responsive candidates changed');
+hs_integration_assert($cover_parser->get_attribute('width') === '1200' && $cover_parser->get_attribute('height') === '600', 'body dimensions changed');
+$cover_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'wp-image-124']);
+hs_integration_assert($cover_parser->get_attribute('fetchpriority') === null, 'native lazy image retains contradictory high priority');
+hs_integration_assert($cover_parser->get_attribute('loading') === 'lazy', 'native image no longer lazy');
+hs_integration_assert(str_contains($cover_priority_result, $cover_eager_image), 'eager body image lost its priority');
+hs_integration_assert(str_contains($cover_priority_result, $cover_optout_image), 'explicit lazy-load exclusion lost its priority');
+hs_integration_assert(str_contains($cover_priority_result, $cover_inert_image), 'inert image markup changed');
+foreach ([
+    '<template></noscript>' . $cover_native_lazy_image . '</template>',
+    '<noscript></template>' . $cover_native_lazy_image . '</noscript>',
+    '<template><template>' . $cover_native_lazy_image . '</template></template>',
+    '<img class="wp-image-127" src="eager-case.jpg" data-lazy-src="eager-case.jpg" loading="Eager" fetchpriority="high">',
+] as $cover_protected_markup) {
+    $cover_edge_page = str_replace('</body>', $cover_protected_markup . '</body>', $cover_page);
+    hs_integration_assert(str_contains(Manacost_Article_Cover::optimize_html($cover_edge_page), $cover_protected_markup), 'inert markup or case-insensitive eager image was changed');
+}
+$cover_case_page = str_replace('</body>', '<img class="wp-image-128" src="lazy-case.jpg" loading="LAZY" fetchpriority="HIGH"></body>', $cover_page);
+$cover_case_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_case_page));
+$cover_case_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'wp-image-128']);
+hs_integration_assert($cover_case_parser->get_attribute('fetchpriority') === null, 'case-insensitive lazy image retains high priority');
+$cover_attachment_page = str_replace('class="entry-thumb"', 'class="entry-thumb wp-image-129"', $cover_page);
+$cover_attachment_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_attachment_page));
+$cover_attachment_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'wp-image-129']);
+hs_integration_assert($cover_attachment_parser->get_attribute('fetchpriority') === 'high' && $cover_attachment_parser->get_attribute('loading') === 'eager', 'attachment cover lost priority');
+hs_integration_assert(Manacost_Article_Cover::optimize_html($cover_priority_result) === $cover_priority_result, 'priority normalization is not idempotent');
 hs_integration_assert(str_contains($cover_result, $cover_module_image), 'desktop module thumbnail was changed');
 hs_integration_assert(str_contains($cover_result, '<noscript><img src="' . $cover_url . '"></noscript>'), 'no-JS fallback changed');
 $cover_parser = new WP_HTML_Tag_Processor($cover_result);

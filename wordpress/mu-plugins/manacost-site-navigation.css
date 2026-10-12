@@ -7,14 +7,35 @@
 	::view-transition-group(root),
 	::view-transition-old(root),
 	::view-transition-new(root) {
-		animation-duration: 160ms;
+		animation-duration: 180ms;
 		animation-timing-function: ease-out;
+	}
+
+	/* Keep the previous page opaque until the incoming page covers it. */
+	::view-transition-old(root) {
+		animation: none;
+	}
+
+	::view-transition-new(root) {
+		animation-name: manacost-page-enter;
+		mix-blend-mode: normal;
+	}
+
+	@keyframes manacost-page-enter {
+		from { opacity: 0; }
+		to { opacity: 1; }
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	@view-transition {
 		navigation: none;
+	}
+
+	::view-transition-group(root),
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
 	}
 }
 
