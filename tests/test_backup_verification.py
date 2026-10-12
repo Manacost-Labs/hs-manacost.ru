@@ -111,6 +111,7 @@ class BackupVerificationTest(unittest.TestCase):
                 self.calls_file.unlink(missing_ok=True)
                 result = self.run_script('s3-snapshot.sh', HS_S3_WORKERS=workers)
                 self.assertNotEqual(result.returncode, 0)
+                self.assertIn('S3 workers must be an integer from 1 to 16', result.stderr)
                 self.assertEqual(self.calls(), [])
 
     def test_failed_verification_cannot_publish_success_manifest(self) -> None:

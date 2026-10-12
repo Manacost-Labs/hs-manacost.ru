@@ -101,6 +101,27 @@ its invocation-bound initial-restore watcher before installing from a clean
 committed checkout. Retain `current` and all version prefixes. Restarting sync
 checks existing objects and continues the incomplete copy; a stopped invocation
 is not a completed backup. Recreate the initial-restore watcher bound to the new
-service invocation and installed source revision, with a runtime allowance longer
-than seven days. Roll back throughput with `HS_S3_WORKERS=2` in the private
-environment; stop the active invocation before changing installed helper files.
+service invocation and installed source revision. Start the snapshot with
+`systemctl start --no-block` and allow the watcher nine days: the seven-day
+snapshot timeout, the restore service's eight-hour timeout and additional time
+for the capacity gate. A failed snapshot never proves restoration; after any
+scheduled incremental retry, re-arm the watcher against that invocation and the
+same installed revision. Media uploads remain available during copying, so live
+source drift may legitimately fail the full check and require this retry.
+
+Before starting, check the reverse ordering dependencies with
+`systemctl list-dependencies --before hs-manacost-s3-backup.service`.
+No DB, deploy or other backup job may be ordered after this long oneshot or share
+its application lock. The installed
+credential helper uses static access-key references rather than expiring session
+tokens. Request throttling applies to copy and check, not the separate directory
+listings. Reduce throughput to four workers first; `HS_S3_WORKERS=2` remains
+available, but a first copy may then require multiple interrupted/incremental
+runs. Stop the active invocation before changing installed helper files.
+
+Claude Opus 5.5 max approved the concurrency change subject to the dependency
+check above. The installed unit's only reverse ordering dependency was
+`shutdown.target`, and the owned backup helpers contain no shared lock. A real
+September-only dry-run against a separate private pilot prefix passed with the
+new limits, without copying objects or publishing manifests. These checks do
+not establish full backup completion.
