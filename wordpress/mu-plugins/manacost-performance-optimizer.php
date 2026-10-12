@@ -18,6 +18,31 @@ final class Manacost_Performance_Optimizer {
 	/** Registers the frontend output-buffer hook. */
 	public static function boot(): void {
 		add_action( 'template_redirect', array( __CLASS__, 'start' ), -200 );
+		add_filter( 'option_td_011', array( __CLASS__, 'version_background_setting' ) );
+	}
+
+	/**
+	 * Refreshes delivery of the opaque background after its bounded sidecar rebuild.
+	 *
+	 * @param mixed $settings Stored Newspaper options; never persisted here.
+	 * @return mixed Options with a delivery version on the selected public image.
+	 */
+	public static function version_background_setting( $settings ) {
+		if ( ! is_array( $settings ) || is_admin() || 'Newspaper_new' !== get_template() ) {
+			return $settings;
+		}
+
+		$image = $settings['tds_site_background_image'] ?? '';
+		if (
+			! is_string( $image )
+			|| '/wp-content/uploads/2026/09/temnaya-versiya-v2.png' !== wp_parse_url( $image, PHP_URL_PATH )
+			|| ! in_array( wp_parse_url( $image, PHP_URL_HOST ), array( self::PRIMARY_HOST, self::MIRROR_HOST, 'test.hs-manacost.ru' ), true )
+		) {
+			return $settings;
+		}
+
+		$settings['tds_site_background_image'] = add_query_arg( 'mc_background', 'opaque-20261012', $image );
+		return $settings;
 	}
 
 	/** Starts buffering only eligible public home-page requests. */

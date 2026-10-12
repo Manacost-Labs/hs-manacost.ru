@@ -7,7 +7,8 @@ const env=Object.fromEntries(readFileSync('.artifacts/integration/runtime.env','
 const fixture=JSON.parse(readFileSync('.artifacts/api-gallery/integration-report.json','utf8'));
 const base=`http://127.0.0.1:${env.WP_TEST_PORT}`;
 const browser=await chromium.launch({headless:true});
-const context=await browser.newContext({viewport:{width:1440,height:1000}});
+// Capture static layouts; animated navigation has its own Chromium/WebKit suite.
+const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
 // Stub only external image transport; the picker, media import, SQL and editor run unchanged.
 async function providerImages(target) {
  await target.route('https://api.kolodahearthstone.com/uploads/hs-gallery-fixture/*',route=>route.fulfill({status:200,contentType:'image/png',body:readFileSync('.artifacts/integration/site/wp-content/uploads/hs-gallery-fixture.png')}));
@@ -206,7 +207,7 @@ try {
  await first.getByRole('button',{name:'3 из 5',exact:true}).click();
  await first.getByText(/Голосов: 1 · Ваша оценка: 3/).waitFor();
  await page.reload();await first.getByText(/Голосов: 1 · Ваша оценка: 3/).waitFor();
- const anonymous=await browser.newContext();const reader=await anonymous.newPage();
+ const anonymous=await browser.newContext({reducedMotion:'reduce'});const reader=await anonymous.newPage();
  observeResponses(reader);
  await reader.goto(`${base}/?p=${fixture.post_id}`);
  assert.equal((await anonymous.cookies()).some(c=>c.name==='hs_gallery_voter'),false,'No identity cookie during passive reading');
@@ -238,7 +239,7 @@ try {
  assert.equal(await readerFirst.locator('.hs-gallery-rating__remove').isVisible(),false);
  report.votes={update_preserved_count:true,anonymous_persisted:true,own_removal:true,no_cookie_before_vote:true};
  await anonymous.close();
- const authorContext=await browser.newContext();await providerImages(authorContext);const authorPage=await authorContext.newPage();
+ const authorContext=await browser.newContext({reducedMotion:'reduce'});await providerImages(authorContext);const authorPage=await authorContext.newPage();
  await authorPage.goto(`${base}/wp-login.php`);
  await authorPage.waitForFunction(()=>document.activeElement?.id==='user_login');
  await authorPage.getByLabel('Username or Email Address').fill(env.WP_TEST_AUTHOR_USER);
@@ -268,7 +269,7 @@ try {
   report.layouts.push({surface:'ratings',width,...layout});
   await page.screenshot({path:`.artifacts/api-gallery/screenshots/ratings-${width}.png`,fullPage:true});
  }
- const touchContext=await browser.newContext({hasTouch:true,viewport:{width:390,height:844}});
+ const touchContext=await browser.newContext({hasTouch:true,viewport:{width:390,height:844},reducedMotion:'reduce'});
  const touchPage=await touchContext.newPage();await touchPage.goto(`${base}/?p=${fixture.post_id}`);
  const touch=await touchPage.locator('.hs-gallery-rating').first().evaluate(n=>({width:n.clientWidth,scroll:n.scrollWidth,stars:[...n.querySelectorAll('[data-score]')].map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height,top:b.getBoundingClientRect().top}))}));
  assert.ok(touch.stars.every(b=>b.width>=44&&b.height>=44),'Actual touch devices retain 44px targets');
