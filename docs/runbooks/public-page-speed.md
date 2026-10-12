@@ -7,10 +7,12 @@ without this API keep normal navigation. Reduced-motion preferences disable
 the fade. No speculative article rendering or analytics gating was introduced.
 
 Boosty creatives retain their original files and dimensions. The first-party
-renderer offers 400, 800 and original-width WebP files, with native lazy loading
-and `sizes="auto"` so the browser selects a rendition from the rendered width.
-`data-no-lazy` prevents WP Rocket from introducing a second lazy loader. The
-fallback sizes support browsers without automatic image sizing.
+renderer offers 400, 800 and original-width WebP files, with explicit responsive
+sizes for the mobile content width and 350 px desktop sidebar. WP Rocket owns
+viewport-based loading when enabled; the renderer does not bypass it. Native
+`loading="lazy"` remains the fallback when the site lazy loader is unavailable.
+This avoids the browser fetching below-fold mobile banners far ahead of the
+viewport and selecting an original-width image before layout is resolved.
 
 ## Selected background maintenance, 2026-10-12
 

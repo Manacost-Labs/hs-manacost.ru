@@ -218,7 +218,7 @@ final class Manacost_Boosty_Promo {
 		);
 
 		return sprintf(
-			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="%4$d" height="%5$d" srcset="%6$s" sizes="auto, (max-width: 767px) calc(100vw - 40px), 350px" alt="" decoding="async" loading="lazy" data-no-lazy="1"></a>',
+			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="%4$d" height="%5$d" srcset="%6$s" sizes="(max-width: 767px) calc(100vw - 40px), 350px" alt="" decoding="async" loading="lazy"></a>',
 			esc_url( self::BOOSTY_URL ),
 			esc_attr( 'Поддержать Manacost на Boosty' ),
 			esc_url( $banner_url ),
