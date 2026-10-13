@@ -124,6 +124,34 @@ async function measure(page, screen) {
   return { ...timings, sql_profile: await page.evaluate(collectSqlProfile) };
 }
 
+async function diagnoseSql(screens) {
+  // Keep diagnostic overhead out of the unprofiled budget samples.
+  const context = await browser.newContext(contextOptions);
+  try {
+    await login(context);
+    const page = await context.newPage();
+    await page.route('**/*', route => {
+      const request = route.request();
+      const url = new URL(request.url());
+      if (request.isNavigationRequest() && request.method() === 'GET'
+        && url.origin === new URL(baseURL).origin && url.pathname.startsWith('/wp-admin/')) {
+        return route.continue({ headers: { ...request.headers(), 'x-hs-admin-sql-profile': '1' } });
+      }
+      return route.continue();
+    });
+    const profiles = [];
+    for (const screen of screens) {
+      const samples = [];
+      for (let index = 0; index < sampleCount; index++) {
+        const measured = await measure(page, screen);
+        samples.push(measured.sql_profile);
+      }
+      profiles.push({ screen: screen.name, samples });
+    }
+    return profiles;
+  } finally { await context.close(); }
+}
+
 async function verifyMobile(screens) {
   const context = await browser.newContext({
     ...contextOptions,
@@ -230,7 +258,8 @@ try {
       'utf8',
     );
   }
-  const profiles = screens.map(screen => ({
+  const profiles = process.env.HS_ADMIN_PERF_EXTRA_SCREENS === '1'
+    ? await diagnoseSql(screens) : screens.map(screen => ({
     screen: screen.name,
     samples: measurements.get(screen.name).map(sample => sample.sql_profile),
   }));
@@ -243,6 +272,8 @@ try {
         authenticated_role: 'administrator',
         dataset_size: datasetSize,
         cache_state: process.env.HS_ADMIN_PERF_CACHE_STATE ?? 'warm',
+        diagnostic_only: true,
+        profiling_starts: 'plugins_loaded; bootstrap queries excluded',
         profiles,
       }, null, 2)}\n`,
       'utf8',

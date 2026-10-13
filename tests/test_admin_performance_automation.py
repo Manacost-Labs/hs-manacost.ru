@@ -304,6 +304,118 @@ console.log('PASS');
         self.assertIn("node ops/performance/collect-admin-performance.mjs", staging_workflow)
         self.assertNotIn("docker run", staging_workflow)
 
+    def test_sql_probe_requires_explicit_privileged_staging_request(self) -> None:
+        php = r"""
+<?php
+const ABSPATH = '/synthetic/';
+const MB_IN_BYTES = 1048576;
+function add_action(...$args) {}
+function add_filter(...$args) {}
+function wp_get_environment_type() { return getenv('TEST_ENV'); }
+function is_admin() { return getenv('TEST_ADMIN') === '1'; }
+function wp_doing_ajax() { return getenv('TEST_AJAX') === '1'; }
+function current_user_can($capability) { return getenv('TEST_CAP') === '1'; }
+function wp_unslash($value) { return $value; }
+$_SERVER['REQUEST_METHOD'] = getenv('TEST_METHOD');
+$_SERVER['HTTP_X_HS_ADMIN_SQL_PROFILE'] = getenv('TEST_OPTIN');
+$wpdb = (object) ['num_queries' => 42, 'queries' => []];
+require 'wordpress/mu-plugins/hs-admin-performance-probe.php';
+hs_admin_performance_probe_enable_sql_profile();
+echo json_encode(['enabled' => defined('SAVEQUERIES') && SAVEQUERIES]);
+"""
+        import os
+        valid = {"TEST_ENV": "staging", "TEST_ADMIN": "1", "TEST_AJAX": "0",
+                 "TEST_CAP": "1", "TEST_METHOD": "GET", "TEST_OPTIN": "1"}
+        cases = [({}, True), ({"TEST_ENV": "local"}, True),
+                 ({"TEST_ENV": "production"}, False), ({"TEST_ADMIN": "0"}, False),
+                 ({"TEST_AJAX": "1"}, False), ({"TEST_CAP": "0"}, False),
+                 ({"TEST_METHOD": "POST"}, False), ({"TEST_OPTIN": ""}, False)]
+        for changes, enabled in cases:
+            with self.subTest(changes=changes):
+                result = subprocess.run(["php"], input=php, text=True, cwd=ROOT,
+                    env={**os.environ, **valid, **changes}, capture_output=True, check=False)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(enabled, json.loads(result.stdout)["enabled"])
+
+    def test_sql_probe_bounds_memory_and_never_exports_query_values(self) -> None:
+        php = r"""
+<?php
+const ABSPATH = '/synthetic/';
+const MB_IN_BYTES = 1048576;
+function add_action(...$args) {}
+function add_filter(...$args) {}
+function wp_get_environment_type() { return 'staging'; }
+function is_admin() { return true; }
+function wp_doing_ajax() { return false; }
+function current_user_can($capability) { return true; }
+function wp_json_encode($value, $flags) { return json_encode($value, $flags); }
+function wp_print_inline_script_tag($value, $attributes) { echo $value; }
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['HTTP_X_HS_ADMIN_SQL_PROFILE'] = '1';
+$wpdb = (object) ['num_queries' => 42, 'queries' => []];
+require 'wordpress/mu-plugins/hs-admin-performance-probe.php';
+hs_admin_performance_probe_enable_sql_profile();
+for ($index = 0; $index < 1000; ++$index) {
+  $sql = 'SELECT private@example.com secret-token';
+  $stack = $index < 2 ? 'unsafe(arg=secret-token), hs_example_lookup, wpdb->query' : 'hs_caller_' . $index;
+  if ($index === 2) $stack = 'WP_Hook->apply_filters, get_option, wpdb->get_row';
+  $returned = hs_admin_performance_probe_collect_query(['preserved' => 1], $sql, 0.001, $stack);
+  if ($returned !== ['preserved' => 1] || count($wpdb->queries) !== 0) throw new RuntimeException('Log is unbounded or custom data lost');
+  $wpdb->queries[] = [$sql, 0.001, $stack];
+}
+hs_admin_performance_probe_print_metrics();
+if (count($wpdb->queries) !== 0) throw new RuntimeException('Last SQL tuple retained');
+"""
+        result = subprocess.run(["php"], input=php, text=True, cwd=ROOT,
+            capture_output=True, check=False)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertNotIn("secret-token", result.stdout)
+        self.assertNotIn("private@example.com", result.stdout)
+        measured = json.loads(result.stdout.split(" = ", 1)[1].rstrip(";"))["sql_profile"]
+        self.assertEqual(1000, measured["profiled_queries"])
+        self.assertEqual(42, measured["queries_before"])
+        self.assertLessEqual(len(measured["callers"]), 64)
+        self.assertAlmostEqual(1000, measured["total_ms"])
+        self.assertEqual(2, measured["callers"]["hs_example_lookup"]["count"])
+        self.assertEqual(1, measured["callers"]["get_option"]["count"])
+
+    def test_frontend_lcp_attribution_is_bounded_and_redacted(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import { collectFrontendProfile } from './ops/performance/browser-frontend-profile.mjs';
+globalThis.__hsFrontend = { lcpEntry: {
+  startTime: 9852, url: 'https://test.hs-manacost.ru/wp-content/uploads/cover.jpg?token=private-token#nonce',
+  element: { tagName: 'IMG', textContent: 'private user content' },
+} };
+globalThis.performance = { getEntriesByType: () => Array.from({ length: 30 }, (_, i) => ({
+  name: `https://test.hs-manacost.ru/wp-content/uploads/${i}.jpg?token=private-token`,
+  initiatorType: 'img', startTime: 25, responseEnd: 9700 + i,
+  duration: 9675 + i, transferSize: 123000, encodedBodySize: 122770,
+})).concat([
+  { name: 'https://test.hs-manacost.ru/wp-content/uploads/cover.jpg?token=private-token#nonce', initiatorType: 'img',
+    startTime: 30, responseEnd: 9800, duration: 9770, transferSize: 123070, encodedBodySize: 122770 },
+  { name: 'https://test.hs-manacost.ru/wp-admin/admin-ajax.php?nonce=private-token', initiatorType: 'fetch', duration: 99999 },
+  { name: 'data:image/png;private-token', initiatorType: 'img', duration: 99999 },
+  { name: 'https://untrusted.example/secret.jpg', initiatorType: 'img', duration: 99999 },
+]) };
+const result = collectFrontendProfile();
+assert.equal(result.lcp_resource.path, '/wp-content/uploads/cover.jpg');
+assert.equal(result.lcp_tag, 'IMG');
+assert.equal(result.lcp_timing.response_end_ms, 9800);
+assert.equal(result.lcp_timing.encoded_body_bytes, 122770);
+assert.equal(result.slowest_resources.length, 12);
+assert.ok(!JSON.stringify(result).includes('private'));
+assert.ok(!JSON.stringify(result).includes('untrusted'));
+globalThis.__hsFrontend = {};
+assert.equal(collectFrontendProfile().lcp_resource, null);
+console.log('PASS');
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script], cwd=ROOT,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_browser_sql_profile_never_exports_query_text(self) -> None:
         script = """
 import { collectSqlProfile } from './ops/performance/browser-sql-profile.mjs';

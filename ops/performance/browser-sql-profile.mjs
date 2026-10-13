@@ -1,5 +1,20 @@
 // This function is serialized into the browser by Playwright. Keep it self-contained.
 export function collectSqlProfile() {
+  const native = globalThis.__hsAdminPerformance?.sql_profile;
+  if (native && typeof native.callers === 'object') {
+    const callers = Object.values(native.callers).filter(item => item
+      && typeof item.caller === 'string' && /^[A-Za-z_\\][A-Za-z0-9_\\:>\-]{0,79}$/.test(item.caller)
+      && Number.isFinite(item.count) && item.count >= 0
+      && Number.isFinite(item.total_ms) && item.total_ms >= 0)
+      .map(({ caller, count, total_ms }) => ({ caller, count, total_ms: Math.round(total_ms * 1000) / 1000 }));
+    return {
+      available: true, source: 'request-scoped-probe',
+      queries_before: Number(native.queries_before), profiled_queries: Number(native.profiled_queries),
+      total_ms: Math.round(Number(native.total_ms) * 1000) / 1000,
+      top_callers: [...callers].sort((a, b) => b.total_ms - a.total_ms).slice(0, 12),
+      top_by_count: [...callers].sort((a, b) => b.count - a.count).slice(0, 12),
+    };
+  }
   const rows = globalThis.QueryMonitorData?.data?.db_queries?.data?.rows;
   const totals = new Map();
   if (rows && typeof rows === 'object') {
