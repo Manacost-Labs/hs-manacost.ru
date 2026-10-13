@@ -27,18 +27,89 @@ function hs_admin_performance_probe_enable_sql_profile(): void {
 		return;
 	}
 
-	global $wpdb;
+	global $wpdb, $pagenow;
+	if ( 'wpdb' !== get_class( $wpdb ) || ! empty( $wpdb->queries )
+		|| ! in_array( $pagenow, array( 'index.php', 'edit.php', 'upload.php', 'post.php', 'post-new.php', 'plugins.php', 'users.php', 'options-general.php' ), true ) ) {
+		return;
+	}
 	$GLOBALS['hs_admin_sql_profile'] = array(
 		'queries_before'   => (int) $wpdb->num_queries,
 		'profiled_queries' => 0,
 		'total_ms'         => 0.0,
 		'callers'          => array(),
+		'seq'              => 0,
+		'pending'          => null,
+		'emitted'          => false,
 	);
-	// Never change another profiler's log. This request owns SAVEQUERIES exclusively.
-	define( 'SAVEQUERIES', true );
 	add_filter( 'log_query_custom_data', 'hs_admin_performance_probe_collect_query', PHP_INT_MAX, 4 );
+	add_action( 'shutdown', 'hs_admin_performance_probe_release_pending', PHP_INT_MAX );
+	// Auth has already resolved through core and all plugin/theme authentication hooks.
+	define( 'SAVEQUERIES', true );
 }
-add_action( 'plugins_loaded', 'hs_admin_performance_probe_enable_sql_profile', PHP_INT_MAX );
+add_action( 'admin_init', 'hs_admin_performance_probe_enable_sql_profile', PHP_INT_MIN );
+
+/**
+ * Disarm logging before aborting an incompatible diagnostic, including shutdown.
+ *
+ * @param string   $message  Non-sensitive diagnostic failure message.
+ * @param callable $renderer WordPress renderer, which a custom handler may let return.
+ * @phpstan-param callable(string,string,array{response:int}):void $renderer
+ * @return never
+ */
+function hs_admin_performance_probe_abort( string $message, callable $renderer ): never {
+	$GLOBALS['hs_admin_sql_profile']['pending'] = null;
+	remove_filter( 'log_query_custom_data', 'hs_admin_performance_probe_collect_query', PHP_INT_MAX );
+	remove_action( 'shutdown', 'hs_admin_performance_probe_release_pending', PHP_INT_MAX );
+	$renderer( esc_html( $message ), 'SQL diagnostic unavailable', array( 'response' => 503 ) );
+	// A custom wp_die handler may return. Never continue or pop an unowned tuple.
+	exit;
+}
+
+/**
+ * Release only the previous SQL tuple carrying this diagnostic's sequence marker.
+ *
+ * @return void
+ */
+function hs_admin_performance_probe_release_pending(): void {
+	global $wpdb;
+	$profile = &$GLOBALS['hs_admin_sql_profile'];
+	if ( null === $profile['pending'] ) {
+		return;
+	}
+	$last = is_array( $wpdb->queries ) ? array_key_last( $wpdb->queries ) : null;
+	if ( null === $last || ( $wpdb->queries[ $last ][4]['hs_sql_profile_seq'] ?? null ) !== $profile['pending'] ) {
+		// Never destroy another connection's or profiler's log to keep this probe running.
+		hs_admin_performance_probe_abort( 'SQL diagnostic unavailable: incompatible query logging.', 'wp_die' );
+	}
+	array_pop( $wpdb->queries );
+	$profile['pending'] = null;
+}
+
+/**
+ * Resolve only existing PHP symbols; hook argument fragments are never labels.
+ *
+ * @param string $name Candidate from the core callstack summary.
+ * @return string|null Canonical declared identifier, without arguments or paths.
+ */
+function hs_admin_performance_probe_canonical_caller( string $name ): ?string {
+	if ( ! preg_match( '/\A[A-Za-z_\\\\][A-Za-z0-9_\\\\]{0,79}(?:(?:->|::)[A-Za-z_][A-Za-z0-9_]{0,63})?\z/', $name ) ) {
+		return null;
+	}
+	if ( str_contains( $name, '->' ) || str_contains( $name, '::' ) ) {
+		$separator = str_contains( $name, '->' ) ? '->' : '::';
+		$parts     = explode( $separator, $name, 2 );
+		if ( ! class_exists( $parts[0], false ) || ! method_exists( $parts[0], $parts[1] ) ) {
+			return null;
+		}
+		$method = new ReflectionMethod( $parts[0], $parts[1] );
+		$name   = $method->getDeclaringClass()->getName() . $separator . $method->getName();
+	} elseif ( function_exists( $name ) ) {
+		$name = ( new ReflectionFunction( $name ) )->getName();
+	} else {
+		return null;
+	}
+	return strlen( $name ) <= 80 ? $name : null;
+}
 
 /**
  * Aggregate numeric query costs without retaining query text or argument values.
@@ -53,16 +124,29 @@ function hs_admin_performance_probe_collect_query( array $data, string $query, f
 	global $wpdb;
 	/** Owned, bounded diagnostic state.
 	 *
-	 * @var array{queries_before: int, profiled_queries: int, total_ms: float, callers: array<string, array{caller: string, count: int, total_ms: float}>} $profile
+	 * @var array{queries_before: int, profiled_queries: int, total_ms: float, callers: array<string, array{caller: string, count: int, total_ms: float}>, seq: int, pending: int|null, emitted: bool} $profile
 	 */
 	$profile = &$GLOBALS['hs_admin_sql_profile'];
-	$caller  = 'other';
-	foreach ( array_slice( explode( ',', substr( $callstack, 0, 4096 ) ), 0, 64 ) as $name ) {
+	hs_admin_performance_probe_release_pending();
+	$data['hs_sql_profile_seq'] = ++$profile['seq'];
+	$profile['pending']         = $profile['seq'];
+	if ( $profile['emitted'] ) {
+		return $data;
+	}
+	if ( $profile['profiled_queries'] >= 2048 ) {
+		hs_admin_performance_probe_abort( 'SQL diagnostic query limit reached.', 'wp_die' );
+	}
+	$caller = 'other';
+	foreach ( array_slice( array_reverse( explode( ',', substr( $callstack, -8192 ) ) ), 0, 48 ) as $name ) {
 		$name = trim( $name );
 		if ( ! preg_match( '/^[A-Za-z_\\\\][A-Za-z0-9_\\\\:>\-]{0,79}$/D', $name ) ) {
 			continue;
 		}
 		if ( preg_match( '/^(wpdb|WP_Hook)(->|::)|^(do_action|apply_filters|do_action_ref_array|apply_filters_ref_array)$/', $name ) ) {
+			continue;
+		}
+		$name = hs_admin_performance_probe_canonical_caller( $name );
+		if ( null === $name ) {
 			continue;
 		}
 		if ( 'other' === $caller ) {
@@ -87,8 +171,6 @@ function hs_admin_performance_probe_collect_query( array $data, string $query, f
 	$summary['total_ms']          += $milliseconds;
 	$profile['total_ms']          += $milliseconds;
 	$profile['callers'][ $caller ] = $summary;
-	// Core appends the current query after this filter: retain at most one SQL tuple.
-	$wpdb->queries = array();
 	return $data;
 }
 
@@ -113,8 +195,17 @@ function hs_admin_performance_probe_print_metrics(): void {
 		'peak_memory_mb' => round( memory_get_peak_usage( true ) / MB_IN_BYTES, 3 ),
 	);
 	if ( isset( $GLOBALS['hs_admin_sql_profile'] ) ) {
-		$metrics['sql_profile'] = $GLOBALS['hs_admin_sql_profile'];
-		$wpdb->queries          = array();
+		$profile                = &$GLOBALS['hs_admin_sql_profile'];
+		$metrics['sql_profile'] = array(
+			'queries_before'      => $profile['queries_before'],
+			'profiled_queries'    => $profile['profiled_queries'],
+			'total_ms'            => $profile['total_ms'],
+			'callers'             => array_values( $profile['callers'] ),
+			'window'              => 'admin_init_to_admin_footer',
+			'coverage_consistent' => $profile['profiled_queries'] === $wpdb->num_queries - $profile['queries_before'],
+		);
+		$profile['emitted']     = true;
+		hs_admin_performance_probe_release_pending();
 	}
 	$encoded = wp_json_encode( $metrics, JSON_HEX_TAG | JSON_HEX_AMP );
 	if ( false === $encoded ) {

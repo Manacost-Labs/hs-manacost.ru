@@ -20,9 +20,12 @@ export function collectFrontendProfile() {
   const lcp = globalThis.__hsFrontend?.lcpEntry;
   const resources = performance.getEntriesByType('resource');
   const match = lcp?.url ? resources.find(entry => entry.name === lcp.url) : null;
-  const tag = lcp?.element?.tagName;
+  const tag = lcp?.tag;
   return {
     lcp_tag: typeof tag === 'string' && /^[A-Z][A-Z0-9]{0,15}$/.test(tag) ? tag : null,
+    lcp_kind: ['text', 'img', 'background-image', 'detached', 'video', 'svg-image'].includes(lcp?.kind) ? lcp.kind : null,
+    lcp_loading: ['lazy', 'eager', 'auto'].includes(lcp?.loading) ? lcp.loading : null,
+    lcp_fetchpriority: ['high', 'low', 'auto'].includes(lcp?.fetchpriority) ? lcp.fetchpriority : null,
     lcp_resource: safeResource(lcp?.url),
     // Cross-origin timing/byte fields may be zero when Timing-Allow-Origin is absent.
     lcp_timing: match && safeResource(match.name) ? timing(match) : null,

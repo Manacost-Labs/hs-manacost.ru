@@ -35,7 +35,9 @@ try {
           window.__hsFrontend = { shifts: [], lcp: 0, longTasks: 0 };
           for (const [type, collect] of [
             ['layout-shift', entry => { if (!entry.hadRecentInput) window.__hsFrontend.shifts.push({ time: entry.startTime, value: entry.value }); }],
-            ['largest-contentful-paint', entry => { window.__hsFrontend.lcp = entry.startTime; window.__hsFrontend.lcpEntry = entry; }],
+            ['largest-contentful-paint', entry => { window.__hsFrontend.lcp = entry.startTime; window.__hsFrontend.lcpEntry = { startTime: entry.startTime, url: entry.url,
+              tag: entry.element?.tagName, kind: !entry.element ? 'detached' : !entry.url ? 'text' : entry.element.tagName === 'IMG' ? 'img' : 'background-image',
+              loading: entry.element?.getAttribute('loading'), fetchpriority: entry.element?.getAttribute('fetchpriority') }; }],
             ['longtask', () => { window.__hsFrontend.longTasks++; }],
           ]) { try { new PerformanceObserver(list => list.getEntries().forEach(collect)).observe({ type, buffered: true }); } catch {} }
         });

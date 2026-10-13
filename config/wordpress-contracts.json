@@ -3050,7 +3050,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
-        "line": 105
+        "line": 187
       },
       {
         "name": "manage_options",

@@ -9,6 +9,8 @@ export function collectSqlProfile() {
       .map(({ caller, count, total_ms }) => ({ caller, count, total_ms: Math.round(total_ms * 1000) / 1000 }));
     return {
       available: true, source: 'request-scoped-probe',
+      window: native.window === 'admin_init_to_admin_footer' ? native.window : null,
+      coverage_consistent: native.coverage_consistent === true,
       queries_before: Number(native.queries_before), profiled_queries: Number(native.profiled_queries),
       total_ms: Math.round(Number(native.total_ms) * 1000) / 1000,
       top_callers: [...callers].sort((a, b) => b.total_ms - a.total_ms).slice(0, 12),

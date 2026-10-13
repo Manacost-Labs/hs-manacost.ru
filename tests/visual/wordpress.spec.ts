@@ -232,7 +232,7 @@ test('SQL profiling is opt-in and leaves normal admin counters available', async
   await page.goto('/wp-admin/index.php', { waitUntil: 'domcontentloaded' });
   const readMetrics = () => page.evaluate(() => (window as unknown as {
     __hsAdminPerformance: { sql_queries: number; sql_profile?: {
-      queries_before: number; profiled_queries: number; total_ms: number;
+      queries_before: number; profiled_queries: number; total_ms: number; coverage_consistent: boolean;
       callers: Record<string, { caller: string; count: number; total_ms: number }>;
     } };
   }).__hsAdminPerformance);
@@ -246,6 +246,8 @@ test('SQL profiling is opt-in and leaves normal admin counters available', async
   expect(measured.sql_profile?.profiled_queries).toBeGreaterThan(0);
   expect(measured.sql_profile?.queries_before).toBeGreaterThan(0);
   expect(measured.sql_profile?.total_ms).toBeGreaterThanOrEqual(0);
+  expect(measured.sql_profile?.coverage_consistent).toBe(true);
+  expect(measured.sql_queries).toBe(measured.sql_profile!.queries_before + measured.sql_profile!.profiled_queries);
   const callers = Object.values(measured.sql_profile!.callers);
   expect(callers.length).toBeLessThanOrEqual(64);
   expect(callers.reduce((sum, item) => sum + item.count, 0)).toBe(measured.sql_profile?.profiled_queries);

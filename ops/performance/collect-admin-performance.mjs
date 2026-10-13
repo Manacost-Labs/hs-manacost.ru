@@ -133,7 +133,7 @@ async function diagnoseSql(screens) {
     await page.route('**/*', route => {
       const request = route.request();
       const url = new URL(request.url());
-      if (request.isNavigationRequest() && request.method() === 'GET'
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame() && request.method() === 'GET'
         && url.origin === new URL(baseURL).origin && url.pathname.startsWith('/wp-admin/')) {
         return route.continue({ headers: { ...request.headers(), 'x-hs-admin-sql-profile': '1' } });
       }
@@ -144,6 +144,9 @@ async function diagnoseSql(screens) {
       const samples = [];
       for (let index = 0; index < sampleCount; index++) {
         const measured = await measure(page, screen);
+        if (measured.sql_profile.source !== 'request-scoped-probe' || measured.sql_profile.coverage_consistent !== true) {
+          throw new Error('SQL diagnostic profile is unavailable or inconsistent');
+        }
         samples.push(measured.sql_profile);
       }
       profiles.push({ screen: screen.name, samples });
@@ -273,7 +276,7 @@ try {
         dataset_size: datasetSize,
         cache_state: process.env.HS_ADMIN_PERF_CACHE_STATE ?? 'warm',
         diagnostic_only: true,
-        profiling_starts: 'plugins_loaded; bootstrap queries excluded',
+        profiling_starts: 'admin_init to footer; bootstrap/plugin/init queries excluded',
         profiles,
       }, null, 2)}\n`,
       'utf8',
