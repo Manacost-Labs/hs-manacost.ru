@@ -21,6 +21,9 @@ compose=("${docker_command[@]}" compose --project-name "$PROJECT_NAME" --env-fil
 "${compose[@]}" run --rm -e WP_ENVIRONMENT_TYPE=local \
     -e "WORDPRESS_CONFIG_EXTRA=define('WP_HOME', 'http://127.0.0.1:${WP_TEST_PORT:-8888}'); define('WP_SITEURL', WP_HOME); define('DISABLE_WP_CRON', true);" \
     cli eval-file /var/www/html/.integration/admin-meta-key-cache.php
+"${compose[@]}" run --rm -e WP_ENVIRONMENT_TYPE=local \
+    -e "WORDPRESS_CONFIG_EXTRA=define('WP_HOME', 'http://127.0.0.1:${WP_TEST_PORT:-8888}'); define('WP_SITEURL', WP_HOME); define('DISABLE_WP_CRON', true);" \
+    cli eval-file /var/www/html/.integration/admin-media-months-cache.php
 post_id=$("${compose[@]}" run --rm cli option get hs_integration_post_id)
 printf 'WP_TEST_POST_ID=%s\nWP_TEST_DATASET_SIZE=1\n' "$post_id" >>"$ENV_FILE"
 views_json=$(curl --fail --silent \
