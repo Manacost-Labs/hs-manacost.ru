@@ -99,7 +99,7 @@ final class HS_Admin_Media_Months_Cache {
 	public static function months( $months ) {
 		global $wpdb;
 		self::$pending = null;
-		if ( 'wpdb' !== get_class( $wpdb ) || ! self::core_query() || null !== $months || ! is_admin() || ! current_user_can( 'upload_files' ) || ! wp_using_ext_object_cache()
+		if ( file_exists( WP_CONTENT_DIR . '/db.php' ) || 'wpdb' !== get_class( $wpdb ) || ! self::core_query() || null !== $months || ! is_admin() || ! current_user_can( 'upload_files' ) || ! wp_using_ext_object_cache()
 			|| ! self::sole( 'media_library_months_with_files', PHP_INT_MAX ) || ! self::sole( 'media_view_settings', PHP_INT_MIN ) ) {
 			return $months;
 		}
@@ -108,7 +108,7 @@ final class HS_Admin_Media_Months_Cache {
 		$values = wp_cache_get_multiple( array( 'epoch', 'payload' ), $group, true );
 		$epoch  = $values['epoch'];
 		if ( ! is_string( $epoch ) || '' === $epoch ) {
-			$candidate = wp_generate_uuid4();
+			$candidate = bin2hex( random_bytes( 16 ) );
 			if ( wp_cache_add( 'epoch', $candidate, $group ) ) {
 				$epoch = $candidate;
 			} else {
@@ -138,13 +138,13 @@ final class HS_Admin_Media_Months_Cache {
 	/**
 	 * Capture before user-specific settings filters and discard translated labels.
 	 *
-	 * @param array<string,mixed> $settings Core media settings, unchanged.
-	 * @return array<string,mixed>
+	 * @param mixed $settings Core media settings, unchanged.
+	 * @return mixed
 	 */
-	public static function capture( array $settings ): array {
+	public static function capture( $settings ) {
 		$pending       = self::$pending;
 		self::$pending = null;
-		if ( null === $pending || self::group() !== $pending['group'] || ! self::sole( 'media_view_settings', PHP_INT_MIN ) ) {
+		if ( ! is_array( $settings ) || null === $pending || self::group() !== $pending['group'] || ! self::sole( 'media_view_settings', PHP_INT_MIN ) ) {
 			return $settings;
 		}
 		$pairs = self::pairs( $settings['months'] ?? null );
@@ -170,7 +170,7 @@ final class HS_Admin_Media_Months_Cache {
 	 */
 	public static function invalidate(): void {
 		$group = self::group();
-		if ( ! wp_cache_set( 'epoch', wp_generate_uuid4(), $group ) ) {
+		if ( ! wp_cache_set( 'epoch', bin2hex( random_bytes( 16 ) ), $group ) ) {
 			wp_cache_delete( 'epoch', $group );
 		}
 		wp_cache_delete( 'payload', $group );
@@ -179,13 +179,13 @@ final class HS_Admin_Media_Months_Cache {
 	/**
 	 * Core supplies the original post after successful deletion.
 	 *
-	 * @param int     $post_id Unused deleted ID.
-	 * @param WP_Post $post    Deleted post.
+	 * @param mixed $post_id Unused deleted ID.
+	 * @param mixed $post    Deleted post, when supplied by core.
 	 * @return void
 	 */
-	public static function deleted( int $post_id, WP_Post $post ): void {
+	public static function deleted( $post_id, $post = null ): void {
 		unset( $post_id );
-		if ( 'attachment' === $post->post_type ) {
+		if ( ! ( $post instanceof WP_Post ) || 'attachment' === $post->post_type ) {
 			self::invalidate();
 		}
 	}
@@ -193,14 +193,14 @@ final class HS_Admin_Media_Months_Cache {
 	/**
 	 * Also cover attachments converted to other post types through wp_update_post().
 	 *
-	 * @param int     $post_id Unused updated ID.
-	 * @param WP_Post $after   Updated post.
-	 * @param WP_Post $before  Original post.
+	 * @param mixed $post_id Unused updated ID.
+	 * @param mixed $after   Updated post, when supplied by core.
+	 * @param mixed $before  Original post, when supplied by core.
 	 * @return void
 	 */
-	public static function updated( int $post_id, WP_Post $after, WP_Post $before ): void {
+	public static function updated( $post_id, $after = null, $before = null ): void {
 		unset( $post_id );
-		if ( 'attachment' === $before->post_type && 'attachment' !== $after->post_type ) {
+		if ( ! ( $before instanceof WP_Post ) || ! ( $after instanceof WP_Post ) || ( 'attachment' === $before->post_type && 'attachment' !== $after->post_type ) ) {
 			self::invalidate();
 		}
 	}

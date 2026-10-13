@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "wordpress/mu-plugins/hs-admin-media-months-cache.php"
 
 HARNESS = r"""<?php
-const ABSPATH = '/'; const DB_NAME = 'fixture'; const MINUTE_IN_SECONDS = 60;
+const ABSPATH = '/'; const WP_CONTENT_DIR = '/nonexistent-fixture-content'; const DB_NAME = 'fixture'; const MINUTE_IN_SECONDS = 60;
 class wpdb { public $prefix = 'one_'; }
 $wpdb = new wpdb();
 $cache = []; $hooks = []; $persistent = true; $admin = true; $allowed = true; $fail = false; $lose_add = false;
@@ -23,7 +23,7 @@ function has_filter($hook) { return false; }
 function is_admin() { return $GLOBALS['admin']; }
 function current_user_can($cap) { return $GLOBALS['allowed']; }
 function wp_using_ext_object_cache() { return $GLOBALS['persistent']; }
-function wp_generate_uuid4() { static $n = 0; return sprintf('00000000-0000-4000-8000-%012d', ++$n); }
+function wp_generate_uuid4() { return 'fixed-by-legacy-plugin'; }
 function wp_cache_get_multiple($keys, $group, $force = false) { $r = []; foreach ($keys as $k) $r[$k] = $GLOBALS['cache'][$group][$k] ?? false; return $r; }
 function wp_cache_get($key, $group = '', $force = false) { return $GLOBALS['cache'][$group][$key] ?? false; }
 function wp_cache_add($key, $value, $group = '', $ttl = 0) { if ($GLOBALS['lose_add'] || isset($GLOBALS['cache'][$group][$key])) return false; return wp_cache_set($key, $value, $group, $ttl); }
@@ -85,6 +85,10 @@ unset($wp_filter['media_view_settings']->callbacks[PHP_INT_MIN]['other']);
 check(null === HS_Admin_Media_Months_Cache::months(null), 'ambiguous capture');
 $fail = true; HS_Admin_Media_Months_Cache::invalidate();
 check(!isset($cache[$group]['epoch']) && !isset($cache[$group]['payload']), 'failed set invalidation deletes');
+check(42 === HS_Admin_Media_Months_Cache::capture(42), 'nonarray settings passthrough');
+HS_Admin_Media_Months_Cache::deleted(1);
+HS_Admin_Media_Months_Cache::updated(1);
+check(null === HS_Admin_Media_Months_Cache::months(null), 'legacy hooks fall back safely');
 echo "PASS";
 """
 
@@ -100,6 +104,7 @@ class AdminMediaMonthsCacheTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "PASS")
+            self.assertEqual(result.stderr, "")
 
 
 if __name__ == "__main__":
