@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Performance Optimizer
  * Description: Public-page performance hardening for hs-manacost.ru without delaying partner advertising.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: Manacost
  *
  * @package Manacost
@@ -231,10 +231,10 @@ final class Manacost_Performance_Optimizer {
 
 				$mobile_url = self::mobile_size_url( $desktop_url );
 				$alt        = self::extract_attr( $matches[1], 'title' );
-				$priority   = 0 === $seen;
+				$is_first   = 0 === $seen;
 				$seen++;
 
-				if ( $priority ) {
+				if ( $is_first ) {
 					$lcp_url = self::is_mobile_request() ? $mobile_url : $desktop_url;
 				}
 
@@ -242,7 +242,7 @@ final class Manacost_Performance_Optimizer {
 					. '<picture class="manacost-lcp-picture">'
 					. '<source media="(max-width: 767px)" srcset="' . esc_url( $mobile_url ) . '">'
 					. '<img src="' . esc_url( $desktop_url ) . '" alt="' . esc_attr( $alt ) . '" width="1068" height="542" decoding="async" loading="eager"'
-					. ( $priority ? ' fetchpriority="high"' : '' )
+					. ' fetchpriority="high"'
 					. ' sizes="(max-width: 767px) 100vw, 50vw">'
 					. '</picture></span>';
 

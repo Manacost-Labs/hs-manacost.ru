@@ -11,6 +11,64 @@ OPTIMIZER = ROOT / "wordpress/mu-plugins/manacost-performance-optimizer.php"
 
 
 class PerformanceOptimizerTest(unittest.TestCase):
+    def test_both_critical_grid_images_are_high_without_changing_sources(self) -> None:
+        script = r'''
+        define('ABSPATH', '/');
+        define('MANACOST_DEFER_THIRD_PARTY_ENABLED', false);
+        define('MANACOST_NATIVE_THUMBNAILS_ENABLED', false);
+        function add_action(...$args) {}
+        function add_filter(...$args) {}
+        function is_front_page() { return true; }
+        function is_home() { return true; }
+        function wp_is_mobile() { return $GLOBALS['mobile']; }
+        function esc_url($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+        function esc_attr($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+        require $argv[1];
+        $style = '<style>@font-face{font-family:Test;src:url(font.woff2)}h1{font-family:Test}</style>';
+        $html = '<html><head>' . $style . '</head><body><div class="td-big-grid-flex">';
+        for ($index = 1; $index <= 3; ++$index) {
+          $html .= '<a class="td-image-wrap" title="Статья &amp; ' . $index . '"><span class="entry-thumb td-thumb-css" data-bg="https://hs-manacost.ru/wp-content/uploads/grid-' . $index . '-1068x542.jpg"></span></a>';
+        }
+        $html .= '</div></body></html>';
+        $outputs = [];
+        foreach ([false, true] as $mobile) {
+          $GLOBALS['mobile'] = $mobile;
+          $outputs[] = Manacost_Performance_Optimizer::optimize_html($html);
+        }
+        echo json_encode($outputs);
+        '''
+        result = subprocess.run(["php", "-r", script, str(OPTIMIZER)],
+                                text=True, capture_output=True, check=True)
+        from html.parser import HTMLParser
+
+        class Tags(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.rows = []
+            def handle_starttag(self, tag, attributes):
+                self.rows.append((tag, dict(attributes)))
+
+        for mobile, html in zip([False, True], json.loads(result.stdout)):
+            tags = Tags()
+            tags.feed(html)
+            images = [attributes for tag, attributes in tags.rows if tag == "img"]
+            self.assertEqual(2, len(images))
+            self.assertEqual(["high", "high"], [image.get("fetchpriority") for image in images])
+            for index, image in enumerate(images, 1):
+                self.assertEqual(f"https://hs-manacost.ru/wp-content/uploads/grid-{index}-1068x542.jpg", image["src"])
+                self.assertEqual("1068", image["width"])
+                self.assertEqual("542", image["height"])
+                self.assertEqual("eager", image["loading"])
+                self.assertEqual("Статья & " + str(index), image["alt"])
+                self.assertEqual("(max-width: 767px) 100vw, 50vw", image["sizes"])
+            sources = [attributes for tag, attributes in tags.rows if tag == "source"]
+            self.assertEqual([f"https://hs-manacost.ru/wp-content/uploads/grid-{index}-696x353.jpg" for index in [1, 2]], [source["srcset"] for source in sources])
+            preload = next(attributes for tag, attributes in tags.rows if tag == "link" and attributes.get("id") == "manacost-lcp-preload")
+            crop = "696x353" if mobile else "1068x542"
+            self.assertEqual(f"https://hs-manacost.ru/wp-content/uploads/grid-1-{crop}.jpg", preload["href"])
+            self.assertIn('<style>@font-face{font-family:Test;src:url(font.woff2)}h1{font-family:Test}</style>', html)
+            self.assertIn('data-bg="https://hs-manacost.ru/wp-content/uploads/grid-3-1068x542.jpg"', html)
+
     def test_only_the_optimized_background_gets_a_new_delivery_cache_key(self) -> None:
         script = r'''
         define('ABSPATH', '/');
