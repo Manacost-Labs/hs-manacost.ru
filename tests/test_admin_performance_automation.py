@@ -304,6 +304,225 @@ console.log('PASS');
         self.assertIn("node ops/performance/collect-admin-performance.mjs", staging_workflow)
         self.assertNotIn("docker run", staging_workflow)
 
+    def test_sql_probe_requires_explicit_privileged_staging_request(self) -> None:
+        php = r"""
+<?php
+const ABSPATH = '/synthetic/';
+const MB_IN_BYTES = 1048576;
+function add_action(...$args) {}
+function add_filter(...$args) {}
+function remove_filter(...$args) {}
+function remove_action(...$args) {}
+function esc_html($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function wp_get_environment_type() { return getenv('TEST_ENV'); }
+function is_admin() { return getenv('TEST_ADMIN') === '1'; }
+function wp_doing_ajax() { return getenv('TEST_AJAX') === '1'; }
+function current_user_can($capability) { return getenv('TEST_CAP') === '1'; }
+function wp_unslash($value) { return $value; }
+$_SERVER['REQUEST_METHOD'] = getenv('TEST_METHOD');
+$_SERVER['HTTP_X_HS_ADMIN_SQL_PROFILE'] = getenv('TEST_OPTIN');
+class wpdb { public $num_queries = 42; public $queries = null; }
+class Alternative_DB extends wpdb {}
+$wpdb = getenv('TEST_DROPIN') === '1' ? new Alternative_DB() : new wpdb();
+$GLOBALS['pagenow'] = getenv('TEST_PAGE') ?: 'index.php';
+if (getenv('TEST_SAVE_DEFINED') === '1') define('SAVEQUERIES', false);
+require 'wordpress/mu-plugins/hs-admin-performance-probe.php';
+hs_admin_performance_probe_enable_sql_profile();
+echo json_encode(['enabled' => defined('SAVEQUERIES') && SAVEQUERIES]);
+"""
+        import os
+        valid = {"TEST_ENV": "staging", "TEST_ADMIN": "1", "TEST_AJAX": "0",
+                 "TEST_CAP": "1", "TEST_METHOD": "GET", "TEST_OPTIN": "1"}
+        cases = [({}, True), ({"TEST_ENV": "local"}, True),
+                 ({"TEST_ENV": "production"}, False), ({"TEST_ADMIN": "0"}, False),
+                 ({"TEST_AJAX": "1"}, False), ({"TEST_CAP": "0"}, False),
+                 ({"TEST_METHOD": "POST"}, False), ({"TEST_OPTIN": ""}, False),
+                 ({"TEST_DROPIN": "1"}, False), ({"TEST_SAVE_DEFINED": "1"}, False),
+                 ({"TEST_PAGE": "admin-post.php"}, False)]
+        for changes, enabled in cases:
+            with self.subTest(changes=changes):
+                result = subprocess.run(["php"], input=php, text=True, cwd=ROOT,
+                    env={**os.environ, **valid, **changes}, capture_output=True, check=False)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(enabled, json.loads(result.stdout)["enabled"])
+
+    def test_sql_probe_bounds_memory_and_never_exports_query_values(self) -> None:
+        php = r"""
+<?php
+const ABSPATH = '/synthetic/';
+const MB_IN_BYTES = 1048576;
+function add_action(...$args) {}
+function add_filter(...$args) {}
+function remove_filter(...$args) {}
+function remove_action(...$args) {}
+function esc_html($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function wp_get_environment_type() { return 'staging'; }
+function is_admin() { return true; }
+function wp_doing_ajax() { return false; }
+function current_user_can($capability) { return true; }
+function wp_json_encode($value, $flags) { return json_encode($value, $flags); }
+function wp_print_inline_script_tag($value, $attributes) { echo $value; }
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['HTTP_X_HS_ADMIN_SQL_PROFILE'] = '1';
+class wpdb { public $num_queries = 42; public $queries = null; }
+$wpdb = new wpdb();
+$GLOBALS['pagenow'] = 'index.php';
+require 'wordpress/mu-plugins/hs-admin-performance-probe.php';
+// DECLARE_CALLERS
+hs_admin_performance_probe_enable_sql_profile();
+for ($index = 0; $index < 1000; ++$index) {
+  $sql = 'SELECT private@example.com secret-token';
+  $stack = $index < 2 ? 'unsafe(arg=secret-token), hs_example_lookup, wpdb->query' : 'hs_caller_' . $index;
+  if ($index === 1) $stack = 'unsafe(hook), HS_EXAMPLE_LOOKUP, wpdb->query';
+  if ($index === 3) $stack = 'do_action(unsafe-hook, private_token, unsafe), wpdb->query';
+  if ($index === 2) $stack = 'WP_Hook->apply_filters, get_option, wpdb->get_row';
+  $returned = hs_admin_performance_probe_collect_query(['preserved' => 1], $sql, 0.001, $stack);
+  if (($returned['preserved'] ?? null) !== 1 || ($returned['hs_sql_profile_seq'] ?? null) !== $index + 1 || !empty($wpdb->queries)) throw new RuntimeException('Log is unbounded or custom data lost');
+  $wpdb->queries[] = [$sql, 0.001, $stack, microtime(true), $returned];
+}
+hs_admin_performance_probe_print_metrics();
+if (!empty($wpdb->queries)) throw new RuntimeException('Last SQL tuple retained');
+"""
+        declarations = "\n".join(f"function hs_caller_{index}() {{}}" for index in range(1000))
+        php = php.replace("// DECLARE_CALLERS", declarations + "\nfunction hs_example_lookup() {}\nfunction get_option() {}")
+        result = subprocess.run(["php"], input=php, text=True, cwd=ROOT,
+            capture_output=True, check=False)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertNotIn("private_token", result.stdout)
+        self.assertNotIn("secret-token", result.stdout)
+        self.assertNotIn("private@example.com", result.stdout)
+        measured = json.loads(result.stdout.split(" = ", 1)[1].rstrip(";"))["sql_profile"]
+        self.assertEqual(1000, measured["profiled_queries"])
+        self.assertEqual(42, measured["queries_before"])
+        self.assertLessEqual(len(measured["callers"]), 64)
+        self.assertAlmostEqual(1000, measured["total_ms"])
+        callers = {item["caller"]: item for item in measured["callers"]}
+        self.assertEqual(2, callers["hs_example_lookup"]["count"])
+        self.assertEqual(1, callers["get_option"]["count"])
+
+    def test_sql_probe_does_not_remove_foreign_query_logs(self) -> None:
+        php = r"""
+<?php
+const ABSPATH = '/synthetic/';
+function add_action(...$args) {}
+function add_filter(...$args) {}
+function remove_filter(...$args) {}
+function remove_action(...$args) {}
+function esc_html($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function wp_get_environment_type() { return 'staging'; }
+function is_admin() { return true; }
+function wp_doing_ajax() { return false; }
+function current_user_can($capability) { return true; }
+function wp_die(...$args) { throw new RuntimeException('diagnostic unavailable'); }
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['HTTP_X_HS_ADMIN_SQL_PROFILE'] = '1';
+$GLOBALS['pagenow'] = 'index.php';
+class wpdb { public $num_queries = 42; public $queries = null; }
+$wpdb = new wpdb();
+require 'wordpress/mu-plugins/hs-admin-performance-probe.php';
+hs_admin_performance_probe_enable_sql_profile();
+$data = hs_admin_performance_probe_collect_query([], 'SELECT private-value', 0.001, 'hs_example');
+$wpdb->queries[] = ['SELECT private-value', 0.001, 'hs_example', 0, $data];
+$foreign = ['foreign-private-value', 0.002, 'foreign', 0, []];
+$wpdb->queries[] = $foreign;
+try {
+  hs_admin_performance_probe_collect_query([], 'SELECT another-private-value', 0.002, 'hs_example');
+  throw new LogicException('Incompatible diagnostic must stop');
+} catch (RuntimeException $error) {
+  if ($wpdb->queries[1] !== $foreign || count($wpdb->queries) !== 2) throw new LogicException('Foreign log was modified');
+}
+echo 'PASS';
+"""
+        result = subprocess.run(["php"], input=php, text=True, cwd=ROOT,
+            capture_output=True, check=False)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("PASS", result.stdout.strip())
+
+    def test_sql_abort_disarms_before_handler_and_preserves_foreign_log(self) -> None:
+        php = r"""
+<?php
+const ABSPATH = '/synthetic/';
+function add_action(...$args) {}
+function add_filter(...$args) {}
+function remove_filter(...$args) { $GLOBALS['removed_filter'] = true; }
+function remove_action(...$args) { $GLOBALS['removed_shutdown'] = true; }
+function esc_html($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function wp_get_environment_type() { return 'staging'; }
+function is_admin() { return true; }
+function wp_doing_ajax() { return false; }
+function current_user_can($capability) { return true; }
+function wp_die($message, ...$args) {
+  if (!$GLOBALS['removed_filter'] || !$GLOBALS['removed_shutdown'] || $GLOBALS['hs_admin_sql_profile']['pending'] !== null) throw new LogicException('Not disarmed before handler');
+  echo $message;
+  // Deliberately return: the abort helper must still stop and preserve foreign data.
+}
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['HTTP_X_HS_ADMIN_SQL_PROFILE'] = '1';
+$GLOBALS['pagenow'] = 'index.php';
+$GLOBALS['removed_filter'] = false;
+$GLOBALS['removed_shutdown'] = false;
+class wpdb { public $num_queries = 42; public $queries = null; }
+$wpdb = new wpdb();
+require 'wordpress/mu-plugins/hs-admin-performance-probe.php';
+hs_admin_performance_probe_enable_sql_profile();
+$foreign = ['private-value', 0.001, 'foreign', 0, []];
+$wpdb->queries = [$foreign];
+if (getenv('TEST_ABORT') === 'limit') $GLOBALS['hs_admin_sql_profile']['profiled_queries'] = 2048;
+else $GLOBALS['hs_admin_sql_profile']['pending'] = 1;
+register_shutdown_function(function () use ($wpdb, $foreign) {
+  hs_admin_performance_probe_release_pending();
+  if ($wpdb->queries !== [$foreign]) throw new LogicException('Foreign data changed');
+  echo '|shutdown clean';
+});
+hs_admin_performance_probe_collect_query([], 'SELECT private-query', 0.001, 'hs_example');
+throw new LogicException('Returning handler continued the query');
+"""
+        import os
+        for scenario, message in [("limit", "SQL diagnostic query limit reached."),
+                                  ("mismatch", "SQL diagnostic unavailable: incompatible query logging.")]:
+            with self.subTest(scenario=scenario):
+                result = subprocess.run(["php"], input=php, text=True, cwd=ROOT,
+                    env={**os.environ, "TEST_ABORT": scenario}, capture_output=True, check=False)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(message + "|shutdown clean", result.stdout.strip())
+
+    def test_frontend_lcp_attribution_is_bounded_and_redacted(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import { collectFrontendProfile } from './ops/performance/browser-frontend-profile.mjs';
+globalThis.__hsFrontend = { lcpEntry: {
+  startTime: 9852, url: 'https://test.hs-manacost.ru/wp-content/uploads/cover.jpg?token=private-token#nonce',
+  tag: 'IMG', kind: 'img', loading: 'eager', fetchpriority: 'high',
+} };
+globalThis.performance = { getEntriesByType: () => Array.from({ length: 30 }, (_, i) => ({
+  name: `https://test.hs-manacost.ru/wp-content/uploads/${i}.jpg?token=private-token`,
+  initiatorType: 'img', startTime: 25, responseEnd: 9700 + i,
+  duration: 9675 + i, transferSize: 123000, encodedBodySize: 122770,
+})).concat([
+  { name: 'https://test.hs-manacost.ru/wp-content/uploads/cover.jpg?token=private-token#nonce', initiatorType: 'img',
+    startTime: 30, responseEnd: 9800, duration: 9770, transferSize: 123070, encodedBodySize: 122770 },
+  { name: 'https://test.hs-manacost.ru/wp-admin/admin-ajax.php?nonce=private-token', initiatorType: 'fetch', duration: 99999 },
+  { name: 'data:image/png;private-token', initiatorType: 'img', duration: 99999 },
+  { name: 'https://untrusted.example/secret.jpg', initiatorType: 'img', duration: 99999 },
+]) };
+const result = collectFrontendProfile();
+assert.equal(result.lcp_resource.path, '/wp-content/uploads/cover.jpg');
+assert.equal(result.lcp_tag, 'IMG');
+assert.equal(result.lcp_timing.response_end_ms, 9800);
+assert.equal(result.lcp_timing.encoded_body_bytes, 122770);
+assert.equal(result.slowest_resources.length, 12);
+assert.ok(!JSON.stringify(result).includes('private'));
+assert.ok(!JSON.stringify(result).includes('untrusted'));
+globalThis.__hsFrontend = {};
+assert.equal(collectFrontendProfile().lcp_resource, null);
+console.log('PASS');
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script], cwd=ROOT,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_browser_sql_profile_never_exports_query_text(self) -> None:
         script = """
 import { collectSqlProfile } from './ops/performance/browser-sql-profile.mjs';

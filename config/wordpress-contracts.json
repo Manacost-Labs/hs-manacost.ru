@@ -3043,7 +3043,14 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
-        "line": 23
+        "line": 26
+      },
+      {
+        "name": "manage_options",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
+        "line": 187
       },
       {
         "name": "manage_options",

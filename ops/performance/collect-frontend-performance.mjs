@@ -2,6 +2,7 @@
 import { chromium, devices } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { collectFrontendProfile } from './browser-frontend-profile.mjs';
 
 const origin = 'https://test.hs-manacost.ru';
 const username = process.env.STAGING_HTTP_USER;
@@ -34,7 +35,9 @@ try {
           window.__hsFrontend = { shifts: [], lcp: 0, longTasks: 0 };
           for (const [type, collect] of [
             ['layout-shift', entry => { if (!entry.hadRecentInput) window.__hsFrontend.shifts.push({ time: entry.startTime, value: entry.value }); }],
-            ['largest-contentful-paint', entry => { window.__hsFrontend.lcp = entry.startTime; }],
+            ['largest-contentful-paint', entry => { window.__hsFrontend.lcp = entry.startTime; window.__hsFrontend.lcpEntry = { startTime: entry.startTime, url: entry.url,
+              tag: entry.element?.tagName, kind: !entry.element ? 'detached' : !entry.url ? 'text' : entry.element.tagName === 'IMG' ? 'img' : 'background-image',
+              loading: entry.element?.getAttribute('loading'), fetchpriority: entry.element?.getAttribute('fetchpriority') }; }],
             ['longtask', () => { window.__hsFrontend.longTasks++; }],
           ]) { try { new PerformanceObserver(list => list.getEntries().forEach(collect)).observe({ type, buffered: true }); } catch {} }
         });
@@ -62,7 +65,8 @@ try {
             account_action_present: Boolean(document.querySelector('.mc-reader__actions a')) };
         });
         const headers = response?.headers() ?? {};
-        const row = { path: routePath, sample, status: response?.status(), robots: headers['x-robots-tag'] ?? '', cache_control: headers['cache-control'] ?? '', ...data };
+        const resourceProfile = await page.evaluate(collectFrontendProfile);
+        const row = { ...resourceProfile, path: routePath, sample, status: response?.status(), robots: headers['x-robots-tag'] ?? '', cache_control: headers['cache-control'] ?? '', ...data };
         report.samples.push(row);
         if (row.status !== 200 || !/noindex/.test(row.robots) || row.cls > 0.1 || row.overflow || row.failed_visible_images || row.pending_visible_images) report.errors.push({ path: routePath, sample, reason: 'status/noindex/CLS/layout/image gate' });
         // Check additional widths with the already loaded assets.

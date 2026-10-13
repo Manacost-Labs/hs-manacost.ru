@@ -227,6 +227,37 @@ test('article editor', async ({ page }) => {
   await expect(page).toHaveScreenshot('editor.png');
 });
 
+test('SQL profiling is opt-in and leaves normal admin counters available', async ({ page }) => {
+  await login(page);
+  await page.goto('/wp-admin/index.php', { waitUntil: 'domcontentloaded' });
+  const readMetrics = () => page.evaluate(() => (window as unknown as {
+    __hsAdminPerformance: { sql_queries: number; sql_profile?: {
+      queries_before: number; profiled_queries: number; total_ms: number; coverage_consistent: boolean;
+      callers: Record<string, { caller: string; count: number; total_ms: number }>;
+    } };
+  }).__hsAdminPerformance);
+  const normal = await readMetrics();
+  expect(normal.sql_queries).toBeGreaterThan(0);
+  expect(normal.sql_profile).toBeUndefined();
+
+  await page.setExtraHTTPHeaders({ 'X-HS-Admin-SQL-Profile': '1' });
+  await page.goto('/wp-admin/index.php', { waitUntil: 'domcontentloaded' });
+  const measured = await readMetrics();
+  expect(measured.sql_profile?.profiled_queries).toBeGreaterThan(0);
+  expect(measured.sql_profile?.queries_before).toBeGreaterThan(0);
+  expect(measured.sql_profile?.total_ms).toBeGreaterThanOrEqual(0);
+  expect(measured.sql_profile?.coverage_consistent).toBe(true);
+  expect(measured.sql_queries).toBe(measured.sql_profile!.queries_before + measured.sql_profile!.profiled_queries);
+  const callers = Object.values(measured.sql_profile!.callers);
+  expect(callers.length).toBeLessThanOrEqual(64);
+  expect(callers.reduce((sum, item) => sum + item.count, 0)).toBe(measured.sql_profile?.profiled_queries);
+  for (const caller of callers) expect(caller.caller).toMatch(/^[A-Za-z_\\][A-Za-z0-9_\\:>\-]{0,79}$/);
+
+  await page.setExtraHTTPHeaders({});
+  await page.goto('/wp-admin/index.php', { waitUntil: 'domcontentloaded' });
+  expect((await readMetrics()).sql_profile).toBeUndefined();
+});
+
 test('admin UI pattern library', async ({ page }) => {
   await login(page);
   await page.goto('/wp-admin/tools.php?page=hs-admin-ui-patterns', {
