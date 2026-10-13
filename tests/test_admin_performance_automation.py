@@ -71,6 +71,53 @@ def budgets() -> dict[str, object]:
 
 
 class AdminPerformanceAutomationTests(unittest.TestCase):
+    def test_article_cleanup_uses_request_context_and_refuses_foreign_records(self) -> None:
+        script = r"""
+import assert from 'node:assert/strict';
+import { deleteArticleFixture } from './ops/performance/delete-article-fixture.mjs';
+const title = 'Admin performance probe 1791929000000';
+for (const scenario of ['owned', 'foreign-author', 'foreign-title', 'foreign-content', 'lost-delete', 'denied-delete', 'bad-nonce', 'failed-get', 'already-absent']) {
+  const calls = [];
+  let deleted = false;
+  const request = {
+    async fetch(url, options) {
+      calls.push(options.method);
+      if (scenario === 'failed-get') throw new Error('private-cookie');
+      let status = 200;
+      let data = {};
+      if (url.includes('rest-nonce')) {
+        return { ok: () => true, text: async () => scenario === 'bad-nonce' ? 'login-required' : 'abcdef1234' };
+      }
+      if (url.includes('users/me')) data = { id: 7 };
+      else if (options.method === 'DELETE') {
+        if (scenario === 'denied-delete') status = 403;
+        else {
+          deleted = true;
+          if (scenario === 'lost-delete') throw new Error('private-cookie');
+        }
+      } else if (deleted || scenario === 'already-absent') status = 404;
+      else data = {
+        author: scenario === 'foreign-author' ? 8 : 7,
+        title: { raw: scenario === 'foreign-title' ? title + ' unrelated' : title + ' 4' },
+        content: { raw: scenario === 'foreign-content' ? 'human content' : 'Synthetic staging performance content. '.repeat(1750) },
+      };
+      return { status: () => status, ok: () => status === 200, json: async () => data };
+    },
+  };
+  const result = await deleteArticleFixture(request, 'https://test.hs-manacost.ru', 123, title);
+  assert.equal(result, ['owned', 'lost-delete', 'already-absent'].includes(scenario), scenario);
+  if (scenario.startsWith('foreign-') || ['bad-nonce', 'failed-get', 'already-absent'].includes(scenario)) {
+    assert.ok(!calls.includes('DELETE'), scenario);
+  }
+}
+console.log('PASS');
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script], cwd=ROOT,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_upload_cleanup_reports_status_without_private_response(self) -> None:
         script = """
 import assert from 'node:assert/strict';

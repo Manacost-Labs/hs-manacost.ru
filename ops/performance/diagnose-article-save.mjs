@@ -6,6 +6,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
 import { finishAdminLogin } from './browser-admin-login.mjs';
+import { deleteArticleFixture } from './delete-article-fixture.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -162,31 +163,14 @@ async function measureEditorOpen(id) {
 }
 
 async function removeFixture() {
-  if (!postId) return false;
-  // Cleanup must not depend on the current page/order of the trash list table.
-  return page.evaluate(async ({ id, titlePrefix }) => {
-    const nonceResponse = await fetch('/wp-admin/admin-ajax.php?action=rest-nonce');
-    const nonce = await nonceResponse.text();
-    if (!nonceResponse.ok || !/^[a-z0-9]{10}$/i.test(nonce)) return false;
-    const request = (route, method = 'GET') => fetch(`/wp-json/wp/v2/${route}`, {
-      method, headers: { 'X-WP-Nonce': nonce }, signal: AbortSignal.timeout(30_000),
-    });
-    const existing = await request(`posts/${id}?context=edit`);
-    if (existing.status === 404) return true;
-    if (!existing.ok) return false;
-    const post = await existing.json();
-    const ownerResponse = await request('users/me');
-    if (!ownerResponse.ok) return false;
-    const owner = await ownerResponse.json();
-    if (post.author !== owner.id || !post.title?.raw?.startsWith(titlePrefix)) return false;
-    const deleted = await request(`posts/${id}?force=true`, 'DELETE');
-    if (!deleted.ok || (await deleted.json()).deleted !== true) return false;
-    return (await request(`posts/${id}?context=edit`)).status === 404;
-  }, { id: postId, titlePrefix: fixtureTitle });
+  return deleteArticleFixture(context.request, baseURL, postId, fixtureTitle);
 }
 
 try {
   await page.goto(`${baseURL}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+  // Core's delayed autofocus must finish before either credential is entered.
+  await page.waitForFunction(() => document.activeElement?.id === 'user_login');
+  await page.waitForTimeout(250);
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: /Log In|Войти/i }).click();
