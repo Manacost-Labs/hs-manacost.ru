@@ -552,12 +552,32 @@ globalThis.performance = { getEntriesByType: () => Array.from({ length: 30 }, (_
   { name: 'data:image/png;private-token', initiatorType: 'img', duration: 99999 },
   { name: 'https://untrusted.example/secret.jpg', initiatorType: 'img', duration: 99999 },
 ]) };
+globalThis.innerHeight = 900; globalThis.innerWidth = 390;
+const image = (src, overrides = {}) => ({
+  src, currentSrc: src, complete: true, naturalWidth: 0,
+  getBoundingClientRect: () => ({ top: 10, bottom: 30, left: 0, right: 50, width:50, height:20 }), ...overrides,
+});
+globalThis.document = { querySelectorAll: () => [
+  image('https://untrusted.example/private.jpg'),
+  image('https://private-token@test.hs-manacost.ru/secret.jpg'),
+  image('data:image/png;private-token'),
+  image('https://test.hs-manacost.ru/offscreen.jpg', { getBoundingClientRect: () => ({top:1000,bottom:1100,left:0,right:50,width:50,height:100}) }),
+  image('https://test.hs-manacost.ru/pending.jpg', {complete:false}),
+  image('https://test.hs-manacost.ru/loaded.jpg', {naturalWidth:20}),
+  ...Array.from({ length: 20 }, (_, i) => image(`https://test.hs-manacost.ru/wp-content/uploads/broken${i}.jpg?token=private-token#nonce`)),
+] };
 const result = collectFrontendProfile();
 assert.equal(result.lcp_resource.path, '/wp-content/uploads/cover.jpg');
 assert.equal(result.lcp_tag, 'IMG');
 assert.equal(result.lcp_timing.response_end_ms, 9800);
 assert.equal(result.lcp_timing.encoded_body_bytes, 122770);
 assert.equal(result.slowest_resources.length, 12);
+assert.equal(result.failed_visible_resources.length, 12);
+assert.deepEqual(result.pending_visible_resources, [{origin:'https://test.hs-manacost.ru',path:'/pending.jpg'}]);
+assert.equal(result.failed_visible_resources[0].path, '/wp-content/uploads/broken0.jpg');
+assert.ok(!JSON.stringify(result.failed_visible_resources).includes('offscreen'));
+assert.ok(!JSON.stringify(result.failed_visible_resources).includes('pending'));
+assert.ok(!JSON.stringify(result.failed_visible_resources).includes('loaded'));
 assert.ok(!JSON.stringify(result).includes('private'));
 assert.ok(!JSON.stringify(result).includes('untrusted'));
 globalThis.__hsFrontend = {};
