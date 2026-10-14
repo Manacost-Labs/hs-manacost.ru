@@ -96,6 +96,14 @@ copies may run up to seven days. Daily timer triggers do not start a second
 invocation of an already active service. No success is reported until the full
 check, byte restore sample and manifest publication pass.
 
+The timer also runs fifteen minutes after boot with the same up-to-twenty-minute
+randomized delay. A routine reboot can interrupt
+the initial multi-day copy after the calendar trigger has already fired;
+`Persistent=true` alone does not resume that invocation. The boot trigger starts
+the same service, so an existing copy is not duplicated. Its incremental sync
+retains `current` and versioned objects, and completion still requires the full
+check, restore sample and published manifest. It does not change retention.
+
 For an operator-approved restart, stop only the project snapshot service and
 its invocation-bound initial-restore watcher before installing from a clean
 committed checkout. Retain `current` and all version prefixes. Restarting sync
