@@ -1,4 +1,4 @@
-// APIRequestContext shares browser cookies but survives document navigation.
+// The caller supplies an authenticated transport independent of the editor document.
 export async function deleteArticleFixture(request, baseURL, id, title) {
   if (new URL(baseURL).hostname !== 'test.hs-manacost.ru'
       || !Number.isSafeInteger(id) || id < 1
@@ -7,13 +7,15 @@ export async function deleteArticleFixture(request, baseURL, id, title) {
     method, timeout: 30_000, maxRedirects: 0,
     ...(nonce ? { headers: { 'X-WP-Nonce': nonce } } : {}),
   });
+  const absent = async response => response.status() === 404
+    && (await response.json())?.code === 'rest_post_invalid_id';
   try {
     const nonceResponse = await send('/wp-admin/admin-ajax.php?action=rest-nonce');
     const nonce = await nonceResponse.text();
     if (!nonceResponse.ok() || !/^[a-z0-9]{10}$/i.test(nonce)) return false;
     const route = `/wp-json/wp/v2/posts/${id}?context=edit`;
     const existing = await send(route, 'GET', nonce);
-    if (existing.status() === 404) return true;
+    if (await absent(existing)) return true;
     if (!existing.ok()) return false;
     const post = await existing.json();
     const ownerResponse = await send('/wp-json/wp/v2/users/me', 'GET', nonce);
@@ -28,7 +30,7 @@ export async function deleteArticleFixture(request, baseURL, id, title) {
     try {
       await send(`/wp-json/wp/v2/posts/${id}?force=true`, 'DELETE', nonce);
     } catch { /* A lost response still requires an absence check, never a repeated DELETE. */ }
-    return (await send(route, 'GET', nonce)).status() === 404;
+    return await absent(await send(route, 'GET', nonce));
   } catch { // Keep credentials and private response bodies out of diagnostic evidence.
     return false;
   }
