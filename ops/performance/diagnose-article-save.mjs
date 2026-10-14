@@ -7,6 +7,7 @@ import { performance } from 'node:perf_hooks';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
 import { finishAdminLogin } from './browser-admin-login.mjs';
 import { deleteArticleFixture } from './delete-article-fixture.mjs';
+import { createBrowserFixtureRequest, classifyDiagnosticFailure } from './browser-fixture-request.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -163,7 +164,16 @@ async function measureEditorOpen(id) {
 }
 
 async function removeFixture() {
-  return deleteArticleFixture(context.request, baseURL, postId, fixtureTitle);
+  let cleanupPage;
+  try {
+    cleanupPage = await context.newPage();
+    const request = await createBrowserFixtureRequest(cleanupPage, baseURL);
+    return await deleteArticleFixture(request, baseURL, postId, fixtureTitle);
+  } catch {
+    return false;
+  } finally {
+    if (cleanupPage) await cleanupPage.close().catch(() => {});
+  }
 }
 
 try {
@@ -211,6 +221,7 @@ try {
 } catch (error) {
   failure = {
     stage,
+    failure_code: classifyDiagnosticFailure(error),
     error_type: ['TimeoutError', 'AbortError', 'TypeError', 'Error'].includes(error.name)
       ? error.name : 'Error',
     main_response_status: mainResponseStatus,

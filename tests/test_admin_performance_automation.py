@@ -71,12 +71,70 @@ def budgets() -> dict[str, object]:
 
 
 class AdminPerformanceAutomationTests(unittest.TestCase):
+    def test_diagnostic_error_labels_do_not_export_private_messages(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import { classifyDiagnosticFailure } from './ops/performance/browser-fixture-request.mjs';
+for (const [message, expected] of [
+  ['net::ERR_NETWORK_CHANGED https://private-token.example/', 'network-change'],
+  ['Execution context was destroyed private-token', 'navigation-context-lost'],
+  ['interrupted by another navigation private-token', 'navigation-interrupted'],
+  ['Editor performance probe is unavailable private-token', 'probe-unavailable'],
+  ['Article editor returned HTTP 500 private-token', 'http-error'],
+  ['Saved title did not round-trip private-token', 'roundtrip-mismatch'],
+  ['private-token', 'other'],
+]) {
+  assert.equal(classifyDiagnosticFailure(new Error(message)), expected);
+}
+assert.equal(classifyDiagnosticFailure({ name:'TimeoutError',message:'private-token' }), 'timeout');
+assert.equal(classifyDiagnosticFailure(null), 'other');
+console.log('PASS');
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script], cwd=ROOT,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_fixture_transport_preserves_browser_routing_on_a_separate_document(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import { createBrowserFixtureRequest } from './ops/performance/browser-fixture-request.mjs';
+const calls = [];
+const page = {
+  goto: async (url, options) => {
+    calls.push(['goto', url, options]);
+    return { ok: () => true, text: async () => 'abcdef1234' };
+  },
+  evaluate: async (fn, args) => {
+    calls.push(['evaluate', args]);
+    return { status: 404, body: '{"code":"missing"}' };
+  },
+};
+const base = 'https://test.hs-manacost.ru';
+const request = await createBrowserFixtureRequest(page, base);
+assert.equal(await (await request.fetch(base + '/wp-admin/admin-ajax.php?action=rest-nonce', {method:'GET'})).text(), 'abcdef1234');
+const response = await request.fetch(base + '/wp-json/wp/v2/posts/123?context=edit', {method:'GET',headers:{'X-WP-Nonce':'abcdef1234'},timeout:30000});
+assert.equal(response.status(), 404);
+assert.deepEqual(await response.json(), {code:'missing'});
+assert.equal(calls.filter(c => c[0] === 'goto').length, 1);
+assert.equal(calls.filter(c => c[0] === 'evaluate').length, 1);
+assert.equal(calls[0][1], base + '/wp-admin/admin-ajax.php?action=rest-nonce');
+assert.equal(calls[1][1].url, base + '/wp-json/wp/v2/posts/123?context=edit');
+console.log('PASS');
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script], cwd=ROOT,
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_article_cleanup_uses_request_context_and_refuses_foreign_records(self) -> None:
         script = r"""
 import assert from 'node:assert/strict';
 import { deleteArticleFixture } from './ops/performance/delete-article-fixture.mjs';
 const title = 'Admin performance probe 1791929000000';
-for (const scenario of ['owned', 'foreign-author', 'foreign-title', 'foreign-content', 'lost-delete', 'denied-delete', 'bad-nonce', 'failed-get', 'already-absent']) {
+for (const scenario of ['owned', 'foreign-author', 'foreign-title', 'foreign-content', 'lost-delete', 'denied-delete', 'bad-nonce', 'failed-get', 'already-absent', 'no-route-404', 'html-404']) {
   const calls = [];
   let deleted = false;
   const request = {
@@ -95,18 +153,18 @@ for (const scenario of ['owned', 'foreign-author', 'foreign-title', 'foreign-con
           deleted = true;
           if (scenario === 'lost-delete') throw new Error('private-cookie');
         }
-      } else if (deleted || scenario === 'already-absent') status = 404;
+      } else if (deleted || ['already-absent','no-route-404','html-404'].includes(scenario)) { status = 404; data = {code:scenario === 'no-route-404' ? 'rest_no_route' : 'rest_post_invalid_id'}; }
       else data = {
         author: scenario === 'foreign-author' ? 8 : 7,
         title: { raw: scenario === 'foreign-title' ? title + ' unrelated' : title + ' 4' },
         content: { raw: scenario === 'foreign-content' ? 'human content' : 'Synthetic staging performance content. '.repeat(1750) },
       };
-      return { status: () => status, ok: () => status === 200, json: async () => data };
+      return { status: () => status, ok: () => status === 200, json: async () => { if (scenario === 'html-404') throw new SyntaxError('private-token'); return data; } };
     },
   };
   const result = await deleteArticleFixture(request, 'https://test.hs-manacost.ru', 123, title);
   assert.equal(result, ['owned', 'lost-delete', 'already-absent'].includes(scenario), scenario);
-  if (scenario.startsWith('foreign-') || ['bad-nonce', 'failed-get', 'already-absent'].includes(scenario)) {
+  if (scenario.startsWith('foreign-') || ['bad-nonce', 'failed-get', 'already-absent', 'no-route-404', 'html-404'].includes(scenario)) {
     assert.ok(!calls.includes('DELETE'), scenario);
   }
 }
