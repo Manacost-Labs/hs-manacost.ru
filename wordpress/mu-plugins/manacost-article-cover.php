@@ -73,13 +73,6 @@ final class Manacost_Article_Cover {
 		foreach ( array( 'src', 'srcset', 'sizes' ) as $name ) {
 			$value               = $cover->get_attribute( 'data-lazy-' . $name ) ?? $cover->get_attribute( $name );
 			$attributes[ $name ] = is_string( $value ) ? $value : '';
-			if ( 'sizes' !== $name ) {
-				$attributes[ $name ] = preg_replace_callback(
-					'~(?:https?:)?//[^\s,]+~i',
-					static fn( array $candidate ): string => self::negotiated_cover_url( $candidate[0] ),
-					$attributes[ $name ]
-				) ?? $attributes[ $name ];
-			}
 		}
 
 		if ( ! preg_match( '#^(?:https?:)?//#i', $attributes['src'] ) ) {
@@ -100,21 +93,6 @@ final class Manacost_Article_Cover {
 
 		$html = self::align_preload( $cover->get_updated_html(), $attributes, $source_url );
 		return self::defer_mobile_module_thumbnails( $html );
-	}
-
-	/**
-	 * Uses existing negotiated variants only for this site's upload URLs.
-	 *
-	 * @param string $url Cover URL or responsive candidate.
-	 * @return string
-	 */
-	private static function negotiated_cover_url( string $url ): string {
-		// Match the bounded rollout in ops/nginx/media-negotiation/server.conf.
-		if ( ! in_array( wp_parse_url( $url, PHP_URL_HOST ), array( 'hs-manacost.ru', 'hs-manacost.com', 'test.hs-manacost.ru' ), true )
-			|| ! preg_match( '#^/wp-content/uploads/20(?:2[6-9]|[3-9][0-9])/(?:0[1-9]|1[0-2])/#', (string) wp_parse_url( $url, PHP_URL_PATH ) ) ) {
-			return $url;
-		}
-		return preg_replace( '/(\.(?:jpe?g|png))\.(?:webp|avif)(?=[?#]|$)/i', '$1', $url ) ?? $url;
 	}
 
 	/**

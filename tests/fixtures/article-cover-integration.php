@@ -90,25 +90,6 @@ foreach (['skip-lazy', 'no-lazy', 'nolazyload'] as $cover_exclusion) {
     hs_integration_assert(str_contains(Manacost_Article_Cover::optimize_html($cover_excluded_page), $cover_excluded_image), 'explicit content image exclusion changed');
 }
 
-// Let Nginx negotiate already existing variants, retaining pixel dimensions.
-$cover_sidecar_tag = str_replace('.jpg', '.jpg.webp', $cover_tag);
-$cover_sidecar_page = str_replace($cover_tag, $cover_sidecar_tag, $cover_page);
-$cover_sidecar_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_sidecar_page));
-$cover_sidecar_parser->next_tag('IMG');
-hs_integration_assert($cover_sidecar_parser->get_attribute('src') === $cover_url, 'cover still forces a WebP URL over existing AVIF');
-hs_integration_assert($cover_sidecar_parser->get_attribute('srcset') === $cover_srcset, 'cover variant negotiation changed responsive sizes');
-$cover_sidecar_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_sidecar_page));
-$cover_sidecar_parser->next_tag('LINK');
-hs_integration_assert($cover_sidecar_parser->get_attribute('href') === $cover_url && $cover_sidecar_parser->get_attribute('imagesrcset') === $cover_srcset, 'negotiated cover and preload disagree');
-$cover_foreign_page = str_replace('hs-manacost.ru/wp-content/uploads/', 'example.org/wp-content/uploads/', $cover_sidecar_page);
-$cover_foreign_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_foreign_page));
-$cover_foreign_parser->next_tag('IMG');
-hs_integration_assert(str_ends_with($cover_foreign_parser->get_attribute('src'), '.jpg.webp'), 'foreign cover URL was rewritten');
-$cover_legacy_page = str_replace('/2026/', '/2025/', $cover_sidecar_page);
-$cover_legacy_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_legacy_page));
-$cover_legacy_parser->next_tag('IMG');
-hs_integration_assert(str_ends_with($cover_legacy_parser->get_attribute('src'), '.jpg.webp'), 'cover outside the negotiated rollout was rewritten');
-
 $cover_previous_user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
 $cover_mobile_result = Manacost_Article_Cover::optimize_html($cover_page);
