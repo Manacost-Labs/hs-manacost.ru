@@ -89,9 +89,11 @@ test('reduced motion keeps navigation immediate and keyboard links usable', asyn
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
-test('navigation works across narrow, intermediate and wide viewports and zoom', async ({ page, isMobile }) => {
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  for (const width of [320, 390, 530, 768, 900, 1024, 1440]) {
+// Each width gets its own browser context, so full-document snapshots and
+// back/forward caches do not accumulate across seven different screen sizes.
+for (const width of [320, 390, 530, 768, 900, 1024, 1440]) {
+  test(`navigation, touch and history at ${width}px`, async ({ page, isMobile }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/__page-transition-fixture/home/');
     if (isMobile) await page.getByRole('link', { name: 'Лента колод' }).tap();
@@ -100,7 +102,12 @@ test('navigation works across narrow, intermediate and wide viewports and zoom',
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     await page.goBack();
     await expect(page.getByRole('heading', { name: 'Главная' })).toBeVisible();
-  }
+  });
+}
+
+test('keyboard navigation stays usable at 200% zoom', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/__page-transition-fixture/home/');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
   await page.getByRole('link', { name: 'Лента колод' }).focus();
