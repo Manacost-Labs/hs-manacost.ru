@@ -6,10 +6,19 @@ import { chromium } from '@playwright/test';
 const script = await readFile(new URL('../../wordpress/mu-plugins/manacost-site-navigation.js', import.meta.url), 'utf8');
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64');
 const requests = [];
+let coverBodyBytes = 0;
 const server = createServer((request, response) => {
 	requests.push(request.url);
 	if (request.url === '/navigation.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(script); return; }
-	if (request.url.startsWith('/wp-content/uploads/')) { response.setHeader('Content-Type', 'image/png'); response.setHeader('Cache-Control', 'public, max-age=3600'); response.end(png); return; }
+	if (request.url.startsWith('/wp-content/uploads/')) {
+		response.setHeader('Content-Type', 'image/png');
+		response.setHeader('Cache-Control', 'public, max-age=3600');
+		response.setHeader('ETag', '"fixture-image-v1"');
+		if (request.headers['if-none-match'] === '"fixture-image-v1"') { response.writeHead(304); response.end(); return; }
+		if (request.url.includes('/cover.png')) coverBodyBytes += png.length;
+		response.end(png);
+		return;
+	}
 	if (request.url === '/redirect/') { response.writeHead(302, { Location: '/account/' }); response.end(); return; }
 	if (request.url === '/json/') { response.setHeader('Content-Type', 'application/json'); response.end('{}'); return; }
 	if (request.url === '/views/hit') { response.setHeader('Content-Type', 'text/javascript'); response.end('window.viewHit=true'); return; }
@@ -33,13 +42,16 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
 	browser = await chromium.launch({ headless: true, ...(process.env.READER_TEST_CHROMIUM ? { executablePath: process.env.READER_TEST_CHROMIUM } : {}) });
-	async function scenario(run, connection) {
-		const context = await browser.newContext();
+	async function scenario(run, connection, options = {}) {
+		const context = await browser.newContext(options);
 		try {
 			if (connection) await context.addInitScript(value => Object.defineProperty(navigator, 'connection', { value }), connection);
 			const page = await context.newPage();
+			// A previous tab's mouse position must not add intent to this scenario.
+			await page.mouse.move(0, 200);
 			await page.goto(origin, { waitUntil: 'load' });
 			requests.length = 0;
+			coverBodyBytes = 0;
 			await run(page);
 		} finally { await context.close(); }
 	}
@@ -54,7 +66,8 @@ try {
 		assert.equal(requests.includes('/second/'), false, 'one destination per document');
 		await page.getByRole('link', { name: 'article', exact: true }).click();
 		await page.waitForURL(origin + '/article/');
-		assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').find(r => r.name.endsWith('/cover.png.webp'))?.transferSize), 0, 'the navigation reuses the matching modern-format URL');
+		assert.equal(await page.locator('.td-post-featured-image img').evaluate(i => i.complete && i.naturalWidth > 0 && i.currentSrc.endsWith('/cover.png.webp')), true, 'the navigation renders the matching modern-format URL');
+		assert.equal(coverBodyBytes, png.length, 'navigation does not download the prepared image body again, including HTTP revalidation');
 		assert.equal(await page.evaluate(() => window.articleExecuted), true, 'ordinary navigation still executes the article');
 		await page.goBack({ waitUntil: 'load' });
 		assert.equal(page.url(), origin + '/');
@@ -71,14 +84,14 @@ try {
 	});
 	await scenario(async page => {
 		const link = page.getByRole('link', { name: 'article', exact: true });
-		await link.dispatchEvent('pointerover', { pointerType: 'touch' });
-		await link.focus();
+		await link.evaluate(node => node.addEventListener('click', event => event.preventDefault()));
+		await link.tap();
 		await page.waitForTimeout(300);
 		assert.equal(requests.includes('/article/'), false, 'touch focus does not prefetch');
 		await page.keyboard.press('Tab');
 		await page.waitForFunction(() => performance.getEntriesByType('resource').some(r => r.name.includes('/wp-content/uploads/cover.png')));
 		assert.equal(requests.includes('/second/'), true, 'keyboard still works after touch');
-	});
+	}, undefined, { hasTouch: true });
 	await scenario(async page => {
 		await page.getByRole('link', { name: 'article', exact: true }).hover();
 		await page.mouse.move(0, 200);
