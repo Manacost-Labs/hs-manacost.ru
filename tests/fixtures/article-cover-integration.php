@@ -71,6 +71,25 @@ $cover_parser->next_tag('LINK');
 hs_integration_assert($cover_parser->get_attribute('href') === 'https://hs-manacost.ru/banner.webp', 'unrelated banner preload changed');
 hs_integration_assert(Manacost_Article_Cover::optimize_html($cover_result) === $cover_result, 'cover processing is not idempotent');
 
+// A cold/uncached response must not eagerly download the whole article.
+$cover_uncached_image = '<img class="aligncenter wp-image-130 size-full" src="https://hs-manacost.ru/body.jpg" srcset="body-small.jpg 300w, body.jpg 1200w" sizes="100vw" width="1200" height="600" alt="Кириллица &amp; изображение" fetchpriority="high">';
+$cover_uncached_page = str_replace('</body>', $cover_uncached_image . '</body>', $cover_page);
+$cover_uncached_result = Manacost_Article_Cover::optimize_html($cover_uncached_page);
+$cover_parser = new WP_HTML_Tag_Processor($cover_uncached_result);
+$cover_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'wp-image-130']);
+hs_integration_assert($cover_parser->get_attribute('loading') === 'lazy', 'uncached content image still loads eagerly');
+hs_integration_assert($cover_parser->get_attribute('decoding') === 'async', 'uncached content image blocks decoding');
+hs_integration_assert($cover_parser->get_attribute('fetchpriority') === null, 'uncached content image competes with cover');
+foreach (['src' => 'https://hs-manacost.ru/body.jpg', 'srcset' => 'body-small.jpg 300w, body.jpg 1200w', 'sizes' => '100vw', 'width' => '1200', 'height' => '600', 'alt' => 'Кириллица & изображение'] as $cover_attribute => $cover_expected) {
+    hs_integration_assert($cover_parser->get_attribute($cover_attribute) === $cover_expected, 'native loading changed content image ' . $cover_attribute);
+}
+hs_integration_assert(Manacost_Article_Cover::optimize_html($cover_uncached_result) === $cover_uncached_result, 'native content loading is not idempotent');
+foreach (['skip-lazy', 'no-lazy', 'nolazyload'] as $cover_exclusion) {
+    $cover_excluded_image = str_replace('aligncenter', $cover_exclusion, $cover_uncached_image);
+    $cover_excluded_page = str_replace('</body>', $cover_excluded_image . '</body>', $cover_page);
+    hs_integration_assert(str_contains(Manacost_Article_Cover::optimize_html($cover_excluded_page), $cover_excluded_image), 'explicit content image exclusion changed');
+}
+
 $cover_previous_user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
 $cover_mobile_result = Manacost_Article_Cover::optimize_html($cover_page);

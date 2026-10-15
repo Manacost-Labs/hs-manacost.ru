@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Article Cover Loading
  * Description: Prioritizes the Newspaper article cover while keeping deferred content images out of its network priority.
- * Version: 1.3.0
+ * Version: 1.4.0
  *
  * @package Manacost
  */
@@ -96,26 +96,29 @@ final class Manacost_Article_Cover {
 	}
 
 	/**
-	 * Leaves deferred attachment images at the browser's normal priority.
+	 * Keeps content loading bounded even before Rocket builds its cached HTML.
 	 *
-	 * Rocket can retain a high priority from post content while deferring its URL.
+	 * Rocket placeholders retain their loader. Plain attachment images use native
+	 * lazy loading, so a cold response cannot start every image in a long article.
 	 * Covers, ads, eager images and explicit lazy-load exclusions remain intact.
 	 *
 	 * @param WP_HTML_Tag_Processor $processor Parser positioned at an active IMG.
 	 * @return void
 	 */
-	private static function normalize_lazy_content_priority( WP_HTML_Tag_Processor $processor ): void {
-		$loading = strtolower( (string) $processor->get_attribute( 'loading' ) );
-		if ( 'high' !== strtolower( (string) $processor->get_attribute( 'fetchpriority' ) )
-			|| 'eager' === $loading || null !== $processor->get_attribute( 'data-no-lazy' ) ) {
-			return;
-		}
+	private static function normalize_content_loading( WP_HTML_Tag_Processor $processor ): void {
 		$classes = $processor->get_attribute( 'class' );
-		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)wp-image-\d+(?:\s|$)/', $classes ) ) {
+		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)wp-image-\d+(?:\s|$)/', $classes )
+			|| preg_match( '/(?:^|\s)(?:skip-lazy|no-lazy|nolazyload)(?:\s|$)/', $classes )
+			|| 'eager' === strtolower( (string) $processor->get_attribute( 'loading' ) )
+			|| null !== $processor->get_attribute( 'data-no-lazy' ) ) {
 			return;
 		}
-		if ( 'lazy' === $loading || is_string( $processor->get_attribute( 'data-lazy-src' ) ) ) {
+		if ( 'high' === strtolower( (string) $processor->get_attribute( 'fetchpriority' ) ) ) {
 			$processor->remove_attribute( 'fetchpriority' );
+		}
+		if ( ! is_string( $processor->get_attribute( 'data-lazy-src' ) ) ) {
+			$processor->set_attribute( 'loading', 'lazy' );
+			$processor->set_attribute( 'decoding', 'async' );
 		}
 	}
 
@@ -256,7 +259,7 @@ final class Manacost_Article_Cover {
 				continue;
 			}
 			if ( 'IMG' === $tag ) {
-				self::normalize_lazy_content_priority( $processor );
+				self::normalize_content_loading( $processor );
 			} elseif ( 'LINK' === $tag ) {
 				self::align_preload_tag( $processor, $attributes, $source_url );
 			}
