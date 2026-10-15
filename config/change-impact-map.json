@@ -188,6 +188,16 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/manacost-shared-theme-styles.php", "tests/test_shared_theme_styles.py"],
+      "owner": "public-shared-theme-styles",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "cache", "performance"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-runtime-stack", "wordpress-typography-layout-system", "wp-plugin-development", "wp-performance", "playwright"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/manacost-article-cover.php", "tests/fixtures/article-cover-integration.php"],
       "owner": "public-article-cover-loading",
       "classified": true,
