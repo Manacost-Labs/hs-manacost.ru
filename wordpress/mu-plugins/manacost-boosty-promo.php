@@ -24,6 +24,7 @@ final class Manacost_Boosty_Promo {
 	 */
 	public static function boot(): void {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_cover_intent' ) );
 		add_filter( 'wp_nav_menu_items', array( __CLASS__, 'append_footer_links' ), 10, 2 );
 		add_filter( 'pre_do_shortcode_tag', array( __CLASS__, 'replace_homepage_pricing_card' ), 10, 3 );
 		add_filter( 'widget_block_content', array( __CLASS__, 'replace_legacy_sidebar_banner' ), 10, 3 );
@@ -54,6 +55,26 @@ final class Manacost_Boosty_Promo {
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
 			'1.3.2'
+		);
+	}
+
+	/** Warms one public article cover on intent, without executing its document. */
+	public static function enqueue_cover_intent(): void {
+		if ( is_admin() || is_user_logged_in() || is_feed() || is_preview() || wp_doing_ajax()
+			|| ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+			|| ( defined( 'MANACOST_COVER_INTENT_ENABLED' ) && ! MANACOST_COVER_INTENT_ENABLED ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'manacost-cover-intent',
+			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.js',
+			array(),
+			'1.0.0',
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 	}
 

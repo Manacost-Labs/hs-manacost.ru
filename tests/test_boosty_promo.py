@@ -19,6 +19,36 @@ PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 
 
 class BoostyPromoTest(unittest.TestCase):
+    def test_cover_intent_is_deferred_and_excludes_private_request_contexts(self) -> None:
+        for blocked in ('none', 'admin', 'logged_in', 'feed', 'preview', 'ajax', 'rest', 'disabled'):
+            with self.subTest(blocked=blocked):
+                flags = {name: json.dumps(blocked == name) for name in ('admin', 'logged_in', 'feed', 'preview', 'ajax')}
+                script = f"""
+                define('ABSPATH', '/');
+                define('REST_REQUEST', {json.dumps(blocked == 'rest')});
+                define('MANACOST_COVER_INTENT_ENABLED', {json.dumps(blocked != 'disabled')});
+                function add_action(...$args) {{}}
+                function add_filter(...$args) {{}}
+                function is_admin() {{ return {flags['admin']}; }}
+                function is_user_logged_in() {{ return {flags['logged_in']}; }}
+                function is_feed() {{ return {flags['feed']}; }}
+                function is_preview() {{ return {flags['preview']}; }}
+                function wp_doing_ajax() {{ return {flags['ajax']}; }}
+                function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
+                function wp_enqueue_script(...$args) {{ $GLOBALS['scripts'][] = $args; }}
+                $scripts = [];
+                require {json.dumps(str(PLUGIN))};
+                Manacost_Boosty_Promo::enqueue_cover_intent();
+                echo json_encode($scripts);
+                """
+                result = subprocess.run([PHP_BINARY, '-r', script], capture_output=True, text=True, check=True)
+                scripts = json.loads(result.stdout)
+                if blocked == 'none':
+                    self.assertEqual(scripts[0][0:4], ['manacost-cover-intent', '/wp-content/mu-plugins/manacost-site-navigation.js', [], '1.0.0'])
+                    self.assertEqual(scripts[0][4], {'strategy': 'defer', 'in_footer': True})
+                else:
+                    self.assertEqual(scripts, [])
+
     def test_banner_assets_are_versioned_webp_files(self) -> None:
         self.assertTrue(BANNER.is_file())
         self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
@@ -74,6 +104,11 @@ class BoostyPromoTest(unittest.TestCase):
             $GLOBALS['styles'][$handle] = [$src, $dependencies, $version];
         }}
         function is_admin() {{ return false; }}
+        function is_user_logged_in() {{ return false; }}
+        function is_feed() {{ return false; }}
+        function is_preview() {{ return false; }}
+        function wp_doing_ajax() {{ return false; }}
+        function wp_enqueue_script(...$args) {{}}
         function is_front_page() {{ return $GLOBALS['front_page']; }}
         function esc_url($value) {{ return $value; }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
