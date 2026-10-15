@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Article Cover Loading
  * Description: Prioritizes the Newspaper article cover while keeping deferred content images out of its network priority.
- * Version: 1.3.0
+ * Version: 1.4.0
  *
  * @package Manacost
  */
@@ -73,6 +73,13 @@ final class Manacost_Article_Cover {
 		foreach ( array( 'src', 'srcset', 'sizes' ) as $name ) {
 			$value               = $cover->get_attribute( 'data-lazy-' . $name ) ?? $cover->get_attribute( $name );
 			$attributes[ $name ] = is_string( $value ) ? $value : '';
+			if ( 'sizes' !== $name ) {
+				$attributes[ $name ] = preg_replace_callback(
+					'~(?:https?:)?//[^\s,]+~i',
+					static fn( array $candidate ): string => self::negotiated_cover_url( $candidate[0] ),
+					$attributes[ $name ]
+				) ?? $attributes[ $name ];
+			}
 		}
 
 		if ( ! preg_match( '#^(?:https?:)?//#i', $attributes['src'] ) ) {
@@ -96,26 +103,44 @@ final class Manacost_Article_Cover {
 	}
 
 	/**
-	 * Leaves deferred attachment images at the browser's normal priority.
+	 * Uses existing negotiated variants only for this site's upload URLs.
 	 *
-	 * Rocket can retain a high priority from post content while deferring its URL.
+	 * @param string $url Cover URL or responsive candidate.
+	 * @return string
+	 */
+	private static function negotiated_cover_url( string $url ): string {
+		// Match the bounded rollout in ops/nginx/media-negotiation/server.conf.
+		if ( ! in_array( wp_parse_url( $url, PHP_URL_HOST ), array( 'hs-manacost.ru', 'hs-manacost.com', 'test.hs-manacost.ru' ), true )
+			|| ! preg_match( '#^/wp-content/uploads/20(?:2[6-9]|[3-9][0-9])/(?:0[1-9]|1[0-2])/#', (string) wp_parse_url( $url, PHP_URL_PATH ) ) ) {
+			return $url;
+		}
+		return preg_replace( '/(\.(?:jpe?g|png))\.(?:webp|avif)(?=[?#]|$)/i', '$1', $url ) ?? $url;
+	}
+
+	/**
+	 * Keeps content loading bounded even before Rocket builds its cached HTML.
+	 *
+	 * Rocket placeholders retain their loader. Plain attachment images use native
+	 * lazy loading, so a cold response cannot start every image in a long article.
 	 * Covers, ads, eager images and explicit lazy-load exclusions remain intact.
 	 *
 	 * @param WP_HTML_Tag_Processor $processor Parser positioned at an active IMG.
 	 * @return void
 	 */
-	private static function normalize_lazy_content_priority( WP_HTML_Tag_Processor $processor ): void {
-		$loading = strtolower( (string) $processor->get_attribute( 'loading' ) );
-		if ( 'high' !== strtolower( (string) $processor->get_attribute( 'fetchpriority' ) )
-			|| 'eager' === $loading || null !== $processor->get_attribute( 'data-no-lazy' ) ) {
-			return;
-		}
+	private static function normalize_content_loading( WP_HTML_Tag_Processor $processor ): void {
 		$classes = $processor->get_attribute( 'class' );
-		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)wp-image-\d+(?:\s|$)/', $classes ) ) {
+		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)wp-image-\d+(?:\s|$)/', $classes )
+			|| preg_match( '/(?:^|\s)(?:skip-lazy|no-lazy|nolazyload)(?:\s|$)/', $classes )
+			|| 'eager' === strtolower( (string) $processor->get_attribute( 'loading' ) )
+			|| null !== $processor->get_attribute( 'data-no-lazy' ) ) {
 			return;
 		}
-		if ( 'lazy' === $loading || is_string( $processor->get_attribute( 'data-lazy-src' ) ) ) {
+		if ( 'high' === strtolower( (string) $processor->get_attribute( 'fetchpriority' ) ) ) {
 			$processor->remove_attribute( 'fetchpriority' );
+		}
+		if ( ! is_string( $processor->get_attribute( 'data-lazy-src' ) ) ) {
+			$processor->set_attribute( 'loading', 'lazy' );
+			$processor->set_attribute( 'decoding', 'async' );
 		}
 	}
 
@@ -256,7 +281,7 @@ final class Manacost_Article_Cover {
 				continue;
 			}
 			if ( 'IMG' === $tag ) {
-				self::normalize_lazy_content_priority( $processor );
+				self::normalize_content_loading( $processor );
 			} elseif ( 'LINK' === $tag ) {
 				self::align_preload_tag( $processor, $attributes, $source_url );
 			}
