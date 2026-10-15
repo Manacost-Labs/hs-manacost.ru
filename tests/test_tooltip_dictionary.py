@@ -1,6 +1,7 @@
 import subprocess
 import unittest
 import json
+import importlib.util
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +16,28 @@ class TooltipDictionaryTests(unittest.TestCase):
             self.assertEqual(entry["name"], card["name"]["ru"])
             self.assertEqual(entry["img"], card["images"]["card"])
             self.assertEqual(dictionary["by_id"][str(card["dbf"])], entry)
+
+    def test_non_collectible_token_rebuild_search_and_shortcode(self):
+        self.run_fixture("tokens")
+        dictionary = json.loads((ROOT / "wordpress/plugins/hs-tooltip/hs_dictionary.json").read_text())
+        self.assertEqual(dictionary["by_id"]["BE_222t"]["name"], "Безднокрыл")
+        self.assertEqual(dictionary["by_id"]["130406"], dictionary["by_id"]["BE_222t"])
+
+    def test_offline_builders_keep_non_collectible_tokens(self):
+        cards = [
+            {"id": "BE_222t", "dbfId": 130406, "name": "Безднокрыл", "type": "MINION", "set": "BE"},
+            {"id": "TOKEN_1", "name": "Совпавшее имя", "type": "MINION", "rarity": "LEGENDARY", "set": "BE"},
+            {"id": "CARD_1", "name": "Совпавшее имя", "type": "MINION", "rarity": "COMMON", "set": "BE", "collectible": True},
+        ]
+        for name, builder in [("rebuild_dict", "build_dictionary"), ("build_dictionaries", "build_main")]:
+            with self.subTest(builder=name):
+                path = ROOT / "wordpress/plugins/hs-tooltip/tools" / (name + ".py")
+                spec = importlib.util.spec_from_file_location(name, path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                result = getattr(module, builder)(cards)
+                self.assertEqual(result["by_id"]["BE_222t"]["name"], "Безднокрыл")
+                self.assertTrue(result["by_name"]["совпавшее имя"]["img"].endswith("/CARD_1.png"))
 
     def test_koloda_cards_search_and_shortcode(self):
         self.run_fixture("success")

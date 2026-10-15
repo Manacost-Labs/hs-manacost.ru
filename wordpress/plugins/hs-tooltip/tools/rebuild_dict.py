@@ -14,7 +14,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-API_URL = "https://api.hearthstonejson.com/v1/latest/ruRU/cards.collectible.json"
+API_URL = "https://api.hearthstonejson.com/v1/latest/ruRU/cards.json"
 RENDER_BASE = "https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/"
 EXCLUDED_SETS = {"BATTLEGROUNDS", "HERO_SKINS", "PLACEHOLDER_202204"}
 ALLOWED_TYPES = {"MINION", "SPELL", "WEAPON", "HERO", "LOCATION"}
@@ -140,7 +140,7 @@ def build_dictionary(cards: list[dict]) -> dict:
         key = dict_key(entry["name"])
         if not key:
             continue
-        prio = RARITY_PRIORITY[entry["rarity"]]
+        prio = RARITY_PRIORITY[entry["rarity"]] + (4 if c.get("collectible") else 0)
         if key not in by_name or prio > owners.get(key, -1):
             by_name[key] = entry
             owners[key] = prio
