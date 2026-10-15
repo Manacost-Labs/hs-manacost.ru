@@ -54,7 +54,7 @@ function wp_safe_remote_get($url, $args) {
         return ['response' => ['code' => 200], 'headers' => ['content-type' => 'image/png'], 'body' => base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1cAAAAASUVORK5CYII=')];
     }
     if (str_contains($url, 'api.hearthstonejson.com')) {
-        return ['response' => ['code' => 200], 'body' => json_encode($GLOBALS['hsjson'])];
+        return ['response' => ['code' => 200], 'body' => json_encode(str_contains($url, 'cards.collectible.json') ? array_values(array_filter($GLOBALS['hsjson'], fn($card) => !empty($card['collectible']))) : $GLOBALS['hsjson'])];
     }
     $scenario = $GLOBALS['scenario'];
     if ($scenario === 'timeout') { return new WP_Error('http_request_failed'); }
@@ -96,6 +96,9 @@ foreach ($rows as $row) {
     unset($old['by_id'][$row['card_id']], $old['by_id'][$row['dbf']]);
     unset($old['by_name'][mb_strtolower($row['name']['ru'], 'UTF-8')]);
 }
+if ($scenario === 'tokens') {
+    unset($old['by_id']['BE_222t'], $old['by_id'][130406], $old['by_name'][mb_strtolower('Безднокрыл', 'UTF-8')]);
+}
 $before = json_encode($old, JSON_UNESCAPED_UNICODE);
 file_put_contents($temp . '/hs_dictionary.json', $before);
 $hsjson = [];
@@ -105,7 +108,10 @@ foreach ($old['by_id'] as $id => $entry) {
 }
 foreach ($old['by_id'] as $id => $entry) {
     if (is_numeric($id)) { continue; }
-    $hsjson[] = ['id' => $id, 'dbfId' => $numeric_ids[json_encode($entry)] ?? '', 'name' => $entry['name'], 'type' => 'MINION', 'set' => 'TEST', 'rarity' => strtoupper($entry['rarity'])];
+    $hsjson[] = ['collectible' => true, 'id' => $id, 'dbfId' => $numeric_ids[json_encode($entry)] ?? '', 'name' => $entry['name'], 'type' => 'MINION', 'set' => 'TEST', 'rarity' => strtoupper($entry['rarity'])];
+}
+if ($scenario === 'tokens') {
+    $hsjson[] = ['id' => 'BE_222t', 'dbfId' => 130406, 'name' => 'Безднокрыл', 'type' => 'MINION', 'set' => 'BE'];
 }
 require $root . '/wordpress/mu-plugins/manacost-koloda-api.php';
 require $temp . '/hs-smart-tooltip.php';
@@ -129,7 +135,7 @@ function verify_bg(): string {
     global $hsjson, $bg_old, $bg_before, $bg_rows, $temp, $scenario, $http_calls;
     $hsjson = [];
     foreach ($bg_old['by_id'] as $id => $entry) {
-        $hsjson[] = ['id' => $id, 'name' => $entry['name'], 'set' => 'BATTLEGROUNDS', 'type' => $entry['type'], 'techLevel' => $entry['techLevel']];
+        $hsjson[] = ['collectible' => true, 'id' => $id, 'name' => $entry['name'], 'set' => 'BATTLEGROUNDS', 'type' => $entry['type'], 'techLevel' => $entry['techLevel']];
     }
     $result = hs_smart_tooltip_rebuild_bgs_dictionary();
     if ($scenario !== 'success') {
@@ -153,7 +159,7 @@ function verify_bg(): string {
 }
 if ($bgs) { verify_bg(); echo "PASS\n"; exit; }
 $result = hs_smart_tooltip_rebuild_main_dictionary();
-if ($scenario !== 'success') {
+if (!in_array($scenario, ['success', 'tokens'], true)) {
     check(!$result['ok'], 'Failed/partial provider response must fail rebuild');
     check(file_get_contents($temp . '/hs_dictionary.json') === $before, 'Failure must preserve dictionary bytes');
     echo "PASS\n"; exit;
@@ -172,6 +178,19 @@ foreach (['http://api.kolodahearthstone.com/uploads/constructed-related/BE_036.p
     check(hs_smart_tooltip_koloda_image_url($url) === '', 'Reject unsafe image proxy URLs');
 }
 check(file_get_contents($temp . '/hs_dictionary.bak.json') === $before, 'Backup preserves previous dictionary');
+if ($scenario === 'tokens') {
+    check(isset($dict['by_id']['BE_222t'], $dict['by_id'][130406]), 'Non-collectible token and dbf alias survive rebuild');
+    check($dict['by_id']['BE_222t']['name'] === 'Безднокрыл', 'Token keeps its localized name');
+    check(str_contains(hs_smart_tooltip_shortcode(['id' => 'BE_222t']), 'hs-card-tooltip'), 'Token shortcode renders tooltip');
+    $matches = hs_smart_tooltip_run_search(hs_smart_tooltip_get_search_catalog(), 'Безднокрыл', 15);
+    check(in_array('BE_222t', array_column($matches, 'id'), true), 'Token appears in editor search');
+    $shared = ['name' => 'Совпавшее имя', 'type' => 'MINION', 'set' => 'BE'];
+    $collision = hs_smart_tooltip_build_dictionary_from_cards([
+        $shared + ['id' => 'TOKEN_1', 'rarity' => 'LEGENDARY'],
+        $shared + ['id' => 'CARD_1', 'rarity' => 'COMMON', 'collectible' => true],
+    ]);
+    check(str_ends_with($collision['by_name'][hs_smart_tooltip_dict_key('Совпавшее имя')]['img'], '/CARD_1.png'), 'Collectible card retains automatic name match over a token');
+}
 $calls_before_render = count($http_calls);
 $catalog = hs_smart_tooltip_get_search_catalog();
 $rendered = '';

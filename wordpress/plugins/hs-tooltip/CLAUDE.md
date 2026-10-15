@@ -67,8 +67,8 @@ set_icon/                    # SVG-иконки сетов Hearthstone (37 фа�
 - Кэширует тело + content-type в object cache на 30 дней.
 
 **Автообновление основного словаря (includes/auto-update.php):**
-- Источник: `https://api.hearthstonejson.com/v1/latest/ruRU/cards.collectible.json`. Картинки — `https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/{id}.png`.
-- Фильтрация: исключаются `set === 'BATTLEGROUNDS'` и типы кроме MINION/SPELL/WEAPON/HERO/LOCATION; HSJSON отдаёт только collectible-карты на этом эндпоинте.
+- Источник: `https://api.hearthstonejson.com/v1/latest/ruRU/cards.json`. Картинки — `https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/{id}.png`.
+- Фильтрация: исключаются `set === 'BATTLEGROUNDS'` и типы кроме MINION/SPELL/WEAPON/HERO/LOCATION; Полный каталог включает токены; при совпадении имени для автоматической подстановки приоритет имеет коллекционная карта.
 - `hs_smart_tooltip_rebuild_main_dictionary()` строит только `by_id` + одно нормализованное `by_name`-ключ-имя на карту (без падежных форм). При коллизии имён выигрывает карта более высокой редкости.
 - Защита: transient-lock `hs_tooltip_main_rebuild_lock` (30 мин), бэкап в `hs_dictionary.bak.json`, атомарный `tmp + rename`. Health-check: < 2000 карт или < 80% от прошлого `by_id` — отказ без перезаписи.
 - Триггеры: `admin_post_hs_tooltip_main_rebuild` (кнопка) и WP-Cron `hs_tooltip_main_dict_cron` (раз в сутки, при включённом тогле). Опции в `hs_tooltip_main_autoupdate`.
