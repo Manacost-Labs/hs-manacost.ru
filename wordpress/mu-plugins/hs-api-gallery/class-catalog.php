@@ -128,17 +128,22 @@ final class Catalog {
 	}
 
 	/**
-	 * Fetch one page. Search is local: provider q currently returns HTTP 500.
+	 * Fetch one page, using provider search for constructed cards.
 	 *
 	 * @param string $library Known library.
 	 * @param int    $page Page number.
 	 *
 	 * @param string $format Constructed format.
+	 * @param string $search Optional constructed search, bounded by the shared client.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public static function page( string $library, int $page, string $format ) {
+	public static function page( string $library, int $page, string $format, string $search = '' ) {
 		if ( ! isset( self::libraries()[ $library ] ) || $page < 1 || $page > 200 || ! class_exists( '\Manacost_Koloda_API' ) ) {
 			return new \WP_Error( 'gallery_catalog', __( 'Библиотека недоступна.', 'manacost' ) );
+		}
+		$search = trim( $search );
+		if ( strlen( $search ) > 200 ) {
+			return new \WP_Error( 'gallery_search', __( 'Слишком длинный поисковый запрос.', 'manacost' ) );
 		}
 		$query = array(
 			'page'     => $page,
@@ -146,6 +151,10 @@ final class Catalog {
 		);
 		if ( 'constructed-cards' === $library && in_array( $format, array( 'standard', 'wild' ), true ) ) {
 			$query['format'] = $format;
+		}
+		if ( 'constructed-cards' === $library && '' !== $search ) {
+			$query['q']        = $search;
+			$query['per_page'] = 50;
 		}
 		$result = \Manacost_Koloda_API::get( '/api/v1/' . $library, $query );
 		if ( is_wp_error( $result ) ) {

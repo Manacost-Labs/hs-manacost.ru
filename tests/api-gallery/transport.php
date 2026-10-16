@@ -15,6 +15,26 @@ add_filter('pre_http_request', static function ($previous, $args, $url) {
     if (wp_parse_url($url, PHP_URL_HOST) !== 'api.kolodahearthstone.com') { return $previous; }
     $file = WP_CONTENT_DIR . '/uploads/hs-gallery-fixture.png';
     $path = wp_parse_url($url, PHP_URL_PATH);
+    parse_str(wp_parse_url($url, PHP_URL_QUERY) ?? '', $query);
+    if ($path === '/api/v1/constructed-cards' && ($query['q'] ?? '') !== '') {
+        if ($query['q'] === 'Сбой') {
+            return ['headers'=>['content-type'=>'application/json'],'body'=>'{}','response'=>['code'=>503,'message'=>'Unavailable'],'cookies'=>[]];
+        }
+        $page = (int)($query['page'] ?? 1);
+        $rows = [];
+        if ($query['q'] === 'Ритуал') {
+            $rows[] = ['card_id'=>'RITUAL_'.$page,'name'=>['ru'=>'Призыватель '.$page],
+                'images'=>['card'=>'https://api.kolodahearthstone.com/uploads/hs-gallery-fixture/ritual.png']];
+        } elseif ($query['q'] === 'Тестовая') {
+            foreach ([1,2] as $number) {
+                $rows[] = ['card_id'=>'TEST_CARD_'.$number,'name'=>['ru'=>'Тестовая карта '.$number],
+                    'images'=>['card'=>'https://api.kolodahearthstone.com/uploads/hs-gallery-fixture/TEST_CARD_'.$number.'.png']];
+            }
+        }
+        return ['headers'=>['content-type'=>'application/json'],'body'=>wp_json_encode([
+            'data'=>$rows,'pagination'=>['has_next'=>$query['q']==='Ритуал' && $page===1]
+        ]),'response'=>['code'=>200,'message'=>'OK'],'cookies'=>[]];
+    }
     foreach (['TEST_HTML','TEST_LARGE','TEST_REDIRECT'] as $fault) {
         if (str_ends_with($path,'/'.$fault)) {
             return ['headers'=>['content-type'=>'application/json'],'body'=>wp_json_encode(['data'=>['card_id'=>$fault,'name'=>['ru'=>'Invalid provider image'],'images'=>['card'=>'https://api.kolodahearthstone.com/uploads/hs-gallery-fault/'.$fault.'.png']]]),'response'=>['code'=>200,'message'=>'OK'],'cookies'=>[]];
