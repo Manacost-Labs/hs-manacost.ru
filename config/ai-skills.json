@@ -6,6 +6,8 @@
     "note": "Official WordPress agent skills target WordPress 7.0+. Verify version-sensitive APIs against the installed core and committed source."
   },
   "project_local": [
+    {"name": "hearthstone-deck-article", "path": ".agents/skills/hearthstone-deck-article/SKILL.md", "version": "1.0.0", "source": "project", "license": "project-internal", "required_for": ["deck-source-import", "deck-collection-article", "parchment-deck-images"]},
+    {"name": "wordpress-article-anchors", "path": ".agents/skills/wordpress-article-anchors/SKILL.md", "version": "1.0.0", "source": "project", "license": "project-internal", "required_for": ["article-anchors", "article-navigation", "linked-text", "linked-images"]},
     {
       "name": "hs-manacost-project",
       "path": ".agents/skills/hs-manacost-project/SKILL.md",
@@ -353,6 +355,8 @@
     "agent-git-workflow-and-versioning"
   ],
   "task_routes": {
+    "deck_article_import": ["hearthstone-deck-article", "wordpress-article-anchors", "wordpress-article-editor", "wordpress-media-integrity", "wordpress-content-integrity"],
+    "article_anchors": ["wordpress-article-anchors", "wordpress-article-editor", "wordpress-accessibility"],
     "wordpress": ["hs-manacost-project", "wordpress-router", "wp-project-triage", "wordpress-plugin-dev"],
     "code_quality": ["wordpress-clean-code", "wp-project-triage", "wp-phpstan", "wordpress-plugin-dev"],
     "newspaper_tagdiv": ["newspaper-tagdiv", "wp-project-triage", "wp-plugin-development"],
