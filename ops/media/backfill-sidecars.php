@@ -119,7 +119,8 @@ final class HS_Sidecar_Backfill {
 	 */
 	public static function candidates( wpdb $db, array $options ): array {
 		if ( $options['ids'] ) {
-			return array_slice( $options['ids'], 0, $options['limit'] );
+			$pending = array_filter( $options['ids'], static fn( int $id ): bool => '' === (string) get_post_meta( $id, self::FINISHED_META, true ) );
+			return array_slice( array_values( $pending ), 0, $options['limit'] );
 		}
 
 		$pattern = '^(' . implode( '|', range( $options['years'][0], $options['years'][1] ) ) . ')/';
