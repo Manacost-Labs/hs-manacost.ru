@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly sidecar backfill batches, 00:00-06:00 Moscow time
+
+[Timer]
+# 21:00-03:00 UTC = 00:00-06:00 MSK; each batch stops after 55 minutes.
+OnCalendar=*-*-* 21..23,00..03:00:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

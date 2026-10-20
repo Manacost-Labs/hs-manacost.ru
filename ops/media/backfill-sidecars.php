@@ -8,6 +8,8 @@
  *   sudo -u koloda wp --path=<site> eval-file ops/media/backfill-sidecars.php \
  *     years=2021-2025 limit=50 max_load=10 min_free_gb=60 max_minutes=50 [ids=1,2] [dry_run=1]
  *
+ * coverage=1 prints per-year finished/processed shares instead of processing.
+ *
  * Originals are never modified. The optimizer hydrates absent sources from the
  * public S3 bucket; this runner removes only those temporary local copies it
  * caused (byte-identical to S3) so the offload worker does not re-upload them
@@ -67,6 +69,7 @@ final class HS_Sidecar_Backfill {
 			'min_free_gb' => max( 10, min( 400, (int) ( $raw['min_free_gb'] ?? 60 ) ) ),
 			'max_minutes' => max( 1, min( 600, (int) ( $raw['max_minutes'] ?? 30 ) ) ),
 			'dry_run'     => '1' === ( $raw['dry_run'] ?? '0' ),
+			'coverage'    => '1' === ( $raw['coverage'] ?? '0' ),
 		);
 	}
 
@@ -108,6 +111,59 @@ final class HS_Sidecar_Backfill {
 					&& $exists( $path )
 			)
 		);
+	}
+
+	/**
+	 * Share of attachments the optimizer has finished, in percent.
+	 *
+	 * @param int $finished Attachments with a finished optimizer result.
+	 * @param int $total    JPEG/PNG attachments in scope.
+	 */
+	public static function percent( int $finished, int $total ): float {
+		return $total > 0 ? round( 100 * $finished / $total, 1 ) : 100.0;
+	}
+
+	/**
+	 * Per-year coverage: total, finished and successfully processed attachments.
+	 *
+	 * @param wpdb  $db      Database.
+	 * @param array $options Parsed options.
+	 * @return array<string, mixed>
+	 */
+	public static function coverage( wpdb $db, array $options ): array {
+		$pattern = '^(' . implode( '|', range( $options['years'][0], $options['years'][1] ) ) . ')/';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Bounded maintenance query.
+		$rows   = $db->get_results(
+			$db->prepare(
+				"SELECT LEFT(f.meta_value, 4) AS year, COUNT(*) AS total,
+					SUM(d.meta_id IS NOT NULL) AS finished, SUM(r.meta_value LIKE %s) AS processed
+				FROM {$db->posts} p
+				JOIN {$db->postmeta} f ON f.post_id = p.ID AND f.meta_key = '_wp_attached_file'
+				LEFT JOIN {$db->postmeta} d ON d.post_id = p.ID AND d.meta_key = %s
+				LEFT JOIN {$db->postmeta} r ON r.post_id = p.ID AND r.meta_key = %s
+				WHERE p.post_type = 'attachment' AND p.post_mime_type IN ('image/jpeg', 'image/png')
+				AND f.meta_value REGEXP %s GROUP BY year ORDER BY year",
+				'{"status":"processed"%',
+				self::FINISHED_META,
+				self::RESULT_META,
+				$pattern
+			),
+			ARRAY_A
+		);
+		$report = array( 'event' => 'coverage', 'years' => array(), 'total' => 0, 'finished' => 0, 'processed' => 0 );
+		foreach ( $rows as $row ) {
+			$report['years'][ $row['year'] ] = array(
+				'total'     => (int) $row['total'],
+				'finished'  => (int) $row['finished'],
+				'processed' => (int) $row['processed'],
+				'percent'   => self::percent( (int) $row['finished'], (int) $row['total'] ),
+			);
+			$report['total']     += (int) $row['total'];
+			$report['finished']  += (int) $row['finished'];
+			$report['processed'] += (int) $row['processed'];
+		}
+		$report['percent'] = self::percent( $report['finished'], $report['total'] );
+		return $report;
 	}
 
 	/**
@@ -156,12 +212,24 @@ final class HS_Sidecar_Backfill {
 			return;
 		}
 
-		$options  = self::options( $args );
+		$options = self::options( $args );
+		if ( $options['coverage'] ) {
+			self::emit( self::coverage( $wpdb, $options ) );
+			return;
+		}
+
+		$candidates = self::candidates( $wpdb, $options );
+		if ( ! $candidates ) {
+			// The service wrapper disables its timer on this event.
+			self::emit( array( 'event' => 'complete', 'years' => $options['years'] ) );
+			return;
+		}
+
 		$basedir  = (string) realpath( wp_get_upload_dir()['basedir'] );
 		$deadline = time() + 60 * $options['max_minutes'];
 		$summary  = array( 'event' => 'summary', 'processed' => 0, 'source_bytes' => 0, 'best_bytes' => 0, 'removed_hydrated' => 0, 'stopped' => null );
 
-		foreach ( self::candidates( $wpdb, $options ) as $id ) {
+		foreach ( $candidates as $id ) {
 			$reason = $options['dry_run'] ? null : self::wait_for_capacity( $options, $basedir, $deadline );
 			if ( null !== $reason ) {
 				$summary['stopped'] = $reason;

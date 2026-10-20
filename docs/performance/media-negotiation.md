@@ -20,30 +20,63 @@ same way as 2026+ uploads. The route now matches 2021 through 2099. Activate
 it only after the backfill has covered the archive (otherwise every cold miss
 adds two S3 sidecar probes).
 
-Backfill runs as the PHP-FPM user in bounded batches:
+Backfill runs as the PHP-FPM user in bounded batches. Production uses a
+nightly timer (hourly 00:00-06:00 Moscow time, 55-minute batches):
+
+```bash
+sudo install -d -m 755 /usr/local/libexec/hs-manacost-media-backfill
+sudo install -m 644 ops/media/backfill-sidecars.php /usr/local/libexec/hs-manacost-media-backfill/
+sudo install -m 755 ops/media/backfill-run.sh /usr/local/libexec/hs-manacost-media-backfill/
+sudo install -m 644 ops/systemd/hs-manacost-media-backfill.{service,timer} /etc/systemd/system/
+sudo install -D -m 644 ops/s3-offload/backfill-cleanup-limit.conf \
+  /etc/systemd/system/hs-manacost-s3-offload.service.d/backfill-cleanup-limit.conf
+sudo systemctl daemon-reload && sudo systemctl enable --now hs-manacost-media-backfill.timer
+```
+
+Progress: `journalctl -u hs-manacost-media-backfill` (JSON lines per attachment
+and a summary per batch) and `systemctl list-timers hs-manacost-media-backfill.timer`.
+When no unfinished attachment remains, the runner prints `complete`, the
+wrapper writes `/var/lib/hs-manacost-media-backfill/complete` and the service
+disables its timer. Remove that file to allow another run.
+
+The runner processes only attachments without `_hs_local_image_optimizer_finished_at`,
+newest first (or explicit `ids=`), and calls the optimizer synchronously. Before
+each attachment it waits while the one-minute load exceeds `max_load`, while the
+optimizer lock is held or fresh new-upload jobs are due (a backlog overdue by
+more than ten minutes means no queue runner and is ignored), and stops below
+`min_free_gb` or at `max_minutes`. The optimizer hydrates absent sources from
+the public bucket; the runner deletes only those temporary local copies
+afterwards, so the offload worker does not re-upload the originals and disk
+stays bounded. Sidecars stay local until the offload worker copies them to the
+primary and backup buckets; verified cleanup removes them after seven days. The
+drop-in raises `HS_S3_CLEANUP_LIMIT` from 100 to 500 files per run while the
+backfill produces ~26 sidecars per attachment; remove it after completion.
+
+Coverage (finished and successfully processed attachments per year):
 
 ```bash
 sudo -u koloda wp --path=/var/www/koloda/data/www/hs-manacost.ru eval-file \
-  ops/media/backfill-sidecars.php years=2021-2025 limit=200 max_load=10 min_free_gb=60 max_minutes=60
+  /usr/local/libexec/hs-manacost-media-backfill/backfill-sidecars.php years=2021-2025 coverage=1
 ```
 
-It processes only attachments without `_hs_local_image_optimizer_finished_at`,
-newest first (or explicit `ids=`), and calls the optimizer synchronously. Before
-each attachment it waits while the one-minute load exceeds `max_load`, while the
-optimizer lock is held or new-upload jobs are due, and stops below
-`min_free_gb` or at `max_minutes`. The optimizer hydrates absent sources from
-the public bucket; the runner deletes only those temporary local copies
-afterwards, so the offload worker does not re-upload 140 GB of originals and
-disk stays bounded. Sidecars stay local until the offload worker copies them to
-the primary and backup buckets. `dry_run=1` lists work without processing.
-Output is JSON lines with per-attachment source and best-variant bytes.
+Activation when `percent` is at least 95: run `make nginx-media-test`, then on
+the origin
 
-Activation (origin, after backfill): back up
-`/etc/nginx/hs-media-negotiation/server.conf`, install the reviewed copy,
-`nginx -t`, graceful reload. Edges cache uploads per Accept variant for 30 days,
-so purge `/wp-content/uploads/202[1-5]/` on every edge after activation.
-Rollback: restore the previous `server.conf`, `nginx -t`, reload, purge the same
-prefix. Sidecars and originals stay in place; no media is deleted.
+```bash
+sudo cp -p /etc/nginx/hs-media-negotiation/server.conf /root/hs-media-negotiation-server.conf.pre-2021
+sudo install -m 644 ops/nginx/media-negotiation/server.conf /etc/nginx/hs-media-negotiation/server.conf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Check one backfilled URL on the origin with `Accept: image/avif,image/webp,*/*`
+(expect `Content-Type: image/avif` or `image/webp`, `Vary: Accept`) and without
+Accept (expect the original). Edges cache uploads per Accept variant for 30
+days, so purge `/wp-content/uploads/202[1-5]/` on Moscow, Novosibirsk and
+London, then repeat the check through each edge with `curl --resolve`.
+
+Rollback: restore `/root/hs-media-negotiation-server.conf.pre-2021`,
+`nginx -t`, reload and purge the same prefix. Sidecars and originals stay in
+place; no media is deleted.
 
 ## Next source candidate: new uploads
 

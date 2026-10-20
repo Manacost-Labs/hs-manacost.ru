@@ -36,7 +36,7 @@ class SidecarBackfillTest(unittest.TestCase):
 
     def test_defaults_are_conservative(self) -> None:
         self.assertEqual(
-            {"years": [2021, 2025], "ids": [], "limit": 20, "max_load": 10, "min_free_gb": 60, "max_minutes": 30, "dry_run": False},
+            {"years": [2021, 2025], "ids": [], "limit": 20, "max_load": 10, "min_free_gb": 60, "max_minutes": 30, "dry_run": False, "coverage": False},
             self.options(),
         )
 
@@ -73,6 +73,11 @@ class SidecarBackfillTest(unittest.TestCase):
         # Disk exhaustion stops the batch even while other work is waiting.
         self.assertEqual("stop_disk", self.blocker(20.0, 59, lock=True, due=3))
 
+    def test_coverage_percent(self) -> None:
+        self.assertEqual(95.0, self.php("return HS_Sidecar_Backfill::percent(19, 20);"))
+        self.assertEqual(100.0, self.php("return HS_Sidecar_Backfill::percent(0, 0);"))
+        self.assertTrue(self.options("coverage=1")["coverage"])
+
     def test_stale_backlog_without_runner_does_not_block(self) -> None:
         self.assertEqual(0, self.php("return HS_Sidecar_Backfill::fresh_due(48, 48);"))
         self.assertEqual(2, self.php("return HS_Sidecar_Backfill::fresh_due(50, 48);"))
@@ -93,6 +98,34 @@ class SidecarBackfillTest(unittest.TestCase):
             f" return HS_Sidecar_Backfill::hydrated({json.dumps(paths)}, '/up', static fn($p) => in_array($p, $existing, true));"
         )
         self.assertEqual(["/up/2021/05/a.jpg", "/up/2021/05/b-300x200.png"], result)
+
+
+class SidecarBackfillUnitsTest(unittest.TestCase):
+    def test_service_runs_bounded_batches_as_site_user_and_stops_itself(self) -> None:
+        service = (ROOT / "ops/systemd/hs-manacost-media-backfill.service").read_text()
+        for directive in (
+            "User=koloda",
+            "StateDirectory=hs-manacost-media-backfill",
+            "ExecCondition=/bin/sh -c '! test -e /var/lib/hs-manacost-media-backfill/complete'",
+            "systemctl disable --now hs-manacost-media-backfill.timer",
+            "Nice=10",
+            "TimeoutStartSec=58min",
+        ):
+            self.assertIn(directive, service)
+        wrapper = (ROOT / "ops/media/backfill-run.sh").read_text()
+        self.assertIn("max_load=10 min_free_gb=60 max_minutes=55", wrapper)
+        self.assertIn('touch "$state/complete"', wrapper)
+        subprocess.run(["bash", "-n", str(ROOT / "ops/media/backfill-run.sh")], check=True)
+
+    def test_timer_covers_moscow_night_only(self) -> None:
+        timer = (ROOT / "ops/systemd/hs-manacost-media-backfill.timer").read_text()
+        self.assertIn("OnCalendar=*-*-* 21..23,00..03:00:00 UTC", timer)
+        self.assertIn("Persistent=false", timer)
+
+    def test_cleanup_drop_in_only_raises_the_batch_limit(self) -> None:
+        drop_in = (ROOT / "ops/s3-offload/backfill-cleanup-limit.conf").read_text()
+        settings = [line for line in drop_in.splitlines() if line and not line.startswith("#")]
+        self.assertEqual(["[Service]", "Environment=HS_S3_CLEANUP_LIMIT=500"], settings)
 
 
 if __name__ == "__main__":

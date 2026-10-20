@@ -1,0 +1,22 @@
+[Unit]
+Description=HS Manacost 2021-2025 WebP/AVIF sidecar backfill batch
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=koloda
+Group=koloda
+StateDirectory=hs-manacost-media-backfill
+WorkingDirectory=/tmp
+ExecCondition=/bin/sh -c '! test -e /var/lib/hs-manacost-media-backfill/complete'
+ExecStart=/usr/local/libexec/hs-manacost-media-backfill/backfill-run.sh
+# Runs privileged: turns the nightly timer off once every attachment is finished.
+ExecStopPost=+/bin/sh -c 'if test -e /var/lib/hs-manacost-media-backfill/complete; then systemctl disable --now hs-manacost-media-backfill.timer; fi'
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+CPUWeight=50
+NoNewPrivileges=true
+UMask=0022
+TimeoutStartSec=58min
