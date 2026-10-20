@@ -115,6 +115,7 @@ class SidecarBackfillUnitsTest(unittest.TestCase):
         wrapper = (ROOT / "ops/media/backfill-run.sh").read_text()
         self.assertIn("max_load=10 min_free_gb=60 max_minutes=55", wrapper)
         self.assertIn('touch "$state/complete"', wrapper)
+        self.assertNotIn("/dev/stderr", wrapper)
         subprocess.run(["bash", "-n", str(ROOT / "ops/media/backfill-run.sh")], check=True)
 
     def test_timer_covers_moscow_night_only(self) -> None:
