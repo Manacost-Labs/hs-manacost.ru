@@ -386,7 +386,13 @@ final class HS_Sidecar_Backfill {
 	 * @param array<string, mixed> $event Event payload.
 	 */
 	private static function emit( array $event ): void {
-		echo wp_json_encode( $event, JSON_UNESCAPED_SLASHES ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- CLI JSON.
+		$line = wp_json_encode( $event, JSON_UNESCAPED_SLASHES ) . "\n";
+		// Plugin output buffers (Perfmatters) would hold progress until exit; write past them.
+		if ( defined( 'STDOUT' ) ) {
+			fwrite( STDOUT, $line ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- CLI stream.
+			return;
+		}
+		echo $line; // phpcs:ignore WordPress.Security.EscapeOutput -- CLI JSON.
 	}
 }
 
