@@ -12,6 +12,39 @@ The previous media worker correction is committed as fd89f0a in PR64. It is
 already present in the three-file production hotfix; a full runtime release
 must include that commit. This Nginx change does not deploy WordPress/main.
 
+## 2021-2025 archive: sidecar backfill, then routing
+
+Approved by the owner on 2026-10-20: originals stay untouched; WebP/AVIF
+sidecars are created next to them by the installed optimizer and served the
+same way as 2026+ uploads. The route now matches 2021 through 2099. Activate
+it only after the backfill has covered the archive (otherwise every cold miss
+adds two S3 sidecar probes).
+
+Backfill runs as the PHP-FPM user in bounded batches:
+
+```bash
+sudo -u koloda wp --path=/var/www/koloda/data/www/hs-manacost.ru eval-file \
+  ops/media/backfill-sidecars.php years=2021-2025 limit=200 max_load=10 min_free_gb=60 max_minutes=60
+```
+
+It processes only attachments without `_hs_local_image_optimizer_finished_at`,
+newest first (or explicit `ids=`), and calls the optimizer synchronously. Before
+each attachment it waits while the one-minute load exceeds `max_load`, while the
+optimizer lock is held or new-upload jobs are due, and stops below
+`min_free_gb` or at `max_minutes`. The optimizer hydrates absent sources from
+the public bucket; the runner deletes only those temporary local copies
+afterwards, so the offload worker does not re-upload 140 GB of originals and
+disk stays bounded. Sidecars stay local until the offload worker copies them to
+the primary and backup buckets. `dry_run=1` lists work without processing.
+Output is JSON lines with per-attachment source and best-variant bytes.
+
+Activation (origin, after backfill): back up
+`/etc/nginx/hs-media-negotiation/server.conf`, install the reviewed copy,
+`nginx -t`, graceful reload. Edges cache uploads per Accept variant for 30 days,
+so purge `/wp-content/uploads/202[1-5]/` on every edge after activation.
+Rollback: restore the previous `server.conf`, `nginx -t`, reload, purge the same
+prefix. Sidecars and originals stay in place; no media is deleted.
+
 ## Next source candidate: new uploads
 
 The next candidate expands only the Nginx match from the synthetic fixture to
