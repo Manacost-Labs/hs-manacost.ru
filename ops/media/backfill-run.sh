@@ -8,10 +8,12 @@ runner=${HS_MEDIA_BACKFILL_RUNNER:-/usr/local/libexec/hs-manacost-media-backfill
 state=${STATE_DIRECTORY:-/var/lib/hs-manacost-media-backfill}
 wp_bin=${HS_MEDIA_BACKFILL_WP:-/usr/local/bin/wp}
 
-output=$("$wp_bin" --path="$site" eval-file "$runner" \
+# stdout is the journal under systemd; the stderr socket there cannot be reopened by path.
+log="$state/last-run.jsonl"
+"$wp_bin" --path="$site" eval-file "$runner" \
     years=2021-2025 limit=1000 max_load=10 min_free_gb=60 max_minutes=55 2>&1 \
-    | grep -v 'Undefined array key "REQUEST_URI"' | tee /dev/stderr)
+    | grep --line-buffered -v 'Undefined array key "REQUEST_URI"' | tee "$log"
 
-if grep -q '"event":"complete"' <<<"$output"; then
+if grep -q '"event":"complete"' "$log"; then
     touch "$state/complete"
 fi
