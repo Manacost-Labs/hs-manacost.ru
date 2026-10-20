@@ -23,7 +23,8 @@ BUCKET = "https://hs-manacost-media-3az.s3.eu-west-par.io.cloud.ovh.net"
 PREFIX = "/wp-content/uploads/2026/09/hs-media-7716-dfxxbv2-production-jpg/"
 CURRENT_UPLOAD_PREFIX = "/wp-content/uploads/2026/09/real-article/"
 FUTURE_UPLOAD_PREFIX = "/wp-content/uploads/2027/01/real-article/"
-HISTORICAL_UPLOAD_PREFIX = "/wp-content/uploads/2025/12/archive/"
+BACKFILLED_UPLOAD_PREFIX = "/wp-content/uploads/2021/01/archive/"
+HISTORICAL_UPLOAD_PREFIX = "/wp-content/uploads/2020/12/archive/"
 
 
 class ObjectStorage(http.server.BaseHTTPRequestHandler):
@@ -173,7 +174,7 @@ def main():
             assert request("all.jpg.avif")[2] == b"avif"
 
             # New real article uploads must receive the same safe negotiation
-            # as the synthetic canary; historical uploads remain out of scope.
+            # as the synthetic canary; pre-2021 uploads remain out of scope.
             current_image = work / "public" / (CURRENT_UPLOAD_PREFIX + "fresh.jpg").lstrip("/")
             current_image.parent.mkdir(parents=True)
             current_image.write_bytes(b"current-original")
@@ -192,6 +193,14 @@ def main():
             future_image.write_bytes(b"future-original")
             future_image.with_suffix(".jpg.webp").write_bytes(b"future-webp")
             assert request_from_prefix(FUTURE_UPLOAD_PREFIX, "fresh.jpg", "image/webp")[2] == b"future-webp"
+
+            # 2021-2025 sidecars come from the bounded backfill and negotiate like new uploads.
+            backfilled_image = work / "public" / (BACKFILLED_UPLOAD_PREFIX + "old.jpg").lstrip("/")
+            backfilled_image.parent.mkdir(parents=True)
+            backfilled_image.write_bytes(b"backfilled-original")
+            backfilled_image.with_suffix(".jpg.webp").write_bytes(b"backfilled-webp")
+            assert request_from_prefix(BACKFILLED_UPLOAD_PREFIX, "old.jpg", "image/webp")[2] == b"backfilled-webp"
+            assert request_from_prefix(BACKFILLED_UPLOAD_PREFIX, "old.jpg")[2] == b"backfilled-original"
 
             historical_image = work / "public" / (HISTORICAL_UPLOAD_PREFIX + "old.jpg").lstrip("/")
             historical_image.parent.mkdir(parents=True)
