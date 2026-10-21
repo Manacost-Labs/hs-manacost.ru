@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Manacost Shared Theme Styles
- * Description: Keeps shared Newspaper styles at one cacheable URL and paints their critical rules without a render-blocking request.
- * Version: 1.1.0
+ * Description: Keeps shared Newspaper styles at one cacheable URL; optionally paints their critical rules without a render-blocking request.
+ * Version: 1.1.1
  *
  * @package Manacost
  */
@@ -61,6 +61,10 @@ final class Manacost_Shared_Theme_Styles {
 	 * The subset is only used for the exact sheet version it was generated from;
 	 * any other version keeps the original blocking stylesheet.
 	 *
+	 * Opt-in (MANACOST_CRITICAL_THEME_CSS): on Slow 4G it moved first paint from
+	 * ~2.2 s to ~0.7 s but delayed the LCP cover from ~2.2 s to ~4.5 s, because the
+	 * unblocked parser then fetches footer scripts and the full sheets alongside it.
+	 *
 	 * @param string $tag    Original stylesheet tag.
 	 * @param string $handle Registered style handle.
 	 * @param string $href   Stylesheet URL.
@@ -104,7 +108,7 @@ final class Manacost_Shared_Theme_Styles {
 			&& ! ( defined( 'REST_REQUEST' ) && REST_REQUEST )
 			// tagDiv Composer's live editor (any td_action request) needs every rule immediately.
 			&& ! isset( $_GET['td_action'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			&& ! ( defined( 'MANACOST_CRITICAL_THEME_CSS' ) && ! MANACOST_CRITICAL_THEME_CSS );
+			&& defined( 'MANACOST_CRITICAL_THEME_CSS' ) && MANACOST_CRITICAL_THEME_CSS;
 	}
 
 	/**
