@@ -590,7 +590,8 @@ JS;
 
 		$result = preg_replace(
 			'#<!--LiveInternet counter--><script\b[\s\S]*?</script><!--/LiveInternet-->#i',
-			'<script id="manacost-liveinternet-delay">window.addEventListener("load",function(){setTimeout(function(){var i=new Image;i.width=1;i.height=1;i.alt="";i.src="//counter.yadro.ru/hit?t50.6;r"+encodeURIComponent(document.referrer)+";u"+encodeURIComponent(location.href)+";"+Math.random()},4000)},{once:true});</script>',
+			// A prerendered page is counted only once it is shown, still four seconds after load.
+			'<script id="manacost-liveinternet-delay">(function(){function hit(){var i=new Image;i.width=1;i.height=1;i.alt="";i.src="//counter.yadro.ru/hit?t50.6;r"+encodeURIComponent(document.referrer)+";u"+encodeURIComponent(location.href)+";"+Math.random()}function arm(){setTimeout(hit,4000)}function start(){if(document.readyState==="complete"){arm();}else{window.addEventListener("load",arm,{once:true});}}if(document.prerendering){document.addEventListener("prerenderingchange",start,{once:true});}else{start();}}());</script>',
 			$html,
 			1
 		);

@@ -13,7 +13,11 @@ defined( 'ABSPATH' ) || exit;
 final class Manacost_Shared_Theme_Styles {
 	private const CRITICAL_DIR = __DIR__ . '/manacost-shared-theme-styles/';
 
-	/** @var array<string, array<string, mixed>>|null Generated critical-CSS manifest by style handle. */
+	/**
+	 * Generated critical-CSS manifest by style handle.
+	 *
+	 * @var array<string, array<string, mixed>>|null
+	 */
 	private static ?array $manifest = null;
 
 	/** Registers the supported exclusion hooks of both active minifiers. */
@@ -98,13 +102,16 @@ final class Manacost_Shared_Theme_Styles {
 			&& ! is_customize_preview()
 			&& ! wp_doing_ajax()
 			&& ! ( defined( 'REST_REQUEST' ) && REST_REQUEST )
-			// tagDiv Composer edits templates inside an iframe that needs every rule immediately.
-			&& ! isset( $_GET['td_action'], $_GET['tdbTemplateType'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			&& ! ( class_exists( 'td_util' ) && method_exists( 'td_util', 'tdc_is_live_editor_iframe' ) && td_util::tdc_is_live_editor_iframe() )
+			// tagDiv Composer's live editor (any td_action request) needs every rule immediately.
+			&& ! isset( $_GET['td_action'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			&& ! ( defined( 'MANACOST_CRITICAL_THEME_CSS' ) && ! MANACOST_CRITICAL_THEME_CSS );
 	}
 
-	/** @return array<string, array<string, mixed>> */
+	/**
+	 * Reads the generated manifest once per request.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
 	private static function manifest(): array {
 		if ( null === self::$manifest ) {
 			$json           = is_readable( self::CRITICAL_DIR . 'critical-manifest.json' )
@@ -116,7 +123,12 @@ final class Manacost_Shared_Theme_Styles {
 		return self::$manifest;
 	}
 
-	/** Reads a generated subset that cannot close the surrounding style element. */
+	/**
+	 * Reads a generated subset that cannot close the surrounding style element.
+	 *
+	 * @param string $file Subset file name from the manifest.
+	 * @return string
+	 */
 	private static function read_critical( string $file ): string {
 		if ( ! preg_match( '/^critical-[a-z0-9-]+\.css$/', $file ) || ! is_readable( self::CRITICAL_DIR . $file ) ) {
 			return '';

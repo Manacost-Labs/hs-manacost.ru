@@ -90,10 +90,13 @@ for (const [handle, source] of Object.entries(sheets)) {
 		if (rule.parent?.type === 'atrule' && /keyframes$/i.test(rule.parent.name)) return;
 		if (!used[handle].has(rule.source.start.offset)) rule.remove();
 	});
-	// Inline CSS resolves relative URLs against the page, not the original sheet.
+	// Inline CSS resolves relative URLs against the page, not the original sheet. The query
+	// (e.g. newspaper.woff?24) must survive so the full sheet reuses the same font download.
 	root.walkDecls(decl => {
-		decl.value = decl.value.replace(/url\(\s*(['"]?)(?!data:|https?:|\/)([^'")]+)\1\s*\)/gi,
-			(_, quote, file) => `url(${quote}${new URL(file, `https://x${sheetDir}`).pathname}${quote})`);
+		decl.value = decl.value.replace(/url\(\s*(['"]?)(?!data:|https?:|\/)([^'")]+)\1\s*\)/gi, (_, quote, file) => {
+			const resolved = new URL(file, `https://x${sheetDir}`);
+			return `url(${quote}${resolved.pathname}${resolved.search}${resolved.hash}${quote})`;
+		});
 	});
 	root.walkAtRules(atRule => {
 		if (/keyframes$/i.test(atRule.name)) atRule.remove();
