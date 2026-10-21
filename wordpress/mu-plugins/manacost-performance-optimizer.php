@@ -17,9 +17,13 @@ final class Manacost_Performance_Optimizer {
 	private const PRIMARY_HOST = 'hs-manacost.ru';
 	private const MIRROR_HOST  = 'hs-manacost.com';
 
+	/** 48px blur of temnaya-versiya-v2.png (2400x1500), shown until the real backdrop decodes. */
+	private const BACKGROUND_PLACEHOLDER = 'data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAACQBQCdASowAB4APuFYpE2opSOiOrZoARAcCUAZiwJr39O4eApc9EOSAGmvkn6ZFcL8Z/KpgAD+9Xvg6R1tVChfs4fKwM3mFt9uIfm+8Jj0VgDCeKljK2oiHdhL547r23128PJQEmvP7vKi6oYecncQAVXCQwKAAAA=';
+
 	/** Registers the frontend output-buffer hook. */
 	public static function boot(): void {
 		add_action( 'template_redirect', array( __CLASS__, 'start' ), -200 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'move_jquery_to_footer' ), PHP_INT_MAX );
 		add_filter( 'option_td_011', array( __CLASS__, 'version_background_setting' ) );
 	}
 
@@ -45,6 +49,25 @@ final class Manacost_Performance_Optimizer {
 
 		$settings['tds_site_background_image'] = add_query_arg( 'mc_background', 'opaque-20261012', $image );
 		return $settings;
+	}
+
+	/**
+	 * Prints jQuery with the footer scripts that use it instead of blocking first paint.
+	 *
+	 * Public templates only call jQuery from footer scripts or after DOMContentLoaded.
+	 * WordPress keeps it in the head on its own when a head script depends on it.
+	 */
+	public static function move_jquery_to_footer(): void {
+		if ( ! self::feature_enabled( 'MANACOST_FOOTER_JQUERY_ENABLED', true ) || ! self::should_optimize() ) {
+			return;
+		}
+
+		$scripts = wp_scripts();
+		foreach ( array( 'jquery', 'jquery-core', 'jquery-migrate' ) as $handle ) {
+			if ( isset( $scripts->registered[ $handle ] ) ) {
+				$scripts->add_data( $handle, 'group', 1 );
+			}
+		}
 	}
 
 	/** Starts buffering only eligible public home-page requests. */
@@ -84,11 +107,33 @@ final class Manacost_Performance_Optimizer {
 			$html = Manacost_Thumbnail_Loading::optimize_html( $html );
 		}
 
+		if ( self::feature_enabled( 'MANACOST_BACKGROUND_PLACEHOLDER_ENABLED', true ) ) {
+			$html = self::add_background_placeholder( $html );
+		}
+
 		if ( strpos( $html, 'manacost-perf-active' ) === false ) {
 			$html = self::inject_into_head( $html, '<meta name="manacost-perf-active" content="1">' . "\n" );
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Layers a tiny blurred copy under the site backdrop.
+	 *
+	 * Until the 2400px backdrop decodes, a new page would paint its sides flat
+	 * black; the placeholder keeps the same picture on screen instead.
+	 *
+	 * @param string $html Rendered page HTML.
+	 * @return string
+	 */
+	private static function add_background_placeholder( string $html ): string {
+		return preg_replace(
+			'#(body\s*\{[^}]*?background-image:\s*url\("[^"]*/wp-content/uploads/2026/09/temnaya-versiya-v2\.png(?:\?[^"]*)?"\))(\s*;)#',
+			'$1,url(' . self::BACKGROUND_PLACEHOLDER . ');background-size:auto,2400px 1500px$2',
+			$html,
+			1
+		) ?? $html;
 	}
 
 	/**

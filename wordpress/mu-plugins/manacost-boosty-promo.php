@@ -70,7 +70,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-cover-intent',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.js',
 			array(),
-			'1.0.0',
+			'1.1.0',
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,

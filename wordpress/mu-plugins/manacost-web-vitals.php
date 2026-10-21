@@ -40,16 +40,20 @@ final class Manacost_Web_Vitals {
 <script id="manacost-web-vitals">
 (function(){
 if(!('PerformanceObserver' in window)||Math.random()>0.05)return;
-var values={LCP:null,CLS:0,INP:null},sent=false;
+function start(){
+var activation=(performance.getEntriesByType('navigation')[0]||{}).activationStart||0,values={LCP:null,CLS:0,INP:null},sent=false;
 function observe(options,read){try{new PerformanceObserver(function(list){list.getEntries().forEach(read);}).observe(options);}catch(error){}}
-observe({type:'largest-contentful-paint',buffered:true},function(entry){values.LCP=Math.round(entry.startTime);});
+observe({type:'largest-contentful-paint',buffered:true},function(entry){values.LCP=Math.round(Math.max(0,entry.startTime-activation));});
 observe({type:'layout-shift',buffered:true},function(entry){if(!entry.hadRecentInput)values.CLS+=entry.value;});
 observe({type:'event',buffered:true,durationThreshold:40},function(entry){if(entry.interactionId&&(!values.INP||entry.duration>values.INP))values.INP=Math.round(entry.duration);});
 function rating(name,value){if(name==='LCP')return value<=2500?'good':value<=4000?'needs-improvement':'poor';if(name==='INP')return value<=200?'good':value<=500?'needs-improvement':'poor';return value<=0.1?'good':value<=0.25?'needs-improvement':'poor';}
 function bucket(name,value){if(name==='CLS')return value<=0.05?'0-0.05':value<=0.1?'0.05-0.1':value<=0.25?'0.1-0.25':'0.25+';if(name==='INP')return value<=100?'0-100ms':value<=200?'100-200ms':value<=500?'200-500ms':'500ms+';return value<=1000?'0-1s':value<=2500?'1-2.5s':value<=4000?'2.5-4s':value<=8000?'4-8s':'8s+';}
-function send(){if(sent)return;sent=true;var nav=performance.getEntriesByType('navigation')[0],navigationType=nav&&nav.type?String(nav.type):'unknown';window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments);};Object.keys(values).forEach(function(name){var value=values[name];if(value===null)return;window.plausible('Web Vital',{props:{metric:name,rating:rating(name,value),value_bucket:bucket(name,value),navigation_type:navigationType}});});}
+function send(){if(sent)return;sent=true;var nav=performance.getEntriesByType('navigation')[0],navigationType=activation>0?'prerender':nav&&nav.type?String(nav.type):'unknown';window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments);};Object.keys(values).forEach(function(name){var value=values[name];if(value===null)return;window.plausible('Web Vital',{props:{metric:name,rating:rating(name,value),value_bucket:bucket(name,value),navigation_type:navigationType}});});}
 window.addEventListener('pagehide',send,{once:true});
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')send();});
+}
+// A prerendered page measures from the moment it is shown and reports nothing if it never is.
+if(document.prerendering){document.addEventListener('prerenderingchange',start,{once:true});}else{start();}
 })();
 </script>
 		<?php

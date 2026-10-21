@@ -192,6 +192,8 @@ final class Manacost_Plausible_Analytics
 
         echo "<script>\n";
         echo "(function(){\n";
+        // A prerendered page that is never shown must not report reading or scroll depth.
+        echo "function run(){\n";
         echo "var baseProps={$payload};\n";
         echo "var trackKolodaLinks={$track_links};\n";
         echo "window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)};\n";
@@ -205,6 +207,8 @@ final class Manacost_Plausible_Analytics
         echo "function sendDepth(){if(depthSent)return;check();depthSent=true;send('Scroll Depth',{depth_bucket:bucket(maxDepth)});}\n";
         echo "window.addEventListener('scroll',check,{passive:true});window.addEventListener('resize',check,{passive:true});window.addEventListener('pagehide',sendDepth);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'){sendDepth();}else{check();}});setTimeout(check,1000);setInterval(check,5000);\n";
         echo "if(trackKolodaLinks){document.addEventListener('click',function(event){var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;if(!link)return;var url;try{url=new URL(link.href,window.location.href);}catch(e){return;}if(url.hostname==='kolodahearthstone.ru'||url.hostname==='www.kolodahearthstone.ru'){send('Koloda Click',{source_path:window.location.pathname,target_host:url.hostname,target_url:url.href});}},true);}\n";
+        echo "}\n";
+        echo "if(document.prerendering){document.addEventListener('prerenderingchange',run,{once:true});}else{run();}\n";
         echo "})();\n";
         echo "</script>\n";
     }

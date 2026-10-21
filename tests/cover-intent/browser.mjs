@@ -24,6 +24,11 @@ const server = createServer((request, response) => {
 	if (request.url === '/views/hit') { response.setHeader('Content-Type', 'text/javascript'); response.end('window.viewHit=true'); return; }
 	if (request.url === '/paid/') { response.setHeader('Content-Type', 'text/html'); response.end('<body>Paid fixture</body>'); return; }
 	response.setHeader('Content-Type', 'text/html');
+	if (request.url === '/prerendered/') {
+		// Speculation rules that match nothing: the page opts into prerendering, Chrome loads nothing.
+		response.end('<!doctype html><html><body><div class="td-module-title"><a href="/article/">article</a></div><script type="speculationrules">{"prerender":[{"where":{"href_matches":"/never/*"},"eagerness":"moderate"}]}</script><script defer src="/navigation.js"></script></body></html>');
+		return;
+	}
 	if (request.url === '/') {
 		response.end(`<!doctype html><html><body><img src="/wp-content/uploads/known.png.webp"><div class="td-module-title">${['article', 'second', 'early', 'empty', 'redirect', 'json', 'foreign', 'big', 'account', 'wp-admin'].map(path => `<a href="/${path}/">${path}</a>`).join(' ')}<a class="no-prefetch" href="/article/">opt out</a><a rel="nofollow" href="/article/">nofollow</a><a href="/%61ccount/">encoded private</a><a href="/%zz/">invalid encoding</a><a href="/article/?preview=true">preview</a><a href="/article/#comments">fragment</a><a href="https://example.com/article/">external</a><a target="_blank" href="/article/">new tab</a><a href="/article/" download>download</a></div><script defer src="/navigation.js"></script></body></html>`);
 		return;
@@ -98,6 +103,13 @@ try {
 		await page.waitForTimeout(300);
 		assert.equal(requests.includes('/article/'), false, 'brief hover is cancelled');
 	});
+	await scenario(async page => {
+		await page.goto(origin + '/prerendered/', { waitUntil: 'load' });
+		requests.length = 0;
+		await page.getByRole('link', { name: 'article', exact: true }).hover();
+		await page.waitForTimeout(400);
+		assert.equal(requests.includes('/article/'), false, 'prerender rules replace the cover warm-up');
+	});
 	for (const connection of [{ saveData: true }, { effectiveType: '2g' }, { effectiveType: 'slow-2g' }]) {
 		await scenario(async page => {
 			await page.getByRole('link', { name: 'article', exact: true }).hover();
@@ -121,7 +133,7 @@ try {
 			assert.equal(page.url(), origin + '/');
 		});
 	}
-	console.log('Cover intent: mouse, keyboard, cancellation, cache, ordinary navigation/history, one-destination budget, privacy and inert parsing passed.');
+	console.log('Cover intent: mouse, keyboard, cancellation, cache, ordinary navigation/history, one-destination budget, prerender hand-off, privacy and inert parsing passed.');
 } finally {
 	await browser?.close();
 	await new Promise(resolve => server.close(resolve));
