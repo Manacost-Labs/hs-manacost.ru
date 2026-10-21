@@ -105,6 +105,74 @@ class PerformanceOptimizerTest(unittest.TestCase):
         self.assertEqual(data["original"], data["admin"])
         self.assertFalse(data["invalid"])
 
+    def test_backdrop_keeps_a_placeholder_layer_until_it_decodes(self) -> None:
+        script = r'''
+        define('ABSPATH', '/');
+        define('MANACOST_DEFER_THIRD_PARTY_ENABLED', false);
+        define('MANACOST_NATIVE_THUMBNAILS_ENABLED', false);
+        define('MANACOST_MOBILE_LITE_ENABLED', false);
+        function add_action(...$args) {}
+        function add_filter(...$args) {}
+        require $argv[1];
+        $rule = "body {\n\tbackground-color:#010101;\n\tbackground-image:url(\"https://hs-manacost.ru/wp-content/uploads/2026/09/temnaya-versiya-v2.png?mc_background=opaque-20261012\");\n\tbackground-attachment:fixed;\n}";
+        $other = "body {\n\tbackground-image:url(\"https://hs-manacost.ru/wp-content/uploads/2026/09/other.png\");\n}";
+        $page = fn($css) => '<html><head><style>' . $css . '</style></head><body></body></html>';
+        echo json_encode([
+          'backdrop' => Manacost_Performance_Optimizer::optimize_html($page($rule . $rule)),
+          'other' => Manacost_Performance_Optimizer::optimize_html($page($other)),
+        ]);
+        '''
+        result = json.loads(subprocess.run(["php", "-r", script, str(OPTIMIZER)],
+                                           text=True, capture_output=True, check=True).stdout)
+        backdrop = result["backdrop"]
+        self.assertEqual(1, backdrop.count(",url(data:image/webp;base64,"))
+        self.assertIn('temnaya-versiya-v2.png?mc_background=opaque-20261012"),url(data:image/webp;base64,', backdrop)
+        # The placeholder must cover exactly the area of the 2400x1500 original.
+        self.assertIn(");background-size:auto,2400px 1500px;", backdrop)
+        self.assertIn("background-attachment:fixed;", backdrop)
+        self.assertNotIn("data:image", result["other"])
+
+    def test_jquery_leaves_the_head_only_for_anonymous_public_pages(self) -> None:
+        script = r'''
+        define('ABSPATH', '/');
+        class Scripts { public $registered = ['jquery' => 1, 'jquery-core' => 1]; public $data = [];
+          function add_data($handle, $key, $value) { $this->data[$handle][$key] = $value; } }
+        function add_action(...$args) {}
+        function add_filter(...$args) {}
+        function is_admin() { return false; }
+        function is_user_logged_in() { return $GLOBALS['logged_in']; }
+        function wp_doing_ajax() { return false; }
+        function is_feed() { return false; }
+        function is_preview() { return false; }
+        function is_robots() { return false; }
+        function is_trackback() { return false; }
+        function home_url() { return 'https://hs-manacost.ru'; }
+        function wp_parse_url($url, $part = -1) { return parse_url($url, $part); }
+        function sanitize_text_field($value) { return $value; }
+        function wp_unslash($value) { return $value; }
+        function wp_scripts() { return $GLOBALS['scripts']; }
+        require $argv[1];
+        $out = [];
+        foreach ([false, true] as $logged_in) {
+          $GLOBALS['logged_in'] = $logged_in;
+          $GLOBALS['scripts'] = new Scripts();
+          $_SERVER['REQUEST_URI'] = '/some-article/';
+          Manacost_Performance_Optimizer::move_jquery_to_footer();
+          $out[] = $GLOBALS['scripts']->data;
+        }
+        $GLOBALS['logged_in'] = false;
+        $GLOBALS['scripts'] = new Scripts();
+        $_SERVER['REQUEST_URI'] = '/account/';
+        Manacost_Performance_Optimizer::move_jquery_to_footer();
+        $out[] = $GLOBALS['scripts']->data;
+        echo json_encode($out);
+        '''
+        anonymous, logged_in, account = json.loads(subprocess.run(["php", "-r", script, str(OPTIMIZER)],
+                                                                 text=True, capture_output=True, check=True).stdout)
+        self.assertEqual({"jquery": {"group": 1}, "jquery-core": {"group": 1}}, anonymous)
+        self.assertEqual([], logged_in)
+        self.assertEqual([], account)
+
     def test_responsive_page_does_not_have_a_user_agent_typography_variant(self) -> None:
         source = OPTIMIZER.read_text(encoding="utf-8")
 

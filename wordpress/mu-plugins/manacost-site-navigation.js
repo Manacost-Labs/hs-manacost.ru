@@ -3,6 +3,9 @@
 
 	const connection = navigator.connection;
 	if (connection && (connection.saveData || /^(slow-)?2g$/.test(connection.effectiveType))) return;
+	// Prerendering already loads the whole next page, cover included.
+	const rules = document.querySelector('script[type="speculationrules"]');
+	if (rules && rules.textContent.includes('"prerender"') && HTMLScriptElement.supports?.('speculationrules')) return;
 	let supportsWebp = false;
 	const formatProbe = new Image();
 	formatProbe.onload = () => { supportsWebp = formatProbe.naturalWidth === 1; };

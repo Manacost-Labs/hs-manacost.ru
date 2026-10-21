@@ -44,7 +44,7 @@ class BoostyPromoTest(unittest.TestCase):
                 result = subprocess.run([PHP_BINARY, '-r', script], capture_output=True, text=True, check=True)
                 scripts = json.loads(result.stdout)
                 if blocked == 'none':
-                    self.assertEqual(scripts[0][0:4], ['manacost-cover-intent', '/wp-content/mu-plugins/manacost-site-navigation.js', [], '1.0.0'])
+                    self.assertEqual(scripts[0][0:4], ['manacost-cover-intent', '/wp-content/mu-plugins/manacost-site-navigation.js', [], '1.1.0'])
                     self.assertEqual(scripts[0][4], {'strategy': 'defer', 'in_footer': True})
                 else:
                     self.assertEqual(scripts, [])

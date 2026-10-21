@@ -91,6 +91,7 @@ reader-css-check:
 
 reader-browser-test: lightbox-browser-test
 	@node tests/cover-intent/browser.mjs
+	@node tests/prerender-guards/browser.mjs
 	@node tests/reader-ui/mcp-oauth-browser.mjs
 	@node tests/reader-ui/browser.mjs
 	@node tests/reader-ui/comments-browser.mjs
