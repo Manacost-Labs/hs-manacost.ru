@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 /** Owns the direct Playerok and Sirus placements on public Manacost pages. */
 final class Manacost_Partner_Placements {
-	private const PLAYEROK_URL   = 'https://plrk.co/p/hsmanacostru2309';
+	private const PLAYEROK_URL   = 'https://bit.ly/hsmanacostru2110';
 	private const SIRUS_URL      = 'https://sirus.cc/hsmanacost';
 	private const PLAYEROK_IMAGE = '/wp-content/uploads/2026/07/728x90.jpg.webp';
 	private const SIRUS_IMAGE    = '/site-media/secondary-mark/';
