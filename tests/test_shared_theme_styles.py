@@ -63,6 +63,7 @@ class SharedThemeStylesTest(unittest.TestCase):
     def test_public_pages_inline_the_subset_and_load_the_full_sheet_without_blocking(self):
         script = r'''
         define('ABSPATH', '/');
+        if ($argv[3] === 'on') { define('MANACOST_CRITICAL_THEME_CSS', true); }
         $GLOBALS['filters'] = [];
         $GLOBALS['ver'] = $argv[2];
         function add_filter($name, $callback) { $GLOBALS['filters'][$name] = $callback; }
@@ -81,8 +82,10 @@ class SharedThemeStylesTest(unittest.TestCase):
         echo json_encode($out);
         '''
         version = json.loads((CRITICAL / "critical-manifest.json").read_text())["sheets"]["td-theme"]["version"]
-        run = lambda ver: json.loads(subprocess.run(["php", "-r", script, str(PLUGIN), ver], check=True, text=True, capture_output=True).stdout)
+        run = lambda ver, switch="on": json.loads(subprocess.run(["php", "-r", script, str(PLUGIN), ver, switch], check=True, text=True, capture_output=True).stdout)
         current, stale = run(version), run("0.0.0")
+        # Off unless explicitly enabled: it regressed LCP on Slow 4G.
+        self.assertNotIn("critical-css", run(version, "off")["public"])
         public = current["public"]
         self.assertTrue(public.startswith('<style id="td-theme-critical-css">'))
         self.assertIn('<link rel="preload" as="style" id="td-theme-css"', public)
