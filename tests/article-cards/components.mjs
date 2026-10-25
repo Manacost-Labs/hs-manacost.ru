@@ -45,6 +45,10 @@ export async function insertComponents(page, visual = false) {
       await page.locator('#hs-v-sections textarea').nth(0).fill('Содержимое первого раздела.');
       await page.locator('#hs-v-sections input').nth(1).fill('Второй раздел');
       await page.locator('#hs-v-sections textarea').nth(1).fill('Содержимое второго раздела.');
+      assert.equal(await page.locator('#hs-v-preview [role=tab]').nth(1).getAttribute('aria-selected'), 'true', 'Preview follows the section being edited');
+      await page.locator('#hs-v-density').selectOption('compact');
+      assert.equal(await page.locator('#hs-v-preview [role=tab]').nth(1).getAttribute('aria-selected'), 'true', 'Formatting keeps the preview tab selected');
+      await page.locator('#hs-v-density').selectOption('normal');
       await page.locator('#hs-v-add-section').click();
       await page.locator('#hs-v-sections button').last().click();
     } else {

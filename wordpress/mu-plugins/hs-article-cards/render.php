@@ -98,7 +98,7 @@ final class HS_Article_Cards_Render {
 	public static function enqueue(): void {
 		$post = get_queried_object();
 		if ( is_singular() && $post instanceof WP_Post && str_contains( $post->post_content, 'hs-article-card' ) ) {
-			wp_enqueue_style( 'hs-article-cards', self::css_url(), array(), '1.2.0' );
+			wp_enqueue_style( 'hs-article-cards', self::css_url(), array(), '1.2.1' );
 		}
 		if ( is_singular() && $post instanceof WP_Post && str_contains( $post->post_content, 'hs-article-component' ) ) {
 			self::component_assets();
@@ -107,9 +107,9 @@ final class HS_Article_Cards_Render {
 
 	/** Load scoped Manacost component assets; no theme or global document changes. */
 	public static function component_assets(): void {
-		wp_enqueue_style( 'hs-article-components-tokens', plugins_url( 'manacost-tokens.css', __FILE__ ), array(), '1.2.0' );
-		wp_enqueue_style( 'hs-article-components', plugins_url( 'components.css', __FILE__ ), array( 'hs-article-components-tokens' ), '1.2.0' );
-		wp_enqueue_script( 'hs-article-components', plugins_url( 'components.js', __FILE__ ), array(), '1.2.0', true );
+		wp_enqueue_style( 'hs-article-components-tokens', plugins_url( 'manacost-tokens.css', __FILE__ ), array(), '1.2.1' );
+		wp_enqueue_style( 'hs-article-components', plugins_url( 'components.css', __FILE__ ), array( 'hs-article-components-tokens' ), '1.2.1' );
+		wp_enqueue_script( 'hs-article-components', plugins_url( 'components.js', __FILE__ ), array(), '1.2.1', true );
 	}
 
 	/** Include scoped styles when Gutenberg places its canvas in an iframe. */
@@ -130,7 +130,7 @@ final class HS_Article_Cards_Render {
 		if ( ! $screen || 'post' !== $screen->base || ! in_array( $screen->post_type, array( 'post', 'page' ), true ) ) {
 			return $styles;
 		}
-		return $styles . ( '' === $styles ? '' : ',' ) . self::css_url() . ',' . add_query_arg( 'ver', '1.2.0', plugins_url( 'manacost-tokens.css', __FILE__ ) ) . ',' . add_query_arg( 'ver', '1.2.0', plugins_url( 'components.css', __FILE__ ) );
+		return $styles . ( '' === $styles ? '' : ',' ) . self::css_url() . ',' . add_query_arg( 'ver', '1.2.1', plugins_url( 'manacost-tokens.css', __FILE__ ) ) . ',' . add_query_arg( 'ver', '1.2.1', plugins_url( 'components.css', __FILE__ ) );
 	}
 
 	/**
@@ -139,6 +139,6 @@ final class HS_Article_Cards_Render {
 	 * @return string
 	 */
 	public static function css_url(): string {
-		return add_query_arg( 'ver', '1.2.0', plugins_url( 'card.css', __FILE__ ) );
+		return add_query_arg( 'ver', '1.2.1', plugins_url( 'card.css', __FILE__ ) );
 	}
 }

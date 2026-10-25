@@ -61,9 +61,14 @@
 	}
 	function refresh() {
 		const type = field('type');
+		const focusedSection = document.activeElement?.closest('#hs-v-sections fieldset');
+		const tabIndex = focusedSection ? [...byId('sections').children].indexOf(focusedSection)
+			: [...preview.querySelectorAll('[role="tab"]')].findIndex(tab => tab.getAttribute('aria-selected') === 'true');
 		dialog.querySelectorAll('[data-for]').forEach(group => { group.hidden = !group.dataset.for.split(' ').includes(type); });
 		preview.replaceChildren(build());
 		window.hsManacostComponents.enhance(preview);
+		const tabs = preview.querySelectorAll('[role="tab"]');
+		tabs[Math.min(Math.max(tabIndex, 0), tabs.length - 1)]?.click();
 		status.textContent = '';
 	}
 	function sectionFields() {

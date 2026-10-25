@@ -67,14 +67,14 @@ final class HS_Article_Cards_Admin {
 		}
 		$block = use_block_editor_for_post( $post );
 		if ( $block ) {
-			wp_enqueue_script( 'hs-article-components-block', plugins_url( 'components-block.js', __FILE__ ), array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'hs-article-components' ), '1.2.0', true );
+			wp_enqueue_script( 'hs-article-components-block', plugins_url( 'components-block.js', __FILE__ ), array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'hs-article-components' ), '1.2.1', true );
 		}
 		HS_Article_Cards_Render::component_assets();
-		wp_enqueue_style( 'hs-article-components-editor', plugins_url( 'components-editor.css', __FILE__ ), array(), '1.2.0' );
-		wp_enqueue_script( 'hs-article-components-editor', plugins_url( 'components-editor.js', __FILE__ ), array( 'hs-article-cards-picker', 'hs-article-components' ), '1.2.0', true );
-		wp_enqueue_style( 'hs-article-cards', HS_Article_Cards_Render::css_url(), array(), '1.2.0' );
-		wp_enqueue_style( 'hs-article-cards-picker', plugins_url( 'editor.css', __FILE__ ), array( 'hs-article-cards' ), '1.2.0' );
-		wp_enqueue_script( 'hs-article-cards-picker', plugins_url( 'editor.js', __FILE__ ), $block ? array( 'wp-blocks', 'wp-data', 'wp-block-editor' ) : array(), '1.2.0', true );
+		wp_enqueue_style( 'hs-article-components-editor', plugins_url( 'components-editor.css', __FILE__ ), array(), '1.2.1' );
+		wp_enqueue_script( 'hs-article-components-editor', plugins_url( 'components-editor.js', __FILE__ ), array( 'hs-article-cards-picker', 'hs-article-components' ), '1.2.1', true );
+		wp_enqueue_style( 'hs-article-cards', HS_Article_Cards_Render::css_url(), array(), '1.2.1' );
+		wp_enqueue_style( 'hs-article-cards-picker', plugins_url( 'editor.css', __FILE__ ), array( 'hs-article-cards' ), '1.2.1' );
+		wp_enqueue_script( 'hs-article-cards-picker', plugins_url( 'editor.js', __FILE__ ), $block ? array( 'wp-blocks', 'wp-data', 'wp-block-editor' ) : array(), '1.2.1', true );
 		wp_localize_script(
 			'hs-article-cards-picker',
 			'hsArticleCards',
