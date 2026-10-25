@@ -22,6 +22,13 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 const apiPage = await context.newPage();
+const navigationFailures = [];
+page.on('requestfailed', request => {
+  const code = request.failure()?.errorText;
+  if (request.isNavigationRequest() && /^net::ERR_[A-Z_]+$/.test(code ?? '') && navigationFailures.length < 4) {
+    navigationFailures.push({ path: new URL(request.url()).pathname, code });
+  }
+});
 let nonce;
 let fixture;
 async function api(route, method = 'GET', body) {
@@ -51,7 +58,9 @@ async function resultsAfter(action) {
 }
 try {
   report.stage = 'login-navigation';
-  await page.goto(`${base}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+  const nonceURL = `${base}/wp-admin/admin-ajax.php?action=rest-nonce`;
+  // Use core's local login redirect; the unrelated dashboard need not initialize.
+  await page.goto(`${base}/wp-login.php?redirect_to=${encodeURIComponent(nonceURL)}`, { waitUntil: 'domcontentloaded' });
   report.stage = 'login-form';
   await page.waitForFunction(() => document.activeElement?.id === 'user_login');
   await page.locator('#user_login').fill(process.env.WP_TEST_ADMIN_USER);
@@ -121,6 +130,8 @@ try {
     message = message.replaceAll(process.env[key], '[redacted]');
   }
   report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 240);
+  report.final_path = new URL(page.url()).pathname;
+  report.navigation_failures = navigationFailures;
   report.ok = false;
 } finally {
   if (fixture?.id && nonce) {
