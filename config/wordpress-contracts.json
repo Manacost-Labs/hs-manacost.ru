@@ -2165,6 +2165,13 @@
         "line": 22
       },
       {
+        "name": "wp_ajax_hs_article_cards",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
+        "line": 18
+      },
+      {
         "name": "wp_ajax_hs_deck_archetypes_page",
         "resolved": true,
         "api": "add_action",
@@ -2750,6 +2757,20 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
         "line": 106
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
+        "line": 29
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
+        "line": 121
       },
       {
         "name": "edit_post",

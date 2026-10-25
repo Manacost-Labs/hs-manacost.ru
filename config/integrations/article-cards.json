@@ -1,0 +1,23 @@
+{
+  "name": "article-card-catalog",
+  "owner": "hs-article-cards MU plugin",
+  "purpose": "Select published articles by source, category and search; insert a native HTML card containing the cover, title and publication date.",
+  "direction": "outbound",
+  "endpoints": {
+    "catalog": "https://kolodahearthstone.com/wp-json/wp/v2/posts",
+    "categories": "https://kolodahearthstone.com/wp-json/wp/v2/categories",
+    "detail": "https://kolodahearthstone.com/wp-json/wp/v2/posts/{positive-id}",
+    "images": "https://kolodahearthstone.com/; local attachment URLs remain owned by WordPress/S3"
+  },
+  "authentication": "Purpose-specific nonce and edit_post for the edited WordPress document. Provider GET requests have no credentials, forwarded cookies or user identifiers.",
+  "data_classes": ["public article metadata", "editor-entered search terms", "category IDs", "safe operational outcome"],
+  "timeout_seconds": 5,
+  "retry": {"max_attempts": 1, "backoff": "Explicit user retry; 30-second provider-wide cooldown on error; honor numeric or HTTP-date Retry-After between 30 and 3600 seconds."},
+  "idempotency": "Read-only GET and HTML generation. No provider writes; native editor insert is undoable and does not save the post automatically.",
+  "rate_limit": "10 posts per page, at most 100 decoded records, 512 KiB response cap, 5-minute query-specific cache, debounced search and cancellation of obsolete UI results.",
+  "observability": {"hook": "hs_article_cards_provider_result", "fields": ["safe outcome code"], "excluded": ["query", "post body", "user identity", "response body", "credentials"]},
+  "degradation": "Visible error with retry; preserve article editor text. Local catalog works during provider failure. Existing cards are stored native HTML and require no provider API request at render or save time. A missing cover leaves the title, date and link usable.",
+  "disable_switch": {"constant": "HS_ARTICLE_CARDS_KOLODA_ENABLED", "disabled_value": false, "owner": "site operator"},
+  "privacy": "Only selected public filters leave the server; no article bodies are requested. External cover images are loaded by readers' browsers, revealing their normal network address to Koloda; editor previews use no-referrer. No new tracking scripts, cookies or personal-data storage. Search results expire after 5 minutes.",
+  "rollback": "Revert the plugin release through the normal pipeline. Already inserted HTML remains readable and linked even without plugin CSS. No DB schema, media mutation or destructive uninstall."
+}
