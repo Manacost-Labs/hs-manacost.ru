@@ -1,3 +1,4 @@
+import { insertComponents, verifyComponents } from './components.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -134,6 +135,8 @@ try {
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await page.setViewportSize({ width: 1440, height: 1000 });
   report.layouts = ['grid', 'list'];
+  await insertComponents(page);
+  report.components = ['alert', 'spoiler', 'quote', 'tabs', 'table'];
   report.stage = 'save';
   await page.evaluate(() => window.scrollTo(0, 0));
   await Promise.all([
@@ -162,6 +165,7 @@ try {
     await preview.setViewportSize({ width, height: 1000 });
     assert.equal(await preview.locator('.hs-article-cards--grid').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
   }
+  await verifyComponents(preview);
   report.preview = true;
   report.ok = true;
 } catch (error) {

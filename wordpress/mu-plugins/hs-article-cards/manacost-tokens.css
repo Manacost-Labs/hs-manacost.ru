@@ -1,0 +1,21 @@
+/* ValyroUI Manacost light-theme token subset, fetched with valyro-cli 0.1.0.
+ * Original SHA256: 0329bde9aa742ab7b30b4ac651f0af8fb92034437eb177847b148827855cfaeb
+ * Scoped to editorial components; no global theme provider or external fonts. */
+.hs-article-component {
+  --ui-active-indicator: oklch(86.92% 0.1593 88.32);
+  --ui-border-strong: oklch(85.99% 0.017 250.86);
+  --ui-data-table-head-bg: oklch(95.4% 0.0155 247.99);
+  --ui-data-table-head-fg: oklch(49.556% 0.12509 251.26);
+  --ui-fg: var(--ui-gray-1000);
+  --ui-fg-muted: oklch(40.848% 0.04546 263.17);
+  --ui-focus-color: oklch(55.845% 0.13416 250.43);
+  --ui-gray-1000: oklch(27.27% 0.0976 265.2);
+  --ui-info: oklch(55.845% 0.13416 250.43);
+  --ui-info-soft: oklch(95.4% 0.0155 247.99);
+  --ui-primary: oklch(55.845% 0.13416 250.43);
+  --ui-radius-md: 4px;
+  --ui-success: oklch(64.376% 0.13565 161.16);
+  --ui-success-soft: oklch(94.85% 0.0403 162.43);
+  --ui-warning: oklch(86.92% 0.1593 88.32);
+  --ui-warning-soft: oklch(97.197% 0.04274 94.07);
+}
