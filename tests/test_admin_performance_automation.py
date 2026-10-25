@@ -71,6 +71,34 @@ def budgets() -> dict[str, object]:
 
 
 class AdminPerformanceAutomationTests(unittest.TestCase):
+    def test_navigation_recovery_is_bounded_and_specific(self) -> None:
+        result = subprocess.run(["node", "--input-type=module", "-e", textwrap.dedent("""
+            import assert from 'node:assert/strict';
+            import { navigateWithNetworkRecovery } from './ops/performance/browser-fixture-request.mjs';
+            const response = { status: () => 200 };
+            function page(errors) {
+                return { calls: 0, waits: [], async goto(url, options) {
+                    this.calls++;
+                    assert.equal(url, 'https://test.hs-manacost.ru/');
+                    assert.equal(options.timeout, 30000);
+                    const error = errors.shift(); if (error) throw error; return response;
+                }, async waitForTimeout(ms) { this.waits.push(ms); } };
+            }
+            const network = () => new Error('page.goto: net::ERR_NETWORK_CHANGED');
+            const recovered = page([network(), network()]);
+            assert.deepEqual(await navigateWithNetworkRecovery(recovered, 'https://test.hs-manacost.ru/', {timeout:30000}), {response, retries:2});
+            assert.deepEqual(recovered.waits, [1000, 2000]);
+            const exhausted = page([network(), network(), network()]);
+            await assert.rejects(navigateWithNetworkRecovery(exhausted, 'https://test.hs-manacost.ru/', {timeout:30000}), /ERR_NETWORK_CHANGED/);
+            assert.equal(exhausted.calls, 3);
+            for (const message of ['Timeout exceeded', 'net::ERR_CERT_AUTHORITY_INVALID', 'HTTP 403']) {
+                const rejected = page([new Error(message)]);
+                await assert.rejects(navigateWithNetworkRecovery(rejected, 'https://test.hs-manacost.ru/', {timeout:30000}));
+                assert.equal(rejected.calls, 1); assert.equal(rejected.waits.length, 0);
+            }
+        """)], cwd=ROOT, capture_output=True, text=True, timeout=15)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_diagnostic_error_labels_do_not_export_private_messages(self) -> None:
         script = """
 import assert from 'node:assert/strict';

@@ -3,6 +3,7 @@ import { chromium, devices } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { collectFrontendProfile } from './browser-frontend-profile.mjs';
+import { navigateWithNetworkRecovery, classifyDiagnosticFailure } from './browser-fixture-request.mjs';
 
 const origin = 'https://test.hs-manacost.ru';
 const username = process.env.STAGING_HTTP_USER;
@@ -46,7 +47,7 @@ try {
         await cdp.send('Network.enable');
         await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: 200000, uploadThroughput: 75000 });
         await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-        const response = await page.goto(origin + routePath, { waitUntil: 'domcontentloaded', timeout: 90000 });
+        const { response, retries } = await navigateWithNetworkRecovery(page, origin + routePath, { waitUntil: 'domcontentloaded', timeout: 90000 });
         await page.evaluate(() => Promise.race([document.fonts.ready, new Promise(resolve => setTimeout(resolve, 20000))]));
         if (routePath === '/account/') await page.waitForFunction(() => document.querySelector('.mc-reader__actions a'), undefined, { timeout: 30000 });
         await page.waitForTimeout(3000);
@@ -66,7 +67,7 @@ try {
         });
         const headers = response?.headers() ?? {};
         const resourceProfile = await page.evaluate(collectFrontendProfile);
-        const row = { ...resourceProfile, path: routePath, sample, status: response?.status(), robots: headers['x-robots-tag'] ?? '', cache_control: headers['cache-control'] ?? '', ...data };
+        const row = { ...resourceProfile, path: routePath, sample, navigation_retries: retries, status: response?.status(), robots: headers['x-robots-tag'] ?? '', cache_control: headers['cache-control'] ?? '', ...data };
         report.samples.push(row);
         if (row.status !== 200 || !/noindex/.test(row.robots) || row.cls > 0.1 || row.overflow || row.failed_visible_images || row.pending_visible_images) report.errors.push({ path: routePath, sample, reason: 'status/noindex/CLS/layout/image gate' });
         // Check additional widths with the already loaded assets.
@@ -79,7 +80,7 @@ try {
         }
       } catch (error) {
         // Error objects can contain request context; keep only the error class.
-        report.errors.push({ path: routePath, sample, reason: error.name });
+        report.errors.push({ path: routePath, sample, reason: classifyDiagnosticFailure(error) });
       } finally { await context.close(); }
       await writeFile(path.join(directory, 'frontend-slow-mobile.json'), JSON.stringify(report, null, 2));
     }
