@@ -64,6 +64,12 @@ SQL, TinyMCE, AJAX-права, фильтры, сохранение, preview и 
 статей и категорий, keyboard/Escape, ширины 320–1440 px и 200% zoom.
 
 Контракт внешнего сервиса: `config/integrations/article-cards.json`.
+После staging deployment workflow `Admin performance staging` запускает
+`tests/article-cards/staging.mjs` с защищёнными диагностическими учётными данными.
+Сценарий проверяет оба живых каталога, поиск, категории, вставку, сохранение
+синтетического черновика и frontend preview. Только собственный черновик с
+уникальным маркером перемещается в корзину; опубликованные материалы не меняются.
+Отчёт `article-cards-staging` должен содержать `ok: true` перед promotion.
 Отключение только внешнего каталога: `HS_ARTICLE_CARDS_KOLODA_ENABLED=false`
 в управляемой runtime-конфигурации; секреты для этой интеграции не нужны.
 Откат — revert точного релизного commit через staging/production pipeline.
