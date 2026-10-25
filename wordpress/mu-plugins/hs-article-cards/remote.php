@@ -26,7 +26,8 @@ final class HS_Article_Cards_Remote {
 		if ( ! preg_match( '#^(posts(/[1-9][0-9]*)?|categories)$#D', $endpoint ) ) {
 			return self::error( 'invalid_resource' );
 		}
-		ksort( $query );
+		// Koloda omits embedded covers when _embed precedes _fields.
+		// Keep the catalog's request order; the complete URL remains the cache key.
 		$url = add_query_arg( $query, 'https://kolodahearthstone.com/wp-json/wp/v2/' . $endpoint );
 		$key = 'hs_article_cards_' . hash( 'sha256', $url );
 		$hit = get_transient( $key );

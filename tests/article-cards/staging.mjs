@@ -36,6 +36,7 @@ async function api(route, method = 'GET', body) {
   }, { route, method, body, nonce });
 }
 async function editorReady() {
+  await page.locator('#content-tmce').click();
   await page.waitForFunction(() => window.tinymce?.get('content')?.initialized);
 }
 async function resultsAfter(action) {
@@ -49,18 +50,23 @@ async function resultsAfter(action) {
   await page.locator('.hs-ac-choice').first().waitFor();
 }
 try {
+  report.stage = 'login-navigation';
   await page.goto(`${base}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+  report.stage = 'login-form';
   await page.waitForFunction(() => document.activeElement?.id === 'user_login');
   await page.locator('#user_login').fill(process.env.WP_TEST_ADMIN_USER);
   await page.locator('#user_pass').fill(process.env.WP_TEST_ADMIN_PASSWORD);
   await page.locator('#wp-submit').click();
+  report.stage = 'login-redirect';
   await finishAdminLogin(page, base);
+  report.stage = 'rest-nonce';
   const nonceResponse = await apiPage.goto(`${base}/wp-admin/admin-ajax.php?action=rest-nonce`);
   nonce = (await nonceResponse.text()).trim();
   assert.match(nonce, /^[a-z0-9]{10}$/i);
   report.stage = 'create-draft';
   fixture = await api('posts', 'POST', { title: marker, content: `<p>${marker}</p>`, status: 'draft' });
   assert.ok(Number.isSafeInteger(fixture.id) && fixture.id > 0);
+  report.stage = 'editor-open';
   await page.goto(`${base}/wp-admin/post.php?post=${fixture.id}&action=edit`);
   await editorReady();
   for (const source of ['manacost', 'koloda']) {
@@ -70,6 +76,7 @@ try {
       await resultsAfter(() => page.locator('#hs-ac-source').selectOption(source));
     }
     await page.waitForFunction(() => document.querySelectorAll('#hs-ac-category option').length > 1);
+    if (source === 'koloda') assert.ok(await page.locator('.hs-ac-choice img').count(), 'Live Koloda catalog must include covers');
     const title = (await page.locator('.hs-ac-choice strong').first().innerText()).trim();
     await resultsAfter(() => page.locator('#hs-ac-search').fill(title.slice(0, 80)));
     await page.locator('.hs-ac-choice').first().click();
@@ -108,8 +115,12 @@ try {
   }
   report.preview = true;
   report.ok = true;
-} catch {
-  // Stage labels identify the failure without exporting credentials or draft content.
+} catch (error) {
+  let message = String(error?.message ?? 'Unknown failure').split('\n')[0];
+  for (const key of ['WP_TEST_ADMIN_USER', 'WP_TEST_ADMIN_PASSWORD', 'STAGING_HTTP_USER', 'STAGING_HTTP_PASSWORD']) {
+    message = message.replaceAll(process.env[key], '[redacted]');
+  }
+  report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 240);
   report.ok = false;
 } finally {
   if (fixture?.id && nonce) {

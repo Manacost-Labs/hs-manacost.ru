@@ -39,6 +39,9 @@ foreach (['https://localhost', '../users', 'users', 'posts/1?secret=x'] as $path
     check(is_wp_error(HS_Article_Cards_Remote::get($path, [])), 'Rejects arbitrary endpoints');
 }
 check(count($calls) === 1, 'Invalid endpoints cause no HTTP');
+HS_Article_Cards_Remote::get('posts', ['per_page'=>10, '_fields'=>'id,_links,_embedded', '_embed'=>'wp:featuredmedia']);
+$embedded_url = $calls[count($calls)-1][0];
+check(strpos($embedded_url, '_fields=') < strpos($embedded_url, '_embed='), 'Koloda requires fields before embed to return covers');
 foreach ([401,403,429,500,302] as $status) {
     $cache=[];
     $response['response']['code']=$status;
