@@ -7,6 +7,7 @@ function cards_check($value,$message) { if (!$value) throw new RuntimeException(
 wp_set_current_user(1);
 $existing=get_option('hs_article_cards_fixture');
 if (is_array($existing)) {
+    wp_update_post(['ID'=>$existing['author_post'],'post_status'=>'draft','post_content'=>'<p>Текст автора.</p>']);
     wp_set_password(getenv('WP_CARDS_AUTHOR_PASSWORD'),$existing['author']);
     wp_set_password(getenv('WP_CARDS_SUBSCRIBER_PASSWORD'),$existing['subscriber']);
     wp_update_post(['ID'=>$existing['block_post'],'post_content'=>'']);

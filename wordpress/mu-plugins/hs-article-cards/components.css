@@ -1,0 +1,38 @@
+/* WordPress HTML adapters of Valyro Alert, Accordion, PullQuote, Tabs and DataTable.
+ * Manacost tokens are confined to each component; the site's fonts are inherited. */
+.hs-article-component { box-sizing: border-box; max-width: 100%; min-width: 0; margin: 24px 0; color: var(--ui-fg); font-family: inherit; font-size: inherit; line-height: 1.6; overflow-wrap: anywhere; --hs-v-pad: 16px; }
+.hs-article-component *, .hs-article-component *::before, .hs-article-component *::after { box-sizing: border-box; }
+.hs-article-component[data-width="narrow"] { max-width: 560px; margin-inline: auto; }
+.hs-article-component[data-density="compact"] { --hs-v-pad: 10px; }
+.hs-article-component .hs-v-body p { margin: 0 0 10px; font-size: inherit; line-height: inherit; }
+.hs-article-component .hs-v-body p:last-child { margin-bottom: 0; }
+.hs-article-component .hs-v-title { margin: 0 0 8px; font-weight: 700; color: inherit; font-size: inherit; line-height: 1.5; }
+.hs-article-component :focus-visible, .hs-article-component:focus-visible { outline: 2px solid var(--ui-focus-color); outline-offset: 3px; }
+.hs-v-alert { border: 1px solid var(--ui-info); border-radius: var(--ui-radius-md); background: var(--ui-info-soft); padding: var(--hs-v-pad); }
+.hs-v-alert[data-tone="warning"] { border-color: var(--ui-warning); background: var(--ui-warning-soft); }
+.hs-v-alert[data-tone="success"] { border-color: var(--ui-success); background: var(--ui-success-soft); }
+.hs-v-spoiler { border-block: 1px solid var(--ui-border-strong); padding: 0 2px; }
+.hs-v-spoiler > summary.hs-v-title { display: list-item; cursor: pointer; padding: var(--hs-v-pad) 4px; margin: 0; min-height: 48px; }
+.hs-v-spoiler > summary::marker { color: var(--ui-primary); }
+.hs-v-spoiler > .hs-v-body { padding: 0 4px var(--hs-v-pad); }
+.hs-v-quote { border-inline-start: var(--ui-editorial-rule-width, 3px) solid var(--ui-primary); padding: var(--hs-v-pad); }
+.hs-v-quote[data-align="center"] { text-align: center; }
+.hs-v-quote .hs-v-quote-text { margin: 0; padding: 0; border: 0; color: inherit; font-family: inherit; font-style: normal; font-size: clamp(18px, 1.3em, 26px); line-height: 1.5; background: transparent; }
+.hs-v-quote .hs-v-quote-text::before, .hs-v-quote .hs-v-quote-text::after { content: none; }
+.hs-v-quote .hs-v-quote-text p { margin: 0 0 8px; font-size: inherit; line-height: inherit; color: inherit; }
+.hs-v-quote figcaption { color: var(--ui-fg-muted); font-size: 14px; margin-top: 8px; }
+.hs-v-quote figcaption::before { content: '— '; }
+.hs-v-tabs { border-top: 3px solid var(--ui-primary); }
+.hs-v-tablist { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0; border-bottom: 1px solid var(--ui-border-strong); }
+.hs-v-tablist > button { appearance: none; font: inherit; font-weight: 600; color: var(--ui-fg-muted); background: transparent; border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 12px; min-height: 44px; min-width: 44px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; cursor: pointer; box-shadow: none; text-transform: none; }
+.hs-v-tablist > button[aria-selected="true"] { border-bottom-color: var(--ui-active-indicator); color: var(--ui-fg); background: var(--ui-info-soft); }
+.hs-v-panel { padding: var(--hs-v-pad) 0; }
+.hs-v-tabs[data-enhanced] > .hs-v-panel > .hs-v-tab-title { display: none; }
+.hs-v-tabs > .hs-v-panel[hidden] { display: none !important; }
+.hs-v-table { overflow-x: auto; border-top: 3px solid var(--ui-primary); }
+.hs-article-component.hs-v-table table { border-collapse: collapse; width: 100%; table-layout: auto; margin: 0; font: inherit; color: inherit; }
+.hs-article-component.hs-v-table caption { color: var(--ui-fg); padding: var(--hs-v-pad) 0; font-weight: 700; text-align: start; caption-side: top; }
+.hs-article-component.hs-v-table :is(th, td) { border: 1px solid var(--ui-border-strong); padding: var(--hs-v-pad); min-width: 100px; vertical-align: top; text-align: start; font: inherit; }
+.hs-article-component.hs-v-table th { background: var(--ui-data-table-head-bg); color: var(--ui-data-table-head-fg); font-weight: 700; }
+.hs-v-table tbody tr:nth-child(even) { background: var(--ui-info-soft); }
+@media print { .hs-v-tablist { display: none; } .hs-v-tabs[data-enhanced] > .hs-v-panel > .hs-v-tab-title, .hs-v-tabs > .hs-v-panel[hidden] { display: block !important; } .hs-v-table { overflow: visible; } }
