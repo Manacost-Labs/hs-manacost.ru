@@ -5,6 +5,7 @@ import struct
 import shutil
 import subprocess
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 
@@ -18,6 +19,36 @@ PHP_BINARY = shutil.which("php") or "/usr/bin/php"
 
 
 class BoostyPromoTest(unittest.TestCase):
+    def test_cover_intent_is_deferred_and_excludes_private_request_contexts(self) -> None:
+        for blocked in ('none', 'admin', 'logged_in', 'feed', 'preview', 'ajax', 'rest', 'disabled'):
+            with self.subTest(blocked=blocked):
+                flags = {name: json.dumps(blocked == name) for name in ('admin', 'logged_in', 'feed', 'preview', 'ajax')}
+                script = f"""
+                define('ABSPATH', '/');
+                define('REST_REQUEST', {json.dumps(blocked == 'rest')});
+                define('MANACOST_COVER_INTENT_ENABLED', {json.dumps(blocked != 'disabled')});
+                function add_action(...$args) {{}}
+                function add_filter(...$args) {{}}
+                function is_admin() {{ return {flags['admin']}; }}
+                function is_user_logged_in() {{ return {flags['logged_in']}; }}
+                function is_feed() {{ return {flags['feed']}; }}
+                function is_preview() {{ return {flags['preview']}; }}
+                function wp_doing_ajax() {{ return {flags['ajax']}; }}
+                function plugin_dir_url($file) {{ return '/wp-content/mu-plugins/'; }}
+                function wp_enqueue_script(...$args) {{ $GLOBALS['scripts'][] = $args; }}
+                $scripts = [];
+                require {json.dumps(str(PLUGIN))};
+                Manacost_Boosty_Promo::enqueue_cover_intent();
+                echo json_encode($scripts);
+                """
+                result = subprocess.run([PHP_BINARY, '-r', script], capture_output=True, text=True, check=True)
+                scripts = json.loads(result.stdout)
+                if blocked == 'none':
+                    self.assertEqual(scripts[0][0:4], ['manacost-cover-intent', '/wp-content/mu-plugins/manacost-site-navigation.js', [], '1.1.0'])
+                    self.assertEqual(scripts[0][4], {'strategy': 'defer', 'in_footer': True})
+                else:
+                    self.assertEqual(scripts, [])
+
     def test_banner_assets_are_versioned_webp_files(self) -> None:
         self.assertTrue(BANNER.is_file())
         self.assertEqual(b"RIFF", BANNER.read_bytes()[:4])
@@ -73,6 +104,11 @@ class BoostyPromoTest(unittest.TestCase):
             $GLOBALS['styles'][$handle] = [$src, $dependencies, $version];
         }}
         function is_admin() {{ return false; }}
+        function is_user_logged_in() {{ return false; }}
+        function is_feed() {{ return false; }}
+        function is_preview() {{ return false; }}
+        function wp_doing_ajax() {{ return false; }}
+        function wp_enqueue_script(...$args) {{}}
         function is_front_page() {{ return $GLOBALS['front_page']; }}
         function esc_url($value) {{ return $value; }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
@@ -212,6 +248,60 @@ class BoostyPromoTest(unittest.TestCase):
 
         self.assertIn("manacost-site-navigation", result["styles"])
         self.assertIn("manacost-boosty-promo", result["styles"])
+
+    def test_promo_images_offer_small_renditions_and_allow_the_site_lazy_loader(self) -> None:
+        for homepage in (True, False):
+            result = self.run_plugin(is_front_page=homepage)
+            markup = result["shortcode" if homepage else "sidebar"]
+            basename = "homepage-banner" if homepage else "banner"
+            self.assertIn('loading="lazy"', markup)
+            self.assertNotIn('data-no-lazy=', markup)
+            self.assertIn('sizes="(max-width: 767px) calc(100vw - 40px), 350px"', markup)
+            self.assertIn('srcset="', markup)
+            for width in (400, 800):
+                self.assertIn(f"{basename}-{width}.webp", markup)
+                asset = BANNER.parent / f"{basename}-{width}.webp"
+                data = asset.read_bytes()
+                self.assertEqual(b"RIFF", data[:4])
+                self.assertEqual(b"VP8 ", data[12:16])
+                self.assertEqual(width, struct.unpack("<H", data[26:28])[0] & 0x3FFF)
+                original = HOMEPAGE_BANNER if homepage else BANNER
+                self.assertLess(len(data), original.stat().st_size)
+
+    def test_rocket_defers_promo_sources_and_preserves_the_no_script_fallback(self) -> None:
+        rocket_image = ROOT / "wordpress/plugins/wp-rocket/inc/Dependencies/RocketLazyload/Image.php"
+        script = f"""
+        require {json.dumps(str(rocket_image))};
+        $image = new WP_Rocket\\Dependencies\\RocketLazyload\\Image();
+        function absint($value) {{ return abs((int) $value); }}
+        function esc_url($value) {{ return $value; }}
+        function apply_filters($hook, $value, ...$args) {{
+            return $hook === 'rocket_lazyload_html'
+                ? $GLOBALS['image']->lazyloadResponsiveAttributes($value) : $value;
+        }}
+        function wpm_apply_filters_typed($type, $hook, $value) {{ return $value; }}
+        $markup = stream_get_contents(STDIN);
+        echo $image->lazyloadImages($markup, $markup, false);
+        """
+        for homepage in (True, False):
+            markup = self.run_plugin(is_front_page=homepage)["shortcode" if homepage else "sidebar"]
+            result = subprocess.run([PHP_BINARY, "-r", script], input=markup,
+                                    text=True, capture_output=True, check=True)
+            active, fallback = result.stdout.split("<noscript>", 1)
+            images = []
+            class ImageAttributes(HTMLParser):
+                def handle_starttag(self, tag, attrs):
+                    if tag == "img":
+                        images.append(dict(attrs))
+            ImageAttributes().feed(active)
+            self.assertEqual(1, len(images))
+            self.assertTrue(images[0]["src"].startswith("data:image/"))
+            self.assertNotIn("srcset", images[0])
+            self.assertIn("400w", images[0]["data-lazy-srcset"])
+            self.assertIn("800w", images[0]["data-lazy-srcset"])
+            self.assertEqual("350px", images[0]["data-lazy-sizes"].split(", ")[-1])
+            self.assertIn('width="117', active)
+            self.assertIn(markup.split("<img", 1)[1].split("</a>", 1)[0], fallback)
 
     def test_replaces_only_the_legacy_article_sidebar_banner(self) -> None:
         result = self.run_plugin(is_front_page=False)

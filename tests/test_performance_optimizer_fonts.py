@@ -63,6 +63,7 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         define('ABSPATH', '/');
         {constants}
         function add_action($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
+        function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {{}}
         function is_admin() {{ return {json.dumps(admin)}; }}
         function is_user_logged_in() {{ return {json.dumps(logged_in)}; }}
         function wp_doing_ajax() {{ return false; }}

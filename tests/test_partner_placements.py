@@ -174,7 +174,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertEqual(1, markup.count('class="site-partnership"'))
                 self.assertIn('aria-label="Партнёры сайта"', markup)
                 self.assertNotIn('class="site-partnership__label"', markup)
-                self.assertIn('href="https://plrk.co/p/hsmanacostru2309"', markup)
+                self.assertIn('href="https://bit.ly/hsmanacostru2110"', markup)
                 self.assertNotIn('href="https://plrk.co/p/hsmanacostru1708"', markup)
                 self.assertIn('class="site-masthead-mark"', markup)
                 self.assertIn(f'href="https://{host}/"', markup)

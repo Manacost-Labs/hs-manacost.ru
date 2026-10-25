@@ -1064,14 +1064,14 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1113
+        "line": 1118
       },
       {
         "name": "_hs_tooltips_enabled",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1155
+        "line": 1160
       },
       {
         "name": "_imagify_data",
@@ -1297,28 +1297,28 @@
         "resolved": false,
         "api": "get_option",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 517
+        "line": 525
       },
       {
         "name": "@constant:HS_TOOLTIP_BGS_SETTINGS_KEY",
         "resolved": false,
         "api": "update_option",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 526
+        "line": 534
       },
       {
         "name": "@constant:HS_TOOLTIP_MAIN_SETTINGS",
         "resolved": false,
         "api": "get_option",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 36
+        "line": 38
       },
       {
         "name": "@constant:HS_TOOLTIP_MAIN_SETTINGS",
         "resolved": false,
         "api": "update_option",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 46
+        "line": 48
       },
       {
         "name": "blog_charset",
@@ -1640,21 +1640,21 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1245
+        "line": 1250
       },
       {
         "name": "hs_tooltip_logs",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1259
+        "line": 1264
       },
       {
         "name": "hs_tooltip_logs",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1291
+        "line": 1296
       },
       {
         "name": "imagify_settings",
@@ -2034,14 +2034,14 @@
         "resolved": true,
         "api": "add_shortcode",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1857
+        "line": 1865
       },
       {
         "name": "hs_card",
         "resolved": true,
         "api": "add_shortcode",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 984
+        "line": 989
       },
       {
         "name": "hs_deck",
@@ -2225,14 +2225,14 @@
         "resolved": true,
         "api": "add_action",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1521
+        "line": 1526
       },
       {
         "name": "wp_ajax_hs_tooltip_search_bgs",
         "resolved": true,
         "api": "add_action",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1892
+        "line": 1900
       },
       {
         "name": "wp_ajax_manacost_arena_filter",
@@ -2377,6 +2377,27 @@
     ],
     "rest_routes": [
       {
+        "name": "hs-editor-ai/v1/jobs",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 42
+      },
+      {
+        "name": "hs-editor-ai/v1/jobs/(?P<id>[a-f0-9]{32})",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 73
+      },
+      {
+        "name": "hs-editor-ai/v1/jobs/(?P<id>[a-f0-9]{32})/run",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 82
+      },
+      {
         "name": "manacost-reader/v1/favorites",
         "resolved": true,
         "api": "register_rest_route",
@@ -2432,14 +2453,14 @@
         "resolved": false,
         "api": "wp_schedule_event",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 560
+        "line": 568
       },
       {
         "name": "@constant:HS_TOOLTIP_MAIN_CRON_HOOK",
         "resolved": false,
         "api": "wp_schedule_event",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 457
+        "line": 465
       },
       {
         "name": "@constant:Kolodahs_Manacost_Sync::CRON_SYNC",
@@ -2454,6 +2475,27 @@
         "api": "wp_schedule_event",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
         "line": 58
+      },
+      {
+        "name": "hs_editor_ai_expire",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 176
+      },
+      {
+        "name": "hs_editor_ai_process",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 176
+      },
+      {
+        "name": "hs_editor_ai_process",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 246
       },
       {
         "name": "hs_local_image_optimizer_process_attachment",
@@ -2721,14 +2763,14 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1493
+        "line": 1498
       },
       {
         "name": "edit_pages",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1865
+        "line": 1873
       },
       {
         "name": "edit_pages",
@@ -2804,6 +2846,27 @@
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-admin.php",
+        "line": 36
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 122
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 192
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-editor-cloudflare-deferred-purge.php",
         "line": 54
       },
@@ -2833,7 +2896,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1144
+        "line": 1149
       },
       {
         "name": "edit_post",
@@ -2902,6 +2965,13 @@
         "name": "edit_posts",
         "resolved": true,
         "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-editor-ai/class-jobs.php",
+        "line": 33
+      },
+      {
+        "name": "edit_posts",
+        "resolved": true,
+        "api": "current_user_can",
         "file": "wordpress/plugins/hs-manacost-inline-deck/hs-manacost-inline-deck.php",
         "line": 38
       },
@@ -2924,14 +2994,14 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1493
+        "line": 1498
       },
       {
         "name": "edit_posts",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1865
+        "line": 1873
       },
       {
         "name": "edit_posts",
@@ -2994,7 +3064,14 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
-        "line": 23
+        "line": 26
+      },
+      {
+        "name": "manage_options",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
+        "line": 187
       },
       {
         "name": "manage_options",
@@ -3043,35 +3120,35 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1283
+        "line": 1288
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1389
+        "line": 1394
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 1410
+        "line": 1415
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/hs-smart-tooltip.php",
-        "line": 2004
+        "line": 2016
       },
       {
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/hs-tooltip/includes/auto-update.php",
-        "line": 398
+        "line": 406
       },
       {
         "name": "manage_options",
@@ -3107,6 +3184,13 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
         "line": 303
+      },
+      {
+        "name": "upload_files",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-admin-media-months-cache.php",
+        "line": 102
       },
       {
         "name": "upload_files",

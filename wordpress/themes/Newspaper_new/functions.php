@@ -655,7 +655,8 @@ add_action('wp_footer', function() {
  if (is_single()) {
  ?>
  <script>
- document.addEventListener("DOMContentLoaded", function() {
+ (function() {
+ function countView() {
    var postId = document.querySelector('[class*="td-nr-views-"]');
    if (!postId) return;
 
@@ -684,7 +685,14 @@ add_action('wp_footer', function() {
        }
      })
      .catch(function() {});
- });
+ }
+ // A prerendered article is counted only when the reader actually opens it.
+ if (document.prerendering) {
+   document.addEventListener("prerenderingchange", countView, { once: true });
+ } else {
+   document.addEventListener("DOMContentLoaded", countView);
+ }
+ }());
  </script>
  <?php
  }

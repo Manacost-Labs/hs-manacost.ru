@@ -112,6 +112,8 @@ final class Manacost_Rsya_Inline_Banner {
 	/**
 	 * Loads the Yandex RTB loader only after the private Reader ad gate.
 	 *
+	 * A prerendered page waits until it is actually shown, so no ad is requested for an unseen page.
+	 *
 	 * @return void
 	 */
 	public static function enqueue_gate(): void {
@@ -130,7 +132,7 @@ final class Manacost_Rsya_Inline_Banner {
 		wp_enqueue_script( self::GATE_HANDLE );
 		wp_add_inline_script(
 			self::GATE_HANDLE,
-			'(function () { var hide = function () { document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); }; var host = window.location ? window.location.hostname : ""; window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; if ("hs-manacost.com" === host || "www.hs-manacost.com" === host) { hide(); window.manacostRsyaReady = Promise.resolve(false); return; } window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; hide(); } }, true); window.manacostRsyaReady = (async function () { try { var response = await fetch("/reader-api/v1/ad-status", { credentials: "same-origin", cache: "no-store", headers: { "accept": "application/json" } }); var status = await response.json(); if (!response.ok || !status || status.adFree !== false) { hide(); return false; } } catch (error) { hide(); return false; } return await new Promise(function (resolve) { var loader = document.createElement("script"); loader.id = "manacost-rsya-loader-js"; loader.async = true; loader.src = "https://yandex.ru/ads/system/context.js"; loader.onload = function () { resolve(true); }; loader.onerror = function () { window.manacostRsyaLoaderFailed = true; hide(); resolve(false); }; document.head.appendChild(loader); }); }()); }());',
+			'(function () { var hide = function () { document.querySelectorAll("[data-manacost-rsya-unit]").forEach(function (unit) { unit.hidden = true; }); }; var host = window.location ? window.location.hostname : ""; window.yaContextCb = window.yaContextCb || []; window.manacostRsyaLoaderFailed = false; if ("hs-manacost.com" === host || "www.hs-manacost.com" === host) { hide(); window.manacostRsyaReady = Promise.resolve(false); return; } window.addEventListener("error", function (event) { var target = event.target; if (target && "manacost-rsya-loader-js" === target.id) { window.manacostRsyaLoaderFailed = true; hide(); } }, true); window.manacostRsyaReady = (async function () { if (document.prerendering) { await new Promise(function (resolve) { document.addEventListener("prerenderingchange", resolve, { once: true }); }); } try { var response = await fetch("/reader-api/v1/ad-status", { credentials: "same-origin", cache: "no-store", headers: { "accept": "application/json" } }); var status = await response.json(); if (!response.ok || !status || status.adFree !== false) { hide(); return false; } } catch (error) { hide(); return false; } return await new Promise(function (resolve) { var loader = document.createElement("script"); loader.id = "manacost-rsya-loader-js"; loader.async = true; loader.src = "https://yandex.ru/ads/system/context.js"; loader.onload = function () { resolve(true); }; loader.onerror = function () { window.manacostRsyaLoaderFailed = true; hide(); resolve(false); }; document.head.appendChild(loader); }); }()); }());',
 			'before'
 		);
 	}

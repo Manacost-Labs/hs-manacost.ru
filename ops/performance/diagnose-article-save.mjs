@@ -6,6 +6,8 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
 import { finishAdminLogin } from './browser-admin-login.mjs';
+import { deleteArticleFixture } from './delete-article-fixture.mjs';
+import { createBrowserFixtureRequest, classifyDiagnosticFailure } from './browser-fixture-request.mjs';
 
 const baseURL = process.env.WP_TEST_BASE_URL;
 if (!baseURL || new URL(baseURL).hostname !== 'test.hs-manacost.ru') {
@@ -44,12 +46,26 @@ await context.addInitScript(() => {
   }
 });
 const page = await context.newPage();
+const pendingRequests = new Map();
+let mainResponseStatus = null;
+page.on('request', request => pendingRequests.set(request, {
+  resource_type: request.resourceType(),
+  origin_class: new URL(request.url()).origin === new URL(baseURL).origin ? 'staging' : 'external',
+}));
+page.on('response', response => {
+  if (response.request().isNavigationRequest()
+      && response.request().frame() === page.mainFrame()) mainResponseStatus = response.status();
+});
+page.on('requestfinished', request => pendingRequests.delete(request));
+page.on('requestfailed', request => pendingRequests.delete(request));
 const samples = [];
 const openSamples = [];
 const fixtureTitle = `Admin performance probe ${Date.now()}`;
 let postId;
 let cleaned = false;
 let savedContent = '';
+let stage = 'login';
+let failure = null;
 
 const isSaveResponse = response => {
   const request = response.request();
@@ -58,6 +74,8 @@ const isSaveResponse = response => {
 };
 
 async function submitPublishButton() {
+  stage = 'article-save';
+  mainResponseStatus = null;
   const started = performance.now();
   let responseMs;
   const [response] = await Promise.all([
@@ -81,6 +99,8 @@ async function submitPublishButton() {
 }
 
 async function measureEditorOpen(id) {
+  stage = 'editor-open';
+  mainResponseStatus = null;
   const started = performance.now();
   const response = await page.goto(
     `${baseURL}/wp-admin/post.php?post=${id}&action=edit`,
@@ -144,31 +164,23 @@ async function measureEditorOpen(id) {
 }
 
 async function removeFixture() {
-  if (!postId) return false;
-  // Cleanup must not depend on the current page/order of the trash list table.
-  return page.evaluate(async ({ id, titlePrefix }) => {
-    const nonceResponse = await fetch('/wp-admin/admin-ajax.php?action=rest-nonce');
-    const nonce = await nonceResponse.text();
-    if (!nonceResponse.ok || !/^[a-z0-9]{10}$/i.test(nonce)) return false;
-    const request = (route, method = 'GET') => fetch(`/wp-json/wp/v2/${route}`, {
-      method, headers: { 'X-WP-Nonce': nonce }, signal: AbortSignal.timeout(30_000),
-    });
-    const existing = await request(`posts/${id}?context=edit`);
-    if (existing.status === 404) return true;
-    if (!existing.ok) return false;
-    const post = await existing.json();
-    const ownerResponse = await request('users/me');
-    if (!ownerResponse.ok) return false;
-    const owner = await ownerResponse.json();
-    if (post.author !== owner.id || !post.title?.raw?.startsWith(titlePrefix)) return false;
-    const deleted = await request(`posts/${id}?force=true`, 'DELETE');
-    if (!deleted.ok || (await deleted.json()).deleted !== true) return false;
-    return (await request(`posts/${id}?context=edit`)).status === 404;
-  }, { id: postId, titlePrefix: fixtureTitle });
+  let cleanupPage;
+  try {
+    cleanupPage = await context.newPage();
+    const request = await createBrowserFixtureRequest(cleanupPage, baseURL);
+    return await deleteArticleFixture(request, baseURL, postId, fixtureTitle);
+  } catch {
+    return false;
+  } finally {
+    if (cleanupPage) await cleanupPage.close().catch(() => {});
+  }
 }
 
 try {
   await page.goto(`${baseURL}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+  // Core's delayed autofocus must finish before either credential is entered.
+  await page.waitForFunction(() => document.activeElement?.id === 'user_login');
+  await page.waitForTimeout(250);
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
   await page.locator('#user_pass').fill(password);
   await page.getByRole('button', { name: /Log In|Войти/i }).click();
@@ -206,6 +218,15 @@ try {
       throw new Error('Unchanged article content was modified during save');
     }
   }
+} catch (error) {
+  failure = {
+    stage,
+    failure_code: classifyDiagnosticFailure(error),
+    error_type: ['TimeoutError', 'AbortError', 'TypeError', 'Error'].includes(error.name)
+      ? error.name : 'Error',
+    main_response_status: mainResponseStatus,
+    pending_requests: [...pendingRequests.values()].slice(0, 20),
+  };
 } finally {
   if (!postId) postId = Number(new URL(page.url()).searchParams.get('post')) || undefined;
   try {
@@ -222,6 +243,7 @@ try {
       target_p95_ms: 1500,
       fixture_post_id: postId ?? null,
       fixture_cleaned: cleaned,
+      failure,
     }, null, 2)}\n`);
     await writeFile(path.join(outputDirectory, 'open-article-diagnostic.json'), `${JSON.stringify({
       environment: 'staging',
@@ -232,6 +254,7 @@ try {
       fixture_bytes: Buffer.byteLength(savedContent ?? '', 'utf8'),
       samples: openSamples,
       fixture_cleaned: cleaned,
+      failure,
     }, null, 2)}\n`);
     await context.close();
     await browser.close();

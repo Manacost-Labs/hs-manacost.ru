@@ -31,7 +31,9 @@
     golden: __('Золотая', 'manacost'), signature: __('Особая', 'manacost'), framed: __('С рамкой', 'manacost'),
     horizontal: __('Горизонтальная иллюстрация', 'manacost'), crop: __('Фрагмент', 'manacost'), wiki: __('Изображение Wiki', 'manacost'),
   };
-  const category = () => `${byId('library').value}:${byId('format').value}`;
+  const providerSearch = () => byId('library').value === 'constructed-cards';
+  const query = () => providerSearch() ? byId('query').value.trim() : '';
+  const category = () => `${byId('library').value}:${byId('format').value}:${query()}`;
   const itemKey = (library, item, variant) => `${library}:${item.id}:${variant}`;
   const status = text => { byId('status').textContent = text; };
 
@@ -123,6 +125,8 @@
   }
 
   function filtered() {
+    // The provider also matches card text; do not discard those results by name.
+    if (providerSearch()) return catalog.items;
     const query = byId('query').value.trim().toLocaleLowerCase();
     return catalog.items.filter(item => !query || `${item.name} ${item.id}`.toLocaleLowerCase().includes(query));
   }
@@ -147,11 +151,11 @@
   }
 
   async function nextPage(token) {
-    const data = await request('hs_api_gallery_catalog', { library: byId('library').value, format: byId('format').value, page: catalog.page + 1 });
+    const data = await request('hs_api_gallery_catalog', { library: byId('library').value, format: byId('format').value, query: catalog.query, page: catalog.page + 1 });
     if (token !== generation || !dialog.open) return false;
     catalog.items.push(...data.items); catalog.page += 1; catalog.next = data.has_next && catalog.page < 200;
     catalog.stale = catalog.stale || data.stale;
-    cache.set(category(), catalog);
+    cache.set(catalog.key, catalog);
     return true;
   }
 
@@ -166,7 +170,7 @@
         status(sprintf(__('Загрузка библиотеки… Получено объектов: %d', 'manacost'), catalog.items.length));
         if (!await nextPage(token)) return;
         render();
-      } while (searchRequested && byId('query').value.trim() && catalog.next && token === generation);
+      } while (searchRequested && !providerSearch() && byId('query').value.trim() && catalog.next && token === generation);
       status(catalog.stale ? __('API недоступен: показана сохранённая копия библиотеки.', 'manacost') :
         (filtered().length ? sprintf(__('Найдено: %d', 'manacost'), filtered().length) : __('По вашему запросу ничего не найдено.', 'manacost')));
     } catch (error) {
@@ -178,12 +182,13 @@
 
   function switchCategory() {
     generation += 1; loading = false; limit = 80;
-    catalog = cache.get(category()) || { items: [], page: 0, next: true };
+    catalog = cache.get(category()) || { items: [], page: 0, next: true, query: query(), key: category() };
     byId('format-label').hidden = byId('library').value !== 'constructed-cards';
     dialog.classList.toggle('has-format', !byId('format-label').hidden);
     render();
     if (!catalog.page) load(Boolean(byId('query').value.trim()));
-    else status(sprintf(__('Загружено: %d', 'manacost'), catalog.items.length));
+    else if (!catalog.query) status(sprintf(__('Загружено: %d', 'manacost'), catalog.items.length));
+    else status(filtered().length ? sprintf(__('Найдено: %d', 'manacost'), filtered().length) : __('По вашему запросу ничего не найдено.', 'manacost'));
   }
 
   byId('open').onclick = () => {
@@ -196,7 +201,10 @@
   byId('library').onchange = switchCategory;
   byId('format').onchange = switchCategory;
   byId('search').onsubmit = event => {
-    event.preventDefault(); limit = 80; render();
+    event.preventDefault();
+    if (importing) return;
+    if (providerSearch()) { switchCategory(); return; }
+    limit = 80; render();
     if (catalog.next) load(true);
     else status(filtered().length ? sprintf(__('Найдено: %d', 'manacost'), filtered().length) : __('По вашему запросу ничего не найдено.', 'manacost'));
   };

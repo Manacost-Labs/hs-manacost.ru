@@ -62,11 +62,14 @@ supported. Unrated galleries keep normal rendering and load no rating assets.
 
 The 14 public image libraries advertised by [the provider](https://api.kolodahearthstone.com/api/v1)
 are available, with the static variants each object actually exposes. Animated
-video/sound assets are excluded. On 2026-10-08 the provider's `q` parameter
-returned HTTP 500 and `search` was ignored. The picker searches normalized names
-and IDs while fetching paginated libraries, showing progress and retaining
-selection on failures. Article save, autosave, revisions and frontend rendering
-perform no provider calls.
+video/sound assets are excluded. Constructed card search uses the provider's
+`q` filter (verified working on 2026-10-16), with 50 matches per page and explicit
+"Show more" pagination. Results can also match card text. Queries and formats
+have separate caches; new searches and provider failures retain selected cards.
+This replaces the full-library scan, where later uncached pages could exceed
+the shared client's five-second timeout. Other libraries retain local name/ID
+search because their provider search contracts have not been verified.
+Article save, autosave, revisions and frontend rendering perform no provider calls.
 
 ## Frozen media
 

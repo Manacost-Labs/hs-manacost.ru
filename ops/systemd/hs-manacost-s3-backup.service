@@ -6,12 +6,14 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/hs-manacost/backup.env
-WorkingDirectory=/srv/projects/wordpress/hs-manacost.ru
-ExecStart=/srv/projects/wordpress/hs-manacost.ru/ops/backup/s3-snapshot.sh
+WorkingDirectory=/usr/local/libexec/hs-manacost-backup
+ExecStart=/usr/local/libexec/hs-manacost-backup/s3-snapshot.sh
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 NoNewPrivileges=true
 PrivateTmp=true
 UMask=0077
-TimeoutStartSec=24h
+MemoryMax=6G
+OOMPolicy=stop
+TimeoutStartSec=7d

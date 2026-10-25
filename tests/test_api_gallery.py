@@ -8,9 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ApiGalleryPolicy(unittest.TestCase):
-    def evaluate(self, expression):
+    def evaluate(self, expression, setup=''):
         source = "<?php define('ABSPATH', '/unused/'); function __($s,$d=''){return $s;} function wp_parse_url($s){return parse_url($s);} function wp_strip_all_tags($s){return strip_tags($s);} "
         source += "require 'wordpress/mu-plugins/hs-api-gallery/class-catalog.php'; "
+        source += setup
         source += "echo json_encode(" + expression + ");"
         result = subprocess.run(['php'], input=source, text=True, capture_output=True, cwd=ROOT)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -18,6 +19,32 @@ class ApiGalleryPolicy(unittest.TestCase):
 
     def test_only_known_libraries(self):
         self.assertEqual(self.evaluate("count(Manacost\\ApiGallery\\Catalog::libraries())"), 14)
+
+    def test_constructed_search_uses_provider_without_loading_the_library(self):
+        setup = '''
+        function is_wp_error($value){return false;}
+        class Manacost_Koloda_API {
+            public static $query;
+            public static function get($path,$query){
+                self::$query=$query;
+                return ['data'=>['data'=>[], 'pagination'=>['has_next'=>true]],'stale'=>false];
+            }
+        }
+        Manacost\\ApiGallery\\Catalog::page('constructed-cards',2,'standard',' Ритуал ');
+        '''
+        self.assertEqual(self.evaluate('Manacost_Koloda_API::$query', setup),
+                         {'page': 2, 'per_page': 50, 'format': 'standard', 'q': 'Ритуал'})
+
+    def test_overlong_search_is_rejected_before_transport(self):
+        setup = '''
+        class WP_Error { public function __construct($code,$message){} }
+        class Manacost_Koloda_API {
+            public static function get($path,$query){throw new RuntimeException('Unexpected transport');}
+        }
+        '''
+        self.assertTrue(self.evaluate(
+            "Manacost\\ApiGallery\\Catalog::page('constructed-cards',1,'standard',str_repeat('я',101)) instanceof WP_Error",
+            setup))
 
     def test_strict_https_image_sources(self):
         for url in ['http://api.kolodahearthstone.com/uploads/a.png', 'https://localhost/a.png',

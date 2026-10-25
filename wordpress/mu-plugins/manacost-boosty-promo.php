@@ -24,6 +24,7 @@ final class Manacost_Boosty_Promo {
 	 */
 	public static function boot(): void {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_cover_intent' ) );
 		add_filter( 'wp_nav_menu_items', array( __CLASS__, 'append_footer_links' ), 10, 2 );
 		add_filter( 'pre_do_shortcode_tag', array( __CLASS__, 'replace_homepage_pricing_card' ), 10, 3 );
 		add_filter( 'widget_block_content', array( __CLASS__, 'replace_legacy_sidebar_banner' ), 10, 3 );
@@ -46,7 +47,7 @@ final class Manacost_Boosty_Promo {
 			'manacost-site-navigation',
 			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.css',
 			array(),
-			'1.5.1'
+			'1.7.0'
 		);
 
 		wp_enqueue_style(
@@ -54,6 +55,26 @@ final class Manacost_Boosty_Promo {
 			plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo.css',
 			array(),
 			'1.3.2'
+		);
+	}
+
+	/** Warms one public article cover on intent, without executing its document. */
+	public static function enqueue_cover_intent(): void {
+		if ( is_admin() || is_user_logged_in() || is_feed() || is_preview() || wp_doing_ajax()
+			|| ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+			|| ( defined( 'MANACOST_COVER_INTENT_ENABLED' ) && ! MANACOST_COVER_INTENT_ENABLED ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'manacost-cover-intent',
+			plugin_dir_url( __FILE__ ) . 'manacost-site-navigation.js',
+			array(),
+			'1.1.0',
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 	}
 
@@ -209,14 +230,22 @@ final class Manacost_Boosty_Promo {
 	 */
 	private static function render_banner( string $asset_path, int $width, int $height ): string {
 		$banner_url = plugin_dir_url( __FILE__ ) . $asset_path;
+		$srcset     = sprintf(
+			'%1$s 400w, %2$s 800w, %3$s %4$dw',
+			plugin_dir_url( __FILE__ ) . str_replace( '.webp', '-400.webp', $asset_path ),
+			plugin_dir_url( __FILE__ ) . str_replace( '.webp', '-800.webp', $asset_path ),
+			$banner_url,
+			$width
+		);
 
 		return sprintf(
-			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="%4$d" height="%5$d" alt="" decoding="async"></a>',
+			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="%4$d" height="%5$d" srcset="%6$s" sizes="(max-width: 767px) calc(100vw - 40px), 350px" alt="" decoding="async" loading="lazy"></a>',
 			esc_url( self::BOOSTY_URL ),
 			esc_attr( 'Поддержать Manacost на Boosty' ),
 			esc_url( $banner_url ),
 			$width,
-			$height
+			$height,
+			esc_attr( $srcset )
 		);
 	}
 }

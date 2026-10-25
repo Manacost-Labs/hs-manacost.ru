@@ -38,6 +38,29 @@ fallback. Transport/schema/429/5xx failures can reuse cached data up to 24 hours
 401/403/404 and redirects return an error. No failure overwrites successful data.
 The client does not import cards/media into WordPress or rewrite article content.
 
+HS Smart Tooltip 1.1.11 uses this client during its existing manual/daily main
+dictionary rebuild to supplement HearthstoneJSON with `/api/v1/constructed-cards`.
+The BG rebuild also supplements missing IDs from `/api/v1/cards`; existing BG
+entries stay intact. `BG36_111` (Ша Страха) is shipped in the BG dictionary.
+It adds missing canonical IDs, numeric dbf aliases and normalized Russian names;
+existing HSJSON/CORE entries and name choices stay intact. The four requested cards
+(`BE_036`, `BE_EVENT_100`, `BE_EVENT_101`, `BE_EVENT_102`) are also shipped in the
+versioned dictionary so they are available immediately after deployment.
+The import requires complete fresh pagination (at most 100 pages/120 seconds).
+Provider failures, stale pages, changing totals, duplicates and incomplete pages
+abort before backup/write; the previous dictionary remains readable. Known
+`blizzard:dbf` placeholders without a card type are excluded. Search, editor save
+and article rendering make no catalog requests. Framed card images use only the
+provider's HTTPS `/uploads/constructed-related/` and `/uploads/cards/` paths through the existing tooltip
+image proxy, with redirects disabled. Both imports retain the old dictionary on provider failure.
+Verify with `python3 -m unittest tests.test_tooltip_dictionary tests.test_koloda_api -v`.
+Run `READER_TEST_CHROMIUM=/usr/bin/chromium node tests/tooltip/koloda-browser.mjs`
+on a PHP/Node/Chromium host for five real shortcode labels (including Ша Страха) and image-proxy
+responses at 320/390/768/1024/1440 px. Only the outbound HTTP/cache boundary is
+fake; the actual importer, renderer, proxy and frontend script run unchanged.
+Rollback restores the previous plugin and dictionary asset through the release
+pipeline; manual rebuilds also retain `hs_dictionary.bak.json`.
+
 Fresh responses are cached for five minutes with query keys sorted; different
 pages/filters remain separate. Filters are scalar and bounded to 200 bytes,
 pagination to 100 rows. Only documented public routes on the fixed HTTPS host

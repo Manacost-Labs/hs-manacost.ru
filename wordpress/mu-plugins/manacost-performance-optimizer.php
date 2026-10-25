@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Performance Optimizer
  * Description: Public-page performance hardening for hs-manacost.ru without delaying partner advertising.
- * Version: 1.1.0
+ * Version: 1.2.1
  * Author: Manacost
  *
  * @package Manacost
@@ -10,14 +10,64 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/manacost-performance-optimizer/thumbnail-loading.php';
+
 /** Applies bounded performance changes to anonymous public pages. */
 final class Manacost_Performance_Optimizer {
 	private const PRIMARY_HOST = 'hs-manacost.ru';
 	private const MIRROR_HOST  = 'hs-manacost.com';
 
+	/** 48px blur of temnaya-versiya-v2.png (2400x1500), shown until the real backdrop decodes. */
+	private const BACKGROUND_PLACEHOLDER = 'data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAACQBQCdASowAB4APuFYpE2opSOiOrZoARAcCUAZiwJr39O4eApc9EOSAGmvkn6ZFcL8Z/KpgAD+9Xvg6R1tVChfs4fKwM3mFt9uIfm+8Jj0VgDCeKljK2oiHdhL547r23128PJQEmvP7vKi6oYecncQAVXCQwKAAAA=';
+
 	/** Registers the frontend output-buffer hook. */
 	public static function boot(): void {
 		add_action( 'template_redirect', array( __CLASS__, 'start' ), -200 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'move_jquery_to_footer' ), PHP_INT_MAX );
+		add_filter( 'option_td_011', array( __CLASS__, 'version_background_setting' ) );
+	}
+
+	/**
+	 * Refreshes delivery of the opaque background after its bounded sidecar rebuild.
+	 *
+	 * @param mixed $settings Stored Newspaper options; never persisted here.
+	 * @return mixed Options with a delivery version on the selected public image.
+	 */
+	public static function version_background_setting( $settings ) {
+		if ( ! is_array( $settings ) || is_admin() || 'Newspaper_new' !== get_template() ) {
+			return $settings;
+		}
+
+		$image = $settings['tds_site_background_image'] ?? '';
+		if (
+			! is_string( $image )
+			|| '/wp-content/uploads/2026/09/temnaya-versiya-v2.png' !== wp_parse_url( $image, PHP_URL_PATH )
+			|| ! in_array( wp_parse_url( $image, PHP_URL_HOST ), array( self::PRIMARY_HOST, self::MIRROR_HOST, 'test.hs-manacost.ru' ), true )
+		) {
+			return $settings;
+		}
+
+		$settings['tds_site_background_image'] = add_query_arg( 'mc_background', 'opaque-20261012', $image );
+		return $settings;
+	}
+
+	/**
+	 * Prints jQuery with the footer scripts that use it instead of blocking first paint.
+	 *
+	 * Public templates only call jQuery from footer scripts or after DOMContentLoaded.
+	 * WordPress keeps it in the head on its own when a head script depends on it.
+	 */
+	public static function move_jquery_to_footer(): void {
+		if ( ! self::feature_enabled( 'MANACOST_FOOTER_JQUERY_ENABLED', true ) || ! self::should_optimize() ) {
+			return;
+		}
+
+		$scripts = wp_scripts();
+		foreach ( array( 'jquery', 'jquery-core', 'jquery-migrate' ) as $handle ) {
+			if ( isset( $scripts->registered[ $handle ] ) ) {
+				$scripts->add_data( $handle, 'group', 1 );
+			}
+		}
 	}
 
 	/** Starts buffering only eligible public home-page requests. */
@@ -53,11 +103,37 @@ final class Manacost_Performance_Optimizer {
 			$html = self::delay_liveinternet_counter( $html );
 		}
 
+		if ( self::feature_enabled( 'MANACOST_NATIVE_THUMBNAILS_ENABLED', true ) ) {
+			$html = Manacost_Thumbnail_Loading::optimize_html( $html );
+		}
+
+		if ( self::feature_enabled( 'MANACOST_BACKGROUND_PLACEHOLDER_ENABLED', true ) ) {
+			$html = self::add_background_placeholder( $html );
+		}
+
 		if ( strpos( $html, 'manacost-perf-active' ) === false ) {
 			$html = self::inject_into_head( $html, '<meta name="manacost-perf-active" content="1">' . "\n" );
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Layers a tiny blurred copy under the site backdrop.
+	 *
+	 * Until the 2400px backdrop decodes, a new page would paint its sides flat
+	 * black; the placeholder keeps the same picture on screen instead.
+	 *
+	 * @param string $html Rendered page HTML.
+	 * @return string
+	 */
+	private static function add_background_placeholder( string $html ): string {
+		return preg_replace(
+			'#(body\s*\{[^}]*?background-image:\s*url\("[^"]*/wp-content/uploads/2026/09/temnaya-versiya-v2\.png(?:\?[^"]*)?"\))(\s*;)#',
+			'$1,url(' . self::BACKGROUND_PLACEHOLDER . ');background-size:auto,2400px 1500px$2',
+			$html,
+			1
+		) ?? $html;
 	}
 
 	/**
@@ -84,7 +160,7 @@ final class Manacost_Performance_Optimizer {
 		}
 
 		$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-		if ( ! in_array( strtolower( $host ), array( self::PRIMARY_HOST, self::MIRROR_HOST ), true ) ) {
+		if ( ! in_array( strtolower( $host ), array( self::PRIMARY_HOST, self::MIRROR_HOST, 'test.hs-manacost.ru' ), true ) ) {
 			return false;
 		}
 
@@ -200,10 +276,10 @@ final class Manacost_Performance_Optimizer {
 
 				$mobile_url = self::mobile_size_url( $desktop_url );
 				$alt        = self::extract_attr( $matches[1], 'title' );
-				$priority   = 0 === $seen;
+				$is_first   = 0 === $seen;
 				$seen++;
 
-				if ( $priority ) {
+				if ( $is_first ) {
 					$lcp_url = self::is_mobile_request() ? $mobile_url : $desktop_url;
 				}
 
@@ -211,7 +287,7 @@ final class Manacost_Performance_Optimizer {
 					. '<picture class="manacost-lcp-picture">'
 					. '<source media="(max-width: 767px)" srcset="' . esc_url( $mobile_url ) . '">'
 					. '<img src="' . esc_url( $desktop_url ) . '" alt="' . esc_attr( $alt ) . '" width="1068" height="542" decoding="async" loading="eager"'
-					. ( $priority ? ' fetchpriority="high"' : '' )
+					. ' fetchpriority="high"'
 					. ' sizes="(max-width: 767px) 100vw, 50vw">'
 					. '</picture></span>';
 
@@ -514,7 +590,8 @@ JS;
 
 		$result = preg_replace(
 			'#<!--LiveInternet counter--><script\b[\s\S]*?</script><!--/LiveInternet-->#i',
-			'<script id="manacost-liveinternet-delay">window.addEventListener("load",function(){setTimeout(function(){var i=new Image;i.width=1;i.height=1;i.alt="";i.src="//counter.yadro.ru/hit?t50.6;r"+encodeURIComponent(document.referrer)+";u"+encodeURIComponent(location.href)+";"+Math.random()},4000)},{once:true});</script>',
+			// A prerendered page is counted only once it is shown, still four seconds after load.
+			'<script id="manacost-liveinternet-delay">(function(){function hit(){var i=new Image;i.width=1;i.height=1;i.alt="";i.src="//counter.yadro.ru/hit?t50.6;r"+encodeURIComponent(document.referrer)+";u"+encodeURIComponent(location.href)+";"+Math.random()}function arm(){setTimeout(hit,4000)}function start(){if(document.readyState==="complete"){arm();}else{window.addEventListener("load",arm,{once:true});}}if(document.prerendering){document.addEventListener("prerenderingchange",start,{once:true});}else{start();}}());</script>',
 			$html,
 			1
 		);
@@ -528,7 +605,7 @@ JS;
 	 * @param string $name Attribute name.
 	 * @return string
 	 */
-	private static function extract_attr( string $tag, string $name ): string {
+	public static function extract_attr( string $tag, string $name ): string {
 		if ( preg_match( '/\s' . preg_quote( $name, '/' ) . '=(["\'])(.*?)\1/i', $tag, $match ) ) {
 			return html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		}

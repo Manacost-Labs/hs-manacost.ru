@@ -251,7 +251,7 @@ try {
   }
   await capture('guest');
   assert.equal(await page.getByRole('heading', { name: 'Личный кабинет', level: 1 }).count(), 1);
-  assert.equal(await page.getByText('Профиль Манакоста', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Профиль Манакоста', { exact: true }).count(), 0);
   assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 0, 'unavailable future navigation must not be rendered');
   assert.equal(await page.getByText('Закладки пока недоступны.').count(), 0, 'unavailable bookmark copy must not consume account space');
   assert.equal(await status.getAttribute('role'), 'status');
@@ -318,18 +318,9 @@ try {
 
 	await page.setViewportSize({ width: 1024, height: 900 });
 	await ready();
-	await page.locator('[data-reader-community-data]').waitFor({ state: 'visible' });
-	let communityDownload = null;
-	page.once('download', download => { communityDownload = download; });
-	await page.getByRole('button', { name: 'Скачать мои комментарии' }).click();
-	await page.getByText('Выгрузка подготовлена.').waitFor();
-	assert.ok(communityDownload, 'account privacy section creates the complete download');
-	assert.deepEqual(communityExportCalls.at(-1), null);
-	page.once('dialog', dialog => dialog.accept());
-	await page.getByRole('button', { name: 'Удалить комментарии и публичный профиль' }).click();
-	await page.getByText('Комментарии и публичный профиль удалены. Кабинет сохранён.').waitFor();
-	assert.deepEqual(communityErasures.at(-1).body, { profileId, confirm: 'erase-community' });
-	assert.equal(communityErasures.at(-1).headers['x-reader-csrf'], 'synthetic-only');
+	assert.equal(await page.locator('[data-reader-community-data]').count(), 0, 'secondary data panel is absent');
+	assert.deepEqual(communityExportCalls, []);
+	assert.deepEqual(communityErasures, []);
 
   const favoriteReadsBefore = favoriteCalls.filter(call => call.method === 'GET').length;
   holdFavoriteRead = true;
@@ -361,10 +352,9 @@ try {
   shell = renderShell(false);
   await ready();
   await page.getByRole('button', { name: 'Изменить профиль' }).click();
-  assert.equal(await page.locator('.mc-reader__publication').isVisible(), false, 'comments-off hosts do not advertise publication');
-  assert.equal(await page.locator('[data-reader-publish-profile]').isDisabled(), true);
+  assert.equal(await page.locator('.mc-reader__publication').count(), 0, 'profile publication panel is absent');
   assert.equal(await page.locator('[data-reader-save-profile]').isEnabled(), true, 'private editing remains available when comments are disabled');
-  assert.match(await page.locator('[data-reader-social-help]').textContent(), /не публикует ссылки/);
+  assert.match(await page.locator('[data-reader-social-help]').textContent(), /Необязательно/);
   assert.equal(publicationWrites.length, 0);
   // Reproduce an older cached shell receiving the new script during deployment.
 	shell = renderShell(true)
@@ -436,8 +426,7 @@ try {
       classWithinIdentity: Boolean(classMark?.closest('.mc-reader__identity-copy')),
     };
   });
-  assert.equal(profileHierarchy.kicker, 'Ваш профиль', 'the profile overview must identify itself as a reader profile');
-  assert.ok(profileHierarchy.kickerRect && profileHierarchy.identityRect && profileHierarchy.kickerRect.bottom <= profileHierarchy.identityRect.bottom, 'profile label must stay within the identity composition');
+  assert.equal(profileHierarchy.kicker, undefined, 'identity does not need a repeated profile label');
   assert.ok(profileHierarchy.classRect && profileHierarchy.classRect.width > 0, 'favorite class remains part of the visible profile passport');
   assert.equal(profileHierarchy.classWithinIdentity, true, 'favorite class must stay with the identity rather than occupying a detached profile column');
   assert.ok(profileHierarchy.classRect.width < 260, 'favorite class must remain a compact token, not a wide secondary panel');
@@ -492,7 +481,7 @@ try {
   const legacyNameField = page.locator('[data-reader-display-name]');
   assert.equal(await page.locator('[data-reader-twitch]').isDisabled(), true, 'an older Reader response must not accept a social link it cannot save');
   assert.equal(await page.locator('[data-reader-youtube]').isDisabled(), true, 'an older Reader response must not accept a social link it cannot save');
-  assert.match(await page.locator('[data-reader-social-help]').textContent(), /станут доступны сразу после обновления/);
+  assert.match(await page.locator('[data-reader-social-help]').textContent(), /Ссылки временно недоступны/);
   await legacyNameField.fill('Совместимый профиль');
   profileWriteResponse = legacyProfileDto({ id: '323e4567-e89b-42d3-a456-426614174002', displayName: 'Совместимый профиль', bio: '', favoriteClass: null, version: 2 });
   await page.locator('[data-reader-save-profile]').click();
@@ -532,14 +521,12 @@ try {
       return {
         preview: Boolean(form.querySelector('[data-reader-editor-avatar]')),
         controls: [...form.querySelectorAll('input:not([type=file]):not([type=checkbox]), textarea, select')].map(element => ({ ...rect(element), social: Object.hasOwn(element.dataset, 'readerTwitch') || Object.hasOwn(element.dataset, 'readerYoutube') })),
-        publication: rect(form.querySelector('.mc-reader__publication')),
         photo: rect(form.querySelector('.mc-reader__preview')),
         upload: rect(form.querySelector('[data-reader-avatar-input]')),
       };
     });
     assert.equal(editorGeometry.preview, true, 'the photo must be visible next to its upload control inside the editor');
     assert.ok(editorGeometry.controls.every(r => r.height >= 44 && r.width > 0), 'all fields keep usable targets');
-    assert.ok(editorGeometry.publication.height >= 44 && editorGeometry.publication.width > 0, 'publication action remains a readable, deliberate section');
     const primaryControls = editorGeometry.controls.filter(control => !control.social);
     assert.ok(primaryControls.every(r => Math.abs(r.left - primaryControls[0].left) < 1 && Math.abs(r.right - primaryControls[0].right) < 1), 'name, bio and class share one field alignment');
     assert.ok(editorGeometry.upload.left >= editorGeometry.photo.left && editorGeometry.upload.right <= editorGeometry.photo.right, 'upload control stays in the photo component');
@@ -618,25 +605,9 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-reader-editor-status]').textContent.includes('Изменения сохранены'));
   assert.equal(profileWrites.at(-1).body.version, 2, 'retry after conflict must use the reloaded version');
 
-  const publicationButton = page.locator('[data-reader-publish-profile]');
+  assert.equal(await page.locator('[data-reader-publish-profile]').count(), 0, 'manual publication does not clutter settings');
   assert.equal(publicationWrites.length, 0, 'saving private fields never silently publishes');
-  assert.equal(await page.locator('[data-reader-public-consent]').count(), 0, 'publication has no extra consent checkbox');
-  assert.equal(await publicationButton.isDisabled(), false);
-  await bioField.fill('Ещё не сохранено');
-  assert.equal(await publicationButton.isDisabled(), true, 'unsaved fields cannot be mistaken for the published snapshot');
-  await bioField.fill(profileWriteResponse.bio);
-  publicationStatus = 404;
-  await publicationButton.click();
-  await editorStatus.filter({ hasText: 'Публичный профиль появится после первого комментария' }).waitFor();
-  publicationStatus = 200;
-  await publicationButton.click();
-  await editorStatus.filter({ hasText: 'Профиль в комментариях обновлён' }).waitFor();
-  assert.deepEqual(publicationWrites.at(-1).body, { profileVersion: 3 });
-  assert.equal(publicationWrites.at(-1).headers['x-reader-csrf'], 'csrf-after-403');
-  assert.equal(await publicationButton.isDisabled(), false, 'the same saved snapshot may be refreshed again deliberately');
-
   await page.locator('[data-reader-avatar-input]').setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') });
-  assert.equal(await publicationButton.isDisabled(), false, 'an invalid local image does not alter the saved profile snapshot');
   await bioField.fill('Этот текст нельзя потерять при загрузке фото.');
   avatarWriteResponse = profileDto({ version: 4, displayName: 'Исправленное имя', bio: 'Черновик с кириллицей и эмодзи 🃏', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost', avatarUrl: '/reader-api/v1/profile/avatar?v=avatar4' });
   avatarDelay = 250;
@@ -730,11 +701,11 @@ try {
   await page.setViewportSize({ width: 1024, height: 900 });
   await ready();
   let sections = await assertFits();
-	assert.equal(sections.sections.length, 3, 'profile, saved articles, and privacy tools remain visible in one reading flow');
+	assert.equal(sections.sections.length, 2, 'profile and saved articles remain visible without secondary tools');
   await page.setViewportSize({ width: 560, height: 900 });
   await ready();
   sections = await assertFits();
-	assert.equal(sections.sections.length, 3, 'narrow layouts keep profile, saved articles, and privacy tools as stacked sections');
+	assert.equal(sections.sections.length, 2, 'narrow layouts stack only profile and saved articles');
   const identitySize = () => page.locator('[data-reader-identity]').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
   const originalIdentitySize = await identitySize();
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });

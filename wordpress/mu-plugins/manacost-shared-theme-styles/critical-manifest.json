@@ -1,0 +1,46 @@
+{
+	"base": "https://hs-manacost.ru",
+	"widths": [
+		360,
+		412,
+		768,
+		1024,
+		1280,
+		1440
+	],
+	"paths": [
+		"/",
+		"/category/novosti/",
+		"/category/gajdy-hearthstone/",
+		"/tag/vlast-temnoj-imperii/",
+		"/kolody-potasovki-temnaya-imperija-6-pobed/",
+		"/top-10-strategiya-v-14-sezone-polej-srazhenij/",
+		"/gajd-kak-nachat-igrat-hearthstone/",
+		"/obnovlenie-37-0-1-ispravlenie-oshibok-igry/",
+		"/arena-decks/",
+		"/?s=druid"
+	],
+	"sheets": {
+		"td-theme": {
+			"source": "/wp-content/themes/Newspaper_new/style.css",
+			"version": "12.7.3",
+			"source_sha256": "52b13f83c09857d6ec8f75a2107ce28ff19feed0ce56e18eb7eeb54c41a212b7",
+			"critical": "critical-td-theme.css",
+			"bytes": 33862
+		},
+		"td-legacy-framework-front-style": {
+			"source": "/wp-content/plugins/td-composer/legacy/Newspaper/assets/css/td_legacy_main.css",
+			"version": "7cd248d7ca13c255207c3f8b916c3f00",
+			"source_sha256": "f43e359073ad309c1a67878773f3b560678246d6af5633cdb9c6a22274b5a08e",
+			"critical": "critical-td-legacy-framework-front-style.css",
+			"bytes": 10225
+		},
+		"td-standard-pack-framework-front-style": {
+			"source": "/wp-content/plugins/td-standard-pack/Newspaper/assets/css/td_standard_pack_main.css",
+			"version": "c12e6da63ed2f212e87e44e5e9b9a302",
+			"source_sha256": "b28bc4f3ff3e867f5bf3526eee0a5b01d84331312a0975a75e309a8b29011408",
+			"critical": "critical-td-standard-pack-framework-front-style.css",
+			"bytes": 20346
+		}
+	}
+}

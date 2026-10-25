@@ -1,3 +1,44 @@
+/* Native navigation keeps browser history, document loading and links intact. */
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+
+	::view-transition-group(root),
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation-duration: 180ms;
+		animation-timing-function: ease-out;
+	}
+
+	/* Keep the previous page opaque until the incoming page covers it. */
+	::view-transition-old(root) {
+		animation: none;
+	}
+
+	::view-transition-new(root) {
+		animation-name: manacost-page-enter;
+		mix-blend-mode: normal;
+	}
+
+	@keyframes manacost-page-enter {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	@view-transition {
+		navigation: none;
+	}
+
+	::view-transition-group(root),
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
+}
+
 /* Composer's generated menu font has no fallback on some visitor devices. */
 @media (min-width: 1200px) {
 	.td-header-wrap .td-header-menu-wrap .sf-menu {

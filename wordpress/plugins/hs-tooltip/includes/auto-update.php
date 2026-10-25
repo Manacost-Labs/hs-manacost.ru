@@ -13,7 +13,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const HS_TOOLTIP_HSJSON_API_URL   = 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.collectible.json';
+require_once __DIR__ . '/koloda.php';
+
+const HS_TOOLTIP_HSJSON_API_URL   = 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json';
 const HS_TOOLTIP_HSJSON_RENDER_BASE = 'https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/';
 const HS_TOOLTIP_MAIN_CRON_HOOK   = 'hs_tooltip_main_dict_cron';
 const HS_TOOLTIP_MAIN_LOCK_KEY    = 'hs_tooltip_main_rebuild_lock';
@@ -98,6 +100,7 @@ function hs_smart_tooltip_set_icon_map(): array
         'EVENT'                     => "Event_-_SVG_logo.svg",
         'CAVERNS_OF_TIME'           => "Caverns_of_Time_-_SVG_logo.svg",
         'CATACLYSM'                 => "CATACLYSM_-_SVG_logo.svg",
+        'BE'                        => 'reign_of_the_black_empire_-_svg_logo.svg',
     ];
 }
 
@@ -246,7 +249,7 @@ function hs_smart_tooltip_build_dictionary_from_cards(array $cards): array
         if ($key === '') {
             continue;
         }
-        $current_priority = $rarity_priority[$entry['rarity']] ?? 0;
+        $current_priority = ($rarity_priority[$entry['rarity']] ?? 0) + (!empty($card['collectible']) ? 4 : 0);
         if (!isset($by_name[$key]) || $current_priority > ($name_owners[$key] ?? -1)) {
             $by_name[$key] = $entry;
             $name_owners[$key] = $current_priority;
@@ -299,6 +302,7 @@ function hs_smart_tooltip_rebuild_main_dictionary(): array
 
         $response = wp_safe_remote_get(HS_TOOLTIP_HSJSON_API_URL, [
             'timeout'    => 120,
+            'limit_response_size' => 33554432,
             'user-agent' => 'HS-Smart-Tooltip/' . HS_SMART_TOOLTIP_VERSION,
         ]);
         if (is_wp_error($response)) {
@@ -322,6 +326,10 @@ function hs_smart_tooltip_rebuild_main_dictionary(): array
 
         $built = hs_smart_tooltip_build_dictionary_from_cards($cards);
         unset($cards);
+        $built = hs_smart_tooltip_add_koloda_cards($built);
+        if (is_wp_error($built)) {
+            return ['ok' => false, 'count' => 0, 'message' => 'Koloda: ' . $built->get_error_code()];
+        }
         $count = (int) $built['count'];
         if ($count < HS_TOOLTIP_MAIN_MIN_CARDS) {
             return ['ok' => false, 'count' => $count, 'message' => sprintf('health-check: %d < минимума %d', $count, HS_TOOLTIP_MAIN_MIN_CARDS)];

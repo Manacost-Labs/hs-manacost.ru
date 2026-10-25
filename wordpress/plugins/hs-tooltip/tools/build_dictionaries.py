@@ -221,18 +221,20 @@ def generate_forms(name: str) -> list[str]:
 
 
 def build_main(cards: list[dict[str, Any]]) -> dict[str, Any]:
-    print("[2/4] Building main dictionary (collectible cards)...")
+    print("[2/4] Building main dictionary (cards and tokens)...")
     by_id: dict[str, dict[str, Any]] = {}
     by_name: dict[str, dict[str, Any]] = {}
-    collectible = [
+    main_cards = [
         c for c in cards
-        if c.get("collectible") and c.get("set") != "BATTLEGROUNDS"
+        if c.get("set") not in {"BATTLEGROUNDS", "HERO_SKINS", "PLACEHOLDER_202204"}
+        and not c.get("battlegroundsNormalDbfId")
         and c.get("type") in {"MINION", "SPELL", "WEAPON", "HERO", "LOCATION"}
         and isinstance(c.get("name"), str) and isinstance(c.get("id"), str)
     ]
-    print(f"      {len(collectible)} collectible cards")
+    print(f"      {len(main_cards)} cards including tokens")
 
-    for c in collectible:
+    # Resolve name collisions in favour of collectible cards.
+    for c in sorted(main_cards, key=lambda card: not bool(card.get("collectible"))):
         cid = c["id"]
         name = c["name"]
         rarity = RARITY_MAP.get((c.get("rarity") or "COMMON").upper(), "common")

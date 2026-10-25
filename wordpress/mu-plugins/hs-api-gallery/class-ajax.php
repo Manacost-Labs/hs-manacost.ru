@@ -28,7 +28,7 @@ final class Ajax {
 	 */
 	public static function catalog(): void {
 		self::authorize_editor();
-		self::respond( Catalog::page( self::text( 'library' ), self::number( 'page' ), self::text( 'format' ) ) );
+		self::respond( Catalog::page( self::text( 'library' ), self::number( 'page' ), self::text( 'format' ), self::text( 'query' ) ) );
 	}
 
 	/**
