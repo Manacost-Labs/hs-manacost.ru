@@ -9,6 +9,7 @@ $existing=get_option('hs_article_cards_fixture');
 if (is_array($existing)) {
     wp_set_password(getenv('WP_CARDS_AUTHOR_PASSWORD'),$existing['author']);
     wp_set_password(getenv('WP_CARDS_SUBSCRIBER_PASSWORD'),$existing['subscriber']);
+    wp_update_post(['ID'=>$existing['block_post'],'post_content'=>'']);
     wp_update_post(['ID'=>$existing['draft'],'post_status'=>'draft','post_content'=>'<p>Первый абзац.</p><p>Последний абзац.</p>']);
     echo wp_json_encode($existing)."\n";
     return;
@@ -16,6 +17,7 @@ if (is_array($existing)) {
 $category=wp_insert_term('Гайды карточек','category');
 $category_id=is_wp_error($category) ? (int)get_term_by('name','Гайды карточек','category')->term_id : $category['term_id'];
 $source=wp_insert_post(['post_title'=>'Статья карточек: длинное русское название и советы по игре в Hearthstone','post_status'=>'publish','post_content'=>'<p>Исходный материал.</p>','post_category'=>[$category_id]]);
+for ($i=1;$i<=7;$i++) wp_insert_post(['post_title'=>'Подборка лимит '.$i,'post_status'=>'publish']);
 $private=wp_insert_post(['post_title'=>'Секретный материал карточек','post_status'=>'private']);
 $protected=wp_insert_post(['post_title'=>'Защищённый материал карточек','post_status'=>'publish','post_password'=>'fixture-only']);
 $draft=wp_insert_post(['post_title'=>'Черновик карточек','post_status'=>'draft','post_content'=>'<p>Первый абзац.</p><p>Последний абзац.</p>']);
@@ -32,7 +34,11 @@ cards_check(!is_wp_error(HS_Article_Cards_Catalog::article('manacost',$source)),
 $remote=HS_Article_Cards_Catalog::posts('koloda','',14,1);
 cards_check($remote['items'][0]['id']===101 && $remote['items'][0]['date']==='2026-10-23','Provider metadata normalizes');
 cards_check(HS_Article_Cards_Catalog::categories('koloda',2)['items'][0]['id']===16,'Second category page is available');
-$html=HS_Article_Cards_Render::html($remote['items'][0],'compact');
+foreach (['compact','cover','grid','list'] as $layout) {
+    $custom=HS_Article_Cards_Render::html($remote['items'][0],$layout,['date'=>'hide','radius'=>'square','image'=>'large']);
+    cards_check(wp_kses_post($custom)===$custom,'Author KSES preserves configured '.$layout);
+}
+$html=HS_Article_Cards_Render::html($remote['items'][0],'grid',['date'=>'hide','radius'=>'square']);
 cards_check(wp_kses_post($html)===$html,'Author KSES preserves complete card');
 cards_check(!str_contains(strip_tags($html),'kolodahearthstone.com'),'Visible card hides URL');
 $revision_source=wp_insert_post(['post_title'=>'Проверка истории карточки','post_content'=>wp_slash($html),'post_status'=>'draft']);

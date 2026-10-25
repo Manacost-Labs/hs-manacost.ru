@@ -74,5 +74,11 @@ check(str_contains($html,'Маг &lt;script&gt; &amp; советы'), 'Escapes t
 check(str_contains($html,'25 октября 2026'), 'Displays publication date');
 check(!str_contains(strip_tags($html),'kolodahearthstone.com'), 'Does not display domain');
 check(str_contains(HS_Article_Cards_Render::html($article,'cover'),'hs-article-card--cover'), 'Supports cover layout');
+$custom=HS_Article_Cards_Render::html($article,'list',['date'=>'hide','image'=>'small','radius'=>'square']);
+check(!str_contains($custom,'hs-article-card__date'), 'Hidden date is absent from saved markup');
+check(str_contains($custom,'hs-article-card--list') && str_contains($custom,'hs-article-card--image-small') && str_contains($custom,'hs-article-card--radius-square'), 'List and safe size presets survive insertion');
+check(str_contains(HS_Article_Cards_Render::html($article,'grid'),'hs-article-card--grid'), 'Grid supports cover cards');
+$unsafe=HS_Article_Cards_Render::html($article,'<script>',['radius'=>'bad-class','date'=>'anything']);
+check(!str_contains($unsafe,'bad-class') && str_contains($unsafe,'hs-article-card--compact') && str_contains($unsafe,'hs-article-card__date'), 'Invalid direct-render options fall back to safe defaults');
 check(count($calls)===$before, 'Rendering never contacts provider');
 echo "PASS\n";

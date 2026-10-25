@@ -57,6 +57,15 @@ try {
   const before = await page.evaluate(() => tinymce.get('content').getContent());
   await open();
   assert.equal(await page.locator('#hs-ac-insert').isDisabled(), true);
+  await searchFor('Подборка лимит');
+  assert.equal(await page.locator('.hs-ac-choice').count(), 7);
+  for (const choice of await page.locator('.hs-ac-choice').all()) await choice.click();
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 6, 'Selection is bounded');
+  assert.equal(await page.locator('.hs-ac-choice').last().getAttribute('aria-pressed'), 'false');
+  await page.locator('#hs-ac-selected li').first().getByRole('button', { name: /^Убрать:/ }).click();
+  await page.locator('.hs-ac-choice').last().click();
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 6);
+  for (let i = 0; i < 6; i++) await page.locator('#hs-ac-selected li').first().getByRole('button', { name: /^Убрать:/ }).click();
   await searchFor('НетТакойСтатьи');
   await page.getByText('Ничего не найдено. Измените запрос или выберите другую категорию.', { exact: true }).waitFor();
   await searchFor('карточек');
@@ -111,25 +120,82 @@ try {
   assert.equal(await page.locator('#hs-ac-preview .hs-article-card__placeholder').count(), 1, 'Missing-cover preview matches frontend placeholder');
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
-  await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#save-post').click()]);
+  // A collection can span catalogs/pages; changing filters must not discard it.
+  await open();
+  await page.locator('.hs-ac-choice').first().click();
+  await page.locator('#hs-ac-layout').selectOption('grid');
+  await page.locator('#hs-ac-setting-columns').selectOption('3');
+  await page.locator('#hs-ac-setting-date').selectOption('hide');
+  await page.locator('#hs-ac-setting-radius').selectOption('square');
+  await page.locator('#hs-ac-setting-image').selectOption('large');
+  await page.locator('#hs-ac-setting-spacing').selectOption('tight');
+  await source('koloda');
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 1, 'Source changes preserve selection');
+  await page.locator('.hs-ac-choice').first().click();
+  await page.locator('#hs-ac-next').click();
+  await page.getByRole('button', { name: /Колода воина:/ }).click();
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 3, 'Pagination preserves mixed collection');
+  await page.locator('#hs-ac-selected li').last().getByRole('button', { name: /^Выше:/ }).click();
+  assert.match(await page.locator('#hs-ac-selected li').nth(1).innerText(), /Колода воина/);
+  await page.locator('#hs-ac-selected li').last().getByRole('button', { name: /^Убрать:/ }).click();
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 2);
+  await page.locator('#hs-ac-prev').click();
+  await page.locator('.hs-ac-choice').first().click();
+  assert.equal(await page.locator('#hs-ac-preview .hs-article-card__date').count(), 0);
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.ok(await page.locator('#hs-article-cards-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `Collection controls fit ${width}`);
+  }
+  const beforeFailure = await page.evaluate(() => tinymce.get('content').getContent());
+  const failOneCard = async route => {
+    const fields = new URLSearchParams(route.request().postData() || '');
+    if (fields.get('mode') === 'card' && fields.get('id') === '102') {
+      await route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ success: false, data: { message: 'Тест: статья временно недоступна' } }) });
+    } else await route.continue();
+  };
+  await page.route('**/admin-ajax.php', failOneCard);
+  await page.locator('#hs-ac-insert').click();
+  await page.getByText('Тест: статья временно недоступна', { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => tinymce.get('content').getContent()), beforeFailure, 'A partial failure never inserts an incomplete collection');
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 3, 'Failure preserves selection for retry');
+  await page.unroute('**/admin-ajax.php', failOneCard);
+  await page.locator('#hs-ac-insert').click();
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  await open();
+  await page.locator('#hs-ac-recent summary').click();
+  await page.locator('.hs-ac-recent-choice').first().click();
+  await page.locator('#hs-ac-reset-settings').click();
+  await page.locator('#hs-ac-layout').selectOption('list');
+  await page.locator('#hs-ac-setting-image').selectOption('small');
+  await page.locator('#hs-ac-setting-width').selectOption('narrow');
+  assert.equal(await page.locator('#hs-ac-setting-columns').isDisabled(), true);
+  assert.equal(await page.locator('#hs-ac-preview .hs-article-card__date').count(), 1, 'Reset restores date');
+  await page.locator('#hs-ac-insert').click();
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#save-post:not(.disabled)').click()]);
   await editorReady();
   const saved = await page.evaluate(() => tinymce.get('content').getContent());
   assert.match(saved, /hs-article-card--cover/);
   assert.match(saved, /Первый абзац/);
   assert.match(saved, /Последний абзац/);
-  assert.equal((saved.match(/class="hs-article-card /g) || []).length, 2);
-  // Native preview of the saved draft must render both cards.
+  assert.equal((saved.match(/class="hs-article-card /g) || []).length, 6);
+  // Native preview must preserve all four layouts and their settings.
   const previewPage = await context.newPage();
   await previewPage.goto(`${base}/?p=${fixture.draft}&preview=true`);
-  assert.equal(await previewPage.locator('.hs-article-card').count(), 2);
+  assert.equal(await previewPage.locator('.hs-article-card').count(), 6);
+  assert.equal(await previewPage.locator('.hs-article-cards--grid .hs-article-card').count(), 3);
+  assert.equal(await previewPage.locator('.hs-article-cards--grid .hs-article-card__date').count(), 0);
+  assert.equal(await previewPage.locator('.hs-article-cards--list .hs-article-card').count(), 1);
   await previewPage.close();
-  await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#publish').click()]);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#publish:not(.disabled)').click()]);
   await editorReady();
   const reader = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const publicPage = await reader.newPage();
   await publicPage.route('https://kolodahearthstone.com/wp-content/uploads/card-fixture.png', route => route.abort());
   await publicPage.goto(`${base}/?p=${fixture.draft}`);
-  assert.equal(await publicPage.locator('.hs-article-card').count(), 2);
+  assert.equal(await publicPage.locator('.hs-article-card').count(), 6);
   await reader.route('https://kolodahearthstone.com/guide-*', route => route.fulfill({ contentType: 'text/html', body: '<title>Article target fixture</title>' }));
   for (const selector of ['.hs-article-card__image', '.hs-article-card__title']) {
     const opened = publicPage.waitForEvent('popup');
@@ -150,6 +216,10 @@ try {
   assert.notEqual(await publicPage.locator('.hs-article-card__link').first().evaluate(el => getComputedStyle(el).outlineStyle), 'none');
   for (const width of [320, 390, 768, 1024, 1440]) {
     await publicPage.setViewportSize({ width, height: 1000 });
+    const columns = await publicPage.locator('.hs-article-cards--grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+    assert.ok(columns >= 1 && columns <= 3, `Grid respects the selected maximum at ${width}`);
+    if (width <= 390) assert.equal(columns, 1, 'Mobile grid has one column');
+    if (width === 1440) assert.equal(columns, 3, 'Wide grid uses three columns');
     for (const card of await publicPage.locator('.hs-article-card').all()) {
       assert.equal(await card.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true, `Card fits ${width}`);
     }
@@ -161,6 +231,10 @@ try {
   assert.equal((await ajax(page, { nonce: 'invalid' })).status, 403);
   assert.equal((await ajax(page, { source: 'https://localhost/' })).status, 400);
   assert.equal((await ajax(page, { page: '-1' })).status, 400);
+  for (const settings of ['{"radius":"injected"}', '{"date":[]}', '{"unexpected":"x"}', 'null']) {
+    assert.equal((await ajax(page, { mode: 'card', id: fixture.source, layout: 'grid', settings })).status, 400, 'Reject unsafe settings');
+  }
+  report.checks.push('mixed-catalog-collection', 'reorder-remove-recent', 'grid-list-settings-roundtrip', 'responsive-grid-columns', 'settings-validation');
   await open();
   await source('koloda');
   await searchFor('__fail__');
@@ -188,6 +262,9 @@ try {
   await blockPage.locator('#hs-ac-insert').click();
   await blockPage.waitForFunction(() => wp.data.select('core/block-editor').getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
   await blockPage.evaluate(() => wp.data.dispatch('core/editor').savePost());
+  await blockPage.waitForFunction(() => !wp.data.select('core/editor').isSavingPost() && wp.data.select('core/editor').didPostSaveRequestSucceed());
+  const blockStored = await blockPage.evaluate(() => wp.apiFetch({ path: `/wp/v2/posts/${wp.data.select('core/editor').getCurrentPostId()}?context=edit` }));
+  assert.match(blockStored.content.raw, /hs-article-cards--compact/, 'The block save reaches stored post_content');
   await blockPage.reload();
   await blockPage.waitForFunction(() => wp.data.select('core/block-editor').getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
   const errorOrigin = error => error.stack?.replace(/&hs_cards_baseline=1/g, '').replace(/:\d+:\d+/g, ':line:column');

@@ -77,3 +77,39 @@
 	.hs-article-card a.hs-article-card__link { gap: 12px; }
 	.hs-article-card .hs-article-card__title { font-size: 16px; }
 }
+/* Native HTML collections retain these presets through editor/KSES round-trips. */
+.hs-article-cards {
+	--hs-ac-gap: 24px;
+	--hs-ac-columns: 2;
+	display: grid;
+	gap: var(--hs-ac-gap);
+	margin-block: 24px;
+	max-width: 100%;
+	min-width: 0;
+}
+.hs-article-cards > .hs-article-card { margin: 0; min-width: 0; }
+.hs-article-cards--columns-3 { --hs-ac-columns: 3; }
+.hs-article-cards--spacing-tight { --hs-ac-gap: 12px; }
+.hs-article-cards--spacing-airy { --hs-ac-gap: 32px; }
+.hs-article-cards--width-narrow { width: min(100%, 560px); margin-inline: auto; }
+.hs-article-cards--grid {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, max(200px, calc((100% - (var(--hs-ac-columns) - 1) * var(--hs-ac-gap)) / var(--hs-ac-columns)))), 1fr));
+	align-items: start;
+}
+.hs-article-card--grid a.hs-article-card__link {
+	grid-template-columns: minmax(0, 1fr) 24px;
+	align-items: start;
+}
+.hs-article-card--grid .hs-article-card__image,
+.hs-article-card--grid .hs-article-card__placeholder {
+	grid-column: 1 / -1;
+	aspect-ratio: 16 / 9;
+}
+.hs-article-card--list .hs-article-card__title { font-size: 16px; }
+.hs-article-card--list a.hs-article-card__link { grid-template-columns: minmax(48px, 20%) minmax(0, 1fr) 24px; }
+.hs-article-card--image-small:is(.hs-article-card--compact, .hs-article-card--list) a.hs-article-card__link { grid-template-columns: minmax(48px, 16%) minmax(0, 1fr) 24px; }
+.hs-article-card--image-large:is(.hs-article-card--compact, .hs-article-card--list) a.hs-article-card__link { grid-template-columns: minmax(64px, 36%) minmax(0, 1fr) 24px; }
+.hs-article-card--image-small:is(.hs-article-card--cover, .hs-article-card--grid) :is(.hs-article-card__image, .hs-article-card__placeholder) { aspect-ratio: 21 / 9; }
+.hs-article-card--image-large:is(.hs-article-card--cover, .hs-article-card--grid) :is(.hs-article-card__image, .hs-article-card__placeholder) { aspect-ratio: 4 / 3; }
+.hs-article-card--radius-square :is(.hs-article-card__image, .hs-article-card__placeholder) { border-radius: 0; }
+.hs-article-card--radius-round :is(.hs-article-card__image, .hs-article-card__placeholder) { border-radius: 16px; }

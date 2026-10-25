@@ -9,10 +9,15 @@
 	const source = byId('source'), category = byId('category'), search = byId('search');
 	const results = byId('results'), preview = byId('preview'), insert = byId('insert');
 	const layout = byId('layout'), status = byId('status');
-	let page = 1, pages = 1, categoryPage = 0, selected = null, opener = null;
+	let page = 1, pages = 1, categoryPage = 0, selected = [], opener = null;
 	let bookmark = null, editor = null, selection = null, debounce = null;
 	let generation = 0, categoryGeneration = 0, inserting = false;
 	const requests = new Map();
+	const settingsControls = Object.fromEntries(Object.keys(config.defaults).map(key => [key, byId(`setting-${key}`)]));
+	let recent = [];
+	const articleKey = article => `${article.source}:${article.id}`;
+	const settings = () => Object.fromEntries(Object.entries(settingsControls).map(([key, control]) => [key, control.value]));
+	const groupClass = options => `hs-article-cards hs-article-cards--${layout.value} hs-article-cards--columns-${options.columns} hs-article-cards--spacing-${options.spacing} hs-article-cards--width-${options.width}`;
 
 	function node(tag, className = '', text = '') {
 		const element = document.createElement(tag);
@@ -59,23 +64,81 @@
 
 	function showPreview() {
 		preview.replaceChildren();
-		if (!selected) return;
-		const card = node('div', `hs-article-card hs-article-card--${layout.value}`);
-		const link = node('a', 'hs-article-card__link');
-		link.href = selected.url;
-		link.tabIndex = -1;
-		link.setAttribute('aria-label', `${selected.title} — ${labels.newTab}`);
-		const text = node('span', 'hs-article-card__text');
-		text.append(node('span', 'hs-article-card__title', selected.title), node('span', 'hs-article-card__date', selected.date_label));
-		link.append(thumbnail(selected, 'hs-article-card__image'), text, node('span', 'hs-article-card__arrow', '↗'));
-		card.append(link);
-		preview.append(card);
+		settingsControls.columns.disabled = layout.value !== 'grid';
+		if (!selected.length) return;
+		const options = settings();
+		const group = node('div', groupClass(options));
+		for (const article of selected) {
+			const card = node('div', `hs-article-card hs-article-card--${layout.value} hs-article-card--image-${options.image} hs-article-card--radius-${options.radius}`);
+			const link = node('a', 'hs-article-card__link');
+			link.href = article.url;
+			link.tabIndex = -1;
+			link.setAttribute('aria-label', `${article.title} — ${labels.newTab}`);
+			const text = node('span', 'hs-article-card__text');
+			text.append(node('span', 'hs-article-card__title', article.title));
+			if (options.date === 'show') text.append(node('span', 'hs-article-card__date', article.date_label));
+			link.append(thumbnail(article, 'hs-article-card__image'), text, node('span', 'hs-article-card__arrow', '↗'));
+			card.append(link);
+			group.append(card);
+		}
+		preview.append(group);
+	}
+
+	function updateSelection() {
+		insert.disabled = inserting || selected.length === 0;
+		insert.textContent = `${labels.insert}${selected.length ? ` (${selected.length})` : ''}`;
+		byId('selection-status').textContent = `${labels.selected}: ${selected.length} / 6`;
+		byId('selected').replaceChildren();
+		dialog.querySelectorAll('.hs-ac-choice, .hs-ac-recent-choice').forEach(button => button.setAttribute('aria-pressed', String(selected.some(article => articleKey(article) === button.dataset.key))));
+		selected.forEach((article, index) => {
+			const item = node('li', 'hs-ac-selected-item');
+			item.append(node('span', '', article.title));
+			const actions = node('div', 'hs-ac-selected-actions');
+			for (const [action, label, disabled] of [['earlier', labels.earlier, index === 0], ['later', labels.later, index === selected.length - 1], ['remove', labels.remove, false]]) {
+				const button = node('button', 'button', label);
+				button.type = 'button';
+				button.disabled = disabled;
+				button.setAttribute('aria-label', `${label}: ${article.title}`);
+				button.dataset.action = action;
+				button.addEventListener('click', () => {
+					if (inserting) return;
+					const target = action === 'earlier' ? index - 1 : index + 1;
+					if (action === 'remove') selected.splice(index, 1);
+					else [selected[index], selected[target]] = [selected[target], selected[index]];
+					updateSelection();
+					const row = byId('selected').children[Math.min(action === 'remove' ? index : target, selected.length - 1)];
+					(row?.querySelector('button:not(:disabled)') || search).focus();
+				});
+				actions.append(button);
+			}
+			item.append(actions);
+			byId('selected').append(item);
+		});
+		showPreview();
+	}
+
+	function choiceFor(article, isRecent = false) {
+		const choice = node('button', isRecent ? 'hs-ac-recent-choice' : 'hs-ac-choice');
+		choice.type = 'button';
+		choice.dataset.key = articleKey(article);
+		choice.setAttribute('aria-pressed', String(selected.some(item => articleKey(item) === articleKey(article))));
+		const text = node('span');
+		text.append(node('strong', '', article.title), node('small', '', article.date_label));
+		choice.append(thumbnail(article, ''), text);
+		choice.addEventListener('click', () => {
+			if (inserting) return;
+			const index = selected.findIndex(item => articleKey(item) === articleKey(article));
+			if (index >= 0) selected.splice(index, 1);
+			else if (selected.length < 6) selected.push(article);
+			else { byId('selection-status').textContent = labels.limit; return; }
+			updateSelection();
+		});
+		return choice;
 	}
 
 	function resetSelection() {
-		selected = null;
-		insert.disabled = true;
-		preview.replaceChildren();
+		selected = [];
+		updateSelection();
 	}
 
 	function navigation(busy = false) {
@@ -86,7 +149,6 @@
 
 	async function loadPosts() {
 		const ticket = ++generation;
-		resetSelection();
 		results.replaceChildren();
 		results.setAttribute('aria-busy', 'true');
 		status.textContent = labels.loading;
@@ -96,23 +158,7 @@
 			const data = await request('posts', { mode: 'posts', search: search.value, category: category.value, page });
 			if (ticket !== generation || !dialog.open) return;
 			pages = data.pages;
-			for (const article of data.items) {
-				const choice = node('button', 'hs-ac-choice');
-				choice.type = 'button';
-				choice.setAttribute('aria-pressed', 'false');
-				const text = node('span');
-				text.append(node('strong', '', article.title), node('small', '', article.date_label));
-				choice.append(thumbnail(article, ''), text);
-				choice.addEventListener('click', () => {
-					if (inserting) return;
-					results.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', 'false'));
-					choice.setAttribute('aria-pressed', 'true');
-					selected = article;
-					insert.disabled = false;
-					showPreview();
-				});
-				results.append(choice);
-			}
+			for (const article of data.items) results.append(choiceFor({ ...article, source: source.value }));
 			status.textContent = data.items.length ? labels.ready : labels.empty;
 			navigation();
 		} catch (error) {
@@ -151,7 +197,6 @@
 		clearTimeout(debounce);
 		generation++;
 		requests.get('posts')?.abort();
-		resetSelection();
 		results.replaceChildren();
 		status.textContent = labels.loading;
 		navigation(true);
@@ -160,11 +205,13 @@
 	}
 
 	function open(event) {
+		if (inserting) return;
 		opener = event.currentTarget;
 		editor = window.tinymce?.get('content');
 		bookmark = editor && !editor.isHidden() ? editor.selection.getBookmark(2, true) : null;
 		const textarea = document.getElementById('content');
 		selection = textarea ? [textarea.selectionStart, textarea.selectionEnd] : null;
+		updateSelection();
 		dialog.showModal();
 		search.focus();
 		loadCategories(true);
@@ -199,24 +246,31 @@
 	}
 
 	insert.addEventListener('click', async () => {
-		if (!selected || inserting) return;
+		if (!selected.length || inserting) return;
 		const ticket = generation;
 		inserting = true;
 		insert.disabled = true;
 		insert.textContent = labels.inserting;
-		[source, category, search, layout].forEach(control => { control.disabled = true; });
+		const controls = [...dialog.querySelectorAll('.hs-ac-body button, .hs-ac-body select, .hs-ac-body input')].map(control => [control, control.disabled]);
+		controls.forEach(([control]) => { control.disabled = true; });
 		try {
-			const data = await request('card', { mode: 'card', id: selected.id, layout: layout.value });
+			const chosen = [...selected];
+			const options = settings();
+			const cards = await Promise.all(chosen.map(article => request(`card-${articleKey(article)}`, { mode: 'card', source: article.source, id: article.id, layout: layout.value, settings: JSON.stringify(options) })));
 			if (ticket !== generation || !dialog.open) return;
-			insertHtml(data.html);
+			const group = node('div', groupClass(options));
+			group.innerHTML = cards.map(card => card.html).join(''); // Only server-rendered, validated card markup.
+			insertHtml(group.outerHTML);
+			recent = [...chosen, ...recent.filter(article => !chosen.some(item => articleKey(item) === articleKey(article)))].slice(0, 6);
+			byId('recent-results').replaceChildren(...recent.map(article => choiceFor(article, true)));
+			byId('recent').hidden = false;
 			dialog.close();
 		} catch (error) {
 			if (ticket === generation && dialog.open) status.textContent = error.name === 'AbortError' ? labels.error : error.message;
 		} finally {
 			inserting = false;
-			insert.disabled = !selected;
-			insert.textContent = labels.insert;
-			[source, category, search, layout].forEach(control => { control.disabled = false; });
+			controls.forEach(([control, disabled]) => { control.disabled = disabled; });
+			updateSelection();
 		}
 	});
 
@@ -249,6 +303,12 @@
 		if (event.key === 'Enter') { event.preventDefault(); filterChanged(); }
 	});
 	layout.addEventListener('change', showPreview);
+	Object.values(settingsControls).forEach(control => control.addEventListener('change', showPreview));
+	byId('reset-settings').addEventListener('click', () => {
+		layout.value = 'compact';
+		Object.entries(config.defaults).forEach(([key, value]) => { settingsControls[key].value = value; });
+		showPreview();
+	});
 	byId('prev').addEventListener('click', () => { if (page > 1 && !inserting) { page--; loadPosts(); } });
 	byId('next').addEventListener('click', () => { if (page < pages && !inserting) { page++; loadPosts(); } });
 	byId('retry').addEventListener('click', loadPosts);
