@@ -298,6 +298,7 @@ console.log('PASS');
         self.assertNotIn("secrets.", job_config)
         for step_name in (
             "Check protected staging measurement credentials",
+            "Verify article cards against live staging catalogs",
             "Collect five comparable warm staging samples",
             "Diagnose authenticated article save",
             "Diagnose authenticated image uploads",
@@ -321,9 +322,9 @@ console.log('PASS');
             for secret_name in ("STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD"):
                 self.assertIn(f"secrets.{secret_name}", frontend)
             self.assertNotIn("STAGING_DIAGNOSTIC", frontend)
-            self.assertEqual(18, steps.count("secrets."))
+            self.assertEqual(22, steps.count("secrets."))
         else:
-            self.assertEqual(16, steps.count("secrets."))
+            self.assertEqual(20, steps.count("secrets."))
 
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

@@ -20,6 +20,16 @@
   },
   "rules": [
     {
+      "patterns": ["wordpress/mu-plugins/hs-article-cards.php", "wordpress/mu-plugins/hs-article-cards/**", "tests/test_article_cards.py", "tests/fixtures/article-cards.php", "tests/article-cards/**", "ops/integration/article-cards.sh", "config/integrations/article-cards.json", "docs/runbooks/article-cards.md"],
+      "owner": "editor-article-cards",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["editor", "admin", "frontend", "external-api", "accessibility"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["wordpress-article-editor", "wordpress-admin-ui", "wp-plugin-development", "wordpress-external-integrations", "wordpress-privacy-consent", "wordpress-accessibility", "newspaper-tagdiv", "playwright"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "bash ops/integration/article-cards.sh", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": [
         "wordpress/mu-plugins/manacost-smart-sidebar.php",
         "wordpress/mu-plugins/manacost-smart-sidebar.css",
