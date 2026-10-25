@@ -35,7 +35,7 @@
 .hs-ac-columns > section { min-width: 0; }
 #hs-ac-category-status:empty { display: none; }
 #hs-ac-status { min-height: 24px; }
-.hs-ac-choice {
+:is(.hs-ac-choice, .hs-ac-recent-choice) {
 	display: grid;
 	grid-template-columns: 88px minmax(0, 1fr);
 	align-items: center;
@@ -49,13 +49,13 @@
 	text-align: start;
 	cursor: pointer;
 }
-.hs-ac-choice:hover { background: #f6f7f7; }
-.hs-ac-choice[aria-pressed="true"] { border: 2px solid #2271b1; background: #f0f6fc; }
-.hs-ac-choice img,
-.hs-ac-choice .hs-ac-no-image { width: 88px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 4px; }
+:is(.hs-ac-choice, .hs-ac-recent-choice):hover { background: #f6f7f7; }
+:is(.hs-ac-choice, .hs-ac-recent-choice)[aria-pressed="true"] { border: 2px solid #2271b1; background: #f0f6fc; }
+:is(.hs-ac-choice, .hs-ac-recent-choice) img,
+:is(.hs-ac-choice, .hs-ac-recent-choice) .hs-ac-no-image { width: 88px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 4px; }
 .hs-ac-no-image { display: grid; place-items: center; font-size: 12px; color: #50575e; background: #f0f0f1; }
-.hs-ac-choice strong { display: block; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; }
-.hs-ac-choice small { display: block; margin-top: 4px; color: #50575e; font-size: 12px; }
+:is(.hs-ac-choice, .hs-ac-recent-choice) strong { display: block; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; }
+:is(.hs-ac-choice, .hs-ac-recent-choice) small { display: block; margin-top: 4px; color: #50575e; font-size: 12px; }
 .hs-ac-pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .hs-ac-preview-panel { align-self: start; position: sticky; top: 0; }
 #hs-ac-preview { margin-top: 24px; }
@@ -68,4 +68,14 @@
 	.hs-ac-preview-panel { position: static; }
 	.hs-ac-footer { flex-wrap: wrap; }
 	.hs-ac-footer .button { width: 100%; }
+}
+.hs-ac-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-block: 16px; }
+#hs-ac-selected { list-style: decimal; margin: 0 0 16px; padding-inline-start: 24px; }
+.hs-ac-selected-item { margin-block: 12px; overflow-wrap: anywhere; }
+.hs-ac-selected-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+#hs-ac-recent { margin-bottom: 16px; }
+#hs-ac-recent summary { cursor: pointer; padding-block: 12px; font-weight: 600; }
+#hs-ac-preview .hs-article-cards { margin-block: 0; }
+@media (max-width: 480px) {
+	.hs-ac-settings { grid-template-columns: minmax(0, 1fr); }
 }

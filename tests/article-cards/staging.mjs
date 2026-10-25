@@ -95,7 +95,7 @@ try {
   await editorReady();
   for (const source of ['manacost', 'koloda']) {
     report.stage = `picker-${source}`;
-    await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
+    if (source === 'manacost') await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
     if (await page.locator('#hs-ac-source').inputValue() !== source) {
       await resultsAfter(() => page.locator('#hs-ac-source').selectOption(source));
     }
@@ -104,38 +104,63 @@ try {
     const title = (await page.locator('.hs-ac-choice strong').first().innerText()).trim();
     await resultsAfter(() => page.locator('#hs-ac-search').fill(title.slice(0, 80)));
     await page.locator('.hs-ac-choice').first().click();
-    await page.locator('#hs-ac-preview .hs-article-card').waitFor();
+    await page.locator('#hs-ac-preview .hs-article-card').first().waitFor();
+    await page.locator('#hs-ac-selected li').last().getByRole('button', { name: /^Убрать:/ }).click();
     const category = await page.locator('#hs-ac-category option').nth(1).getAttribute('value');
     await resultsAfter(() => page.locator('#hs-ac-search').fill(''));
     await resultsAfter(() => page.locator('#hs-ac-category').selectOption(category));
     await page.locator('.hs-ac-choice').first().click();
-    await page.locator('#hs-ac-layout').selectOption(source === 'koloda' ? 'cover' : 'compact');
-    await page.setViewportSize({ width: 390, height: 1000 });
-    assert.equal(await page.locator('#hs-article-cards-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
-    await page.locator('#hs-ac-insert').click();
-    await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
-    await page.setViewportSize({ width: 1440, height: 1000 });
     report.sources.push(source);
   }
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 2, 'Mixed live catalogs stay selected');
+  await page.locator('#hs-ac-layout').selectOption('grid');
+  await page.locator('#hs-ac-setting-date').selectOption('hide');
+  await page.locator('#hs-ac-setting-radius').selectOption('round');
+  await page.locator('#hs-ac-setting-image').selectOption('large');
+  await page.locator('#hs-ac-setting-spacing').selectOption('tight');
+  await page.locator('#hs-ac-selected li').last().getByRole('button', { name: /^Выше:/ }).click();
+  await page.setViewportSize({ width: 390, height: 1000 });
+  assert.equal(await page.locator('#hs-article-cards-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
+  await page.locator('#hs-ac-insert').click();
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
+  await page.locator('#hs-ac-recent summary').click();
+  await page.locator('.hs-ac-recent-choice').first().click();
+  await page.locator('#hs-ac-reset-settings').click();
+  await page.locator('#hs-ac-layout').selectOption('list');
+  await page.locator('#hs-ac-setting-image').selectOption('small');
+  await page.locator('#hs-ac-setting-width').selectOption('narrow');
+  await page.locator('#hs-ac-insert').click();
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  report.layouts = ['grid', 'list'];
   report.stage = 'save';
+  await page.evaluate(() => window.scrollTo(0, 0));
   await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#save-post').click(),
+    page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#save-post:not(.disabled)').click(),
   ]);
   await editorReady();
   const stored = await api(`posts/${fixture.id}?context=edit`);
   assert.equal(stored.status, 'draft');
-  assert.equal((stored.content.raw.match(/class="hs-article-card hs-article-card--/g) || []).length, 2);
+  assert.equal((stored.content.raw.match(/class="hs-article-card hs-article-card--/g) || []).length, 3);
   assert.ok(stored.content.raw.includes(marker));
   report.saved = true;
   report.stage = 'preview';
   const preview = await context.newPage();
   await navigate(preview, `${base}/?p=${fixture.id}&preview=true`);
-  assert.equal(await preview.locator('.hs-article-card').count(), 2);
+  assert.equal(await preview.locator('.hs-article-card').count(), 3);
   for (const card of await preview.locator('.hs-article-card').all()) {
     assert.equal(await card.locator('a').getAttribute('target'), '_blank');
     assert.match(await card.locator('a').getAttribute('rel'), /noopener/);
-    assert.ok((await card.locator('.hs-article-card__date').innerText()).trim());
+    if (await card.locator('.hs-article-card__date').count()) assert.ok((await card.locator('.hs-article-card__date').innerText()).trim());
     assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
+  }
+  assert.equal(await preview.locator('.hs-article-cards--grid .hs-article-card').count(), 2);
+  assert.equal(await preview.locator('.hs-article-cards--grid .hs-article-card__date').count(), 0);
+  assert.equal(await preview.locator('.hs-article-cards--list .hs-article-card__date').count(), 1);
+  for (const width of [390, 1440]) {
+    await preview.setViewportSize({ width, height: 1000 });
+    assert.equal(await preview.locator('.hs-article-cards--grid').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
   }
   report.preview = true;
   report.ok = true;
