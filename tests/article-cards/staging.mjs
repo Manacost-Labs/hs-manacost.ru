@@ -36,6 +36,7 @@ async function api(route, method = 'GET', body) {
   }, { route, method, body, nonce });
 }
 async function editorReady() {
+  await page.locator('#content-tmce').click();
   await page.waitForFunction(() => window.tinymce?.get('content')?.initialized);
 }
 async function resultsAfter(action) {
@@ -65,6 +66,7 @@ try {
   report.stage = 'create-draft';
   fixture = await api('posts', 'POST', { title: marker, content: `<p>${marker}</p>`, status: 'draft' });
   assert.ok(Number.isSafeInteger(fixture.id) && fixture.id > 0);
+  report.stage = 'editor-open';
   await page.goto(`${base}/wp-admin/post.php?post=${fixture.id}&action=edit`);
   await editorReady();
   for (const source of ['manacost', 'koloda']) {
@@ -74,6 +76,7 @@ try {
       await resultsAfter(() => page.locator('#hs-ac-source').selectOption(source));
     }
     await page.waitForFunction(() => document.querySelectorAll('#hs-ac-category option').length > 1);
+    if (source === 'koloda') assert.ok(await page.locator('.hs-ac-choice img').count(), 'Live Koloda catalog must include covers');
     const title = (await page.locator('.hs-ac-choice strong').first().innerText()).trim();
     await resultsAfter(() => page.locator('#hs-ac-search').fill(title.slice(0, 80)));
     await page.locator('.hs-ac-choice').first().click();
