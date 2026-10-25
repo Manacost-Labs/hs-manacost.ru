@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { finishAdminLogin } from '../../ops/performance/browser-admin-login.mjs';
+import { navigateWithNetworkRecovery } from '../../ops/performance/browser-fixture-request.mjs';
 
 const base = process.env.WP_TEST_BASE_URL;
 if (base !== 'https://test.hs-manacost.ru') throw new Error('Article cards smoke is restricted to protected staging');
@@ -10,7 +11,7 @@ for (const key of ['WP_TEST_ADMIN_USER', 'WP_TEST_ADMIN_PASSWORD', 'STAGING_HTTP
   if (!process.env[key]) throw new Error('Protected staging credentials are required');
 }
 const marker = `Article cards staging probe ${randomUUID()}`;
-const report = { ok: false, sources: [], saved: false, preview: false, cleaned: false, stage: 'login' };
+const report = { ok: false, sources: [], saved: false, preview: false, cleaned: false, stage: 'login', navigation_retries: 0 };
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
@@ -31,6 +32,11 @@ page.on('requestfailed', request => {
 });
 let nonce;
 let fixture;
+async function navigate(target, url) {
+  const { response, retries } = await navigateWithNetworkRecovery(target, url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  report.navigation_retries += retries;
+  return response;
+}
 async function api(route, method = 'GET', body) {
   return apiPage.evaluate(async ({ route, method, body, nonce }) => {
     const response = await fetch(`/wp-json/wp/v2/${route}`, {
@@ -60,23 +66,32 @@ try {
   report.stage = 'login-navigation';
   const nonceURL = `${base}/wp-admin/admin-ajax.php?action=rest-nonce`;
   // Use core's local login redirect; the unrelated dashboard need not initialize.
-  await page.goto(`${base}/wp-login.php?redirect_to=${encodeURIComponent(nonceURL)}`, { waitUntil: 'domcontentloaded' });
+  await navigate(page, `${base}/wp-login.php?redirect_to=${encodeURIComponent(nonceURL)}`);
   report.stage = 'login-form';
   await page.waitForFunction(() => document.activeElement?.id === 'user_login');
   await page.locator('#user_login').fill(process.env.WP_TEST_ADMIN_USER);
   await page.locator('#user_pass').fill(process.env.WP_TEST_ADMIN_PASSWORD);
-  await page.locator('#wp-submit').click();
   report.stage = 'login-redirect';
-  await finishAdminLogin(page, base);
+  try {
+    await page.locator('#wp-submit').click();
+    await finishAdminLogin(page, base);
+  } catch (error) {
+    const interruptedRead = navigationFailures.some(failure => failure.code === 'net::ERR_NETWORK_CHANGED'
+      && failure.path === '/wp-admin/admin-ajax.php');
+    if (!interruptedRead) throw error;
+    // The login POST already redirected; recover only its interrupted GET.
+    report.navigation_retries++;
+    await navigate(page, nonceURL);
+  }
   report.stage = 'rest-nonce';
-  const nonceResponse = await apiPage.goto(`${base}/wp-admin/admin-ajax.php?action=rest-nonce`);
+  const nonceResponse = await navigate(apiPage, nonceURL);
   nonce = (await nonceResponse.text()).trim();
   assert.match(nonce, /^[a-z0-9]{10}$/i);
   report.stage = 'create-draft';
   fixture = await api('posts', 'POST', { title: marker, content: `<p>${marker}</p>`, status: 'draft' });
   assert.ok(Number.isSafeInteger(fixture.id) && fixture.id > 0);
   report.stage = 'editor-open';
-  await page.goto(`${base}/wp-admin/post.php?post=${fixture.id}&action=edit`);
+  await navigate(page, `${base}/wp-admin/post.php?post=${fixture.id}&action=edit`);
   await editorReady();
   for (const source of ['manacost', 'koloda']) {
     report.stage = `picker-${source}`;
@@ -114,7 +129,7 @@ try {
   report.saved = true;
   report.stage = 'preview';
   const preview = await context.newPage();
-  await preview.goto(`${base}/?p=${fixture.id}&preview=true`);
+  await navigate(preview, `${base}/?p=${fixture.id}&preview=true`);
   assert.equal(await preview.locator('.hs-article-card').count(), 2);
   for (const card of await preview.locator('.hs-article-card').all()) {
     assert.equal(await card.locator('a').getAttribute('target'), '_blank');
