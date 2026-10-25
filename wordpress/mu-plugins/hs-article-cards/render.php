@@ -20,12 +20,33 @@ final class HS_Article_Cards_Render {
 	 */
 	public static function presets(): array {
 		return array(
-			'columns' => array( '2' => '2', '3' => '3' ),
-			'image'   => array( 'normal' => __( 'Средняя', 'hs-article-cards' ), 'small' => __( 'Маленькая', 'hs-article-cards' ), 'large' => __( 'Крупная', 'hs-article-cards' ) ),
-			'spacing' => array( 'normal' => __( 'Обычные', 'hs-article-cards' ), 'tight' => __( 'Плотные', 'hs-article-cards' ), 'airy' => __( 'Свободные', 'hs-article-cards' ) ),
-			'radius'  => array( 'soft' => __( 'Мягкие', 'hs-article-cards' ), 'square' => __( 'Прямые', 'hs-article-cards' ), 'round' => __( 'Округлые', 'hs-article-cards' ) ),
-			'date'    => array( 'show' => __( 'Показывать', 'hs-article-cards' ), 'hide' => __( 'Скрывать', 'hs-article-cards' ) ),
-			'width'   => array( 'full' => __( 'По ширине текста', 'hs-article-cards' ), 'narrow' => __( 'Узкий блок по центру', 'hs-article-cards' ) ),
+			'columns' => array(
+				'2' => '2',
+				'3' => '3',
+			),
+			'image'   => array(
+				'normal' => __( 'Средняя', 'hs-article-cards' ),
+				'small'  => __( 'Маленькая', 'hs-article-cards' ),
+				'large'  => __( 'Крупная', 'hs-article-cards' ),
+			),
+			'spacing' => array(
+				'normal' => __( 'Обычные', 'hs-article-cards' ),
+				'tight'  => __( 'Плотные', 'hs-article-cards' ),
+				'airy'   => __( 'Свободные', 'hs-article-cards' ),
+			),
+			'radius'  => array(
+				'soft'   => __( 'Мягкие', 'hs-article-cards' ),
+				'square' => __( 'Прямые', 'hs-article-cards' ),
+				'round'  => __( 'Округлые', 'hs-article-cards' ),
+			),
+			'date'    => array(
+				'show' => __( 'Показывать', 'hs-article-cards' ),
+				'hide' => __( 'Скрывать', 'hs-article-cards' ),
+			),
+			'width'   => array(
+				'full'   => __( 'По ширине текста', 'hs-article-cards' ),
+				'narrow' => __( 'Узкий блок по центру', 'hs-article-cards' ),
+			),
 		);
 	}
 
@@ -49,7 +70,7 @@ final class HS_Article_Cards_Render {
 	 *
 	 * @param array<string,int|string> $article Validated public metadata.
 	 * @param string                   $layout Selected presentation.
-	 * @param array<string,string>      $settings Presentation presets.
+	 * @param array<string,string>     $settings Presentation presets.
 	 * @phpstan-param Article $article
 	 * @return string
 	 */
@@ -60,8 +81,8 @@ final class HS_Article_Cards_Render {
 		foreach ( array( 'image', 'radius' ) as $key ) {
 			$classes .= ' hs-article-card--' . $key . '-' . $settings[ $key ];
 		}
-		$date = 'show' === $settings['date'] ? '<span class="hs-article-card__date">' . esc_html( $article['date_label'] ) . '</span>' : '';
-		$image  = '';
+		$date  = 'show' === $settings['date'] ? '<span class="hs-article-card__date">' . esc_html( $article['date_label'] ) . '</span>' : '';
+		$image = '';
 		if ( '' !== $article['image'] ) {
 			$image = '<img class="hs-article-card__image" src="' . esc_url( $article['image'] ) . '" alt="" width="640" height="360" loading="lazy" />';
 		} else {
