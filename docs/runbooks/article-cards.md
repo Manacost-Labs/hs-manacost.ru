@@ -154,3 +154,66 @@ AJAX/REST endpoints и изменений БД нет. Вкладки сохра
 проверку сохранённого контента и staging probe. Staging использует только свой
 временный черновик и удаляет его после проверки. При откате на 1.1 текст и
 семантическая разметка сохраняются, вкладки становятся обычными разделами.
+
+## Автор, стопка и предпросмотр ссылок (1.3)
+
+«Компонент Manacost → Об авторе · соцсеть» вставляет карточку AuthorBio:
+имя, подпись, описание, необязательное фото и кнопку с обычной ссылкой HTTP(S).
+Кнопка открывает соцсеть в новой вкладке; она не имитирует подписку внутри сайта.
+Компонент повторно редактируется тем же способом, что цитата и таблица.
+
+В подборке статей появился вид «Стопка карточек · Folded». От двух карточек
+доступны стрелки, клавиши ←/→/Home/End и горизонтальный свайп; автоперелистывания
+нет. При отключённом JavaScript или печати видны все ссылки. Системное уменьшение
+движения отключает трансформации/переходы. В редакторе доступен живой предпросмотр
+в окне вставки; сохранённое содержимое остаётся обычным HTML.
+
+LinkPreview автоматически дополняет HTTP(S)-ссылки в теле новых и старых статей
+при выводе, не меняя `post_content`. Существующие игровые тултипы, карточки статей,
+кнопка соцсети, скачивания, якоря, mailto и tel сохраняют своё поведение.
+На компьютере превью открывается при наведении/фокусе, на сенсорном экране —
+отдельной кнопкой рядом со ссылкой; исходная ссылка всегда сохраняет переход.
+Escape и кнопка закрытия скрывают карточку.
+
+Публичный REST endpoint `hs-article-cards/v1/preview` принимает только подписанные
+ссылки опубликованной незащищённой статьи. Подпись зависит от даты изменения
+материала. Запрос метаданных происходит при взаимодействии, а не при рендеринге
+или сохранении. Таймаут 4 секунды, без редиректов и cookies, максимум 256 KiB HTML;
+WordPress safe HTTP отклоняет внутренние адреса. Положительный кэш 12 часов,
+отрицательный 5 минут, бюджет до 30 новых запросов в минуту на экземпляр сайта
+(мягкий предел при конкурирующих запросах). Клиент повторно использует результат
+в пределах открытой страницы. При ошибке остаются подпись/домен и обычная ссылка.
+Отключение: `HS_ARTICLE_LINK_PREVIEW_ENABLED=false`; это не затрагивает карточки.
+
+Приватность: внешнему сайту передаётся публичный URL с сервера, без cookies и
+данных читателя. Обложка при открытом превью загружается браузером с no-referrer.
+Дополнительных trackers, cookies или localStorage нет. В telemetry hook
+`hs_article_link_preview_result` передаётся только success/fallback.
+
+Канонический исходник плагина — Manacost. На Koloda используется идентичный пакет
+через `config/shared-plugin-lock.json`: каталог Koloda локальный, Manacost внешний.
+Базы, настройки, лицензии, медиа и плагины темы/кэша между сайтами не переносятся.
+Откат версии проходит через штатный release pipeline; опубликованный HTML остаётся
+читаемым, автоматические превью отключаются вместе с кодом.
+
+### Inline images and mobile tabs
+
+Classic Editor exposes **Картинка в строке** beside the media button. Place the
+caret in a paragraph and choose an image from the native media library. Gutenberg
+exposes the same action in the text formatting menu. Alt text comes from the
+selected attachment. The saved image is ordinary inline HTML with a `1em` height,
+so it follows the text size, supports undo/autosave/revisions, and remains inline
+when the plugin is disabled. The source image is never resized or overwritten.
+On screens below 600px tabs use one horizontally scrollable row with 44px touch
+targets; keyboard navigation and all panels remain available.
+
+For isolated Koloda fixtures, set `HS_ARTICLE_CARDS_LOCAL_SOURCE` to `koloda`;
+production identifies its local catalog from the canonical home host.
+`HS_ARTICLE_CARDS_REMOTE_ENABLED=false` disables both remote providers without
+affecting local search or saved cards. The legacy Koloda-only switch still works.
+
+Reopening tabs preserves inserted images, their native media classes/dimensions,
+and unchanged body markup. Rich bodies remain editable in the main article editor;
+the text-only dialog does not flatten them. On mobile, Shortcodes Ultimate boxes
+containing these tabs collapse direct empty spacer paragraphs at render time;
+the stored article and desktop spacing are unchanged.

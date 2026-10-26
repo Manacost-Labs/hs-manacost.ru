@@ -13,6 +13,20 @@ defined( 'ABSPATH' ) || exit;
  * @phpstan-import-type Article from HS_Article_Cards_Render
  */
 final class HS_Article_Cards_Catalog {
+	/**
+	 * Identify the local catalog on either independently deployed WordPress site.
+	 *
+	 * @param string $source Catalog identifier.
+	 */
+	public static function is_remote( string $source ): bool {
+		$host  = wp_parse_url( home_url(), PHP_URL_HOST );
+		$local = in_array( $host, array( 'kolodahearthstone.com', 'test.kolodahearthstone.com', 'kolodahearthstone.ru' ), true ) ? 'koloda' : 'manacost';
+		if ( defined( 'HS_ARTICLE_CARDS_LOCAL_SOURCE' ) && in_array( HS_ARTICLE_CARDS_LOCAL_SOURCE, array( 'manacost', 'koloda' ), true ) ) {
+			$local = HS_ARTICLE_CARDS_LOCAL_SOURCE;
+		}
+		return $source !== $local;
+	}
+
 	/** Public remote fields, including links needed by WordPress embedding. */
 	private const FIELDS = 'id,date,link,title,featured_media,categories,_links,_embedded';
 
@@ -26,7 +40,7 @@ final class HS_Article_Cards_Catalog {
 	 * @return array{items:list<Article>,pages:int}|WP_Error
 	 */
 	public static function posts( string $source, string $search, int $category, int $page ) {
-		if ( 'koloda' === $source ) {
+		if ( self::is_remote( $source ) ) {
 			$query = array(
 				'per_page' => 10,
 				'page'     => $page,
@@ -37,13 +51,13 @@ final class HS_Article_Cards_Catalog {
 			if ( $category > 0 ) {
 				$query['categories'] = $category;
 			}
-			$result = HS_Article_Cards_Remote::get( 'posts', $query );
+			$result = HS_Article_Cards_Remote::get( 'posts', $query, $source );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 			$items = array();
 			foreach ( $result['items'] as $raw ) {
-				$item = self::remote_article( $raw );
+				$item = self::remote_article( $raw, $source );
 				if ( is_wp_error( $item ) ) {
 					return $item;
 				}
@@ -88,15 +102,16 @@ final class HS_Article_Cards_Catalog {
 	 * @return Article|WP_Error
 	 */
 	public static function article( string $source, int $id ) {
-		if ( 'koloda' === $source ) {
+		if ( self::is_remote( $source ) ) {
 			$result = HS_Article_Cards_Remote::get(
 				'posts/' . $id,
 				array(
 					'_fields' => self::FIELDS,
 					'_embed'  => 'wp:featuredmedia',
-				)
+				),
+				$source
 			);
-			return is_wp_error( $result ) ? $result : self::remote_article( $result['items'][0] ?? array() );
+			return is_wp_error( $result ) ? $result : self::remote_article( $result['items'][0] ?? array(), $source );
 		}
 		$post = get_post( $id );
 		if ( ! $post instanceof WP_Post || 'post' !== $post->post_type || 'publish' !== $post->post_status || '' !== $post->post_password ) {
@@ -113,7 +128,7 @@ final class HS_Article_Cards_Catalog {
 	 * @return array{items:list<array{id:int,name:string}>,pages:int}|WP_Error
 	 */
 	public static function categories( string $source, int $page ) {
-		if ( 'koloda' === $source ) {
+		if ( self::is_remote( $source ) ) {
 			$result = HS_Article_Cards_Remote::get(
 				'categories',
 				array(
@@ -121,7 +136,8 @@ final class HS_Article_Cards_Catalog {
 					'page'       => $page,
 					'hide_empty' => 'true',
 					'_fields'    => 'id,name',
-				)
+				),
+				$source
 			);
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -192,13 +208,14 @@ final class HS_Article_Cards_Catalog {
 	 * Normalize only public metadata; remote HTML is never returned to the browser.
 	 *
 	 * @param array<string,mixed> $raw REST article.
+	 * @param string              $source Provider identifier.
 	 * @return Article|WP_Error
 	 */
-	private static function remote_article( array $raw ) {
+	private static function remote_article( array $raw, string $source ) {
 		$title = $raw['title']['rendered'] ?? null;
 		$date  = $raw['date'] ?? null;
 		$url   = $raw['link'] ?? null;
-		if ( ! isset( $raw['id'] ) || ! is_int( $raw['id'] ) || ! is_string( $title ) || ! is_string( $date ) || ! is_string( $url ) || ! self::provider_url( $url ) ) {
+		if ( ! isset( $raw['id'] ) || ! is_int( $raw['id'] ) || ! is_string( $title ) || ! is_string( $date ) || ! is_string( $url ) || ! self::provider_url( $url, $source ) ) {
 			return self::invalid_article();
 		}
 		$parsed = DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:s', $date, new DateTimeZone( 'UTC' ) );
@@ -215,7 +232,7 @@ final class HS_Article_Cards_Catalog {
 			'id'         => $raw['id'],
 			'title'      => self::plain_text( $title ),
 			'url'        => $url,
-			'image'      => is_string( $image ) && self::provider_url( $image ) ? $image : '',
+			'image'      => is_string( $image ) && self::provider_url( $image, $source ) ? $image : '',
 			'date'       => $parsed->format( 'Y-m-d' ),
 			'date_label' => $date_label,
 		);
@@ -225,11 +242,12 @@ final class HS_Article_Cards_Catalog {
 	 * Reject credentials, ports and arbitrary third-party image/link hosts.
 	 *
 	 * @param string $url Remote URL.
+	 * @param string $source Provider identifier.
 	 * @return bool
 	 */
-	private static function provider_url( string $url ): bool {
+	private static function provider_url( string $url, string $source ): bool {
 		$parts = wp_parse_url( $url );
-		return is_array( $parts ) && 'https' === ( $parts['scheme'] ?? '' ) && 'kolodahearthstone.com' === ( $parts['host'] ?? '' )
+		return is_array( $parts ) && 'https' === ( $parts['scheme'] ?? '' ) && HS_Article_Cards_Remote::host( $source ) === ( $parts['host'] ?? '' )
 			&& ! isset( $parts['user'] ) && ! isset( $parts['pass'] ) && ! isset( $parts['port'] );
 	}
 

@@ -13,7 +13,16 @@ defined( 'ABSPATH' ) || exit;
 		<div class="hs-v-workspace">
 			<div class="hs-v-fields">
 				<label for="hs-v-type">Компонент</label>
-				<select id="hs-v-type"><option value="alert">Примечание</option><option value="spoiler">Спойлер</option><option value="quote">Цитата</option><option value="tabs">Вкладки</option><option value="table">Таблица</option></select>
+				<select id="hs-v-type"><option value="alert">Примечание</option><option value="spoiler">Спойлер</option><option value="quote">Цитата</option><option value="tabs">Вкладки</option><option value="table">Таблица</option><option value="author">Об авторе · соцсеть</option></select>
+				<div data-for="author" hidden>
+					<label for="hs-v-author-name">Имя автора</label><input id="hs-v-author-name" maxlength="120">
+					<label for="hs-v-author-role">Подпись под именем</label><input id="hs-v-author-role" maxlength="200" placeholder="Автор гайдов Hearthstone">
+					<label for="hs-v-author-bio">Об авторе</label><textarea id="hs-v-author-bio" rows="4" maxlength="2000"></textarea>
+					<label for="hs-v-avatar">Ссылка на фото (необязательно)</label><input id="hs-v-avatar" type="url" maxlength="2048" placeholder="https://…">
+					<label for="hs-v-social-label">Текст кнопки</label><input id="hs-v-social-label" maxlength="80" value="Подписаться">
+					<label for="hs-v-social-url">Ссылка на соцсеть</label><input id="hs-v-social-url" maxlength="2048" placeholder="https://t.me/…" inputmode="url">
+					<p>Кнопка откроет указанную страницу в новой вкладке.</p>
+				</div>
 				<div data-for="alert spoiler"><label for="hs-v-title">Заголовок</label><input id="hs-v-title" maxlength="200" value="Обратите внимание"></div>
 				<div data-for="alert"><label for="hs-v-tone">Вид примечания</label><select id="hs-v-tone"><option value="info">Информация</option><option value="warning">Важно</option><option value="success">Совет</option></select></div>
 				<div data-for="alert spoiler quote"><label for="hs-v-body">Текст</label><textarea id="hs-v-body" rows="5" maxlength="10000" placeholder="Напишите текст компонента"></textarea></div>

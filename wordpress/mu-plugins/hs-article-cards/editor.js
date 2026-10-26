@@ -82,6 +82,7 @@
 			group.append(card);
 		}
 		preview.append(group);
+		window.hsFoldedCards?.enhance(preview);
 	}
 
 	function updateSelection() {

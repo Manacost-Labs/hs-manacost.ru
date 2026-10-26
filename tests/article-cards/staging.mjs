@@ -134,9 +134,22 @@ try {
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  report.layouts = ['grid', 'list'];
+  await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
+  if (await page.locator('#hs-ac-source').inputValue() !== 'manacost') await resultsAfter(() => page.locator('#hs-ac-source').selectOption('manacost'));
+  await page.locator('.hs-ac-choice').nth(0).click();
+  await page.locator('.hs-ac-choice').nth(1).click();
+  await page.locator('#hs-ac-layout').selectOption('folded');
+  await page.locator('#hs-ac-insert').click();
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  report.layouts = ['grid', 'list', 'folded'];
   await insertComponents(page);
-  report.components = ['alert', 'spoiler', 'quote', 'tabs', 'table'];
+  report.components = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author'];
+  await page.evaluate(() => { const editor = tinymce.get('content'); const p = editor.getBody().querySelector('p'); editor.selection.setCursorLocation(p.firstChild, 0); });
+  await page.getByRole('button', { name: 'Картинка в строке', exact: true }).click();
+  const media = page.locator('.media-modal');
+  await media.locator('.attachments .attachment').first().click();
+  await media.getByRole('button', { name: 'Вставить в строку', exact: true }).click();
+  await page.frameLocator('#content_ifr').locator('p > img.hs-inline-image').waitFor();
   report.stage = 'save';
   await page.evaluate(() => window.scrollTo(0, 0));
   await Promise.all([
@@ -145,18 +158,18 @@ try {
   await editorReady();
   const stored = await api(`posts/${fixture.id}?context=edit`);
   assert.equal(stored.status, 'draft');
-  assert.equal((stored.content.raw.match(/class="hs-article-card hs-article-card--/g) || []).length, 3);
+  assert.equal((stored.content.raw.match(/class="hs-article-card hs-article-card--/g) || []).length, 5);
   assert.ok(stored.content.raw.includes(marker));
   report.saved = true;
   report.stage = 'preview';
   const preview = await context.newPage();
   await navigate(preview, `${base}/?p=${fixture.id}&preview=true`);
-  assert.equal(await preview.locator('.hs-article-card').count(), 3);
+  assert.equal(await preview.locator('.hs-article-card').count(), 5);
   for (const card of await preview.locator('.hs-article-card').all()) {
     assert.equal(await card.locator('a').getAttribute('target'), '_blank');
     assert.match(await card.locator('a').getAttribute('rel'), /noopener/);
     if (await card.locator('.hs-article-card__date').count()) assert.ok((await card.locator('.hs-article-card__date').innerText()).trim());
-    assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
+    if (!(await card.getAttribute('class')).includes('hs-article-card--folded')) assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
   }
   assert.equal(await preview.locator('.hs-article-cards--grid .hs-article-card').count(), 2);
   assert.equal(await preview.locator('.hs-article-cards--grid .hs-article-card__date').count(), 0);
@@ -166,6 +179,11 @@ try {
     assert.equal(await preview.locator('.hs-article-cards--grid').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
   }
   await verifyComponents(preview);
+  const folded = preview.locator('.hs-article-cards--folded');
+  await folded.getByRole('button', { name: 'Следующая статья' }).click();
+  assert.equal(await folded.locator('.hs-article-card').nth(1).getAttribute('data-front'), 'true');
+  assert.equal(await preview.locator('img.hs-inline-image').evaluate(el => Math.abs(el.getBoundingClientRect().height - parseFloat(getComputedStyle(el).fontSize)) < 1), true);
+  report.inline_image = true;
   report.preview = true;
   report.ok = true;
 } catch (error) {

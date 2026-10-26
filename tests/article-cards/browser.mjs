@@ -1,4 +1,6 @@
+import { insertInlineImage, verifyInlineImage, insertBlockInlineImage } from './inline-image.mjs';
 import { insertComponents, verifyComponents } from './components.mjs';
+import { verifyLinkPreviews } from './preview.mjs';
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -10,11 +12,11 @@ const browser = await chromium.launch({ headless: true });
 const report = { errors: [], widths: [], checks: [] };
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
 const page = await context.newPage();
-page.on('pageerror', error => report.errors.push(error.message));
+page.on('pageerror', error => { report.errors.push(error.message); (report.error_context ??= []).push({ path: new URL(page.url()).pathname, stack: error.stack?.slice(0, 500) }); });
 await context.route('https://kolodahearthstone.com/wp-content/uploads/card-fixture.png', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#204873"/><path d="M220 290L320 60L420 290Z" fill="#a3dafa"/><circle cx="320" cy="160" r="40" fill="#fff"/></svg>' }));
 
 async function login(target, user, password) {
-  await target.goto(`${base}/wp-login.php`);
+  await target.goto(`${base}/wp-login.php?redirect_to=${encodeURIComponent(base + '/wp-admin/admin-ajax.php?action=rest-nonce')}`);
   await target.waitForFunction(() => document.activeElement?.id === 'user_login');
   await target.locator('#user_login').fill(user);
   await target.locator('#user_pass').fill(password);
@@ -103,7 +105,7 @@ try {
   }
   for (let index = 0; index < 20; index++) {
     await page.keyboard.press('Tab');
-    assert.equal(await page.evaluate(() => document.querySelector('#hs-article-cards-dialog').contains(document.activeElement)), true, 'Native dialog traps focus');
+    assert.equal(await page.evaluate(() => document.querySelector('#hs-article-cards-dialog').contains(document.activeElement)), true, 'Native dialog traps focus: ' + await page.evaluate(() => document.activeElement.tagName + '#' + document.activeElement.id));
   }
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
@@ -174,25 +176,61 @@ try {
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await insertComponents(page, true);
+  await page.evaluate(() => {
+    const editor = tinymce.get('content'), tabs = editor.getBody().querySelector('.hs-v-tabs');
+    const panel = tabs.querySelectorAll('.hs-v-panel')[1];
+    const image = editor.dom.create('img', { src: 'https://kolodahearthstone.com/wp-content/uploads/card-fixture.png', alt: 'Изображение вкладки', width: '640', height: '360', class: 'aligncenter wp-image-42' });
+    panel.insertBefore(image, panel.querySelector('.hs-v-body'));
+    editor.selection.select(panel.querySelector('.hs-v-body'));
+  });
+  await page.locator('.hs-components-open').click();
+  await page.locator('#hs-v-sections textarea').nth(1).fill('Содержимое второго раздела. Правка текста сохраняет изображение.');
+  await page.locator('#hs-v-insert').click();
+  assert.equal(await page.frameLocator('#content_ifr').locator('.hs-v-tabs img[alt="Изображение вкладки"]').count(), 1);
+  assert.equal(await page.frameLocator('#content_ifr').locator('.hs-v-tabs img').getAttribute('width'), '640');
+  await page.evaluate(() => {
+    const editor = tinymce.get('content'), tabs = editor.getBody().querySelector('.hs-v-tabs');
+    const box = editor.dom.create('div', { class: 'su-box' });
+    const content = editor.dom.create('div', { class: 'su-box-content' });
+    tabs.before(box); box.append(content); content.append(tabs);
+    content.append(editor.dom.create('p', {}, '&nbsp;'));
+    content.append(editor.dom.create('table', {}, '<tbody><tr><td>Подписаться на Boosty</td><td>Подписаться на Tribute</td></tr></tbody>'));
+    content.append(editor.dom.create('p', {}, '<strong>&nbsp;</strong>'));
+    editor.selection.select(editor.getBody(), true); editor.selection.collapse(false);
+  });
+
+  await open();
+  await source('manacost');
+  await searchFor('Подборка лимит');
+  await page.locator('.hs-ac-choice').nth(0).click();
+  await page.locator('.hs-ac-choice').nth(1).click();
+  await page.locator('#hs-ac-layout').selectOption('folded');
+  assert.equal(await page.locator('#hs-ac-preview .hs-folded-controls').count(), 1);
+  await page.locator('#hs-ac-insert').click();
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await page.frameLocator('#content_ifr').locator('.hs-v-quote').click();
   await page.locator('.hs-components-open').click();
   assert.equal(await page.locator('#hs-v-type').inputValue(), 'quote');
   await page.locator('#hs-v-author').fill('Автор цитаты (правка)');
   await page.locator('#hs-v-insert').click();
-  assert.equal(await page.frameLocator('#content_ifr').locator('.hs-article-component').count(), 5);
+  assert.equal(await page.frameLocator('#content_ifr').locator('.hs-article-component').count(), 6);
+  await insertInlineImage(page);
+  await page.evaluate(() => { const editor = tinymce.get('content'); editor.selection.select(editor.getBody(), true); editor.selection.collapse(false); });
+  await page.evaluate(() => tinymce.get('content').insertContent('<p><a href="https://example.org/guide" target="_blank" rel="noopener">Источник для предпросмотра</a></p>'));
   await page.evaluate(() => window.scrollTo(0, 0));
   await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.locator('#save-post:not(.disabled)').click()]);
   await editorReady();
   const saved = await page.evaluate(() => tinymce.get('content').getContent());
+  assert.match(saved, /hs-inline-image/);
   assert.match(saved, /hs-article-card--cover/);
   assert.match(saved, /Первый абзац/);
   assert.match(saved, /Последний абзац/);
-  assert.equal((saved.match(/class="hs-article-card /g) || []).length, 6);
+  assert.equal((saved.match(/class="hs-article-card /g) || []).length, 8);
   assert.match(saved, /Автор цитаты \(правка\)/, 'Classic reconfiguration replaces the selected component');
   // Native preview must preserve all four layouts and their settings.
   const previewPage = await context.newPage();
   await previewPage.goto(`${base}/?p=${fixture.draft}&preview=true`);
-  assert.equal(await previewPage.locator('.hs-article-card').count(), 6);
+  assert.equal(await previewPage.locator('.hs-article-card').count(), 8);
   assert.equal(await previewPage.locator('.hs-article-cards--grid .hs-article-card').count(), 3);
   assert.equal(await previewPage.locator('.hs-article-cards--grid .hs-article-card__date').count(), 0);
   assert.equal(await previewPage.locator('.hs-article-cards--list .hs-article-card').count(), 1);
@@ -204,15 +242,33 @@ try {
   const publicPage = await reader.newPage();
   await publicPage.route('https://kolodahearthstone.com/wp-content/uploads/card-fixture.png', route => route.abort());
   await publicPage.goto(`${base}/?p=${fixture.draft}`);
-  assert.equal(await publicPage.locator('.hs-article-card').count(), 6);
+  assert.equal(await publicPage.locator('.hs-article-card').count(), 8);
   await verifyComponents(publicPage);
+  assert.equal(await publicPage.locator('.hs-v-component-box p[data-hs-v-spacer]').count(), 2);
+  assert.equal(await publicPage.locator('.hs-v-component-box p[data-hs-v-spacer]:visible').count(), 0, 'Mobile subscription boxes collapse only blank spacer paragraphs');
+  await verifyInlineImage(publicPage);
+  await publicPage.locator('p:has(> img.hs-inline-image)').evaluate(el => el.style.fontSize = '32px');
+  await verifyInlineImage(publicPage);
+  await verifyLinkPreviews(publicPage);
+  const folded = publicPage.locator('.hs-article-cards--folded');
+  await folded.getByRole('button', { name: 'Следующая статья' }).click();
+  assert.equal(await folded.locator('.hs-article-card').nth(1).getAttribute('data-front'), 'true');
+  await folded.getByRole('button', { name: 'Предыдущая статья' }).focus();
+  await publicPage.keyboard.press('Home');
+  assert.equal(await folded.locator('.hs-article-card').nth(0).getAttribute('data-front'), 'true');
   await publicPage.locator('.hs-v-tabs').screenshot({ path: '.artifacts/article-cards/screenshots/valyro-tabs.png' });
-  report.checks.push('five-valyro-components-save-preview-publish-keyboard');
+  report.checks.push('six-valyro-components-save-preview-publish-keyboard');
   const plainContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const plainPage = await plainContext.newPage();
   await plainPage.goto(`${base}/?p=${fixture.draft}`);
   assert.equal(await plainPage.locator('.hs-v-panel:visible').count(), 2, 'All tab contents remain readable without JavaScript');
+  assert.equal(await plainPage.locator('.hs-article-cards--folded .hs-article-card__link:visible').count(), 2, 'Folded cards remain accessible without JavaScript');
   await plainContext.close();
+  const touchContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const touchPage = await touchContext.newPage();
+  await touchPage.goto(`${base}/?p=${fixture.draft}`);
+  await verifyLinkPreviews(touchPage, true);
+  await touchContext.close();
   await reader.route(/^https:\/\/kolodahearthstone\.com\/guide-[0-9]+\/$/, route => route.fulfill({ contentType: 'text/html', body: '<title>Article target fixture</title>' }));
   for (const selector of ['.hs-article-card__image', '.hs-article-card__title']) {
     const opened = publicPage.waitForEvent('popup');
@@ -233,6 +289,7 @@ try {
   assert.notEqual(await publicPage.locator('.hs-article-card__link').first().evaluate(el => getComputedStyle(el).outlineStyle), 'none');
   for (const width of [320, 390, 768, 1024, 1440]) {
     await publicPage.setViewportSize({ width, height: 1000 });
+    assert.equal(await publicPage.locator('.hs-v-component-box p[data-hs-v-spacer]:visible').count(), width <= 600 ? 0 : 2);
     const columns = await publicPage.locator('.hs-article-cards--grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
     assert.ok(columns >= 1 && columns <= 3, `Grid respects the selected maximum at ${width}`);
     if (width <= 390) assert.equal(columns, 1, 'Mobile grid has one column');
@@ -274,6 +331,8 @@ try {
   const welcome = blockPage.getByRole('button', { name: 'Close', exact: true });
   if (await welcome.isVisible()) await welcome.click();
   await blockPage.locator('.hs-article-cards-open').click();
+  await blockPage.waitForFunction(() => document.querySelector('#hs-article-cards-dialog').open && document.querySelector('#hs-ac-results').getAttribute('aria-busy') === 'false');
+  assert.ok(await blockPage.locator('.hs-ac-choice').count(), await blockPage.locator('#hs-ac-status').innerText());
   await blockPage.locator('.hs-ac-choice').first().waitFor();
   await blockPage.locator('.hs-ac-choice').first().click();
   await blockPage.locator('#hs-ac-insert').click();
@@ -281,25 +340,26 @@ try {
   await insertComponents(blockPage);
   const blockCanvas = await blockPage.locator('iframe[name="editor-canvas"]').count() ? blockPage.frameLocator('iframe[name="editor-canvas"]') : blockPage;
   await blockCanvas.locator('.hs-v-block-preview .hs-article-component').last().waitFor();
-  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 5, 'Gutenberg shows all component previews inline');
-  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-v-tabs').evaluate(el => getComputedStyle(el).borderTopWidth), '3px', 'The iframe preview loads Manacost styles');
-  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-v-table td').first().evaluate(el => getComputedStyle(el).paddingTop), '16px', 'Gutenberg table reset cannot override component spacing');
+  await insertBlockInlineImage(blockPage, blockCanvas);
+  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 6, 'Gutenberg shows all component previews inline');
+  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-v-alert').evaluate(el => getComputedStyle(el).borderInlineStartWidth), '3px', 'The iframe preview loads Manacost styles');
+  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-v-table td').first().evaluate(el => getComputedStyle(el).paddingTop), '20px', 'Gutenberg table reset cannot override component spacing');
   await blockCanvas.locator('.hs-v-block-preview .hs-v-table').screenshot({ path: '.artifacts/article-cards/screenshots/valyro-gutenberg-table.png' });
   await blockCanvas.getByRole('button', { name: 'Настроить компонент', exact: true }).nth(2).click();
   assert.equal(await blockPage.locator('#hs-v-type').inputValue(), 'quote');
   await blockPage.locator('#hs-v-author').fill('Исправленный автор');
   await blockPage.locator('#hs-v-insert').click();
-  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 5, 'Editing updates the existing block');
+  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 6, 'Editing updates the existing block');
   assert.match(await blockCanvas.locator('.hs-v-block-preview .hs-v-quote').innerText(), /Исправленный автор/);
   await blockPage.evaluate(() => wp.data.dispatch('core/editor').savePost());
   await blockPage.waitForFunction(() => !wp.data.select('core/editor').isSavingPost() && wp.data.select('core/editor').didPostSaveRequestSucceed());
   const blockStored = await blockPage.evaluate(() => wp.apiFetch({ path: `/wp/v2/posts/${wp.data.select('core/editor').getCurrentPostId()}?context=edit` }));
-  assert.equal((blockStored.content.raw.match(/class="hs-article-component /g) || []).length, 5);
+  assert.equal((blockStored.content.raw.match(/class="hs-article-component /g) || []).length, 6);
   assert.match(blockStored.content.raw, /hs-article-cards--compact/, 'The block save reaches stored post_content');
   await blockPage.reload();
   await blockPage.waitForFunction(() => wp.data.select('core/block-editor').getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
   await blockCanvas.locator('.hs-v-block-preview .hs-article-component').last().waitFor();
-  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 5);
+  assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 6);
   assert.equal(await blockCanvas.locator('.block-editor-warning').count(), 0, 'Saved static blocks remain valid');
   const errorOrigin = error => error.stack?.replace(/&hs_cards_baseline=1/g, '').replace(/:\d+:\d+/g, ':line:column');
   assert.ok(blockErrors.withPlugin.every(error => blockErrors.baseline.some(original => original.message === error.message && errorOrigin(original) === errorOrigin(error))), 'The picker introduces no block-editor errors');
@@ -322,7 +382,7 @@ try {
       await Promise.all([rolePage.waitForNavigation({ waitUntil: 'domcontentloaded' }), rolePage.locator('#save-post:not(.disabled)').click()]);
       await rolePage.waitForFunction(() => window.tinymce?.get('content')?.initialized);
       const authorHTML = await rolePage.evaluate(() => tinymce.get('content').getContent());
-      assert.equal((authorHTML.match(/class="hs-article-component /g) || []).length, 5, 'Author KSES preserves all five components');
+      assert.equal((authorHTML.match(/class="hs-article-component /g) || []).length, 6, 'Author KSES preserves all five components');
       assert.match(authorHTML, /<details/);
       assert.match(authorHTML, /<summary/);
       assert.equal((await ajax(rolePage, {})).status, 200);

@@ -22,8 +22,10 @@ cp -a wordpress/mu-plugins/hs-article-cards "$site/wp-content/mu-plugins/"
 cp tests/article-cards/transport.php "$site/.integration/article-cards-transport.php"
 cp tests/article-cards/setup.php "$site/.integration/article-cards-setup.php"
 cp tests/article-cards/integrity.php "$site/.integration/article-cards-integrity.php"
+cp tests/article-cards/link-preview.php "$site/.integration/article-link-preview.php"
 cp tests/article-cards/transport.php "$site/wp-content/mu-plugins/zz-article-cards-fixture.php"
 compose=("${docker_command[@]}" compose --project-name "$PROJECT_NAME" --env-file .artifacts/integration/runtime.env -f ops/integration/compose.yml)
+"${compose[@]}" run --rm cli eval-file /var/www/html/.integration/article-link-preview.php
 WP_CARDS_AUTHOR_PASSWORD=$(openssl rand -hex 24)
 WP_CARDS_SUBSCRIBER_PASSWORD=$(openssl rand -hex 24)
 export WP_CARDS_AUTHOR_PASSWORD WP_CARDS_SUBSCRIBER_PASSWORD

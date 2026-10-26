@@ -5,6 +5,11 @@ require_once WPMU_PLUGIN_DIR . '/hs-article-cards/catalog.php';
 require_once ABSPATH . 'wp-admin/includes/post.php';
 function cards_check($value,$message) { if (!$value) throw new RuntimeException($message); }
 wp_set_current_user(1);
+$koloda_home = static fn() => 'https://kolodahearthstone.com';
+add_filter('home_url', $koloda_home);
+cards_check(!HS_Article_Cards_Catalog::is_remote('koloda') && HS_Article_Cards_Catalog::is_remote('manacost'), 'Koloda owns the local catalog');
+remove_filter('home_url', $koloda_home);
+cards_check(!HS_Article_Cards_Catalog::is_remote('manacost') && HS_Article_Cards_Catalog::is_remote('koloda'), 'Manacost owns the local catalog');
 $existing=get_option('hs_article_cards_fixture');
 if (is_array($existing)) {
     wp_update_post(['ID'=>$existing['author_post'],'post_status'=>'draft','post_content'=>'<p>Текст автора.</p>']);

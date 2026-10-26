@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 	<div class="hs-ac-body">
 		<div class="hs-ac-filters">
 			<label for="hs-ac-source"><?php esc_html_e( 'Источник', 'hs-article-cards' ); ?>
-				<select id="hs-ac-source"><option value="manacost">Manacost</option><option value="koloda">Koloda Hearthstone</option></select>
+				<select id="hs-ac-source"><option value="manacost" <?php selected( ! HS_Article_Cards_Catalog::is_remote( 'manacost' ) ); ?>>Manacost</option><option value="koloda" <?php selected( ! HS_Article_Cards_Catalog::is_remote( 'koloda' ) ); ?>>Koloda Hearthstone</option></select>
 			</label>
 			<label for="hs-ac-category"><?php esc_html_e( 'Категория', 'hs-article-cards' ); ?>
 				<select id="hs-ac-category"><option value="0"><?php esc_html_e( 'Все категории', 'hs-article-cards' ); ?></option></select>
@@ -41,7 +41,7 @@ defined( 'ABSPATH' ) || exit;
 			<section class="hs-ac-preview-panel" aria-labelledby="hs-ac-preview-title">
 				<h3 id="hs-ac-preview-title"><?php esc_html_e( 'Предпросмотр', 'hs-article-cards' ); ?></h3>
 				<label for="hs-ac-layout"><?php esc_html_e( 'Вид карточки', 'hs-article-cards' ); ?>
-					<select id="hs-ac-layout"><option value="compact"><?php esc_html_e( 'Компактный', 'hs-article-cards' ); ?></option><option value="cover"><?php esc_html_e( 'Большая обложка', 'hs-article-cards' ); ?></option><option value="grid"><?php esc_html_e( 'Сетка статей', 'hs-article-cards' ); ?></option><option value="list"><?php esc_html_e( 'Список с миниатюрами', 'hs-article-cards' ); ?></option></select>
+					<select id="hs-ac-layout"><option value="compact"><?php esc_html_e( 'Компактный', 'hs-article-cards' ); ?></option><option value="cover"><?php esc_html_e( 'Большая обложка', 'hs-article-cards' ); ?></option><option value="grid"><?php esc_html_e( 'Сетка статей', 'hs-article-cards' ); ?></option><option value="list"><?php esc_html_e( 'Список с миниатюрами', 'hs-article-cards' ); ?></option><option value="folded"><?php esc_html_e( 'Стопка карточек · Folded', 'hs-article-cards' ); ?></option></select>
 				</label>
 				<div class="hs-ac-settings">
 					<?php
