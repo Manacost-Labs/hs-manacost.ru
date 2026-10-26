@@ -182,7 +182,7 @@ try {
   for (const card of await preview.locator('.hs-article-card').all()) {
     assert.equal(await card.locator('a').getAttribute('target'), '_blank');
     assert.match(await card.locator('a').getAttribute('rel'), /noopener/);
-    if (await card.locator('.hs-article-card__date').count()) assert.ok((await card.locator('.hs-article-card__date').innerText()).trim());
+    if (await card.locator('.hs-article-card__date').count()) assert.ok((await card.locator('.hs-article-card__date').textContent()).trim(), 'Each card retains its date, including inactive folded cards');
     if (!(await card.getAttribute('class')).includes('hs-article-card--folded')) assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
   }
   assert.equal(await preview.locator('.hs-article-cards--grid .hs-article-card').count(), 2);
