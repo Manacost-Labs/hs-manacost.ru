@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 		<div class="hs-v-workspace">
 			<div class="hs-v-fields">
 				<label for="hs-v-type">Компонент</label>
-				<select id="hs-v-type"><option value="alert">Примечание</option><option value="spoiler">Спойлер</option><option value="quote">Цитата</option><option value="tabs">Вкладки</option><option value="table">Таблица</option><option value="author">Об авторе · соцсеть</option></select>
+				<select id="hs-v-type"><option value="alert">Примечание</option><option value="spoiler">Спойлер</option><option value="quote">Цитата</option><option value="tabs">Вкладки</option><option value="table">Таблица</option><option value="author">Об авторе · соцсеть</option><option value="divider">Разделитель</option><option value="icon-list">Список с иконками</option><option value="steps">Шаги</option><option value="callout">Акцентный блок с кнопкой</option></select>
 				<div data-for="author" hidden>
 					<label for="hs-v-author-name">Имя автора</label><input id="hs-v-author-name" maxlength="120">
 					<label for="hs-v-author-role">Подпись под именем</label><input id="hs-v-author-role" maxlength="200" placeholder="Автор гайдов Hearthstone">
@@ -23,10 +23,14 @@ defined( 'ABSPATH' ) || exit;
 					<label for="hs-v-social-url">Ссылка на соцсеть</label><input id="hs-v-social-url" maxlength="2048" placeholder="https://t.me/…" inputmode="url">
 					<p>Кнопка откроет указанную страницу в новой вкладке.</p>
 				</div>
-				<div data-for="alert spoiler"><label for="hs-v-title">Заголовок</label><input id="hs-v-title" maxlength="200" value="Обратите внимание"></div>
-				<div data-for="alert"><label for="hs-v-tone">Вид примечания</label><select id="hs-v-tone"><option value="info">Информация</option><option value="warning">Важно</option><option value="success">Совет</option></select></div>
-				<div data-for="alert spoiler quote"><label for="hs-v-body">Текст</label><textarea id="hs-v-body" rows="5" maxlength="10000" placeholder="Напишите текст компонента"></textarea></div>
+				<div data-for="alert spoiler divider icon-list steps callout"><label for="hs-v-title">Заголовок</label><input id="hs-v-title" maxlength="200" value="Обратите внимание"></div>
+				<div data-for="alert callout"><label for="hs-v-tone">Цвет акцента</label><select id="hs-v-tone"><option value="info">Информация</option><option value="warning">Важно</option><option value="success">Совет</option></select></div>
+				<div data-for="alert spoiler quote callout"><label for="hs-v-body">Текст</label><textarea id="hs-v-body" rows="5" maxlength="10000" placeholder="Напишите текст компонента"></textarea></div>
 				<div data-for="quote"><label for="hs-v-author">Автор или источник</label><input id="hs-v-author" maxlength="200"><label for="hs-v-align">Расположение</label><select id="hs-v-align"><option value="start">Слева</option><option value="center">По центру</option></select></div>
+				<div data-for="divider"><label for="hs-v-divider-style">Линия</label><select id="hs-v-divider-style"><option value="line">Тонкая</option><option value="dots">Пунктир</option><option value="ornament">С ромбом</option></select><p>Подпись необязательна — оставьте заголовок пустым для линии без текста.</p></div>
+				<div data-for="icon-list steps"><label for="hs-v-items">Пункты — каждый с новой строки</label><textarea id="hs-v-items" rows="6" maxlength="10000" placeholder="Первый пункт&#10;Второй пункт"></textarea><p>От 1 до 20 пунктов. Заголовок необязателен.</p></div>
+				<div data-for="icon-list"><label for="hs-v-icon">Иконка</label><select id="hs-v-icon"><option value="check">Галочка</option><option value="star">Звезда</option><option value="arrow">Стрелка</option></select></div>
+				<div data-for="callout"><label for="hs-v-action-label">Текст кнопки</label><input id="hs-v-action-label" maxlength="120" value="Подробнее"><label for="hs-v-action-url">Ссылка кнопки</label><input id="hs-v-action-url" maxlength="2048" inputmode="url" placeholder="https://…"><label for="hs-v-action-target">Открывать ссылку</label><select id="hs-v-action-target"><option value="_blank">В новой вкладке</option><option value="_self">В текущей вкладке</option></select></div>
 				<div data-for="tabs"><p>От 2 до 6 разделов. Каждый раздел содержит заголовок и текст.</p><div id="hs-v-sections"></div><button id="hs-v-add-section" type="button" class="button">Добавить вкладку</button></div>
 				<div data-for="table"><label for="hs-v-caption">Название таблицы</label><input id="hs-v-caption" maxlength="200" value="Сравнение"><div class="hs-v-table-options"><label for="hs-v-rows">Строки с данными<select id="hs-v-rows">
 				<?php

@@ -2377,13 +2377,6 @@
     ],
     "rest_routes": [
       {
-        "name": "hs-article-cards/v1/preview",
-        "resolved": true,
-        "api": "register_rest_route",
-        "file": "wordpress/mu-plugins/hs-article-cards/link-preview.php",
-        "line": 107
-      },
-      {
         "name": "hs-editor-ai/v1/jobs",
         "resolved": true,
         "api": "register_rest_route",

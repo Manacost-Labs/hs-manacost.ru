@@ -28,6 +28,39 @@
 			root.append(node(type === 'spoiler' ? 'summary' : 'p', 'hs-v-title', field('title')));
 			const body = node('div', 'hs-v-body');
 			paragraphs(body, field('body')); root.append(body);
+		} else if (type === 'divider') {
+			root.dataset.dividerStyle = field('divider-style');
+			root.setAttribute('role', 'separator');
+			if (field('divider-style') === 'ornament') {
+				const ornament = node('span', 'hs-v-divider-ornament', '◆'); ornament.setAttribute('aria-hidden', 'true'); root.append(ornament);
+			}
+			if (field('title').trim()) {
+				root.setAttribute('aria-label', field('title').trim());
+				root.append(node('span', 'hs-v-divider-label', field('title').trim()));
+			}
+		} else if (type === 'icon-list' || type === 'steps') {
+			if (field('title').trim()) root.append(node('p', 'hs-v-title', field('title').trim()));
+			const list = node(type === 'steps' ? 'ol' : 'ul', 'hs-v-items');
+			list.setAttribute('role', 'list');
+			if (type === 'icon-list') root.dataset.icon = field('icon');
+			field('items').split('\n').map(line => line.trim()).filter(Boolean).forEach((text, index) => {
+				const item = node('li');
+				const marker = node('span', 'hs-v-item-marker', type === 'steps' ? String(index + 1) : { check: '✓', star: '★', arrow: '→' }[field('icon')]);
+				marker.setAttribute('aria-hidden', 'true');
+				item.append(marker, node('span', 'hs-v-item-text', text)); list.append(item);
+			});
+			root.append(list);
+		} else if (type === 'callout') {
+			root.dataset.tone = field('tone');
+			root.append(node('p', 'hs-v-title', field('title')));
+			const body = node('div', 'hs-v-body'); paragraphs(body, field('body')); root.append(body);
+			const url = window.hsManacostComponents.safeUrl(field('action-url'));
+			if (url) {
+				const link = node('a', 'hs-v-action', field('action-label'));
+				link.href = url;
+				if (field('action-target') === '_blank') { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+				root.append(link);
+			}
 		} else if (type === 'quote') {
 			root.dataset.align = field('align');
 			const quote = node('blockquote', 'hs-v-quote-text');
@@ -143,8 +176,13 @@
 			if (!field('author-name').trim() || !field('author-bio').trim() || !field('social-label').trim()) return 'Заполните имя, описание автора и текст кнопки.';
 			if (!window.hsManacostComponents.safeUrl(field('social-url')) || (field('avatar').trim() && !window.hsManacostComponents.safeUrl(field('avatar')))) return 'Укажите полный адрес https:// для соцсети и фото.';
 		}
-		if (['alert', 'spoiler', 'quote'].includes(type) && !field('body').trim()) return 'Добавьте текст компонента.';
-		if (['alert', 'spoiler'].includes(type) && !field('title').trim()) return 'Добавьте заголовок.';
+		if (['alert', 'spoiler', 'quote', 'callout'].includes(type) && !field('body').trim()) return 'Добавьте текст компонента.';
+		if (['alert', 'spoiler', 'callout'].includes(type) && !field('title').trim()) return 'Добавьте заголовок.';
+		if (type === 'icon-list' || type === 'steps') {
+			const count = field('items').split('\n').filter(line => line.trim()).length;
+			if (count < 1 || count > 20) return 'Добавьте от 1 до 20 пунктов, каждый с новой строки.';
+		}
+		if (type === 'callout' && (!field('action-label').trim() || !window.hsManacostComponents.safeUrl(field('action-url')))) return 'Укажите текст кнопки и полный адрес https:// для ссылки.';
 		if (type === 'tabs' && sections.some(section => !section.title.trim() || (!section.text.trim() && !section.hasMedia))) return 'Заполните заголовок и текст каждой вкладки.';
 		if (type === 'table' && (!field('caption').trim() || cells[0].slice(0, Number(field('cols'))).some(value => !value.trim()))) return 'Добавьте название таблицы и заголовки столбцов.';
 		return '';
@@ -158,7 +196,7 @@
 		byId('sections').querySelectorAll('input')[sections.length - 1].focus();
 	});
 	byId('reset').addEventListener('click', () => {
-		for (const id of ['tone', 'align', 'density', 'width']) byId(id).selectedIndex = 0;
+		for (const id of ['tone', 'align', 'density', 'width', 'divider-style', 'icon']) byId(id).selectedIndex = 0;
 		refresh();
 	});
 	byId('close').addEventListener('click', () => dialog.close());
@@ -185,9 +223,9 @@
 		byId('insert').textContent = 'Применить изменения';
 		form.reset();
 		const root = window.hsManacostComponents.clean(html);
-		const type = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author'].find(value => root.classList.contains(`hs-v-${value}`)) || 'alert';
+		const type = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author', 'divider', 'icon-list', 'steps', 'callout'].find(value => root.classList.contains(`hs-v-${value}`)) || 'alert';
 		byId('type').value = type;
-		for (const [fieldName, attr] of [['density', 'density'], ['width', 'width'], ['tone', 'tone'], ['align', 'align']]) {
+		for (const [fieldName, attr] of [['density', 'density'], ['width', 'width'], ['tone', 'tone'], ['align', 'align'], ['divider-style', 'dividerStyle'], ['icon', 'icon']]) {
 			const value = root.dataset[attr];
 			if ([...byId(fieldName).options].some(option => option.value === value)) byId(fieldName).value = value;
 		}
@@ -195,6 +233,14 @@
 		byId('title').value = root.querySelector('.hs-v-title')?.textContent || '';
 		byId('body').value = text(root.querySelector(type === 'quote' ? 'blockquote' : '.hs-v-body'));
 		byId('author').value = root.querySelector('figcaption')?.textContent || '';
+		if (type === 'divider') byId('title').value = root.querySelector('.hs-v-divider-label')?.textContent || '';
+		if (type === 'icon-list' || type === 'steps') byId('items').value = [...root.querySelectorAll('.hs-v-item-text')].map(item => item.textContent).join('\n');
+		if (type === 'callout') {
+			const link = root.querySelector('.hs-v-action');
+			byId('action-label').value = link?.textContent || '';
+			byId('action-url').value = link?.getAttribute('href') || '';
+			byId('action-target').value = link?.getAttribute('target') === '_blank' ? '_blank' : '_self';
+		}
 		if (type === 'author') {
 			for (const key of ['author-name', 'author-role', 'social-label']) byId(key).value = root.querySelector(key === 'social-label' ? '.hs-v-social' : `.hs-v-${key}`)?.textContent || '';
 			byId('author-bio').value = text(root.querySelector('.hs-v-author-bio'));

@@ -88,6 +88,16 @@
 			for (const name of ['data-density', 'data-width', 'data-tone', 'data-align', 'scope']) {
 				if (/^(normal|compact|full|narrow|info|warning|success|start|center|col)$/.test(source.getAttribute(name) || '')) target.setAttribute(name, source.getAttribute(name));
 			}
+			for (const [attr, values] of [['data-divider-style', ['line', 'dots', 'ornament']], ['data-icon', ['check', 'star', 'arrow']]]) {
+				if (values.includes(source.getAttribute(attr))) target.setAttribute(attr, source.getAttribute(attr));
+			}
+			if (target.classList.contains('hs-v-divider')) {
+				target.setAttribute('role', 'separator');
+				const label = source.querySelector('.hs-v-divider-label')?.textContent;
+				if (label) target.setAttribute('aria-label', label);
+			}
+			if (target.classList.contains('hs-v-items')) target.setAttribute('role', 'list');
+			if (target.classList.contains('hs-v-item-marker') || target.classList.contains('hs-v-divider-ornament')) target.setAttribute('aria-hidden', 'true');
 			if (target.classList.contains('hs-v-table')) {
 				target.tabIndex = 0; target.setAttribute('role', 'region');
 				target.setAttribute('aria-label', source.querySelector('caption')?.textContent || 'Таблица');
