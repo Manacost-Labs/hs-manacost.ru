@@ -144,10 +144,14 @@ try {
   report.layouts = ['grid', 'list', 'folded'];
   await insertComponents(page);
   report.components = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author'];
+  report.stage = 'inline-image-open';
   await page.evaluate(() => { const editor = tinymce.get('content'); const p = editor.getBody().querySelector('p'); editor.selection.setCursorLocation(p.firstChild, 0); });
   await page.getByRole('button', { name: 'Картинка в строке', exact: true }).click();
   const media = page.locator('.media-modal');
+  report.stage = 'inline-image-library';
+  await media.getByRole('tab', { name: /Media Library|Медиафайлы/ }).click();
   await media.locator('.attachments .attachment').first().click();
+  report.stage = 'inline-image-insert';
   await media.getByRole('button', { name: 'Вставить в строку', exact: true }).click();
   await page.frameLocator('#content_ifr').locator('p > img.hs-inline-image').waitFor();
   report.stage = 'save';
