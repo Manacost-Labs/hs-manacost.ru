@@ -25,10 +25,14 @@ const context = await browser.newContext({
 const page = await context.newPage();
 const apiPage = await context.newPage();
 const navigationFailures = [];
+const catalogFailures = [];
 page.on('requestfailed', request => {
   const code = request.failure()?.errorText;
   if (request.isNavigationRequest() && /^net::ERR_[A-Z_]+$/.test(code ?? '') && navigationFailures.length < 4) {
     navigationFailures.push({ path: new URL(request.url()).pathname, code });
+  }
+  if (request.postData()?.includes('action=hs_article_cards') && catalogFailures.length < 8) {
+    catalogFailures.push({ mode: new URLSearchParams(request.postData()).get('mode'), code });
   }
 });
 let nonce;
@@ -54,12 +58,21 @@ async function editorReady() {
   await page.waitForFunction(() => window.tinymce?.get('content')?.initialized);
 }
 async function resultsAfter(action) {
-  await Promise.all([
+  report.catalog_action = (report.catalog_action || 0) + 1;
+  const failureStart = catalogFailures.length;
+  const receive = () =>
     page.waitForResponse(response => response.url().includes('/admin-ajax.php')
       && response.request().postData()?.includes('action=hs_article_cards')
-      && response.request().postData()?.includes('mode=posts')),
-    action(),
-  ]);
+      && response.request().postData()?.includes('mode=posts'));
+  try {
+    await Promise.all([receive(), action()]);
+  } catch (error) {
+    const changedNetwork = catalogFailures.slice(failureStart).some(failure => failure.mode === 'posts' && failure.code === 'net::ERR_NETWORK_CHANGED');
+    if (!changedNetwork || (report.catalog_retries || 0) >= 2) throw error;
+    // Retry only an interrupted catalogue read through the visible recovery UI.
+    report.catalog_retries = (report.catalog_retries || 0) + 1;
+    await Promise.all([receive(), page.locator('#hs-ac-retry').click()]);
+  }
   await page.waitForFunction(() => document.querySelector('#hs-ac-results')?.getAttribute('aria-busy') === 'false');
   await page.locator('.hs-ac-choice').first().waitFor();
 }
@@ -114,6 +127,7 @@ try {
     report.sources.push(source);
   }
   assert.equal(await page.locator('#hs-ac-selected li').count(), 2, 'Mixed live catalogs stay selected');
+  report.stage = 'insert-grid';
   await page.locator('#hs-ac-layout').selectOption('grid');
   await page.locator('#hs-ac-setting-date').selectOption('hide');
   await page.locator('#hs-ac-setting-radius').selectOption('round');
@@ -124,6 +138,7 @@ try {
   assert.equal(await page.locator('#hs-article-cards-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  report.stage = 'insert-recent-list';
   await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
   await page.locator('#hs-ac-recent summary').click();
   await page.locator('.hs-ac-recent-choice').first().click();
@@ -134,6 +149,7 @@ try {
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await page.setViewportSize({ width: 1440, height: 1000 });
+  report.stage = 'insert-folded';
   await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
   if (await page.locator('#hs-ac-source').inputValue() !== 'manacost') await resultsAfter(() => page.locator('#hs-ac-source').selectOption('manacost'));
   await page.locator('.hs-ac-choice').nth(0).click();
@@ -142,12 +158,18 @@ try {
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   report.layouts = ['grid', 'list', 'folded'];
+  report.stage = 'insert-components';
   await insertComponents(page);
   report.components = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author'];
+  report.stage = 'inline-image-open';
   await page.evaluate(() => { const editor = tinymce.get('content'); const p = editor.getBody().querySelector('p'); editor.selection.setCursorLocation(p.firstChild, 0); });
   await page.getByRole('button', { name: 'Картинка в строке', exact: true }).click();
   const media = page.locator('.media-modal');
+  report.stage = 'inline-image-library';
+  await media.getByRole('tab', { name: /Media Library|Библиотека файлов/ }).click();
+  report.stage = 'inline-image-select';
   await media.locator('.attachments .attachment').first().click();
+  report.stage = 'inline-image-insert';
   await media.getByRole('button', { name: 'Вставить в строку', exact: true }).click();
   await page.frameLocator('#content_ifr').locator('p > img.hs-inline-image').waitFor();
   report.stage = 'save';
@@ -168,7 +190,7 @@ try {
   for (const card of await preview.locator('.hs-article-card').all()) {
     assert.equal(await card.locator('a').getAttribute('target'), '_blank');
     assert.match(await card.locator('a').getAttribute('rel'), /noopener/);
-    if (await card.locator('.hs-article-card__date').count()) assert.ok((await card.locator('.hs-article-card__date').innerText()).trim());
+    if (await card.locator('.hs-article-card__date').count()) assert.ok((await card.locator('.hs-article-card__date').textContent()).trim(), 'Each card retains its date, including inactive folded cards');
     if (!(await card.getAttribute('class')).includes('hs-article-card--folded')) assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
   }
   assert.equal(await preview.locator('.hs-article-cards--grid .hs-article-card').count(), 2);
@@ -187,13 +209,23 @@ try {
   report.preview = true;
   report.ok = true;
 } catch (error) {
-  let message = String(error?.message ?? 'Unknown failure').split('\n')[0];
+  let message = String(error?.message ?? 'Unknown failure');
   for (const key of ['WP_TEST_ADMIN_USER', 'WP_TEST_ADMIN_PASSWORD', 'STAGING_HTTP_USER', 'STAGING_HTTP_PASSWORD']) {
     message = message.replaceAll(process.env[key], '[redacted]');
   }
-  report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 240);
+  report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 1600);
   report.final_path = new URL(page.url()).pathname;
   report.navigation_failures = navigationFailures;
+  report.catalog_failures = catalogFailures;
+  report.catalog_status = (await page.locator('#hs-ac-status').textContent().catch(() => ''))?.slice(0, 200);
+  if (report.stage.startsWith('inline-image-')) {
+    report.media_state = await page.locator('.media-modal').evaluate(el => ({
+      attachments: el.querySelectorAll('.attachments .attachment').length,
+      tabs: [...el.querySelectorAll('[role="tab"]')].map(tab => ({ label: tab.textContent.trim(), selected: tab.getAttribute('aria-selected') })),
+    })).catch(() => null);
+    await mkdir('.artifacts/article-cards', { recursive: true });
+    await page.screenshot({ path: '.artifacts/article-cards/staging-failure.png', timeout: 10000 }).catch(() => {});
+  }
   report.ok = false;
 } finally {
   if (fixture?.id && nonce) {
