@@ -25,10 +25,14 @@ const context = await browser.newContext({
 const page = await context.newPage();
 const apiPage = await context.newPage();
 const navigationFailures = [];
+const catalogFailures = [];
 page.on('requestfailed', request => {
   const code = request.failure()?.errorText;
   if (request.isNavigationRequest() && /^net::ERR_[A-Z_]+$/.test(code ?? '') && navigationFailures.length < 4) {
     navigationFailures.push({ path: new URL(request.url()).pathname, code });
+  }
+  if (request.postData()?.includes('action=hs_article_cards') && catalogFailures.length < 8) {
+    catalogFailures.push({ mode: new URLSearchParams(request.postData()).get('mode'), code });
   }
 });
 let nonce;
@@ -54,6 +58,7 @@ async function editorReady() {
   await page.waitForFunction(() => window.tinymce?.get('content')?.initialized);
 }
 async function resultsAfter(action) {
+  report.catalog_action = (report.catalog_action || 0) + 1;
   await Promise.all([
     page.waitForResponse(response => response.url().includes('/admin-ajax.php')
       && response.request().postData()?.includes('action=hs_article_cards')
@@ -114,6 +119,7 @@ try {
     report.sources.push(source);
   }
   assert.equal(await page.locator('#hs-ac-selected li').count(), 2, 'Mixed live catalogs stay selected');
+  report.stage = 'insert-grid';
   await page.locator('#hs-ac-layout').selectOption('grid');
   await page.locator('#hs-ac-setting-date').selectOption('hide');
   await page.locator('#hs-ac-setting-radius').selectOption('round');
@@ -124,6 +130,7 @@ try {
   assert.equal(await page.locator('#hs-article-cards-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
+  report.stage = 'insert-recent-list';
   await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
   await page.locator('#hs-ac-recent summary').click();
   await page.locator('.hs-ac-recent-choice').first().click();
@@ -134,6 +141,7 @@ try {
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await page.setViewportSize({ width: 1440, height: 1000 });
+  report.stage = 'insert-folded';
   await resultsAfter(() => page.getByRole('button', { name: 'Вставить статью', exact: true }).click());
   if (await page.locator('#hs-ac-source').inputValue() !== 'manacost') await resultsAfter(() => page.locator('#hs-ac-source').selectOption('manacost'));
   await page.locator('.hs-ac-choice').nth(0).click();
@@ -142,6 +150,7 @@ try {
   await page.locator('#hs-ac-insert').click();
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   report.layouts = ['grid', 'list', 'folded'];
+  report.stage = 'insert-components';
   await insertComponents(page);
   report.components = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author'];
   report.stage = 'inline-image-open';
@@ -199,6 +208,8 @@ try {
   report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 240);
   report.final_path = new URL(page.url()).pathname;
   report.navigation_failures = navigationFailures;
+  report.catalog_failures = catalogFailures;
+  report.catalog_status = (await page.locator('#hs-ac-status').textContent().catch(() => ''))?.slice(0, 200);
   report.ok = false;
 } finally {
   if (fixture?.id && nonce) {
