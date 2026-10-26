@@ -209,15 +209,23 @@ try {
   report.preview = true;
   report.ok = true;
 } catch (error) {
-  let message = String(error?.message ?? 'Unknown failure').split('\n')[0];
+  let message = String(error?.message ?? 'Unknown failure');
   for (const key of ['WP_TEST_ADMIN_USER', 'WP_TEST_ADMIN_PASSWORD', 'STAGING_HTTP_USER', 'STAGING_HTTP_PASSWORD']) {
     message = message.replaceAll(process.env[key], '[redacted]');
   }
-  report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 240);
+  report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 1600);
   report.final_path = new URL(page.url()).pathname;
   report.navigation_failures = navigationFailures;
   report.catalog_failures = catalogFailures;
   report.catalog_status = (await page.locator('#hs-ac-status').textContent().catch(() => ''))?.slice(0, 200);
+  if (report.stage.startsWith('inline-image-')) {
+    report.media_state = await page.locator('.media-modal').evaluate(el => ({
+      attachments: el.querySelectorAll('.attachments .attachment').length,
+      tabs: [...el.querySelectorAll('[role="tab"]')].map(tab => ({ label: tab.textContent.trim(), selected: tab.getAttribute('aria-selected') })),
+    })).catch(() => null);
+    await mkdir('.artifacts/article-cards', { recursive: true });
+    await page.screenshot({ path: '.artifacts/article-cards/staging-failure.png', timeout: 10000 }).catch(() => {});
+  }
   report.ok = false;
 } finally {
   if (fixture?.id && nonce) {

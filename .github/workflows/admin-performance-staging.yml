@@ -70,7 +70,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: article-cards-staging
-          path: .artifacts/article-cards/staging-report.json
+          path: |
+            .artifacts/article-cards/staging-report.json
+            .artifacts/article-cards/staging-failure.png
           if-no-files-found: ignore
           retention-days: 14
       - name: Collect five comparable warm staging samples
