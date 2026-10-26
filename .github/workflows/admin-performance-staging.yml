@@ -57,23 +57,14 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Verify article cards against live staging catalogs
         env:
+          PLAYWRIGHT_EXECUTABLE_PATH: ''
           WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
           WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: |
-          docker_command=(docker)
-          if ! docker info >/dev/null 2>&1; then
-            docker_command=(sudo -n '--preserve-env=WP_TEST_BASE_URL,WP_TEST_ADMIN_USER,WP_TEST_ADMIN_PASSWORD,STAGING_HTTP_USER,STAGING_HTTP_PASSWORD,PLAYWRIGHT_HOST_RESOLVER_RULES' docker)
-          fi
-          # Keep Chromium inside its own network namespace: host interface
-          # changes must not interrupt an otherwise healthy staging request.
-          "${docker_command[@]}" run --rm --ipc=host --cpus=1 --memory=1g --pids-limit=256 \
-            --env WP_TEST_BASE_URL --env WP_TEST_ADMIN_USER --env WP_TEST_ADMIN_PASSWORD \
-            --env STAGING_HTTP_USER --env STAGING_HTTP_PASSWORD --env PLAYWRIGHT_HOST_RESOLVER_RULES \
-            -v "$PWD:/work" -w /work \
-            'mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e' \
-            node tests/article-cards/staging.mjs
+          npx playwright install chromium
+          node tests/article-cards/staging.mjs
       - name: Upload article cards staging evidence
         if: always()
         uses: actions/upload-artifact@v4
