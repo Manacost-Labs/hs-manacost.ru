@@ -72,6 +72,56 @@ export async function insertComponents(page, visual = false) {
   await page.locator('#hs-v-social-url').fill('https://t.me/manacost');
   assert.equal(await page.locator('#hs-v-preview .hs-v-social').getAttribute('href'), 'https://t.me/manacost');
   await page.locator('#hs-v-insert').click();
+  for (const type of ['divider', 'icon-list', 'steps', 'callout']) {
+    await open();
+    await page.locator('#hs-v-type').selectOption(type);
+    await page.locator('#hs-v-title').fill('Оформление статьи');
+    await page.locator('#hs-v-width').selectOption('narrow');
+    await page.locator('#hs-v-density').selectOption('compact');
+    if (type === 'divider') await page.locator('#hs-v-divider-style').selectOption('ornament');
+    if (type === 'icon-list' || type === 'steps') {
+      await page.locator('#hs-v-items').fill('Подготовьте колоду\nСыграйте пробный матч\nОцените результат');
+      if (type === 'icon-list') await page.locator('#hs-v-icon').selectOption('star');
+      assert.equal(await page.locator('#hs-v-preview li').count(), 3);
+    }
+    if (type === 'callout') {
+      await page.locator('#hs-v-body').fill('Больше разборов и полезных материалов.');
+      await page.locator('#hs-v-action-label').fill('Читать разбор');
+      await page.locator('#hs-v-action-url').fill('javascript:alert(1)');
+      await page.locator('#hs-v-insert').click();
+      assert.match(await page.locator('#hs-v-status').innerText(), /https/);
+      await page.locator('#hs-v-action-url').fill('https://example.org/article');
+      await page.locator('#hs-v-action-target').selectOption('_self');
+      await page.locator('#hs-v-tone').selectOption('info');
+    }
+    if (visual) {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator('#hs-v-preview').screenshot({ path: `.artifacts/article-cards/screenshots/decoration-${type}.png` });
+    }
+    await page.locator('#hs-v-insert').click();
+  }
+  // Reopen through each editor's existing UI and round-trip decoration settings.
+  for (const [index, type] of ['divider', 'icon-list', 'steps', 'callout'].entries()) {
+    const block = await page.evaluate(() => Boolean(window.hsArticleCards.blockEditor));
+    if (block) {
+      const canvas = await page.locator('iframe[name="editor-canvas"]').count() ? page.frameLocator('iframe[name="editor-canvas"]') : page;
+      await canvas.getByRole('button', { name: 'Настроить компонент', exact: true }).nth(index + 6).click();
+    } else {
+      await page.evaluate(type => {
+        const editor = tinymce.get('content');
+        editor.focus(); editor.selection.select(editor.getBody().querySelector(`.hs-v-${type}`));
+      }, type);
+      await open();
+    }
+    assert.equal(await page.locator('#hs-v-type').inputValue(), type);
+    assert.equal(await page.locator('#hs-v-title').inputValue(), 'Оформление статьи');
+    assert.equal(await page.locator('#hs-v-width').inputValue(), 'narrow');
+    if (type === 'divider') assert.equal(await page.locator('#hs-v-divider-style').inputValue(), 'ornament');
+    if (type === 'icon-list') assert.equal(await page.locator('#hs-v-icon').inputValue(), 'star');
+    if (type === 'steps') assert.match(await page.locator('#hs-v-items').inputValue(), /Подготовьте колоду/);
+    if (type === 'callout') assert.equal(await page.locator('#hs-v-action-target').inputValue(), '_self');
+    await page.locator('#hs-v-insert').click();
+  }
   await open();
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.hs-components-open').evaluate(el => el === document.activeElement), true);
@@ -79,7 +129,22 @@ export async function insertComponents(page, visual = false) {
 
 export async function verifyComponents(page, selector = '.td-post-content') {
   const scope = page.locator(selector);
-  assert.equal(await scope.locator('.hs-article-component').count(), 6);
+  assert.equal(await scope.locator('.hs-article-component').count(), 10);
+  assert.equal(await scope.locator('.hs-v-divider').getAttribute('data-divider-style'), 'ornament');
+  assert.equal(await scope.locator('.hs-v-divider-label').innerText(), 'Оформление статьи');
+  assert.equal(await scope.locator('.hs-v-icon-list li').count(), 3);
+  assert.equal(await scope.locator('.hs-v-icon-list').getAttribute('data-icon'), 'star');
+  assert.equal(await scope.locator('.hs-v-steps ol > li').count(), 3);
+  const action = scope.locator('.hs-v-callout .hs-v-action');
+  assert.equal(await action.getAttribute('href'), 'https://example.org/article');
+  assert.equal(await action.getAttribute('target'), null, 'Current-tab choice survives saving');
+  assert.equal(await action.innerText(), 'Читать разбор');
+  for (const type of ['divider', 'icon-list', 'steps', 'callout']) {
+    const component = scope.locator(`.hs-v-${type}`);
+    assert.equal(await component.getAttribute('data-width'), 'narrow');
+    assert.equal(await component.getAttribute('data-density'), 'compact');
+    assert.equal(await component.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true);
+  }
   const social = scope.locator('.hs-v-author .hs-v-social');
   assert.equal(await social.getAttribute('href'), 'https://t.me/manacost');
   assert.equal(await social.getAttribute('target'), '_blank');
