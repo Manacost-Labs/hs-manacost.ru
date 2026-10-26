@@ -149,7 +149,8 @@ try {
   await page.getByRole('button', { name: 'Картинка в строке', exact: true }).click();
   const media = page.locator('.media-modal');
   report.stage = 'inline-image-library';
-  await media.getByRole('tab', { name: /Media Library|Медиафайлы/ }).click();
+  await media.getByRole('tab', { name: /Media Library|Библиотека файлов/ }).click();
+  report.stage = 'inline-image-select';
   await media.locator('.attachments .attachment').first().click();
   report.stage = 'inline-image-insert';
   await media.getByRole('button', { name: 'Вставить в строку', exact: true }).click();
