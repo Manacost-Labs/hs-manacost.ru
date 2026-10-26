@@ -43,6 +43,9 @@ final class HS_Article_Cards_Admin {
 		}
 		echo '<button type="button" class="button hs-article-cards-open"><span class="dashicons dashicons-admin-links" aria-hidden="true"></span> ' . esc_html__( 'Вставить статью', 'hs-article-cards' ) . '</button>';
 		echo '<button type="button" class="button hs-components-open">' . esc_html__( 'Компонент Manacost', 'hs-article-cards' ) . '</button>';
+		if ( current_user_can( 'upload_files' ) && ! use_block_editor_for_post( self::document() ) ) {
+			echo '<button type="button" class="button hs-inline-image-open">' . esc_html__( 'Картинка в строке', 'hs-article-cards' ) . '</button>';
+		}
 	}
 
 	/** Add the same picker to the block editor's supported meta-box area. */
@@ -66,15 +69,20 @@ final class HS_Article_Cards_Admin {
 			return;
 		}
 		$block = use_block_editor_for_post( $post );
+		if ( current_user_can( 'upload_files' ) ) {
+			wp_enqueue_media( array( 'post' => $post->ID ) );
+			wp_enqueue_script( 'hs-inline-image', plugins_url( 'inline-image.js', __FILE__ ), $block ? array( 'media-editor', 'wp-rich-text', 'wp-block-editor', 'wp-element' ) : array( 'media-editor' ), '1.3.0', true );
+		}
 		if ( $block ) {
-			wp_enqueue_script( 'hs-article-components-block', plugins_url( 'components-block.js', __FILE__ ), array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'hs-article-components' ), '1.2.1', true );
+			wp_enqueue_script( 'hs-article-components-block', plugins_url( 'components-block.js', __FILE__ ), array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'hs-article-components' ), '1.3.0', true );
 		}
 		HS_Article_Cards_Render::component_assets();
-		wp_enqueue_style( 'hs-article-components-editor', plugins_url( 'components-editor.css', __FILE__ ), array(), '1.2.1' );
-		wp_enqueue_script( 'hs-article-components-editor', plugins_url( 'components-editor.js', __FILE__ ), array( 'hs-article-cards-picker', 'hs-article-components' ), '1.2.1', true );
-		wp_enqueue_style( 'hs-article-cards', HS_Article_Cards_Render::css_url(), array(), '1.2.1' );
-		wp_enqueue_style( 'hs-article-cards-picker', plugins_url( 'editor.css', __FILE__ ), array( 'hs-article-cards' ), '1.2.1' );
-		wp_enqueue_script( 'hs-article-cards-picker', plugins_url( 'editor.js', __FILE__ ), $block ? array( 'wp-blocks', 'wp-data', 'wp-block-editor' ) : array(), '1.2.1', true );
+		wp_enqueue_script( 'hs-article-cards-folded', plugins_url( 'folded.js', __FILE__ ), array(), '1.3.0', true );
+		wp_enqueue_style( 'hs-article-components-editor', plugins_url( 'components-editor.css', __FILE__ ), array(), '1.3.0' );
+		wp_enqueue_script( 'hs-article-components-editor', plugins_url( 'components-editor.js', __FILE__ ), array( 'hs-article-cards-picker', 'hs-article-components' ), '1.3.0', true );
+		wp_enqueue_style( 'hs-article-cards', HS_Article_Cards_Render::css_url(), array(), '1.3.0' );
+		wp_enqueue_style( 'hs-article-cards-picker', plugins_url( 'editor.css', __FILE__ ), array( 'hs-article-cards' ), '1.3.0' );
+		wp_enqueue_script( 'hs-article-cards-picker', plugins_url( 'editor.js', __FILE__ ), $block ? array( 'wp-blocks', 'wp-data', 'wp-block-editor', 'hs-article-cards-folded' ) : array( 'hs-article-cards-folded' ), '1.3.0', true );
 		wp_localize_script(
 			'hs-article-cards-picker',
 			'hsArticleCards',
@@ -166,7 +174,7 @@ final class HS_Article_Cards_Admin {
 		$layout   = self::field( 'layout', 'compact' );
 		if ( ! in_array( $source, array( 'manacost', 'koloda' ), true ) || ! in_array( $mode, array( 'posts', 'categories', 'card' ), true )
 			|| ! ctype_digit( $page ) || (int) $page < 1 || (int) $page > 10000 || ! ctype_digit( $category ) || strlen( $category ) > 9
-			|| ! ctype_digit( $id ) || strlen( $id ) > 9 || ! in_array( $layout, array( 'compact', 'cover', 'grid', 'list' ), true ) ) {
+			|| ! ctype_digit( $id ) || strlen( $id ) > 9 || ! in_array( $layout, array( 'compact', 'cover', 'grid', 'list', 'folded' ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Некорректные параметры поиска.', 'hs-article-cards' ) ), 400 );
 		}
 		if ( 'categories' === $mode ) {

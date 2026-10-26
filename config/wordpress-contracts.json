@@ -2377,6 +2377,13 @@
     ],
     "rest_routes": [
       {
+        "name": "hs-article-cards/v1/preview",
+        "resolved": true,
+        "api": "register_rest_route",
+        "file": "wordpress/mu-plugins/hs-article-cards/link-preview.php",
+        "line": 107
+      },
+      {
         "name": "hs-editor-ai/v1/jobs",
         "resolved": true,
         "api": "register_rest_route",
@@ -2812,7 +2819,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
-        "line": 158
+        "line": 166
       },
       {
         "name": "edit_post",
@@ -3205,6 +3212,20 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-ajax.php",
         "line": 106
+      },
+      {
+        "name": "upload_files",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
+        "line": 46
+      },
+      {
+        "name": "upload_files",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
+        "line": 72
       }
     ]
   }

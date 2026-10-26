@@ -33,11 +33,35 @@
 			const quote = node('blockquote', 'hs-v-quote-text');
 			paragraphs(quote, field('body')); root.append(quote);
 			if (field('author').trim()) root.append(node('figcaption', '', field('author')));
+		} else if (type === 'author') {
+			const avatar = window.hsManacostComponents.safeUrl(field('avatar'));
+			if (avatar) {
+				const image = node('img', 'hs-v-avatar'); image.src = avatar; image.alt = ''; image.width = 80; image.height = 80;
+				image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; root.append(image);
+			} else {
+				const initials = field('author-name').trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('');
+				root.append(node('span', 'hs-v-initials', initials || 'М'));
+			}
+			const content = node('div', 'hs-v-author-content');
+			content.append(node('p', 'hs-v-author-name', field('author-name') || 'Имя автора'));
+			if (field('author-role').trim()) content.append(node('p', 'hs-v-author-role', field('author-role')));
+			const bio = node('div', 'hs-v-author-bio'); paragraphs(bio, field('author-bio')); content.append(bio);
+			const url = window.hsManacostComponents.safeUrl(field('social-url'));
+			if (url) {
+				const link = node('a', 'hs-v-social', field('social-label') || 'Подписаться');
+				link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; content.append(link);
+			}
+			root.append(content);
 		} else if (type === 'tabs') {
 			sections.forEach(section => {
 				const panel = node('div', 'hs-v-panel');
 				panel.append(node('h3', 'hs-v-tab-title', section.title));
-				const body = node('div', 'hs-v-body'); paragraphs(body, section.text); panel.append(body); root.append(panel);
+				(section.before || []).forEach(child => panel.append(child.cloneNode(true)));
+				const body = section.originalBody && section.text === section.originalText ? section.originalBody.cloneNode(true) : node('div', 'hs-v-body');
+				if (!section.originalBody || section.text !== section.originalText) paragraphs(body, section.text);
+				panel.append(body);
+				(section.after || []).forEach(child => panel.append(child.cloneNode(true)));
+				root.append(panel);
 			});
 		} else if (type === 'table') {
 			const table = node('table');
@@ -78,7 +102,14 @@
 			for (const [key, title, tag] of [['title', 'Заголовок', 'input'], ['text', 'Текст', 'textarea']]) {
 				const input = node(tag); input.id = `hs-v-section-${index}-${key}`; input.value = section[key];
 				input.maxLength = key === 'title' ? 120 : 10000;
-				if (tag === 'textarea') input.rows = 4;
+				if (tag === 'textarea') {
+					input.rows = 4;
+					if (section.richBody) {
+						input.readOnly = true;
+						const hint = node('p', '', 'Форматирование и изображения сохранятся. Меняйте это содержимое в основном редакторе статьи.');
+						hint.id = `${input.id}-hint`; input.setAttribute('aria-describedby', hint.id); group.append(hint);
+					}
+				}
 				const label = node('label', '', title); label.htmlFor = input.id;
 				input.addEventListener('input', () => { section[key] = input.value; });
 				group.append(label, input);
@@ -108,9 +139,13 @@
 	}
 	function validate() {
 		const type = field('type');
+		if (type === 'author') {
+			if (!field('author-name').trim() || !field('author-bio').trim() || !field('social-label').trim()) return 'Заполните имя, описание автора и текст кнопки.';
+			if (!window.hsManacostComponents.safeUrl(field('social-url')) || (field('avatar').trim() && !window.hsManacostComponents.safeUrl(field('avatar')))) return 'Укажите полный адрес https:// для соцсети и фото.';
+		}
 		if (['alert', 'spoiler', 'quote'].includes(type) && !field('body').trim()) return 'Добавьте текст компонента.';
 		if (['alert', 'spoiler'].includes(type) && !field('title').trim()) return 'Добавьте заголовок.';
-		if (type === 'tabs' && sections.some(section => !section.title.trim() || !section.text.trim())) return 'Заполните заголовок и текст каждой вкладки.';
+		if (type === 'tabs' && sections.some(section => !section.title.trim() || (!section.text.trim() && !section.hasMedia))) return 'Заполните заголовок и текст каждой вкладки.';
 		if (type === 'table' && (!field('caption').trim() || cells[0].slice(0, Number(field('cols'))).some(value => !value.trim()))) return 'Добавьте название таблицы и заголовки столбцов.';
 		return '';
 	}
@@ -150,7 +185,7 @@
 		byId('insert').textContent = 'Применить изменения';
 		form.reset();
 		const root = window.hsManacostComponents.clean(html);
-		const type = ['alert', 'spoiler', 'quote', 'tabs', 'table'].find(value => root.classList.contains(`hs-v-${value}`)) || 'alert';
+		const type = ['alert', 'spoiler', 'quote', 'tabs', 'table', 'author'].find(value => root.classList.contains(`hs-v-${value}`)) || 'alert';
 		byId('type').value = type;
 		for (const [fieldName, attr] of [['density', 'density'], ['width', 'width'], ['tone', 'tone'], ['align', 'align']]) {
 			const value = root.dataset[attr];
@@ -160,7 +195,23 @@
 		byId('title').value = root.querySelector('.hs-v-title')?.textContent || '';
 		byId('body').value = text(root.querySelector(type === 'quote' ? 'blockquote' : '.hs-v-body'));
 		byId('author').value = root.querySelector('figcaption')?.textContent || '';
-		sections = [...root.querySelectorAll('.hs-v-panel')].slice(0, 6).map(panel => ({ title: panel.querySelector('.hs-v-tab-title')?.textContent || '', text: text(panel.querySelector('.hs-v-body')) }));
+		if (type === 'author') {
+			for (const key of ['author-name', 'author-role', 'social-label']) byId(key).value = root.querySelector(key === 'social-label' ? '.hs-v-social' : `.hs-v-${key}`)?.textContent || '';
+			byId('author-bio').value = text(root.querySelector('.hs-v-author-bio'));
+			byId('social-url').value = root.querySelector('.hs-v-social')?.getAttribute('href') || '';
+			byId('avatar').value = root.querySelector('.hs-v-avatar')?.getAttribute('src') || '';
+		}
+		sections = [...root.querySelectorAll('.hs-v-panel')].slice(0, 6).map(panel => {
+			const heading = panel.querySelector('.hs-v-tab-title'), body = panel.querySelector('.hs-v-body');
+			const children = [...panel.children], position = children.indexOf(body);
+			return {
+				title: heading?.textContent || '', text: text(body), originalText: text(body), originalBody: body,
+				before: children.filter((child, index) => child !== heading && child !== body && (position < 0 || index < position)),
+				after: children.filter((child, index) => position >= 0 && index > position),
+				richBody: Boolean(body?.querySelector('img, a, ul, ol, table, strong, em, b, i')),
+				hasMedia: Boolean(panel.querySelector('img')),
+			};
+		});
 		while (sections.length < 2) sections.push({ title: `Раздел ${sections.length + 1}`, text: '' });
 		cells = Array.from({ length: 13 }, () => Array(6).fill(''));
 		if (type === 'table') {

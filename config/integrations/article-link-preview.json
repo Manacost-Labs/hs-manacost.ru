@@ -1,0 +1,44 @@
+{
+  "name": "article-link-preview",
+  "owner": "hs-article-cards MU plugin",
+  "purpose": "Intent-loaded public page metadata for links in rendered article bodies, without mutating stored content.",
+  "direction": "outbound",
+  "endpoints": {
+    "metadata": "Signed HTTP(S) public article references; no redirects; WordPress safe HTTP denies private destinations",
+    "read": "/wp-json/hs-article-cards/v1/preview"
+  },
+  "authentication": "Public GET requires a valid HMAC for the exact URL and the current revision timestamp of a published, unprotected post. No outbound cookies or credentials.",
+  "data_classes": [
+    "public URL",
+    "public Open Graph metadata",
+    "safe outcome code"
+  ],
+  "timeout_seconds": 4,
+  "retry": {
+    "max_attempts": 1,
+    "backoff": "No automatic retry; negative cache for 5 minutes."
+  },
+  "idempotency": "Read-only metadata lookup. Does not alter article bodies or user data.",
+  "rate_limit": "30 uncached requests/minute per site as a soft concurrency limit; 256 KiB response cap; 12-hour metadata cache and 5-minute failure cache.",
+  "observability": {
+    "hook": "hs_article_link_preview_result",
+    "fields": [
+      "success or fallback"
+    ],
+    "excluded": [
+      "URL",
+      "post body",
+      "user identity",
+      "cookies",
+      "credentials"
+    ]
+  },
+  "degradation": "Keep link text, host and normal navigation if metadata/image is unavailable.",
+  "disable_switch": {
+    "constant": "HS_ARTICLE_LINK_PREVIEW_ENABLED",
+    "disabled_value": false,
+    "owner": "site operator"
+  },
+  "privacy": "No cookies, localStorage or analytics. Public page URL leaves server only on preview intent. Preview image uses browser no-referrer; it exposes normal network address to its host. Metadata expires after 12 hours; no user-specific cache keys.",
+  "rollback": "Revert code through tested release. No content migration or destructive uninstall."
+}

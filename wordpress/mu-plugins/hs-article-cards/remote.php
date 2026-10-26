@@ -9,6 +9,15 @@ defined( 'ABSPATH' ) || exit;
 
 /** Public, credential-free transport to the one supported external provider. */
 final class HS_Article_Cards_Remote {
+	/**
+	 * Both providers are explicit; no arbitrary remote hosts.
+	 *
+	 * @param string $source Catalog identifier.
+	 */
+	public static function host( string $source ): string {
+		return 'manacost' === $source ? 'hs-manacost.ru' : 'kolodahearthstone.com';
+	}
+
 	/** Maximum JSON response bytes. */
 	private const MAX_BODY = 524288;
 
@@ -17,10 +26,17 @@ final class HS_Article_Cards_Remote {
 	 *
 	 * @param string                    $endpoint Allowed REST resource.
 	 * @param array<string, int|string> $query Public filters only.
+	 * @param string                    $source Catalog provider.
 	 * @return array{items:list<array<string,mixed>>,pages:int}|WP_Error
 	 */
-	public static function get( string $endpoint, array $query ) {
-		if ( defined( 'HS_ARTICLE_CARDS_KOLODA_ENABLED' ) && ! HS_ARTICLE_CARDS_KOLODA_ENABLED ) {
+	public static function get( string $endpoint, array $query, string $source = 'koloda' ) {
+		if ( ! in_array( $source, array( 'manacost', 'koloda' ), true ) ) {
+			return self::error( 'invalid_source' );
+		}
+		if ( defined( 'HS_ARTICLE_CARDS_REMOTE_ENABLED' ) && ! HS_ARTICLE_CARDS_REMOTE_ENABLED ) {
+			return self::error( 'disabled' );
+		}
+		if ( 'koloda' === $source && defined( 'HS_ARTICLE_CARDS_KOLODA_ENABLED' ) && ! HS_ARTICLE_CARDS_KOLODA_ENABLED ) {
 			return self::error( 'disabled' );
 		}
 		if ( ! preg_match( '#^(posts(/[1-9][0-9]*)?|categories)$#D', $endpoint ) ) {
@@ -28,7 +44,7 @@ final class HS_Article_Cards_Remote {
 		}
 		// Koloda omits embedded covers when _embed precedes _fields.
 		// Keep the catalog's request order; the complete URL remains the cache key.
-		$url = add_query_arg( $query, 'https://kolodahearthstone.com/wp-json/wp/v2/' . $endpoint );
+		$url = add_query_arg( $query, 'https://' . self::host( $source ) . '/wp-json/wp/v2/' . $endpoint );
 		$key = 'hs_article_cards_' . hash( 'sha256', $url );
 		$hit = get_transient( $key );
 		if ( is_array( $hit ) && isset( $hit['pages'] ) && is_int( $hit['pages'] ) ) {
@@ -40,7 +56,7 @@ final class HS_Article_Cards_Remote {
 				);
 			}
 		}
-		$failure = get_transient( 'hs_article_cards_cooldown' );
+		$failure = get_transient( 'hs_article_cards_cooldown_' . $source );
 		if ( is_wp_error( $failure ) ) {
 			return $failure;
 		}
@@ -56,7 +72,7 @@ final class HS_Article_Cards_Remote {
 		$result   = self::decode( $response, str_starts_with( $endpoint, 'posts/' ) );
 		if ( is_wp_error( $result ) ) {
 			$delay = is_wp_error( $response ) ? 30 : self::retry_delay( $response );
-			set_transient( 'hs_article_cards_cooldown', $result, $delay );
+			set_transient( 'hs_article_cards_cooldown_' . $source, $result, $delay );
 			do_action( 'hs_article_cards_provider_result', $result->get_error_code() );
 			return $result;
 		}

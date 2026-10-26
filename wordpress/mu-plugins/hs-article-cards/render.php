@@ -75,7 +75,7 @@ final class HS_Article_Cards_Render {
 	 * @return string
 	 */
 	public static function html( array $article, string $layout, array $settings = array() ): string {
-		$layout   = in_array( $layout, array( 'compact', 'cover', 'grid', 'list' ), true ) ? $layout : 'compact';
+		$layout   = in_array( $layout, array( 'compact', 'cover', 'grid', 'list', 'folded' ), true ) ? $layout : 'compact';
 		$settings = self::normalize( $settings );
 		$classes  = 'hs-article-card hs-article-card--' . $layout;
 		foreach ( array( 'image', 'radius' ) as $key ) {
@@ -98,18 +98,21 @@ final class HS_Article_Cards_Render {
 	public static function enqueue(): void {
 		$post = get_queried_object();
 		if ( is_singular() && $post instanceof WP_Post && str_contains( $post->post_content, 'hs-article-card' ) ) {
-			wp_enqueue_style( 'hs-article-cards', self::css_url(), array(), '1.2.1' );
+			wp_enqueue_style( 'hs-article-cards', self::css_url(), array(), '1.3.0' );
+			if ( str_contains( $post->post_content, 'hs-article-cards--folded' ) ) {
+				wp_enqueue_script( 'hs-article-cards-folded', plugins_url( 'folded.js', __FILE__ ), array(), '1.3.0', true );
+			}
 		}
-		if ( is_singular() && $post instanceof WP_Post && str_contains( $post->post_content, 'hs-article-component' ) ) {
+		if ( is_singular() && $post instanceof WP_Post && ( str_contains( $post->post_content, 'hs-article-component' ) || str_contains( $post->post_content, 'hs-inline-image' ) ) ) {
 			self::component_assets();
 		}
 	}
 
 	/** Load scoped Manacost component assets; no theme or global document changes. */
 	public static function component_assets(): void {
-		wp_enqueue_style( 'hs-article-components-tokens', plugins_url( 'manacost-tokens.css', __FILE__ ), array(), '1.2.1' );
-		wp_enqueue_style( 'hs-article-components', plugins_url( 'components.css', __FILE__ ), array( 'hs-article-components-tokens' ), '1.2.1' );
-		wp_enqueue_script( 'hs-article-components', plugins_url( 'components.js', __FILE__ ), array(), '1.2.1', true );
+		wp_enqueue_style( 'hs-article-components-tokens', plugins_url( 'manacost-tokens.css', __FILE__ ), array(), '1.3.0' );
+		wp_enqueue_style( 'hs-article-components', plugins_url( 'components.css', __FILE__ ), array( 'hs-article-components-tokens' ), '1.3.0' );
+		wp_enqueue_script( 'hs-article-components', plugins_url( 'components.js', __FILE__ ), array(), '1.3.0', true );
 	}
 
 	/** Include scoped styles when Gutenberg places its canvas in an iframe. */
@@ -130,7 +133,7 @@ final class HS_Article_Cards_Render {
 		if ( ! $screen || 'post' !== $screen->base || ! in_array( $screen->post_type, array( 'post', 'page' ), true ) ) {
 			return $styles;
 		}
-		return $styles . ( '' === $styles ? '' : ',' ) . self::css_url() . ',' . add_query_arg( 'ver', '1.2.1', plugins_url( 'manacost-tokens.css', __FILE__ ) ) . ',' . add_query_arg( 'ver', '1.2.1', plugins_url( 'components.css', __FILE__ ) );
+		return $styles . ( '' === $styles ? '' : ',' ) . self::css_url() . ',' . add_query_arg( 'ver', '1.3.0', plugins_url( 'manacost-tokens.css', __FILE__ ) ) . ',' . add_query_arg( 'ver', '1.3.0', plugins_url( 'components.css', __FILE__ ) );
 	}
 
 	/**
@@ -139,6 +142,6 @@ final class HS_Article_Cards_Render {
 	 * @return string
 	 */
 	public static function css_url(): string {
-		return add_query_arg( 'ver', '1.2.1', plugins_url( 'card.css', __FILE__ ) );
+		return add_query_arg( 'ver', '1.3.0', plugins_url( 'card.css', __FILE__ ) );
 	}
 }

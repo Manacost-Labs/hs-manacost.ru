@@ -25,3 +25,8 @@
 #hs-v-sections button { margin-top: 8px; }
 #hs-v-dialog :focus-visible { outline: 2px solid #2271b1; outline-offset: 2px; }
 @media (max-width: 700px) { .hs-v-workspace { grid-template-columns: minmax(0, 1fr); } .hs-v-fields, .hs-v-preview-area { padding: 14px; } .hs-v-footer .button { min-height: 44px; white-space: normal; } }
+.hs-v-preview-area { background: #f1f4f8; }
+#hs-v-preview { background: #fff; padding: 20px; border: 1px solid #dce3ec; border-radius: 4px; }
+#hs-v-preview > .hs-article-component { margin-block: 0; }
+.hs-v-preview-area > h3 { margin-top: 0; color: #33445a; }
+@media (max-width: 480px) { #hs-v-preview { padding: 12px; } }

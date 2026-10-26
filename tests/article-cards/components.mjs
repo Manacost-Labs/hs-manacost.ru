@@ -50,7 +50,8 @@ export async function insertComponents(page, visual = false) {
       assert.equal(await page.locator('#hs-v-preview [role=tab]').nth(1).getAttribute('aria-selected'), 'true', 'Formatting keeps the preview tab selected');
       await page.locator('#hs-v-density').selectOption('normal');
       await page.locator('#hs-v-add-section').click();
-      await page.locator('#hs-v-sections button').last().click();
+      await page.locator('#hs-v-sections fieldset').nth(2).waitFor();
+      await page.locator('#hs-v-sections fieldset').nth(2).getByRole('button', { name: 'Удалить вкладку' }).click();
     } else {
       await page.locator('#hs-v-caption').fill('Сравнение колод');
       await page.locator('#hs-v-cells input').nth(0).fill('Колода');
@@ -61,13 +62,28 @@ export async function insertComponents(page, visual = false) {
     await page.locator('#hs-v-insert').click();
   }
   await open();
+  await page.locator('#hs-v-type').selectOption('author');
+  await page.locator('#hs-v-author-name').fill('Редакция Manacost');
+  await page.locator('#hs-v-author-bio').fill('Гайды и разборы Hearthstone.');
+  await page.locator('#hs-v-social-label').fill('Наш Telegram');
+  await page.locator('#hs-v-social-url').fill('javascript:alert(1)');
+  await page.locator('#hs-v-insert').click();
+  assert.match(await page.locator('#hs-v-status').innerText(), /https/);
+  await page.locator('#hs-v-social-url').fill('https://t.me/manacost');
+  assert.equal(await page.locator('#hs-v-preview .hs-v-social').getAttribute('href'), 'https://t.me/manacost');
+  await page.locator('#hs-v-insert').click();
+  await open();
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.hs-components-open').evaluate(el => el === document.activeElement), true);
 }
 
-export async function verifyComponents(page) {
-  const scope = page.locator('.td-post-content');
-  assert.equal(await scope.locator('.hs-article-component').count(), 5);
+export async function verifyComponents(page, selector = '.td-post-content') {
+  const scope = page.locator(selector);
+  assert.equal(await scope.locator('.hs-article-component').count(), 6);
+  const social = scope.locator('.hs-v-author .hs-v-social');
+  assert.equal(await social.getAttribute('href'), 'https://t.me/manacost');
+  assert.equal(await social.getAttribute('target'), '_blank');
+  assert.match(await social.getAttribute('rel'), /noopener/);
   assert.match(await scope.locator('.hs-v-alert').innerText(), /<script>alert\(1\)<\/script>/);
   const spoiler = scope.locator('details.hs-v-spoiler');
   await spoiler.locator('summary').click();
