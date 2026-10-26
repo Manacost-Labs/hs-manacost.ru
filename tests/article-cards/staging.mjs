@@ -59,12 +59,20 @@ async function editorReady() {
 }
 async function resultsAfter(action) {
   report.catalog_action = (report.catalog_action || 0) + 1;
-  await Promise.all([
+  const failureStart = catalogFailures.length;
+  const receive = () =>
     page.waitForResponse(response => response.url().includes('/admin-ajax.php')
       && response.request().postData()?.includes('action=hs_article_cards')
-      && response.request().postData()?.includes('mode=posts')),
-    action(),
-  ]);
+      && response.request().postData()?.includes('mode=posts'));
+  try {
+    await Promise.all([receive(), action()]);
+  } catch (error) {
+    const changedNetwork = catalogFailures.slice(failureStart).some(failure => failure.mode === 'posts' && failure.code === 'net::ERR_NETWORK_CHANGED');
+    if (!changedNetwork || (report.catalog_retries || 0) >= 2) throw error;
+    // Retry only an interrupted catalogue read through the visible recovery UI.
+    report.catalog_retries = (report.catalog_retries || 0) + 1;
+    await Promise.all([receive(), page.locator('#hs-ac-retry').click()]);
+  }
   await page.waitForFunction(() => document.querySelector('#hs-ac-results')?.getAttribute('aria-busy') === 'false');
   await page.locator('.hs-ac-choice').first().waitFor();
 }
