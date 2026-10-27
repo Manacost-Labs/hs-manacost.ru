@@ -82,6 +82,7 @@ export async function insertComponents(page, visual = false) {
     if (type === 'icon-list' || type === 'steps') {
       await page.locator('#hs-v-items').fill('Подготовьте колоду\nСыграйте пробный матч\nОцените результат');
       if (type === 'icon-list') await page.locator('#hs-v-icon').selectOption('star');
+      await page.waitForFunction(() => document.querySelectorAll('#hs-v-preview li').length === 3);
       assert.equal(await page.locator('#hs-v-preview li').count(), 3);
     }
     if (type === 'callout') {
