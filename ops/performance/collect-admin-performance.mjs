@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
 import { finishAdminLogin } from './browser-admin-login.mjs';
+import { navigateWithNetworkRecovery } from './browser-fixture-request.mjs';
 
 const sampleCount = Number.parseInt(process.env.HS_ADMIN_PERF_SAMPLES ?? '5', 10);
 if (!Number.isInteger(sampleCount) || sampleCount < 5 || sampleCount > 20) {
@@ -45,7 +46,7 @@ const contextOptions = {
 
 async function login(context) {
   const page = await context.newPage();
-  await page.goto(`${baseURL}/wp-login.php`, { waitUntil: 'domcontentloaded' });
+  await navigateWithNetworkRecovery(page, `${baseURL}/wp-login.php`, { waitUntil: 'domcontentloaded' });
   // Core's delayed autofocus must finish before either credential is entered.
   await page.waitForFunction(() => document.activeElement?.id === 'user_login');
   await page.getByLabel(/Username|Email|Имя пользователя/i).fill(username);
@@ -58,7 +59,8 @@ async function login(context) {
 async function countPublishedPosts(context) {
   const page = await context.newPage();
   try {
-    const response = await page.goto(
+    const { response } = await navigateWithNetworkRecovery(
+      page,
       `${baseURL}/wp-json/wp/v2/posts?per_page=1&_fields=id`,
       { waitUntil: 'domcontentloaded', timeout: 30_000 },
     );
@@ -90,14 +92,14 @@ async function addLongTaskObserver(context) {
 
 async function discoverEditorPath(context) {
   const page = await context.newPage();
-  await page.goto(`${baseURL}/wp-admin/edit.php`, { waitUntil: 'domcontentloaded' });
+  await navigateWithNetworkRecovery(page, `${baseURL}/wp-admin/edit.php`, { waitUntil: 'domcontentloaded' });
   const href = await page.locator('a.row-title').first().getAttribute('href');
   await page.close();
   return href ? `/wp-admin/${href.replace(/^.*\/wp-admin\//, '')}` : null;
 }
 
 async function warmUp(page, screen) {
-  await page.goto(`${baseURL}${screen.path}`, {
+  await navigateWithNetworkRecovery(page, `${baseURL}${screen.path}`, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
   });
@@ -106,7 +108,7 @@ async function warmUp(page, screen) {
 }
 
 async function measure(page, screen) {
-  await page.goto(`${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
+  const { retries } = await navigateWithNetworkRecovery(page, `${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
   await page.locator(screen.selector).first().waitFor({ state: 'visible' });
   await page.waitForTimeout(150);
   const timings = await page.evaluate(() => {
@@ -121,7 +123,7 @@ async function measure(page, screen) {
       long_tasks: Number(window.__hsLongTasks ?? 0),
     };
   });
-  return { ...timings, sql_profile: await page.evaluate(collectSqlProfile) };
+  return { ...timings, navigation_retries: retries, sql_profile: await page.evaluate(collectSqlProfile) };
 }
 
 async function diagnoseSql(screens) {
@@ -163,7 +165,7 @@ async function verifyMobile(screens) {
   await login(context);
   const page = await context.newPage();
   for (const screen of screens) {
-    await page.goto(`${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
+    await navigateWithNetworkRecovery(page, `${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
     await page.locator(screen.selector).first().waitFor({ state: 'visible' });
     const hasPageOverflow = await page.evaluate(() => {
       const content = document.querySelector('#wpbody-content');
@@ -180,7 +182,7 @@ async function verifyMobile(screens) {
 async function verifyPermissionBoundary(screen) {
   const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
-  await page.goto(`${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
+  await navigateWithNetworkRecovery(page, `${baseURL}${screen.path}`, { waitUntil: 'domcontentloaded' });
   const redirectedToLogin = /\/wp-login\.php/.test(page.url());
   await context.close();
   if (!redirectedToLogin) throw new Error('Unauthenticated admin request was not rejected');
@@ -191,7 +193,8 @@ async function verifyErrorPath() {
   const context = await browser.newContext(contextOptions);
   await login(context);
   const page = await context.newPage();
-  const response = await page.goto(
+  const { response } = await navigateWithNetworkRecovery(
+    page,
     `${baseURL}/wp-admin/admin.php?page=hs-performance-probe-missing`,
     { waitUntil: 'domcontentloaded' },
   );
