@@ -116,7 +116,9 @@ try {
     await page.waitForFunction(() => document.querySelectorAll('#hs-ac-category option').length > 1);
     if (source === 'koloda') assert.ok(await page.locator('.hs-ac-choice img').count(), 'Live Koloda catalog must include covers');
     const title = (await page.locator('.hs-ac-choice strong').first().innerText()).trim();
-    await resultsAfter(() => page.locator('#hs-ac-search').fill(title.slice(0, 80)));
+    // Rendered titles contain wptexturize punctuation absent from stored titles.
+    const searchTerm = title.match(/[\p{L}\p{N}]{4,}/u)?.[0] || title.slice(0, 80);
+    await resultsAfter(() => page.locator('#hs-ac-search').fill(searchTerm));
     await page.locator('.hs-ac-choice').first().click();
     await page.locator('#hs-ac-preview .hs-article-card').first().waitFor();
     await page.locator('#hs-ac-selected li').last().getByRole('button', { name: /^Убрать:/ }).click();
