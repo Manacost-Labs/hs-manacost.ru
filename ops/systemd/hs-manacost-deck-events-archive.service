@@ -1,0 +1,18 @@
+[Unit]
+Description=Archive raw HS Manacost deck events to encrypted S3 before deletion
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# mariadb reads root's client credentials from $HOME/.my.cnf.
+Environment=HOME=/root
+ExecStart=/usr/bin/python3 -I /usr/local/libexec/hs-manacost-deck-events-archive/raw-archive.py --config /etc/hs-manacost/deck-events-archive.env archive
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+MemoryMax=1G
+TimeoutStartSec=2h

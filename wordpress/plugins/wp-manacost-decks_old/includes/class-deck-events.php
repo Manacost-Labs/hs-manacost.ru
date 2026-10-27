@@ -50,6 +50,15 @@ class Unified_HS_Deck_Events {
         return $wpdb->prefix . 'manacost_deck_event_days';
     }
 
+    /**
+     * Days whose raw rows ops/deck-events/raw-archive.py uploaded to S3 and
+     * read back; raw rows of any other day are never deleted.
+     */
+    public static function archives_table_name() {
+        global $wpdb;
+        return $wpdb->prefix . 'manacost_deck_event_archives';
+    }
+
     public static function allowed_events() {
         return array(
             self::EVENT_DECK_VIEW,
@@ -97,6 +106,15 @@ class Unified_HS_Deck_Events {
             PRIMARY KEY  (event_day, post_id, event_type),
             KEY post_event_day (post_id, event_type, event_day),
             KEY event_type_day (event_type, event_day)
+        ) {$charset_collate};
+        CREATE TABLE " . self::archives_table_name() . " (
+            event_day DATE NOT NULL,
+            row_count INT UNSIGNED NOT NULL DEFAULT 0,
+            bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            sha256 CHAR(64) NOT NULL DEFAULT '',
+            object_key VARCHAR(255) NOT NULL DEFAULT '',
+            archived_at DATETIME NOT NULL,
+            PRIMARY KEY  (event_day)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -344,7 +362,7 @@ class Unified_HS_Deck_Events {
     public static function run_retention() {
         global $wpdb;
 
-        if (!self::table_exists() || !self::days_table_exists()) {
+        if (!self::table_exists() || !self::days_table_exists() || !self::archives_table_exists()) {
             return;
         }
 
@@ -415,20 +433,51 @@ class Unified_HS_Deck_Events {
         }
 
         // Stay one day behind the boundary: a report that read the previous
-        // boundary still finds that day's raw rows.
+        // boundary still finds that day's raw rows. Only days with an archive
+        // record are deleted, and only while the raw rows still match it.
         $delete_before = (new DateTimeImmutable($rolled_until, new DateTimeZone('UTC')))->modify('-1 day')->format('Y-m-d');
+        $archives = self::archives_table_name();
+        $after = '1000-01-01';
         while (microtime(true) < $deadline) {
-            $deleted = $wpdb->query($wpdb->prepare(
-                "DELETE FROM {$table} WHERE event_time < %s ORDER BY event_time, id LIMIT %d",
-                $delete_before . ' 00:00:00',
-                self::RETENTION_DELETE_BATCH
-            ));
-            if ($deleted === false) {
-                error_log('Deck events retention: delete failed: ' . $wpdb->last_error);
+            $archive = $wpdb->get_row($wpdb->prepare(
+                "SELECT a.event_day, a.row_count FROM {$archives} a
+                 WHERE a.event_day > %s AND a.event_day < %s
+                   AND EXISTS (SELECT 1 FROM {$table} WHERE event_time >= a.event_day AND event_time < a.event_day + INTERVAL 1 DAY)
+                 ORDER BY a.event_day LIMIT 1",
+                $after,
+                $delete_before
+            ), ARRAY_A);
+            if (!$archive) {
                 return;
             }
-            if ($deleted === 0) {
-                return;
+            $day = $archive['event_day'];
+            $after = $day;
+            $range = array($day . ' 00:00:00', self::next_day($day) . ' 00:00:00');
+
+            $present = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE event_time >= %s AND event_time < %s",
+                $range[0],
+                $range[1]
+            ));
+            if ($present > (int) $archive['row_count']) {
+                error_log('Deck events retention: ' . $day . ' has more raw rows than its archive; kept');
+                continue;
+            }
+
+            while (microtime(true) < $deadline) {
+                $deleted = $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$table} WHERE event_time >= %s AND event_time < %s ORDER BY event_time, id LIMIT %d",
+                    $range[0],
+                    $range[1],
+                    self::RETENTION_DELETE_BATCH
+                ));
+                if ($deleted === false) {
+                    error_log('Deck events retention: delete failed: ' . $wpdb->last_error);
+                    return;
+                }
+                if ($deleted === 0) {
+                    break;
+                }
             }
         }
     }
@@ -603,6 +652,13 @@ class Unified_HS_Deck_Events {
         global $wpdb;
 
         $table = self::days_table_name();
+        return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
+    }
+
+    private static function archives_table_exists() {
+        global $wpdb;
+
+        $table = self::archives_table_name();
         return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
     }
 }

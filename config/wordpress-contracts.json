@@ -280,7 +280,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 217
+        "line": 235
       },
       {
         "name": "_deck_games",
@@ -378,7 +378,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 219
+        "line": 237
       },
       {
         "name": "_deck_losses",
@@ -532,7 +532,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 220
+        "line": 238
       },
       {
         "name": "_deck_winrate",
@@ -567,7 +567,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 218
+        "line": 236
       },
       {
         "name": "_deck_wins",
@@ -1906,35 +1906,35 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 71
+        "line": 80
       },
       {
         "name": "unified_hs_deck_events_db_version",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 109
+        "line": 127
       },
       {
         "name": "unified_hs_deck_events_rolled_until",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 383
+        "line": 401
       },
       {
         "name": "unified_hs_deck_events_rolled_until",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 407
+        "line": 425
       },
       {
         "name": "unified_hs_deck_events_rolled_until",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 553
+        "line": 602
       },
       {
         "name": "unified_hs_deck_period_stats_db_version",

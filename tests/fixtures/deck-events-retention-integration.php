@@ -9,8 +9,10 @@ Unified_HS_Deck_Events::install();
 
 $retention_table = Unified_HS_Deck_Events::table_name();
 $retention_days = Unified_HS_Deck_Events::days_table_name();
+$retention_archives = Unified_HS_Deck_Events::archives_table_name();
 $wpdb->query("DELETE FROM `{$retention_table}`");
 $wpdb->query("DELETE FROM `{$retention_days}`");
+$wpdb->query("DELETE FROM `{$retention_archives}`");
 delete_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION);
 
 if (!taxonomy_exists('deck_archetype')) {
@@ -62,13 +64,37 @@ hs_integration_assert(
     get_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION) === $retention_cutoff,
     'retention did not roll up every day before the cutoff'
 );
-// Raw rows stay one day behind the boundary for reports that read the previous one.
-hs_integration_assert(
-    (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM `{$retention_table}` WHERE event_time < %s", $retention_day(Unified_HS_Deck_Events::RETENTION_DAYS + 1) . ' 00:00:00')) === 0,
-    'retention kept raw events older than the cutoff'
-);
-hs_integration_assert((int) $wpdb->get_var("SELECT COUNT(*) FROM `{$retention_table}`") === 5, 'retention deleted recent raw events');
+$retention_raw_count = static function (int $days_ago) use ($wpdb, $retention_table, $retention_day): int {
+    return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM `{$retention_table}` WHERE event_time >= %s AND event_time < %s + INTERVAL 1 DAY",
+        $retention_day($days_ago) . ' 00:00:00',
+        $retention_day($days_ago)
+    ));
+};
+hs_integration_assert((int) $wpdb->get_var("SELECT COUNT(*) FROM `{$retention_table}`") === 9, 'retention deleted raw events that were never archived');
 hs_integration_assert($retention_reports() === $retention_before, 'reports changed after raw events moved into the daily rollup');
+
+// Only a day with an archive record that still covers every raw row is deleted.
+$retention_archive = static function (int $days_ago, int $row_count) use ($wpdb, $retention_archives, $retention_day): void {
+    $wpdb->insert($retention_archives, [
+        'event_day' => $retention_day($days_ago),
+        'row_count' => $row_count,
+        'bytes' => 1,
+        'sha256' => str_repeat('0', 64),
+        'object_key' => 'integration/raw/day.jsonl.gz',
+        'archived_at' => current_time('mysql', true),
+    ]);
+};
+$retention_archive(120, 3);
+$retention_archive(95, 0);
+$retention_archive(91, 1);
+Unified_HS_Deck_Events::run_retention();
+hs_integration_assert($retention_raw_count(120) === 0, 'retention kept raw events of an archived day');
+hs_integration_assert($retention_raw_count(95) === 1, 'retention deleted more raw events than the archive holds');
+// Raw rows stay one day behind the boundary for reports that read the previous one.
+hs_integration_assert($retention_raw_count(91) === 1, 'retention deleted the day just behind the boundary');
+hs_integration_assert($retention_raw_count(10) === 4, 'retention deleted recent raw events');
+hs_integration_assert($retention_reports() === $retention_before, 'reports changed after archived raw events were deleted');
 
 Unified_HS_Deck_Events::run_retention();
 hs_integration_assert($retention_reports() === $retention_before, 'a repeated retention run changed the reports');

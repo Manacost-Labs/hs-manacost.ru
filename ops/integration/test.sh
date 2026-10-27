@@ -17,6 +17,7 @@ PROJECT_NAME=$(integration_project_name "$ROOT_DIR")
 compose=("${docker_command[@]}" compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
 
 "${compose[@]}" run --rm -e HS_MANACOST_S3_RESTORE=1 cli eval-file /var/www/html/.integration/wordpress-tests.php
+"$ROOT_DIR/ops/integration/deck-events-archive-cycle.sh"
 # Match Apache's local-only URL constants before the domain bootstrap MU loads.
 "${compose[@]}" run --rm -e WP_ENVIRONMENT_TYPE=local \
     -e "WORDPRESS_CONFIG_EXTRA=define('WP_HOME', 'http://127.0.0.1:${WP_TEST_PORT:-8888}'); define('WP_SITEURL', WP_HOME); define('DISABLE_WP_CRON', true);" \
