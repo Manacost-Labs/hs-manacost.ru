@@ -1920,14 +1920,21 @@
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 384
+        "line": 383
+      },
+      {
+        "name": "unified_hs_deck_events_rolled_until",
+        "resolved": true,
+        "api": "update_option",
+        "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
+        "line": 407
       },
       {
         "name": "unified_hs_deck_events_rolled_until",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 516
+        "line": 553
       },
       {
         "name": "unified_hs_deck_period_stats_db_version",

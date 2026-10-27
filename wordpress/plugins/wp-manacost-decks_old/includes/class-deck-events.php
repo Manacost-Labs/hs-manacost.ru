@@ -318,24 +318,20 @@ class Unified_HS_Deck_Events {
             return array();
         }
 
-        $post_ids = array_values(array_filter(array_map('absint', (array) get_objects_in_term($term_id, 'deck_archetype'))));
-        if (empty($post_ids)) {
-            return array();
-        }
+        global $wpdb;
 
-        $where = array(
-            'post_id IN (' . implode(',', array_fill(0, count($post_ids), '%d')) . ')',
-            'event_type = %s',
-        );
-        $params = array_merge($post_ids, array($event_type));
+        // event_time, event_day, post_id and event_type exist only in the events tables.
+        $join = "INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = e.post_id
+             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id";
 
         return self::count_rows(
             array('event_day' => 'DATE(event_time)'),
             $from,
             $to,
-            $where,
-            $params,
-            'event_day ASC'
+            array('tt.taxonomy = %s', 'tt.term_id = %d', 'event_type = %s'),
+            array('deck_archetype', $term_id, $event_type),
+            'event_day ASC',
+            $join
         );
     }
 
@@ -352,36 +348,64 @@ class Unified_HS_Deck_Events {
             return;
         }
 
+        // WP-cron's own lock expires after 60 s; a second runner must not
+        // re-roll a day whose raw rows the first one is deleting.
+        if ((string) $wpdb->get_var("SELECT GET_LOCK('" . self::RETENTION_HOOK . "', 0)") !== '1') {
+            return;
+        }
+
+        try {
+            self::roll_up_and_delete();
+        } finally {
+            $wpdb->query("DO RELEASE_LOCK('" . self::RETENTION_HOOK . "')");
+        }
+    }
+
+    private static function roll_up_and_delete() {
+        global $wpdb;
+
         $table = self::table_name();
         $days_table = self::days_table_name();
         $deadline = microtime(true) + self::RETENTION_TIME_BUDGET;
         $cutoff = (string) $wpdb->get_var($wpdb->prepare('SELECT CURDATE() - INTERVAL %d DAY', self::RETENTION_DAYS));
         if (self::normalize_date($cutoff) === '') {
+            error_log('Deck events retention: could not compute the cutoff date');
             return;
         }
 
         $day = self::rolled_until();
         if ($day === '') {
+            // A lost option must not re-roll days whose raw rows are already gone.
+            $rolled = self::normalize_date((string) $wpdb->get_var("SELECT MAX(event_day) FROM {$days_table}"));
             $oldest = self::normalize_date((string) $wpdb->get_var("SELECT DATE(MIN(event_time)) FROM {$table}"));
-            $day = $oldest !== '' && $oldest < $cutoff ? $oldest : $cutoff;
+            if ($rolled !== '') {
+                $day = self::next_day($rolled);
+                update_option(self::ROLLED_UNTIL_OPTION, $day, false);
+            } else {
+                $day = $oldest !== '' && $oldest < $cutoff ? $oldest : $cutoff;
+            }
         }
 
         while ($day < $cutoff && microtime(true) < $deadline) {
-            $next = (new DateTimeImmutable($day, new DateTimeZone('UTC')))->modify('+1 day')->format('Y-m-d');
+            $next = self::next_day($day);
+            // Days before the cutoff never gain events, so a rerun never needs a smaller count.
             $rolled = $wpdb->query($wpdb->prepare(
                 "INSERT INTO {$days_table} (event_day, post_id, event_type, events)
                  SELECT %s, post_id, event_type, COUNT(*) FROM {$table}
                  WHERE event_time >= %s AND event_time < %s
                  GROUP BY post_id, event_type
-                 ON DUPLICATE KEY UPDATE events = VALUES(events)",
+                 ON DUPLICATE KEY UPDATE events = GREATEST(events, VALUES(events))",
                 $day,
                 $day . ' 00:00:00',
                 $next . ' 00:00:00'
             ));
             if ($rolled === false) {
+                error_log('Deck events retention: rollup failed for ' . $day . ': ' . $wpdb->last_error);
                 return;
             }
-            update_option(self::ROLLED_UNTIL_OPTION, $next, false);
+            if ($next > self::rolled_until()) {
+                update_option(self::ROLLED_UNTIL_OPTION, $next, false);
+            }
             $day = $next;
         }
 
@@ -390,16 +414,27 @@ class Unified_HS_Deck_Events {
             return;
         }
 
+        // Stay one day behind the boundary: a report that read the previous
+        // boundary still finds that day's raw rows.
+        $delete_before = (new DateTimeImmutable($rolled_until, new DateTimeZone('UTC')))->modify('-1 day')->format('Y-m-d');
         while (microtime(true) < $deadline) {
             $deleted = $wpdb->query($wpdb->prepare(
-                "DELETE FROM {$table} WHERE event_time < %s ORDER BY event_time LIMIT %d",
-                $rolled_until . ' 00:00:00',
+                "DELETE FROM {$table} WHERE event_time < %s ORDER BY event_time, id LIMIT %d",
+                $delete_before . ' 00:00:00',
                 self::RETENTION_DELETE_BATCH
             ));
-            if (!$deleted) {
+            if ($deleted === false) {
+                error_log('Deck events retention: delete failed: ' . $wpdb->last_error);
+                return;
+            }
+            if ($deleted === 0) {
                 return;
             }
         }
+    }
+
+    private static function next_day($day) {
+        return (new DateTimeImmutable($day, new DateTimeZone('UTC')))->modify('+1 day')->format('Y-m-d');
     }
 
     public static function review_score(array $events, $games = 0, $published_ts = 0) {
@@ -442,9 +477,10 @@ class Unified_HS_Deck_Events {
      * Days before rolled_until() live only in the daily table and later days
      * only in raw rows, so a period reads both halves without counting a day
      * twice. $columns maps output columns to raw expressions; $where may use
-     * only post_id and event_type, which both tables share.
+     * post_id and event_type, which both tables share, and columns of $join,
+     * which joins against alias e in both halves.
      */
-    private static function count_rows(array $columns, $from, $to, array $where = array(), array $params = array(), $order_by = '') {
+    private static function count_rows(array $columns, $from, $to, array $where = array(), array $params = array(), $order_by = '', $join = '') {
         global $wpdb;
 
         $from = self::normalize_date($from);
@@ -470,7 +506,7 @@ class Unified_HS_Deck_Events {
         foreach ($columns as $column => $expression) {
             $raw_select[] = "{$expression} AS {$column}";
         }
-        $sql = 'SELECT ' . implode(', ', $raw_select) . ', COUNT(*) AS events FROM ' . self::table_name()
+        $sql = 'SELECT ' . implode(', ', $raw_select) . ', COUNT(*) AS events FROM ' . self::table_name() . ' e ' . $join
             . self::where_sql($raw_where)
             . ' GROUP BY ' . implode(', ', array_values($columns));
         $all_params = $raw_params;
@@ -492,7 +528,8 @@ class Unified_HS_Deck_Events {
             $names = implode(', ', array_keys($columns));
             $sql = "SELECT {$names}, SUM(events) AS events FROM ({$sql}
                  UNION ALL
-                 SELECT {$names}, events FROM " . self::days_table_name() . self::where_sql($day_where) . ") e
+                 SELECT {$names}, SUM(events) FROM " . self::days_table_name() . ' e ' . $join . self::where_sql($day_where) . "
+                 GROUP BY {$names}) u
                  GROUP BY {$names}";
             $all_params = array_merge($raw_params, $day_params);
         }

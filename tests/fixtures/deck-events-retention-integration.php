@@ -35,6 +35,7 @@ $retention_insert = static function (int $post_id, string $event_type, int $days
 };
 $retention_insert($retention_post, 'deck_view', 120, 2);
 $retention_insert($retention_post, 'deck_copy', 95, 1);
+$retention_insert($retention_post, 'deck_view', 91, 1);
 $retention_insert(0, 'filter_apply', 120, 1);
 $retention_insert($retention_post, 'deck_view', 10, 3);
 $retention_insert($retention_post, 'deck_copy', 10, 1);
@@ -52,7 +53,7 @@ $retention_reports = static function () use ($retention_from, $retention_to, $re
     ];
 };
 $retention_before = $retention_reports();
-hs_integration_assert($retention_before['summary']['deck_view'] === 5, 'retention fixture did not record raw deck views');
+hs_integration_assert($retention_before['summary']['deck_view'] === 6, 'retention fixture did not record raw deck views');
 
 Unified_HS_Deck_Events::run_retention();
 
@@ -61,15 +62,37 @@ hs_integration_assert(
     get_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION) === $retention_cutoff,
     'retention did not roll up every day before the cutoff'
 );
+// Raw rows stay one day behind the boundary for reports that read the previous one.
 hs_integration_assert(
-    (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM `{$retention_table}` WHERE event_time < %s", $retention_cutoff . ' 00:00:00')) === 0,
+    (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM `{$retention_table}` WHERE event_time < %s", $retention_day(Unified_HS_Deck_Events::RETENTION_DAYS + 1) . ' 00:00:00')) === 0,
     'retention kept raw events older than the cutoff'
 );
-hs_integration_assert((int) $wpdb->get_var("SELECT COUNT(*) FROM `{$retention_table}`") === 4, 'retention deleted recent raw events');
+hs_integration_assert((int) $wpdb->get_var("SELECT COUNT(*) FROM `{$retention_table}`") === 5, 'retention deleted recent raw events');
 hs_integration_assert($retention_reports() === $retention_before, 'reports changed after raw events moved into the daily rollup');
 
 Unified_HS_Deck_Events::run_retention();
 hs_integration_assert($retention_reports() === $retention_before, 'a repeated retention run changed the reports');
+
+// A lost boundary must resume after the rollup, not re-roll days whose raw rows are gone.
+delete_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION);
+Unified_HS_Deck_Events::run_retention();
+hs_integration_assert(
+    get_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION) === $retention_cutoff,
+    'retention did not restore a lost boundary from the rollup'
+);
+hs_integration_assert($retention_reports() === $retention_before, 'a lost boundary changed the reports');
+
+// A concurrent runner holding the lock makes this run a no-op.
+$retention_lock = new wpdb(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST);
+$retention_lock->get_var("SELECT GET_LOCK('" . Unified_HS_Deck_Events::RETENTION_HOOK . "', 0)");
+update_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION, $retention_day(100), false);
+Unified_HS_Deck_Events::run_retention();
+hs_integration_assert(
+    get_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION) === $retention_day(100),
+    'retention ran while another runner held its lock'
+);
+$retention_lock->query("DO RELEASE_LOCK('" . Unified_HS_Deck_Events::RETENTION_HOOK . "')");
+update_option(Unified_HS_Deck_Events::ROLLED_UNTIL_OPTION, $retention_cutoff, false);
 
 wp_delete_post($retention_post, true);
 wp_delete_term($retention_term_id, 'deck_archetype');
