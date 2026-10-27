@@ -343,6 +343,12 @@ console.log('PASS');
             steps.index("Check protected staging measurement credentials"),
             steps.index("Install locked browser package"),
         )
+        # An article-cards failure must not skip the admin budget samples.
+        collect = steps.split("      - name: Collect five comparable warm staging samples\n", 1)[1]
+        self.assertIn(
+            "if: always() && steps.credentials.outputs.enabled == 'true'",
+            collect.split("      - ", 1)[0],
+        )
         self.assertIn("run: npm ci --ignore-scripts", steps)
         frontend_name = "Verify five cold slow-mobile frontend samples per route"
         if f"      - name: {frontend_name}\n" in steps:

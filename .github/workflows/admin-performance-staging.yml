@@ -76,7 +76,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Collect five comparable warm staging samples
-        if: steps.credentials.outputs.enabled == 'true'
+        if: always() && steps.credentials.outputs.enabled == 'true'
         env:
           WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
           WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
