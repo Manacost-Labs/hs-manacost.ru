@@ -19,7 +19,7 @@ import zlib
 UTC = dt.timezone.utc
 ACCESS = re.compile(r'^\S+ \S+ \S+ \[([^\]]+)\] "((?:\\.|[^"\\])*)" (\d{3}) ')
 ERROR = re.compile(r'^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) ')
-ERROR_CONTINUATION = re.compile(r'^(?:Stack trace:|#\d+\s|\s)')
+MAX_ERROR_CONTINUATION_LINES = 200
 UPSTREAM_STATUS = re.compile(r'^(?:|[1-5]\d\d(?:(?:,\s*|\s+:\s+)[1-5]\d\d)*)$')
 UPSTREAM = ("Resource temporarily unavailable", "recv() failed", "upstream timed out",
             "connect() failed", "upstream prematurely closed", "no live upstreams",
@@ -85,13 +85,20 @@ def records(path, kind, since, now, byte_limit):
         lines, clipped = bounded_tail(source, byte_limit)
         first_timestamp = None
         seen_primary = False
+        continuation = 0
         for line in lines:
             match = (ACCESS if kind == "access" else ERROR).match(line)
             if not match:
-                if kind == "error" and seen_primary and ERROR_CONTINUATION.match(line):
+                # nginx copies FastCGI stderr verbatim, so a PHP stack trace or
+                # print_r() dump spans unprefixed lines of the preceding record.
+                if kind == "error" and seen_primary:
+                    continuation += 1
+                    if continuation > MAX_ERROR_CONTINUATION_LINES:
+                        raise Unknown("error_record_too_long")
                     continue
                 raise Unknown(f"malformed_{kind}_record")
             seen_primary = True
+            continuation = 0
             try:
                 if kind == "access":
                     timestamp = dt.datetime.strptime(match[1], "%d/%b/%Y:%H:%M:%S %z").timestamp()

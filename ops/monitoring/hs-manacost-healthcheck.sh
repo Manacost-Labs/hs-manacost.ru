@@ -4,8 +4,21 @@ set -o pipefail
 umask 027
 
 DOMAIN="hs-manacost.ru"
-EXPECTED_A=("194.67.92.242" "186.246.28.244")
-RESOLVERS=("1.1.1.1" "77.88.8.8")
+# Cloudflare geo-steers the apex: CIS clients get both RU edges, everyone
+# else gets the EU edge. Proxy URL checks cover every edge.
+EXPECTED_A_RU=("194.67.92.242" "186.246.28.244")
+EXPECTED_A_EU=("57.129.183.118")
+PROXY_IPS=("${EXPECTED_A_RU[@]}" "${EXPECTED_A_EU[@]}")
+# resolver:region. Public resolvers send no ECS, so Cloudflare answers for the
+# resolver's own location: 1.1.1.1 seen from this OVH host is EU, Yandex is RU.
+RESOLVERS=("1.1.1.1:eu" "77.88.8.8:ru")
+# label:client-subnet:region, sent as ECS straight to the authoritative NS.
+ECS_PROBES=(
+    "ru-moscow:95.165.0.0/24:ru"
+    "ru-novosibirsk:178.49.128.0/24:ru"
+    "eu-germany:85.214.0.0/24:eu"
+    "us:3.3.3.0/24:eu"
+)
 LOG="${HEALTHCHECK_LOG:-/var/log/hs-manacost-healthcheck.log}"
 NGINX_HELPER="${HEALTHCHECK_NGINX_HELPER:-/usr/local/libexec/manacost-monitoring/nginx_recent.py}"
 ATTRIBUTION_LOG="${HEALTHCHECK_ATTRIBUTION_LOG:-/var/www/httpd-logs/hs-manacost.ru.5xx-attribution.log}"
@@ -40,46 +53,82 @@ ok() {
     log "OK $*"
 }
 
-in_expected_a() {
-    local ip="$1"
-    local expected
-    for expected in "${EXPECTED_A[@]}"; do
-        [[ "$ip" == "$expected" ]] && return 0
+in_list() {
+    local needle="$1" item
+    shift
+    for item in "$@"; do
+        [[ "$item" == "$needle" ]] && return 0
     done
     return 1
 }
 
-check_dns() {
-    local resolver answer unexpected found expected
+# Check one A answer against the region's edges. Public resolvers may be
+# served from another anycast location, so there an answer made only of the
+# other region's edges is a WARN; for an ECS query to the authoritative NS it
+# is a FAIL.
+check_a_answer() {
+    local source="$1" region="$2" answer="$3" strict="$4"
+    local -a expected other got
+    local ip unexpected=0 cross=0
 
-    for resolver in "${RESOLVERS[@]}"; do
-        answer="$(dig +time=3 +tries=1 +short A "$DOMAIN" @"$resolver" | sed '/^$/d' | sort -u | tr '\n' ',' | sed 's/,$//')"
-        if [[ -z "$answer" ]]; then
-            fail "dns_a resolver=$resolver got=empty"
+    if [[ "$region" == "ru" ]]; then
+        expected=("${EXPECTED_A_RU[@]}"); other=("${EXPECTED_A_EU[@]}")
+    else
+        expected=("${EXPECTED_A_EU[@]}"); other=("${EXPECTED_A_RU[@]}")
+    fi
+
+    if [[ -z "$answer" ]]; then
+        fail "dns_a $source region=$region got=empty"
+        return
+    fi
+
+    IFS=',' read -r -a got <<< "$answer"
+    for ip in "${got[@]}"; do
+        in_list "$ip" "${expected[@]}" && continue
+        if [[ "$strict" -eq 0 ]] && in_list "$ip" "${other[@]}"; then
+            cross=1
             continue
         fi
+        unexpected=1
+        fail "dns_a $source region=$region unexpected_ip=$ip all=$answer"
+    done
+    [[ "$unexpected" -eq 1 ]] && return
 
-        unexpected=0
-        IFS=',' read -r -a got_ips <<< "$answer"
-        for ip in "${got_ips[@]}"; do
-            if ! in_expected_a "$ip"; then
-                unexpected=1
-                fail "dns_a resolver=$resolver unexpected_ip=$ip all=$answer"
-            fi
-        done
+    if [[ "$cross" -eq 1 ]]; then
+        warn "dns_a $source region=$region other_region_answer all=$answer"
+        return
+    fi
 
-        if [[ "$unexpected" -eq 0 ]]; then
-            ok "dns_a resolver=$resolver all=$answer"
-        fi
+    ok "dns_a $source region=$region all=$answer"
+    for ip in "${expected[@]}"; do
+        in_list "$ip" "${got[@]}" || warn "dns_a $source region=$region missing_expected=$ip all=$answer"
+    done
+}
 
-        for expected in "${EXPECTED_A[@]}"; do
-            found=0
-            for ip in "${got_ips[@]}"; do
-                [[ "$ip" == "$expected" ]] && found=1
-            done
-            if [[ "$found" -eq 0 ]]; then
-                warn "dns_a resolver=$resolver missing_expected=$expected all=$answer"
-            fi
+dig_a() {
+    dig +time=3 +tries=1 +short "$@" A "$DOMAIN" \
+        | grep -E '^[0-9]+(\.[0-9]+){3}$' | sort -u | tr '\n' ',' | sed 's/,$//'
+}
+
+check_dns() {
+    local entry resolver region ns label subnet
+    local -a nameservers
+
+    for entry in "${RESOLVERS[@]}"; do
+        resolver="${entry%%:*}"
+        region="${entry##*:}"
+        check_a_answer "resolver=$resolver" "$region" "$(dig_a @"$resolver")" 0
+    done
+
+    mapfile -t nameservers < <(dig +time=3 +tries=1 +short NS "$DOMAIN" @1.1.1.1 | sed 's/\.$//' | sed '/^$/d' | sort -u)
+    if [[ "${#nameservers[@]}" -eq 0 ]]; then
+        fail "dns_ns got=empty"
+    fi
+    for ns in "${nameservers[@]}"; do
+        for entry in "${ECS_PROBES[@]}"; do
+            IFS=':' read -r label subnet region <<< "$entry"
+            check_a_answer "auth_ns=$ns ecs=$label subnet=$subnet" "$region" \
+                "$(dig_a +norec +subnet="$subnet" @"$ns")" 1
         done
     done
 
@@ -117,12 +166,17 @@ check_swap_pressure() {
     fi
 
     pct=$(( used * 100 / total ))
-    if (( pct >= 80 )); then
-        fail "origin_swap used_pct=$pct used_kib=$used total_kib=$total"
-    elif (( pct >= 20 )); then
-        warn "origin_swap used_pct=$pct used_kib=$used total_kib=$total"
+    # A full swap of cold pages is harmless (vm.swappiness=1); fail only when
+    # tasks are actually stalled on memory (PSI "full" avg60, percent).
+    local psi_full
+    psi_full=$(awk '/^full/{split($3,a,"="); print int(a[2])}' /proc/pressure/memory 2>/dev/null)
+    psi_full=${psi_full:-0}
+    if (( pct >= 80 && psi_full >= 5 )); then
+        fail "origin_swap used_pct=$pct used_kib=$used total_kib=$total mem_psi_full_avg60=$psi_full"
+    elif (( pct >= 20 || psi_full >= 5 )); then
+        warn "origin_swap used_pct=$pct used_kib=$used total_kib=$total mem_psi_full_avg60=$psi_full"
     else
-        ok "origin_swap used_pct=$pct used_kib=$used total_kib=$total"
+        ok "origin_swap used_pct=$pct used_kib=$used total_kib=$total mem_psi_full_avg60=$psi_full"
     fi
 }
 
@@ -371,6 +425,21 @@ check_minify_404_not_cached() {
     fi
 }
 
+check_proxy_edge() {
+    local ip="$1"
+    local minified_js_path
+
+    check_proxy_health "$ip"
+    check_url_via_proxy "$ip" "home" "/"
+    check_url_via_proxy "$ip" "top_decks" "/top-decks/"
+    check_url_via_proxy "$ip" "hearthstone_top_decks" "/hearthstone-top-decks/"
+    check_url_via_proxy "$ip" "article" "/novoe-dopolnenie-hearthstone-pobeg-iz-ametistovoj-kreposti/"
+    minified_js_path="$(discover_minified_js_path "$ip")"
+    check_url_via_proxy "$ip" "minified_js" "$minified_js_path"
+    check_minify_404_not_cached "$ip"
+    return "$STATUS"
+}
+
 main() {
     if [[ "${1:-}" == "--quick" ]]; then
         log "START mode=quick"
@@ -393,17 +462,16 @@ main() {
     check_rkn_checker_freshness
     check_recent_nginx_incidents
 
-    local ip
-    for ip in "${EXPECTED_A[@]}"; do
-        local minified_js_path
-		check_proxy_health "$ip"
-		check_url_via_proxy "$ip" "home" "/"
-		check_url_via_proxy "$ip" "top_decks" "/top-decks/"
-		check_url_via_proxy "$ip" "hearthstone_top_decks" "/hearthstone-top-decks/"
-		check_url_via_proxy "$ip" "article" "/novoe-dopolnenie-hearthstone-pobeg-iz-ametistovoj-kreposti/"
-        minified_js_path="$(discover_minified_js_path "$ip")"
-        check_url_via_proxy "$ip" "minified_js" "$minified_js_path"
-        check_minify_404_not_cached "$ip"
+    # Edges are independent (per-IP temp files, one append per log line), so
+    # probe them in parallel: an outage of every edge still fits the deadline.
+    local ip pid
+    local -a pids=()
+    for ip in "${PROXY_IPS[@]}"; do
+        check_proxy_edge "$ip" &
+        pids+=("$!")
+    done
+    for pid in "${pids[@]}"; do
+        wait "$pid" || STATUS=1
     done
 
     if [[ "$STATUS" -eq 0 ]]; then
