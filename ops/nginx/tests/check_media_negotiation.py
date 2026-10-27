@@ -62,6 +62,11 @@ def main():
     # cache with proxy locations that do not load trusted certificates.
     assert "upstream hs_media_verified_s3" in (SOURCE / "http.conf").read_text()
     assert "proxy_pass https://hs_media_verified_s3;" in (SOURCE / "proxy.conf").read_text()
+    # The legacy fallback resolves several OVH addresses; a stalled handshake
+    # must fail over within seconds, not after nginx's 60 s default.
+    fallback = (ROOT / "ops/nginx/resources/00-object-storage-fallback.conf").read_text()
+    assert "proxy_connect_timeout 3s;" in fallback
+    assert "proxy_next_upstream_tries 3;" in fallback
     with tempfile.TemporaryDirectory(prefix="hs-media-negotiation-") as temporary:
         work = Path(temporary)
         upstream = http.server.ThreadingHTTPServer(("127.0.0.1", 0), ObjectStorage)
