@@ -134,6 +134,34 @@ class NginxRecentTests(unittest.TestCase):
 
         self.assertEqual(self.collect()["upstream_errors"], 1)
 
+    def test_php_print_r_dump_does_not_hide_an_upstream_error(self):
+        self.error.write_text(
+            "2026/09/10 11:58:00 [error] 1#1: *1 FastCGI sent in stderr: \"PHP message: "
+            "[Cloudflare] ERROR: [CLIENT API] Array\n"
+            "(\n"
+            "    [type] => request\n"
+            "    [reason] => cURL error 28\n"
+            ")\n"
+            "\n"
+            "\" while reading response header from upstream\n"
+            "2026/09/10 11:59:00 [error] 1#1: upstream timed out while reading response header\n"
+        )
+
+        self.assertEqual(self.collect()["upstream_errors"], 1)
+
+    def test_error_log_must_start_with_a_record(self):
+        self.error.write_text("(\n2026/09/10 11:59:00 [error] 1#1: upstream timed out\n")
+        with self.assertRaises(self.monitor.Unknown):
+            self.collect()
+
+    def test_unbounded_error_continuation_is_unknown(self):
+        self.error.write_text(
+            "2026/09/10 11:59:00 [error] 1#1: upstream timed out\n"
+            + "<html>\n" * (self.monitor.MAX_ERROR_CONTINUATION_LINES + 1)
+        )
+        with self.assertRaises(self.monitor.Unknown):
+            self.collect()
+
     def test_attribution_separates_wordfence_candidates_from_gateway_failures(self):
         self.access.write_text(
             access(status=503, uri="/wp-login.php")
@@ -724,8 +752,9 @@ for path in pathlib.Path(sys.argv[1]).glob("*.state"):
 import os, sys
 from pathlib import Path
 args = sys.argv[1:]
+edge = args[args.index("--resolve") + 1].rsplit(":", 1)[1]
 with open(os.environ["CURL_TRACE"], "a") as output:
-    output.write(args[args.index("--max-time") + 1] + "\\n")
+    output.write(edge + " " + args[args.index("--max-time") + 1] + "\\n")
 for flag in ("-D", "-o"):
     if flag in args and args[args.index(flag) + 1] != "/dev/null":
         Path(args[args.index(flag) + 1]).write_text("")
@@ -745,10 +774,22 @@ raise SystemExit(28)
                                              HEALTHCHECK_LOG=str(directory / "log"), CURL_TRACE=str(trace)),
                                     capture_output=True, text=True, timeout=5)
             self.assertEqual(result.returncode, 1)
-            budgets = [int(value) for value in trace.read_text().splitlines()]
-            self.assertEqual(len(budgets), 18, "All routes on both edges must be attempted")
-            # 3 DNS lookups x3s +20s parser +30s headroom for local checks.
-            self.assertLessEqual(sum(budgets) + 9 + 20 + 30, 240)
+            budgets = {}
+            for line in trace.read_text().splitlines():
+                edge, budget = line.split()
+                budgets.setdefault(edge, []).append(int(budget))
+            self.assertEqual(sorted(budgets), sorted(self.monitor_edges()), "Every edge must be probed")
+            self.assertEqual({len(values) for values in budgets.values()}, {9},
+                             "All routes on every edge must be attempted")
+            # Edges run in parallel. 12 DNS lookups x3s +20s parser +30s headroom for local checks.
+            self.assertLessEqual(max(sum(values) for values in budgets.values()) + 36 + 20 + 30, 240)
+
+    def monitor_edges(self):
+        result = subprocess.run(["bash", "-c", 'source "$1"; printf "%s\\n" "${PROXY_IPS[@]}"', "test",
+                                 str(ROOT / "ops/monitoring/hs-manacost-healthcheck.sh")],
+                                env=dict(os.environ, HEALTHCHECK_LOG=os.devnull),
+                                capture_output=True, text=True, check=True)
+        return result.stdout.split()
 
     def test_koloda_full_run_keeps_positive_and_negative_media_contracts(self):
         with tempfile.TemporaryDirectory() as temporary:

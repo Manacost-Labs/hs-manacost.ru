@@ -18,8 +18,13 @@ Do not promote unrelated WordPress changes to install these host tools.
 - One shared full/quick lock per site. Quick deadline 40s, full deadline 240s,
   followed by a 5s hard-kill bound. Lock contention, exec failure, timeout and
   check failures are written to existing logs and syslog.
-- HS full-run HTTP budget is 160s across both edges (18 attempts), plus 9s DNS,
-  20s log parser and 30s local headroom: 219s within the 240s runner deadline.
+- HS full run probes all three edges (MSK, NSK, DE; 9 attempts each) in
+  parallel: 80s HTTP budget per edge, plus 36s DNS (12 lookups), 20s log parser
+  and 30s local headroom: 166s within the 240s runner deadline.
+- `dns_a` expects geo-steered answers: 1.1.1.1 (no ECS) returns the DE edge,
+  77.88.8.8 the RU edges; a foreign-region answer from a public resolver is a
+  WARN. Each authoritative NS is also asked with ECS subnets (Moscow,
+  Novosibirsk, Germany, US), where a wrong-region answer is a FAIL.
   An offline failure-path test verifies every attempt and this budget. A
   pathological local stall can still hit the outer deadline and emits UNKNOWN.
 - No new secrets, packages, listeners, database writes, cache purges, service
@@ -48,6 +53,9 @@ argument, the helper retains the legacy >20 total-5xx threshold for Koloda and
 offline compatibility. The HS wrapper requires its dedicated attribution log.
 Return 2 (`UNKNOWN`) means logs are missing, unreadable, malformed, rotating
 during the read, incomplete or too large to cover the window within budget.
+Unprefixed error-log lines after a record (PHP stack traces, `print_r()`
+dumps copied from FastCGI stderr) belong to that record; more than 200 of
+them, or a log that does not start with a record, is still `UNKNOWN`.
 Shell wrappers make either nonzero result fail the overall check.
 
 `fpm_status.py` accepts only the fixed PHP-FPM status fields and persists a
