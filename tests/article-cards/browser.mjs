@@ -1,5 +1,5 @@
 import { insertInlineImage, verifyInlineImage, insertBlockInlineImage } from './inline-image.mjs';
-import { insertComponents, verifyComponents } from './components.mjs';
+import { insertComponents, verifyComponents, verifyResizeFocus } from './components.mjs';
 import { verifyNativeLinks } from './preview.mjs';
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -115,6 +115,7 @@ try {
     await page.screenshot({ path: `.artifacts/article-cards/screenshots/picker-${width}.png` });
   }
   for (let index = 0; index < 20; index++) {
+    if (index === 0) await verifyResizeFocus(page, '#hs-ac-search');
     await page.keyboard.press('Tab');
     await page.waitForFunction(() => document.querySelector('#hs-article-cards-dialog').contains(document.activeElement));
     assert.equal(await page.evaluate(() => document.querySelector('#hs-article-cards-dialog').contains(document.activeElement)), true, 'Native dialog traps focus: ' + await page.evaluate(() => document.activeElement.tagName + '#' + document.activeElement.id));

@@ -1,5 +1,17 @@
 import assert from 'node:assert/strict';
 
+export async function verifyResizeFocus(page, selector) {
+  await page.locator(selector).focus();
+  const retained = await page.evaluate(async () => {
+    if (!window.tinymce?.get('content')) return true;
+    const focused = document.activeElement;
+    window.jQuery(document).trigger('wp-window-resized');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return document.activeElement === focused;
+  });
+  assert.ok(retained, 'Classic Editor autoresize preserves the active modal control');
+}
+
 // Shared by the disposable integration fixture and the owned staging draft.
 export async function insertComponents(page, visual = false) {
   async function open() {
@@ -7,6 +19,7 @@ export async function insertComponents(page, visual = false) {
       await page.getByRole('tab', { name: 'Post', exact: true }).click();
     }
     await page.locator('.hs-components-open').click();
+    await verifyResizeFocus(page, '#hs-v-type');
   }
   const safe = await page.evaluate(() => window.hsManacostComponents.clean('<div class="hs-article-component hs-v-alert" onclick="alert(1)"><p style="position:fixed">Safe</p><script>alert(1)</script><img src=x onerror="alert(1)"></div>').outerHTML);
   assert.doesNotMatch(safe, /script|img|onclick|onerror|style=/);
