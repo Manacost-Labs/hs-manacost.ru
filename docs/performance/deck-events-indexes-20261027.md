@@ -50,15 +50,23 @@ posts with `get_objects_in_term()` and filters `post_id IN (...)`, which still
 uses `post_event_time`.
 
 `run_retention()` runs from the hourly WP-cron hook
-`unified_hs_deck_events_retention`, with a 20 s budget per run:
+`unified_hs_deck_events_retention`, with a 20 s budget per run. It holds
+`GET_LOCK('unified_hs_deck_events_retention')`, so a second runner (WP-cron's
+own lock expires after 60 s) exits instead of racing it.
 
 1. For each day before `CURDATE() - 90 days`, `INSERT ... SELECT ... GROUP BY
-   post_id, event_type ... ON DUPLICATE KEY UPDATE` writes that day's counts,
-   then the boundary moves past it. A crash between the two steps only makes
-   the next run rewrite the same day.
-2. Raw rows before the boundary are deleted in batches of 5000
-   (`ORDER BY event_time LIMIT`). The first production backlog takes several
-   hourly runs; afterwards one day rolls up each night.
+   post_id, event_type ... ON DUPLICATE KEY UPDATE events = GREATEST(...)`
+   writes that day's counts, then the boundary moves past it (only ever
+   forwards). Old days never gain events, so a rerun after a crash cannot
+   shrink a correct count even if some raw rows are already gone.
+2. Raw rows more than one day before the boundary are deleted in batches of
+   5000 (`ORDER BY event_time, id LIMIT`). The one-day lag keeps a report that
+   read the previous boundary correct. The first production backlog takes
+   several hourly runs; afterwards one day rolls up each night.
+
+If the option is lost, the boundary is restored as `MAX(event_day) + 1` from
+the rollup instead of re-rolling from the oldest raw row. Failures go to the
+PHP error log.
 
 Only aggregate counts survive: `visitor_hash`, `source` and `context` of rows
 older than 90 days are deleted. No report reads them (`context` in the admin
