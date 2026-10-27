@@ -86,6 +86,24 @@ namespace {
 		}
 	}
 
+	// Minimal WP_Scripts data store: only localized `data` extras are modelled.
+	class HS_Test_Scripts {
+		public $data = [];
+
+		public function get_data( $handle, $key ) {
+			return 'data' === $key ? ( $this->data[ $handle ] ?? false ) : false;
+		}
+
+		public function add_data( $handle, $key, $value ) {
+			$this->data[ $handle ] = $value;
+			return true;
+		}
+	}
+
+	function wp_scripts() {
+		return $GLOBALS['hs_test_scripts'];
+	}
+
 	$plugin = $argv[1] ?? '';
 	if ( ! is_file( $plugin ) ) {
 		fwrite( STDERR, "Plugin not found\n" );
@@ -103,6 +121,43 @@ namespace {
 	$aioseo_callbacks = $GLOBALS['hs_test_hooks']['current_screen'][1] ?? [];
 	if ( true !== $rocket_excluded || in_array( [ $aioseo, 'registerColumnHooks' ], $aioseo_callbacks, true ) ) {
 		fwrite( STDERR, "Optional post-list columns remain enabled\n" );
+		exit( 1 );
+	}
+
+	// AIOSEO localizes one large `aioseo` object onto three deferred module apps.
+	$settings = 'var aioseo = {"page":"post","screen":{"base":"post"},"currentPost":{"id":7}};';
+	$reordered = 'var aioseo = {"currentPost":{"id":7},"screen":{"base":"post"},"page":"post"};';
+	$handles = [ 'aioseo/post-settings', 'aioseo/link-format', 'aioseo/primary-term', 'aioseo/app' ];
+
+	$GLOBALS['hs_test_scripts'] = new HS_Test_Scripts();
+	$GLOBALS['hs_test_scripts']->data = [
+		'aioseo/post-settings' => $settings,
+		'aioseo/link-format'   => $reordered,
+		'aioseo/primary-term'  => $settings,
+		'aioseo/app'           => 'var aioseoTranslations = {"translations":{}};',
+	];
+	$printed = apply_test_filters( 'print_scripts_array', $handles );
+	$data = $GLOBALS['hs_test_scripts']->data;
+	if (
+		$printed !== $handles ||
+		$settings !== $data['aioseo/post-settings'] ||
+		'' !== $data['aioseo/link-format'] ||
+		'' !== $data['aioseo/primary-term'] ||
+		'var aioseoTranslations = {"translations":{}};' !== $data['aioseo/app']
+	) {
+		fwrite( STDERR, "Equivalent AIOSEO data is still printed more than once\n" );
+		exit( 1 );
+	}
+
+	// A differing copy changes the value the modules finally read: leave all untouched.
+	$GLOBALS['hs_test_scripts']->data = [
+		'aioseo/post-settings' => $settings,
+		'aioseo/link-format'   => 'var aioseo = {"page":"term"};',
+		'aioseo/primary-term'  => $settings,
+	];
+	apply_test_filters( 'print_scripts_array', array_slice( $handles, 0, 3 ) );
+	if ( in_array( '', $GLOBALS['hs_test_scripts']->data, true ) ) {
+		fwrite( STDERR, "Differing AIOSEO data was removed\n" );
 		exit( 1 );
 	}
 
