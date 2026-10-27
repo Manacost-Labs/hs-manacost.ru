@@ -343,7 +343,7 @@ try {
   await blockPage.locator('.hs-ac-choice').first().waitFor();
   await blockPage.locator('.hs-ac-choice').first().click();
   await blockPage.locator('#hs-ac-insert').click();
-  await blockPage.waitForFunction(() => wp.data.select('core/block-editor').getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
+  await blockPage.waitForFunction(() => window.wp?.data?.select('core/block-editor')?.getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
   await insertComponents(blockPage);
   const blockCanvas = await blockPage.locator('iframe[name="editor-canvas"]').count() ? blockPage.frameLocator('iframe[name="editor-canvas"]') : blockPage;
   await blockCanvas.locator('.hs-v-block-preview .hs-article-component').last().waitFor();
