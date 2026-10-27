@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 
 class Unified_HS_Deck_Events {
 
-    const SCHEMA_VERSION = '1';
+    const SCHEMA_VERSION = '2';
 
     const EVENT_DECK_VIEW = 'deck_view';
     const EVENT_DECK_COPY = 'deck_copy';
@@ -64,14 +64,39 @@ class Unified_HS_Deck_Events {
             PRIMARY KEY  (id),
             KEY event_time (event_time),
             KEY event_type_time (event_type, event_time),
-            KEY post_event_time (post_id, event_type, event_time),
-            KEY visitor_event (visitor_hash, event_type, event_time)
+            KEY post_event_time (post_id, event_type, event_time)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
 
+        if (!self::drop_unused_indexes($table)) {
+            return;
+        }
+
         update_option('unified_hs_deck_events_db_version', self::SCHEMA_VERSION, false);
+    }
+
+    /**
+     * dbDelta() never drops indexes. No query filters by visitor_hash, yet
+     * visitor_event was the largest index and every frontend insert paid for it.
+     * A failed drop leaves the version unchanged, so the next admin load retries.
+     */
+    private static function drop_unused_indexes($table) {
+        global $wpdb;
+
+        $exists = $wpdb->get_var($wpdb->prepare("SHOW INDEX FROM `{$table}` WHERE Key_name = %s", 'visitor_event'));
+        if ($exists === null) {
+            return true;
+        }
+
+        // Frontend inserts queue behind a waiting ALTER, so give up quickly.
+        $lock_wait_timeout = (int) $wpdb->get_var('SELECT @@SESSION.lock_wait_timeout');
+        $wpdb->query('SET SESSION lock_wait_timeout = 3');
+        $dropped = $wpdb->query("ALTER TABLE `{$table}` DROP INDEX visitor_event, ALGORITHM=INPLACE, LOCK=NONE");
+        $wpdb->query($wpdb->prepare('SET SESSION lock_wait_timeout = %d', $lock_wait_timeout));
+
+        return $dropped !== false;
     }
 
     public static function record($post_id, $event_type, array $context = array(), $source = '') {
