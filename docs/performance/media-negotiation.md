@@ -142,6 +142,23 @@ successful response.
 The initial assertion failed against the previous JPEG-only route before the
 new configuration was written.
 
+### Connection reuse (2026-10-27)
+
+Both S3 pools keep idle connections: `hs_media_verified_s3` here and
+`hs_media_s3_fallback` (`ops/nginx/media-s3-fallback-upstream-http.conf`, used
+by `resources/00-object-storage-fallback.conf`). Before this, every object
+storage miss opened a new TCP+TLS connection to Paris (30-60 ms measured from
+the origin). In the 24 hours to 2026-10-27 16:20 UTC the origin logged 293
+upstream timeouts, 290 of them on this route (99 while TLS handshaking, mostly
+AVIF/WebP variant probes), and an original-format miss surfaced to a client as
+504 after a handshake timeout. OVH closes an idle connection after 60 s
+(measured), so `keepalive_timeout 20s` expires pooled connections first; the
+static check asserts both pools declare `keepalive` and stay below 60 s.
+With retries disabled, a connection that OVH still closes during reuse falls
+through the same variant chain as any other upstream error. On the fallback
+route the change was measured on the origin before being codified: S3-only
+2015-2016 JPEGs went from p50 60-72 ms to 21-41 ms.
+
 This test does not prove the live regional cache configuration, real upload
 latency, realistic compression ratios or authenticated production editor flows.
 
