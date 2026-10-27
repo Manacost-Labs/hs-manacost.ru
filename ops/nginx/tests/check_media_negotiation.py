@@ -8,6 +8,7 @@ import base64
 import hashlib
 import http.client
 import http.server
+import re
 import shutil
 import socket
 import subprocess
@@ -19,6 +20,7 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "ops/nginx/media-negotiation"
+FALLBACK_UPSTREAM = ROOT / "ops/nginx/media-s3-fallback-upstream-http.conf"
 BUCKET = "https://hs-manacost-media-3az.s3.eu-west-par.io.cloud.ovh.net"
 PREFIX = "/wp-content/uploads/2026/09/hs-media-7716-dfxxbv2-production-jpg/"
 CURRENT_UPLOAD_PREFIX = "/wp-content/uploads/2026/09/real-article/"
@@ -67,6 +69,17 @@ def main():
     fallback = (ROOT / "ops/nginx/resources/00-object-storage-fallback.conf").read_text()
     assert "proxy_connect_timeout 3s;" in fallback
     assert "proxy_next_upstream_tries 3;" in fallback
+    # Every object-storage miss used to pay a fresh TCP+TLS handshake to Paris;
+    # both pools reuse connections and expire idle ones before OVH does (60 s).
+    assert "proxy_pass https://hs_media_s3_fallback;" in fallback
+    fallback_upstream = FALLBACK_UPSTREAM.read_text()
+    for pool, text in (("hs_media_verified_s3", (SOURCE / "http.conf").read_text()),
+                       ("hs_media_s3_fallback", fallback_upstream)):
+        block = re.search(rf"upstream {pool} \{{(?P<body>[^}}]*)\}}", text)
+        assert block, f"{pool} upstream is missing"
+        assert re.search(r"^\s*keepalive \d+;", block["body"], re.MULTILINE), f"{pool} has no keepalive pool"
+        idle = re.search(r"^\s*keepalive_timeout (\d+)s;", block["body"], re.MULTILINE)
+        assert idle and int(idle[1]) < 60, f"{pool} keepalive_timeout must stay below the OVH 60 s idle close"
     with tempfile.TemporaryDirectory(prefix="hs-media-negotiation-") as temporary:
         work = Path(temporary)
         upstream = http.server.ThreadingHTTPServer(("127.0.0.1", 0), ObjectStorage)
@@ -91,8 +104,10 @@ def main():
             for filename in ("00-object-storage-fallback.conf", "01-image-variants.conf"):
                 route += (ROOT / "ops/nginx/resources" / filename).read_text().replace(
                     BUCKET, f"http://127.0.0.1:{upstream.server_port}"
-                )
-            maps = f"include {work}/http.conf;"
+                ).replace("https://hs_media_s3_fallback", "http://hs_media_s3_fallback")
+            maps = f"include {work}/http.conf;" + fallback_upstream.replace(
+                BUCKET.removeprefix("https://") + ":443", f"127.0.0.1:{upstream.server_port}"
+            )
         else:
             # RED: current production route only returns the original format.
             route = (ROOT / "ops/nginx/resources/01-image-variants.conf").read_text()
