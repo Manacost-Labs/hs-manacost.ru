@@ -79,6 +79,17 @@ try {
   await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   assert.equal(await page.getByRole('button', { name: 'Вставить статью', exact: true }).evaluate(el => el === document.activeElement), true);
   assert.equal(await page.evaluate(() => tinymce.get('content').getContent()), before, 'Cancel never changes editor content');
+  await open();
+  await page.locator('.hs-ac-choice').first().click();
+  await page.evaluate(() => {
+    document.querySelector('#hs-article-cards-dialog').close();
+    document.querySelector('.hs-article-cards-open').click();
+  });
+  await loaded();
+  assert.equal(await page.locator('#hs-ac-selected li').count(), 0, 'Reopening clears the cancelled selection');
+  assert.equal(await page.locator('#hs-article-cards-dialog').evaluate(el => el.contains(document.activeElement)), true, 'Reopening keeps focus and the new search alive');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#hs-article-cards-dialog').open);
   await page.evaluate(() => { const editor = tinymce.get('content'); editor.selection.select(editor.getBody().querySelector('p')); editor.selection.collapse(false); });
   await open();
   await searchFor('');
@@ -105,6 +116,7 @@ try {
   }
   for (let index = 0; index < 20; index++) {
     await page.keyboard.press('Tab');
+    await page.waitForFunction(() => document.querySelector('#hs-article-cards-dialog').contains(document.activeElement));
     assert.equal(await page.evaluate(() => document.querySelector('#hs-article-cards-dialog').contains(document.activeElement)), true, 'Native dialog traps focus: ' + await page.evaluate(() => document.activeElement.tagName + '#' + document.activeElement.id));
   }
   await page.locator('#hs-ac-insert').click();
@@ -364,7 +376,7 @@ try {
   assert.equal((blockStored.content.raw.match(/class="hs-article-component /g) || []).length, 10);
   assert.match(blockStored.content.raw, /hs-article-cards--compact/, 'The block save reaches stored post_content');
   await blockPage.reload();
-  await blockPage.waitForFunction(() => wp.data.select('core/block-editor').getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
+  await blockPage.waitForFunction(() => window.wp?.data?.select('core/block-editor')?.getBlocks().some(block => block.name === 'core/html' && block.attributes.content.includes('hs-article-card')));
   await blockCanvas.locator('.hs-v-block-preview .hs-article-component').last().waitFor();
   assert.equal(await blockCanvas.locator('.hs-v-block-preview .hs-article-component').count(), 10);
   assert.equal(await blockCanvas.locator('.block-editor-warning').count(), 0, 'Saved static blocks remain valid');

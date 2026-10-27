@@ -212,7 +212,7 @@
 		bookmark = editor && !editor.isHidden() ? editor.selection.getBookmark(2, true) : null;
 		const textarea = document.getElementById('content');
 		selection = textarea ? [textarea.selectionStart, textarea.selectionEnd] : null;
-		updateSelection();
+		resetSelection();
 		dialog.showModal();
 		search.focus();
 		loadCategories(true);
@@ -220,6 +220,8 @@
 	}
 
 	function close() {
+		// Native close events are queued; the user may already have reopened it.
+		if (dialog.open) return;
 		generation++;
 		categoryGeneration++;
 		clearTimeout(debounce);
