@@ -41,6 +41,59 @@ function hs_admin_load_trim_remove_object_callback( $hook_name, $class_name, $me
 	}
 }
 
+/**
+ * Print AIOSEO's shared `aioseo` object once per script batch.
+ *
+ * AIOSEO localizes the same ~430 KB object onto each standalone Vue app
+ * (post settings, link format, primary term). Those apps are deferred
+ * modules, so they all read the last assignment; when every copy decodes to
+ * the same value, the first copy alone yields the identical runtime state.
+ * Differing copies are left untouched.
+ *
+ * @param string[] $handles Script handles about to be printed, in order.
+ * @return string[]
+ */
+function hs_admin_load_trim_dedupe_aioseo_data( $handles ) {
+	if ( ! is_admin() ) {
+		return $handles;
+	}
+
+	$scripts = wp_scripts();
+	$copies  = array();
+
+	foreach ( $handles as $handle ) {
+		$data = $scripts->get_data( $handle, 'data' );
+
+		if ( is_string( $data ) && str_starts_with( $data, 'var aioseo = {' ) && str_ends_with( $data, '};' ) ) {
+			$copies[ $handle ] = $data;
+		}
+	}
+
+	if ( count( $copies ) < 2 ) {
+		return $handles;
+	}
+
+	// AIOSEO prints byte-identical copies; decode only when they differ textually.
+	if ( 1 !== count( array_unique( $copies ) ) ) {
+		$first = null;
+		foreach ( $copies as $data ) {
+			$value = json_decode( substr( $data, strlen( 'var aioseo = ' ), -1 ), true );
+			$first = $first ?? $value;
+			// Loose comparison: equal key/value pairs regardless of key order.
+			if ( ! is_array( $value ) || $value != $first ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual
+				return $handles;
+			}
+		}
+	}
+
+	foreach ( array_slice( array_keys( $copies ), 1 ) as $handle ) {
+		$scripts->add_data( $handle, 'data', '' );
+	}
+
+	return $handles;
+}
+add_filter( 'print_scripts_array', 'hs_admin_load_trim_dedupe_aioseo_data', 99 );
+
 add_filter(
 	'heartbeat_settings',
 	static function ( $settings ) {
