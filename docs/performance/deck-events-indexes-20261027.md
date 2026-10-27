@@ -30,3 +30,41 @@ stays at 1 and the next admin load retries.
 Rollback: `ALTER TABLE wp_ksoo_manacost_deck_events ADD INDEX visitor_event
 (visitor_hash, event_type, event_time), ALGORITHM=INPLACE, LOCK=NONE` (online,
 minutes on 10M rows). Nothing in the code depends on the index.
+
+## Retention: 90 days of raw rows plus a daily rollup
+
+Schema version 3 adds `wp_ksoo_manacost_deck_event_days (event_day, post_id,
+event_type, events)`. Raw rows keep only `RETENTION_DAYS = 90` days; reports
+over older days read the rollup. In production 4.7M of 9.7M rows were older
+than 90 days on 2026-10-27.
+
+The option `unified_hs_deck_events_rolled_until` is the boundary date:
+
+- days before it are read only from the rollup;
+- days from it on are read only from raw rows (`event_time >= boundary`).
+
+`count_rows()` reads both halves with `UNION ALL`, so `summary_counts()`,
+`counts_by_post()`, `daily_counts()` and `daily_counts_for_archetype()` keep
+their result shape and totals. The archetype report now resolves the term's
+posts with `get_objects_in_term()` and filters `post_id IN (...)`, which still
+uses `post_event_time`.
+
+`run_retention()` runs from the hourly WP-cron hook
+`unified_hs_deck_events_retention`, with a 20 s budget per run:
+
+1. For each day before `CURDATE() - 90 days`, `INSERT ... SELECT ... GROUP BY
+   post_id, event_type ... ON DUPLICATE KEY UPDATE` writes that day's counts,
+   then the boundary moves past it. A crash between the two steps only makes
+   the next run rewrite the same day.
+2. Raw rows before the boundary are deleted in batches of 5000
+   (`ORDER BY event_time LIMIT`). The first production backlog takes several
+   hourly runs; afterwards one day rolls up each night.
+
+Only aggregate counts survive: `visitor_hash`, `source` and `context` of rows
+older than 90 days are deleted. No report reads them (`context` in the admin
+activity log belongs to a different table).
+
+Rollback: deploy the previous plugin version and unschedule the hook. That
+code reads raw rows only, so its reports miss days older than 90 until the raw
+rows are restored from the pre-release export or the regular database backups;
+the rollup table keeps their counts either way.

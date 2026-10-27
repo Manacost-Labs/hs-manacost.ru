@@ -9,7 +9,13 @@ if (!defined('ABSPATH')) {
 
 class Unified_HS_Deck_Events {
 
-    const SCHEMA_VERSION = '2';
+    const SCHEMA_VERSION = '3';
+
+    const RETENTION_DAYS = 90;
+    const RETENTION_HOOK = 'unified_hs_deck_events_retention';
+    const RETENTION_TIME_BUDGET = 20;
+    const RETENTION_DELETE_BATCH = 5000;
+    const ROLLED_UNTIL_OPTION = 'unified_hs_deck_events_rolled_until';
 
     const EVENT_DECK_VIEW = 'deck_view';
     const EVENT_DECK_COPY = 'deck_copy';
@@ -22,9 +28,26 @@ class Unified_HS_Deck_Events {
     const EVENT_FILTER_APPLY = 'filter_apply';
     const EVENT_STATS_SNAPSHOT = 'stats_snapshot';
 
+    public static function init() {
+        add_action('init', array(__CLASS__, 'ensure_schedule'));
+        add_action(self::RETENTION_HOOK, array(__CLASS__, 'run_retention'));
+    }
+
+    public static function ensure_schedule() {
+        if (!wp_next_scheduled(self::RETENTION_HOOK)) {
+            wp_schedule_event(time() + 600, 'hourly', self::RETENTION_HOOK);
+        }
+    }
+
     public static function table_name() {
         global $wpdb;
         return $wpdb->prefix . 'manacost_deck_events';
+    }
+
+    /** Per-day counts for days whose raw rows passed RETENTION_DAYS. */
+    public static function days_table_name() {
+        global $wpdb;
+        return $wpdb->prefix . 'manacost_deck_event_days';
     }
 
     public static function allowed_events() {
@@ -65,6 +88,15 @@ class Unified_HS_Deck_Events {
             KEY event_time (event_time),
             KEY event_type_time (event_type, event_time),
             KEY post_event_time (post_id, event_type, event_time)
+        ) {$charset_collate};
+        CREATE TABLE " . self::days_table_name() . " (
+            event_day DATE NOT NULL,
+            post_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            event_type VARCHAR(40) NOT NULL DEFAULT '',
+            events INT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY  (event_day, post_id, event_type),
+            KEY post_event_day (post_id, event_type, event_day),
+            KEY event_type_day (event_type, event_day)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -206,15 +238,12 @@ class Unified_HS_Deck_Events {
     }
 
     public static function counts_by_post($from = '', $to = '', array $event_types = array()) {
-        global $wpdb;
-
         if (!self::table_exists()) {
             return array();
         }
 
         $where = array('post_id > 0');
         $params = array();
-        self::append_period_where($where, $params, $from, $to);
 
         $event_types = array_values(array_intersect(array_map('sanitize_key', $event_types), self::allowed_events()));
         if (!empty($event_types)) {
@@ -222,19 +251,7 @@ class Unified_HS_Deck_Events {
             $params = array_merge($params, $event_types);
         }
 
-        $sql = "SELECT post_id, event_type, COUNT(*) AS events
-             FROM " . self::table_name() . "
-             WHERE " . implode(' AND ', $where) . "
-             GROUP BY post_id, event_type";
-
-        if (!empty($params)) {
-            $sql = $wpdb->prepare($sql, $params);
-        }
-
-        $rows = $wpdb->get_results($sql, ARRAY_A);
-        if (!is_array($rows)) {
-            return array();
-        }
+        $rows = self::count_rows(array('post_id' => 'post_id', 'event_type' => 'event_type'), $from, $to, $where, $params);
 
         $counts = array();
         foreach ($rows as $row) {
@@ -253,31 +270,12 @@ class Unified_HS_Deck_Events {
     }
 
     public static function summary_counts($from = '', $to = '') {
-        global $wpdb;
-
         if (!self::table_exists()) {
             return array();
         }
 
-        $where = array();
-        $params = array();
-        self::append_period_where($where, $params, $from, $to);
-
-        $sql = "SELECT event_type, COUNT(*) AS events FROM " . self::table_name();
-        if (!empty($where)) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-        $sql .= ' GROUP BY event_type';
-
-        if (!empty($params)) {
-            $sql = $wpdb->prepare($sql, $params);
-        }
-
-        $rows = $wpdb->get_results($sql, ARRAY_A);
+        $rows = self::count_rows(array('event_type' => 'event_type'), $from, $to);
         $counts = array_fill_keys(self::allowed_events(), 0);
-        if (!is_array($rows)) {
-            return $counts;
-        }
 
         foreach ($rows as $row) {
             $type = sanitize_key($row['event_type']);
@@ -290,15 +288,12 @@ class Unified_HS_Deck_Events {
     }
 
     public static function daily_counts($from = '', $to = '', $event_type = '') {
-        global $wpdb;
-
         if (!self::table_exists()) {
             return array();
         }
 
         $where = array();
         $params = array();
-        self::append_period_where($where, $params, $from, $to);
 
         $event_type = sanitize_key((string) $event_type);
         if ($event_type !== '' && in_array($event_type, self::allowed_events(), true)) {
@@ -306,51 +301,105 @@ class Unified_HS_Deck_Events {
             $params[] = $event_type;
         }
 
-        $sql = "SELECT DATE(event_time) AS event_day, event_type, COUNT(*) AS events
-             FROM " . self::table_name();
-        if (!empty($where)) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-        $sql .= ' GROUP BY DATE(event_time), event_type ORDER BY event_day ASC';
-
-        if (!empty($params)) {
-            $sql = $wpdb->prepare($sql, $params);
-        }
-
-        $rows = $wpdb->get_results($sql, ARRAY_A);
-        return is_array($rows) ? $rows : array();
+        return self::count_rows(
+            array('event_day' => 'DATE(event_time)', 'event_type' => 'event_type'),
+            $from,
+            $to,
+            $where,
+            $params,
+            'event_day ASC, event_type ASC'
+        );
     }
 
     public static function daily_counts_for_archetype($term_id, $from, $to, $event_type = self::EVENT_DECK_COPY) {
-        global $wpdb;
-
         $term_id = absint($term_id);
         $event_type = sanitize_key($event_type);
         if (!$term_id || !taxonomy_exists('deck_archetype') || !self::table_exists() || !in_array($event_type, self::allowed_events(), true)) {
             return array();
         }
 
-        $sql = $wpdb->prepare(
-            "SELECT DATE(e.event_time) AS event_day, COUNT(*) AS events
-             FROM " . self::table_name() . " e
-             INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = e.post_id
-             INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-             WHERE tt.taxonomy = %s
-               AND tt.term_id = %d
-               AND e.event_type = %s
-               AND e.event_time >= %s
-               AND e.event_time <= %s
-             GROUP BY DATE(e.event_time)
-             ORDER BY event_day ASC",
-            'deck_archetype',
-            $term_id,
-            $event_type,
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
-        );
+        $post_ids = array_values(array_filter(array_map('absint', (array) get_objects_in_term($term_id, 'deck_archetype'))));
+        if (empty($post_ids)) {
+            return array();
+        }
 
-        $rows = $wpdb->get_results($sql, ARRAY_A);
-        return is_array($rows) ? $rows : array();
+        $where = array(
+            'post_id IN (' . implode(',', array_fill(0, count($post_ids), '%d')) . ')',
+            'event_type = %s',
+        );
+        $params = array_merge($post_ids, array($event_type));
+
+        return self::count_rows(
+            array('event_day' => 'DATE(event_time)'),
+            $from,
+            $to,
+            $where,
+            $params,
+            'event_day ASC'
+        );
+    }
+
+    /**
+     * Rolls days older than RETENTION_DAYS into the daily table, then deletes
+     * their raw rows in small batches. Each day is rolled before the boundary
+     * moves past it, and only rows before the boundary are deleted, so readers
+     * never miss or double-count a day. Runs hourly until the backlog is gone.
+     */
+    public static function run_retention() {
+        global $wpdb;
+
+        if (!self::table_exists() || !self::days_table_exists()) {
+            return;
+        }
+
+        $table = self::table_name();
+        $days_table = self::days_table_name();
+        $deadline = microtime(true) + self::RETENTION_TIME_BUDGET;
+        $cutoff = (string) $wpdb->get_var($wpdb->prepare('SELECT CURDATE() - INTERVAL %d DAY', self::RETENTION_DAYS));
+        if (self::normalize_date($cutoff) === '') {
+            return;
+        }
+
+        $day = self::rolled_until();
+        if ($day === '') {
+            $oldest = self::normalize_date((string) $wpdb->get_var("SELECT DATE(MIN(event_time)) FROM {$table}"));
+            $day = $oldest !== '' && $oldest < $cutoff ? $oldest : $cutoff;
+        }
+
+        while ($day < $cutoff && microtime(true) < $deadline) {
+            $next = (new DateTimeImmutable($day, new DateTimeZone('UTC')))->modify('+1 day')->format('Y-m-d');
+            $rolled = $wpdb->query($wpdb->prepare(
+                "INSERT INTO {$days_table} (event_day, post_id, event_type, events)
+                 SELECT %s, post_id, event_type, COUNT(*) FROM {$table}
+                 WHERE event_time >= %s AND event_time < %s
+                 GROUP BY post_id, event_type
+                 ON DUPLICATE KEY UPDATE events = VALUES(events)",
+                $day,
+                $day . ' 00:00:00',
+                $next . ' 00:00:00'
+            ));
+            if ($rolled === false) {
+                return;
+            }
+            update_option(self::ROLLED_UNTIL_OPTION, $next, false);
+            $day = $next;
+        }
+
+        $rolled_until = self::rolled_until();
+        if ($rolled_until === '') {
+            return;
+        }
+
+        while (microtime(true) < $deadline) {
+            $deleted = $wpdb->query($wpdb->prepare(
+                "DELETE FROM {$table} WHERE event_time < %s ORDER BY event_time LIMIT %d",
+                $rolled_until . ' 00:00:00',
+                self::RETENTION_DELETE_BATCH
+            ));
+            if (!$deleted) {
+                return;
+            }
+        }
     }
 
     public static function review_score(array $events, $games = 0, $published_ts = 0) {
@@ -389,18 +438,82 @@ class Unified_HS_Deck_Events {
         return absint(isset($events[$event_type]) ? $events[$event_type] : 0);
     }
 
-    private static function append_period_where(array &$where, array &$params, $from, $to) {
+    /**
+     * Days before rolled_until() live only in the daily table and later days
+     * only in raw rows, so a period reads both halves without counting a day
+     * twice. $columns maps output columns to raw expressions; $where may use
+     * only post_id and event_type, which both tables share.
+     */
+    private static function count_rows(array $columns, $from, $to, array $where = array(), array $params = array(), $order_by = '') {
+        global $wpdb;
+
         $from = self::normalize_date($from);
         $to = self::normalize_date($to);
+        $rolled_until = self::rolled_until();
 
+        $raw_where = $where;
+        $raw_params = $params;
         if ($from !== '') {
-            $where[] = 'event_time >= %s';
-            $params[] = $from . ' 00:00:00';
+            $raw_where[] = 'event_time >= %s';
+            $raw_params[] = $from . ' 00:00:00';
         }
         if ($to !== '') {
-            $where[] = 'event_time <= %s';
-            $params[] = $to . ' 23:59:59';
+            $raw_where[] = 'event_time <= %s';
+            $raw_params[] = $to . ' 23:59:59';
         }
+        if ($rolled_until !== '') {
+            $raw_where[] = 'event_time >= %s';
+            $raw_params[] = $rolled_until . ' 00:00:00';
+        }
+
+        $raw_select = array();
+        foreach ($columns as $column => $expression) {
+            $raw_select[] = "{$expression} AS {$column}";
+        }
+        $sql = 'SELECT ' . implode(', ', $raw_select) . ', COUNT(*) AS events FROM ' . self::table_name()
+            . self::where_sql($raw_where)
+            . ' GROUP BY ' . implode(', ', array_values($columns));
+        $all_params = $raw_params;
+
+        if ($rolled_until !== '' && ($from === '' || $from < $rolled_until)) {
+            $day_where = $where;
+            $day_params = $params;
+            $day_where[] = 'event_day < %s';
+            $day_params[] = $rolled_until;
+            if ($from !== '') {
+                $day_where[] = 'event_day >= %s';
+                $day_params[] = $from;
+            }
+            if ($to !== '') {
+                $day_where[] = 'event_day <= %s';
+                $day_params[] = $to;
+            }
+
+            $names = implode(', ', array_keys($columns));
+            $sql = "SELECT {$names}, SUM(events) AS events FROM ({$sql}
+                 UNION ALL
+                 SELECT {$names}, events FROM " . self::days_table_name() . self::where_sql($day_where) . ") e
+                 GROUP BY {$names}";
+            $all_params = array_merge($raw_params, $day_params);
+        }
+
+        if ($order_by !== '') {
+            $sql .= ' ORDER BY ' . $order_by;
+        }
+        if (!empty($all_params)) {
+            $sql = $wpdb->prepare($sql, $all_params);
+        }
+
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        return is_array($rows) ? $rows : array();
+    }
+
+    private static function where_sql(array $where) {
+        return empty($where) ? '' : ' WHERE ' . implode(' AND ', $where);
+    }
+
+    private static function rolled_until() {
+        return self::normalize_date((string) get_option(self::ROLLED_UNTIL_OPTION, ''));
     }
 
     private static function normalize_date($value) {
@@ -447,5 +560,12 @@ class Unified_HS_Deck_Events {
         $table = self::table_name();
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
         return $exists;
+    }
+
+    private static function days_table_exists() {
+        global $wpdb;
+
+        $table = self::days_table_name();
+        return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
     }
 }
