@@ -129,6 +129,23 @@ export async function insertComponents(page, visual = false) {
 
 export async function verifyComponents(page, selector = '.td-post-content') {
   const scope = page.locator(selector);
+  if (await scope.evaluate(el => el.classList.contains('is-layout-constrained'))) {
+    const viewport = page.viewportSize();
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const fits = await scope.evaluate(el => {
+        const paragraph = el.querySelector(':scope > p');
+        if (!paragraph) return false;
+        const measure = paragraph.getBoundingClientRect();
+        return [...el.querySelectorAll(':scope > .hs-article-component, :scope > .hs-article-cards, :scope > .hs-article-card')].every(block => {
+          const rect = block.getBoundingClientRect();
+          return rect.width <= measure.width + 1 && rect.x >= measure.x - 1 && rect.right <= measure.right + 1;
+        });
+      });
+      assert.ok(fits, `Components stay within the real theme's article measure at ${width}px`);
+    }
+    await page.setViewportSize(viewport);
+  }
   assert.equal(await scope.locator('.hs-article-component').count(), 10);
   assert.equal(await scope.locator('.hs-v-divider').getAttribute('data-divider-style'), 'ornament');
   assert.equal(await scope.locator('.hs-v-divider-label').innerText(), 'Оформление статьи');

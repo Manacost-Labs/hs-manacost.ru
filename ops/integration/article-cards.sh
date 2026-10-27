@@ -34,5 +34,5 @@ export WP_CARDS_AUTHOR_PASSWORD WP_CARDS_SUBSCRIBER_PASSWORD
     --env WP_CARDS_AUTHOR_PASSWORD --env WP_CARDS_SUBSCRIBER_PASSWORD \
     -v "$ROOT_DIR:/work" -w /work \
     'mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e' \
-    node tests/article-cards/browser.mjs
+    bash -c 'node tests/article-cards/layout.mjs && node tests/article-cards/browser.mjs'
 "${compose[@]}" run --rm cli eval-file /var/www/html/.integration/article-cards-integrity.php > .artifacts/article-cards/integrity.json

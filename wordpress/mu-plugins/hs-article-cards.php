@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Article Cards
  * Description: Поиск статей Manacost и Koloda и вставка карточек в редактор.
- * Version: 1.4.0
+ * Version: 1.4.1
  * Text Domain: hs-article-cards
  *
  * @package HSManacost
