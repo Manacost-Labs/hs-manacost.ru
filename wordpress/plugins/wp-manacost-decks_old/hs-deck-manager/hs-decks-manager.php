@@ -3430,15 +3430,26 @@ class HS_Decks_Manager {
         if ($img !== '') {
             $path = wp_parse_url($img, PHP_URL_PATH);
             if (is_string($path) && preg_match('#/([^/]+)\.(?:png|webp|jpg|jpeg)$#i', $path, $matches)) {
-                $asset_id = sanitize_file_name($matches[1]);
-                if ($asset_id !== '' && !ctype_digit($asset_id)) {
+                $asset_id = $this->sanitize_tooltip_card_asset_id($matches[1]);
+                if ($asset_id !== '') {
                     return $asset_id;
                 }
             }
         }
 
-        $fallback = sanitize_file_name((string) $fallback);
-        return ctype_digit($fallback) ? '' : $fallback;
+        return $this->sanitize_tooltip_card_asset_id((string) $fallback);
+    }
+
+    /**
+     * HearthstoneJSON art paths are case-sensitive, so the ID must not pass
+     * through sanitize_file_name(): cyr2lat lowercases it and the art 404s.
+     */
+    private function sanitize_tooltip_card_asset_id($asset_id) {
+        $asset_id = (string) $asset_id;
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $asset_id) || ctype_digit($asset_id)) {
+            return '';
+        }
+        return $asset_id;
     }
 
     private function get_tooltip_card_data($dbf_id) {

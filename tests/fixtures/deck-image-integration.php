@@ -37,4 +37,28 @@ hs_integration_assert(
 );
 remove_filter('wp_is_mobile', '__return_true');
 
+// HearthstoneJSON art paths are case-sensitive; cyr2lat lowercases sanitized file names.
+$deck_asset_id_method = new ReflectionMethod($deck_manager, 'get_tooltip_card_asset_id');
+$deck_lowercase_filenames = static function ($filename) {
+    return strtolower((string) $filename);
+};
+add_filter('sanitize_file_name', $deck_lowercase_filenames, 99);
+hs_integration_assert(
+    $deck_asset_id_method->invoke(
+        $deck_manager,
+        ['img' => 'https://art.hearthstonejson.com/v1/render/latest/ruRU/256x/CATA_203.png'],
+        'CATA_203'
+    ) === 'CATA_203',
+    'tooltip card asset id lost its case'
+);
+hs_integration_assert(
+    $deck_asset_id_method->invoke($deck_manager, ['img' => ''], 'CORE_EX1_129') === 'CORE_EX1_129',
+    'tooltip card fallback id lost its case'
+);
+hs_integration_assert(
+    $deck_asset_id_method->invoke($deck_manager, ['img' => 'https://example.test/cards/a%20b.png'], '123') === '',
+    'unsafe or numeric tooltip card ids are accepted'
+);
+remove_filter('sanitize_file_name', $deck_lowercase_filenames, 99);
+
 echo "Deck image integration assertions: OK\n";
