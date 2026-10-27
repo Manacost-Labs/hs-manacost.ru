@@ -280,7 +280,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 160
+        "line": 185
       },
       {
         "name": "_deck_games",
@@ -378,7 +378,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 162
+        "line": 187
       },
       {
         "name": "_deck_losses",
@@ -532,7 +532,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 163
+        "line": 188
       },
       {
         "name": "_deck_winrate",
@@ -567,7 +567,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 161
+        "line": 186
       },
       {
         "name": "_deck_wins",
@@ -1913,7 +1913,7 @@
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/includes/class-deck-events.php",
-        "line": 74
+        "line": 77
       },
       {
         "name": "unified_hs_deck_period_stats_db_version",

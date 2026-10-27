@@ -283,6 +283,7 @@ hs_integration_assert(!comments_open($postId), 'reader bridge enabled native com
 
 require __DIR__ . '/article-cover.php';
 require __DIR__ . '/deck-image.php';
+require __DIR__ . '/deck-events-schema.php';
 require __DIR__ . '/listing-thumbnails.php';
 require __DIR__ . '/dashboard-latest-decks.php';
 

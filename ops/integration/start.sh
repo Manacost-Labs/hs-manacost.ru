@@ -37,6 +37,7 @@ cp "$ROOT_DIR/tests/fixtures/admin-meta-key-cache-integration.php" "$SITE_DIR/.i
 cp "$ROOT_DIR/tests/fixtures/admin-media-months-cache-integration.php" "$SITE_DIR/.integration/admin-media-months-cache.php"
 cp "$ROOT_DIR/tests/fixtures/article-cover-integration.php" "$SITE_DIR/.integration/article-cover.php"
 cp "$ROOT_DIR/tests/fixtures/deck-image-integration.php" "$SITE_DIR/.integration/deck-image.php"
+cp "$ROOT_DIR/tests/fixtures/deck-events-schema-integration.php" "$SITE_DIR/.integration/deck-events-schema.php"
 cp "$ROOT_DIR/tests/fixtures/listing-thumbnails-integration.php" "$SITE_DIR/.integration/listing-thumbnails.php"
 mkdir -p "$SITE_DIR/wp-content/uploads"
 mkdir -p "$SITE_DIR/wp-content/cache"
