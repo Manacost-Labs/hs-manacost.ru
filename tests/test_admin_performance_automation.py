@@ -418,6 +418,11 @@ console.log('PASS');
         self.assertIn("await warmUp(page, screen)", collector_source)
         self.assertIn("sampleCount", collector_source)
         self.assertNotIn("console.log(password", collector_source)
+        # Host Docker churn aborts Chromium navigations with ERR_NETWORK_CHANGED;
+        # every idempotent admin navigation must use the bounded shared retry.
+        self.assertIn("navigateWithNetworkRecovery", collector_source)
+        self.assertNotIn("page.goto(", collector_source)
+        self.assertIn("navigation_retries", collector_source)
 
         probe_source = probe.read_text(encoding="utf-8")
         self.assertIn("wp_get_environment_type", probe_source)
