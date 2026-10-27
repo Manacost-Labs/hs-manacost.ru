@@ -2812,7 +2812,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
-        "line": 166
+        "line": 167
       },
       {
         "name": "edit_post",

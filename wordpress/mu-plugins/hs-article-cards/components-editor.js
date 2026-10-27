@@ -200,7 +200,7 @@
 		refresh();
 	});
 	byId('close').addEventListener('click', () => dialog.close());
-	dialog.addEventListener('close', () => opener?.focus());
+	dialog.addEventListener('close', () => { if (!dialog.open) opener?.focus(); });
 	document.querySelectorAll('.hs-components-open').forEach(button => button.addEventListener('click', () => {
 		editingBlock = null; editingElement = null; byId('insert').textContent = 'Вставить компонент';
 		opener = button; editor = window.tinymce?.get('content');

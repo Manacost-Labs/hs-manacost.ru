@@ -92,6 +92,9 @@
 .hs-article-cards--spacing-tight { --hs-ac-gap: 12px; }
 .hs-article-cards--spacing-airy { --hs-ac-gap: 32px; }
 .hs-article-cards--width-narrow { width: min(100%, 560px); margin-inline: auto; }
+/* A full-width preset fills the article, not a constrained theme's page shell. */
+.is-layout-constrained > :is(.hs-article-card, .hs-article-cards):where(:not(.alignfull):not(.alignwide)) { max-width: min(100%, var(--wp--style--global--content-size, 100%)); }
+.is-layout-constrained > .hs-article-cards--width-narrow { width: var(--theme-block-width, 100%); max-width: min(100%, 560px, var(--wp--style--global--content-size, 100%)); }
 .hs-article-cards--grid {
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, max(200px, calc((100% - (var(--hs-ac-columns) - 1) * var(--hs-ac-gap)) / var(--hs-ac-columns)))), 1fr));
 	align-items: start;

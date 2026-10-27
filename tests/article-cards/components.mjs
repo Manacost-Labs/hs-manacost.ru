@@ -1,5 +1,17 @@
 import assert from 'node:assert/strict';
 
+export async function verifyResizeFocus(page, selector) {
+  await page.locator(selector).focus();
+  const retained = await page.evaluate(async () => {
+    if (!window.tinymce?.get('content')) return true;
+    const focused = document.activeElement;
+    window.jQuery(document).trigger('wp-window-resized');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return document.activeElement === focused;
+  });
+  assert.ok(retained, 'Classic Editor autoresize preserves the active modal control');
+}
+
 // Shared by the disposable integration fixture and the owned staging draft.
 export async function insertComponents(page, visual = false) {
   async function open() {
@@ -7,6 +19,7 @@ export async function insertComponents(page, visual = false) {
       await page.getByRole('tab', { name: 'Post', exact: true }).click();
     }
     await page.locator('.hs-components-open').click();
+    await verifyResizeFocus(page, '#hs-v-type');
   }
   const safe = await page.evaluate(() => window.hsManacostComponents.clean('<div class="hs-article-component hs-v-alert" onclick="alert(1)"><p style="position:fixed">Safe</p><script>alert(1)</script><img src=x onerror="alert(1)"></div>').outerHTML);
   assert.doesNotMatch(safe, /script|img|onclick|onerror|style=/);
@@ -82,6 +95,7 @@ export async function insertComponents(page, visual = false) {
     if (type === 'icon-list' || type === 'steps') {
       await page.locator('#hs-v-items').fill('Подготовьте колоду\nСыграйте пробный матч\nОцените результат');
       if (type === 'icon-list') await page.locator('#hs-v-icon').selectOption('star');
+      await page.waitForFunction(() => document.querySelectorAll('#hs-v-preview li').length === 3);
       assert.equal(await page.locator('#hs-v-preview li').count(), 3);
     }
     if (type === 'callout') {
@@ -129,6 +143,23 @@ export async function insertComponents(page, visual = false) {
 
 export async function verifyComponents(page, selector = '.td-post-content') {
   const scope = page.locator(selector);
+  if (await scope.evaluate(el => el.classList.contains('is-layout-constrained'))) {
+    const viewport = page.viewportSize();
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const fits = await scope.evaluate(el => {
+        const paragraph = el.querySelector(':scope > p');
+        if (!paragraph) return false;
+        const measure = paragraph.getBoundingClientRect();
+        return [...el.querySelectorAll(':scope > .hs-article-component, :scope > .hs-article-cards, :scope > .hs-article-card')].every(block => {
+          const rect = block.getBoundingClientRect();
+          return rect.width <= measure.width + 1 && rect.x >= measure.x - 1 && rect.right <= measure.right + 1;
+        });
+      });
+      assert.ok(fits, `Components stay within the real theme's article measure at ${width}px`);
+    }
+    await page.setViewportSize(viewport);
+  }
   assert.equal(await scope.locator('.hs-article-component').count(), 10);
   assert.equal(await scope.locator('.hs-v-divider').getAttribute('data-divider-style'), 'ornament');
   assert.equal(await scope.locator('.hs-v-divider-label').innerText(), 'Оформление статьи');
