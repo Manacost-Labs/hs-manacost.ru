@@ -29,6 +29,7 @@ Read [references/host-policy.md](references/host-policy.md) before changing cano
 
 - Domain/canonical/noindex mirror behavior: `wordpress/mu-plugins/manacost-domain-mirror.php`.
 - AIOSEO runtime settings and editorial post metadata: production data, not Git source. Inspect read-only and change through supported WordPress/AIOSEO APIs.
+- AIOSEO social previews and the `/archetypes/` index title/description: apply with `ops/seo/social-and-archetypes.php` (`mode=dry_run|apply|rollback backup=<file>`), never by editing the option JSON.
 - Staging robots headers and robots response: `ops/nginx/staging.conf` plus WordPress behavior.
 - Theme presentation: use `newspaper-tagdiv`; do not patch the Newspaper parent theme for metadata ownership.
 
@@ -42,7 +43,7 @@ python3 .agents/skills/wordpress-seo-editorial/scripts/audit_seo_hosts.py \
   --target mirror=https://hs-manacost.com/example/
 ```
 
-The checker verifies status, title, canonical count/host, robots directives, mirror marker, schema syntax, and image alt coverage. A clean result proves only these observable contracts; it does not prove rankings, crawl state, or editorial quality.
+The checker verifies status, a named title, canonical count/host, social preview tags (`og:title`, `og:image`, `og:url`; `og:url` on `.ru` for the primary), robots directives, mirror marker, schema syntax, and image alt coverage. A clean result proves only these observable contracts; it does not prove rankings, crawl state, or editorial quality.
 
 ## Change gates
 

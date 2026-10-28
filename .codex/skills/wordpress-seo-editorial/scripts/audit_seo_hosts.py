@@ -14,6 +14,10 @@ from urllib.request import Request, urlopen
 PRIMARY_HOST = "hs-manacost.ru"
 
 
+SOCIAL_PROPERTIES = {"og:title", "og:url", "og:image"}
+TITLE_SEPARATORS = {"-", "|", "–", "—", "»", "·", "•", "/"}
+
+
 class SeoParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -21,6 +25,7 @@ class SeoParser(HTMLParser):
         self.robots: list[str] = []
         self.titles: list[str] = []
         self.schemas: list[str] = []
+        self.social: dict[str, str] = {}
         self.images = 0
         self.images_without_alt = 0
         self._title = False
@@ -32,6 +37,8 @@ class SeoParser(HTMLParser):
             self.canonicals.append(values.get("href", ""))
         elif tag.lower() == "meta" and values.get("name", "").lower() in {"robots", "googlebot"}:
             self.robots.append(values.get("content", ""))
+        elif tag.lower() == "meta" and values.get("property", "").lower() in SOCIAL_PROPERTIES:
+            self.social.setdefault(values["property"].lower(), values.get("content", ""))
         elif tag.lower() == "title":
             self._title = True
             self.titles.append("")
@@ -75,6 +82,8 @@ def audit(role: str, requested_url: str, timeout: float) -> dict[str, Any]:
         errors.append(f"unexpected HTTP status {status}")
     if len(parser.titles) != 1 or not parser.titles[0].strip():
         errors.append("expected exactly one non-empty title")
+    elif parser.titles[0].strip()[:1] in TITLE_SEPARATORS:
+        errors.append("title has no page name before the site name")
     if role in {"primary", "mirror"}:
         if len(parser.canonicals) != 1:
             errors.append(f"expected exactly one canonical, found {len(parser.canonicals)}")
@@ -82,6 +91,13 @@ def audit(role: str, requested_url: str, timeout: float) -> dict[str, Any]:
             errors.append(f"canonical must use {PRIMARY_HOST}")
     elif len(parser.canonicals) > 1:
         errors.append(f"staging must not emit multiple canonicals, found {len(parser.canonicals)}")
+
+    if role in {"primary", "mirror"}:
+        missing_social = sorted(SOCIAL_PROPERTIES - {key for key, value in parser.social.items() if value.strip()})
+        if missing_social:
+            errors.append(f"missing social preview tags: {', '.join(missing_social)}")
+        elif role == "primary" and urlparse(parser.social["og:url"]).hostname != PRIMARY_HOST:
+            errors.append(f"og:url must use {PRIMARY_HOST}")
 
     if role == "primary" and "noindex" in robots:
         errors.append("primary unexpectedly contains noindex")
@@ -109,6 +125,7 @@ def audit(role: str, requested_url: str, timeout: float) -> dict[str, Any]:
         "final_url": final_url,
         "status": status,
         "canonical": parser.canonicals,
+        "social": parser.social,
         "robots": robots.strip(),
         "schema_blocks": len(parser.schemas),
         "errors": errors,
