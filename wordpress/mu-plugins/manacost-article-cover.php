@@ -100,14 +100,15 @@ final class Manacost_Article_Cover {
 	 *
 	 * Rocket placeholders retain their loader. Plain attachment images use native
 	 * lazy loading, so a cold response cannot start every image in a long article.
-	 * Covers, ads, eager images and explicit lazy-load exclusions remain intact.
+	 * Article card thumbnails follow the same rule. Covers, ads, eager images and
+	 * explicit lazy-load exclusions remain intact.
 	 *
 	 * @param WP_HTML_Tag_Processor $processor Parser positioned at an active IMG.
 	 * @return void
 	 */
 	private static function normalize_content_loading( WP_HTML_Tag_Processor $processor ): void {
 		$classes = $processor->get_attribute( 'class' );
-		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)wp-image-\d+(?:\s|$)/', $classes )
+		if ( ! is_string( $classes ) || ! preg_match( '/(?:^|\s)(?:wp-image-\d+|hs-article-card__image)(?:\s|$)/', $classes )
 			|| preg_match( '/(?:^|\s)(?:skip-lazy|no-lazy|nolazyload)(?:\s|$)/', $classes )
 			|| 'eager' === strtolower( (string) $processor->get_attribute( 'loading' ) )
 			|| null !== $processor->get_attribute( 'data-no-lazy' ) ) {

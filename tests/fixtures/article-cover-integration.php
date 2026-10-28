@@ -39,6 +39,11 @@ hs_integration_assert($cover_parser->get_attribute('width') === '1200' && $cover
 $cover_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'wp-image-124']);
 hs_integration_assert($cover_parser->get_attribute('fetchpriority') === null, 'native lazy image retains contradictory high priority');
 hs_integration_assert($cover_parser->get_attribute('loading') === 'lazy', 'native image no longer lazy');
+$cover_card_page = str_replace('</body>', '<img fetchpriority="high" decoding="async" class="hs-article-card__image" src="data:image/svg+xml,%3Csvg%3E%3C/svg%3E" alt="" width="640" height="360" data-lazy-src="https://hs-manacost.ru/card.jpg" /></body>', $cover_page);
+$cover_parser = new WP_HTML_Tag_Processor(Manacost_Article_Cover::optimize_html($cover_card_page));
+$cover_parser->next_tag(['tag_name' => 'IMG', 'class_name' => 'hs-article-card__image']);
+hs_integration_assert($cover_parser->get_attribute('fetchpriority') === null, 'lazy article card image competes with the cover');
+hs_integration_assert($cover_parser->get_attribute('data-lazy-src') === 'https://hs-manacost.ru/card.jpg', 'article card source URL changed');
 hs_integration_assert(str_contains($cover_priority_result, $cover_eager_image), 'eager body image lost its priority');
 hs_integration_assert(str_contains($cover_priority_result, $cover_optout_image), 'explicit lazy-load exclusion lost its priority');
 hs_integration_assert(str_contains($cover_priority_result, $cover_inert_image), 'inert image markup changed');

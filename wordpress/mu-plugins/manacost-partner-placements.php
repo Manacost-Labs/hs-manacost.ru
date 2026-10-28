@@ -189,12 +189,13 @@ final class Manacost_Partner_Placements {
 		?>
 		<aside class="site-partnership" aria-label="<?php echo esc_attr( 'Партнёры сайта' ); ?>">
 			<a class="site-masthead-mark" href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php echo esc_attr( 'Манакост — главная' ); ?>">
-				<img src="<?php echo esc_url( self::BRAND_IMAGE ); ?>" width="321" height="234" alt="" decoding="async" fetchpriority="high">
+				<img src="<?php echo esc_url( self::BRAND_IMAGE ); ?>" width="321" height="234" alt="" decoding="async">
 			</a>
 			<div class="site-partnership__inner">
 				<div class="site-partnership__items">
+					<?php // The first banner is the LCP on pages without a cover, so Rocket must not defer it. ?>
 					<a class="site-partnership__item" href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Playerok — партнёр Manacost' ); ?>">
-						<img src="<?php echo esc_url( self::PLAYEROK_IMAGE ); ?>" width="729" height="90" alt="" decoding="async" fetchpriority="high">
+						<img src="<?php echo esc_url( self::PLAYEROK_IMAGE ); ?>" width="729" height="90" alt="" decoding="async" fetchpriority="high" data-no-lazy="1">
 					</a>
 					<a class="site-partnership__item" href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Sirus — партнёр Manacost' ); ?>">
 						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="729" height="90" alt="" decoding="async">

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import unittest
@@ -192,6 +193,11 @@ class PartnerPlacementsTest(unittest.TestCase):
                     markup,
                 )
                 self.assertNotIn('width="728" height="90"', markup)
+                masthead = re.search(r'<a class="site-masthead-mark".*?<img[^>]*>', markup, re.S).group(0)
+                self.assertNotIn("fetchpriority", masthead)
+                primary = re.search(r'<img src="/wp-content/uploads/2026/07/728x90\.jpg\.webp"[^>]*>', markup).group(0)
+                self.assertIn('fetchpriority="high"', primary)
+                self.assertIn('data-no-lazy="1"', primary)
                 self.assertNotIn("sirus.cc", markup)
                 self.assertNotIn("728h90", markup)
                 self.assertNotIn("td-a-rec", markup)

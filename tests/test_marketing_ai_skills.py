@@ -108,6 +108,9 @@ class MarketingAISkillTests(unittest.TestCase):
         seo_html = """
             <html><head><title>Article</title>
             <link rel="canonical" href="https://hs-manacost.ru/article/">
+            <meta property="og:title" content="Article">
+            <meta property="og:url" content="https://hs-manacost.ru/article/">
+            <meta property="og:image" content="https://hs-manacost.com/cover.jpg">
             <script type="application/ld+json">{"@type":"Article"}</script>
             </head><body><img src="cover.jpg" alt="Cover"></body></html>
         """
@@ -122,6 +125,28 @@ class MarketingAISkillTests(unittest.TestCase):
             ),
         ):
             self.assertEqual([], seo.audit("mirror", "https://hs-manacost.com/article/", 1)["errors"])
+
+        broken_html = (
+            seo_html.replace("<title>Article</title>", "<title> - Манакост Hearthstone</title>")
+            .replace("https://hs-manacost.ru/article/\">\n            <meta property=\"og:image\"", "https://hs-manacost.com/article/\">\n            <meta property=\"og:image\"")
+        )
+        with patch.object(
+            seo,
+            "fetch",
+            return_value=(200, "https://hs-manacost.ru/article/", {}, broken_html),
+        ):
+            errors = seo.audit("primary", "https://hs-manacost.ru/article/", 1)["errors"]
+        self.assertIn("title has no page name before the site name", errors)
+        self.assertIn("og:url must use hs-manacost.ru", errors)
+        with patch.object(
+            seo,
+            "fetch",
+            return_value=(200, "https://hs-manacost.ru/article/", {}, seo_html.replace('property="og:image"', 'property="og:unused"')),
+        ):
+            self.assertEqual(
+                ["missing social preview tags: og:image"],
+                seo.audit("primary", "https://hs-manacost.ru/article/", 1)["errors"],
+            )
 
         ads = load_script(
             "audit_ads_analytics",
