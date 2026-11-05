@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Manacost PWA
  * Description: Adds installable web-app metadata for the canonical site and staging.
- * Version: 1.0.0
+ * Version: 1.0.1
  *
  * @package Manacost
  */
@@ -24,13 +24,10 @@ function hs_manacost_pwa_is_enabled_host(): bool {
 	return in_array( hs_manacost_pwa_request_host(), array( 'hs-manacost.ru', 'test.hs-manacost.ru' ), true );
 }
 
-/** Render install metadata after the legacy WordPress site icon tags. */
+/** Render install metadata while leaving site icon selection to WordPress. */
 function hs_manacost_pwa_head(): void {
 	?>
 	<link rel="manifest" href="/manifest.webmanifest">
-	<link rel="icon" href="/favicon.ico" sizes="any">
-	<link rel="icon" type="image/png" sizes="192x192" href="/pwa-icons/icon-192.png">
-	<link rel="apple-touch-icon" sizes="180x180" href="/pwa-icons/apple-touch-icon.png">
 	<meta name="theme-color" content="#062f3b">
 	<meta name="mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-capable" content="yes">
