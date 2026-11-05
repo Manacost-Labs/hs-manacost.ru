@@ -63,6 +63,15 @@ class PwaTest(unittest.TestCase):
         self.assertEqual([], self.render_plugin("hs-manacost.com")["actions"])
         self.assertEqual([], self.render_plugin("www.hs-manacost.com:443")["actions"])
 
+    def test_pwa_metadata_does_not_override_wordpress_site_icon(self) -> None:
+        for host in ("hs-manacost.ru", "test.hs-manacost.ru"):
+            with self.subTest(host=host):
+                head = self.render_plugin(host)["rendered"]["wp_head"]
+
+                self.assertNotIn('rel="icon"', head)
+                self.assertNotIn('rel="apple-touch-icon"', head)
+                self.assertIn('rel="manifest"', head)
+
     def test_manifest_contract(self) -> None:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 
