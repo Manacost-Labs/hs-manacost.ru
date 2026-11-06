@@ -70,7 +70,7 @@ for (const target of [
     const partnership = page.getByRole('complementary', { name: 'Партнёры сайта' });
     await expect(partnership).toBeVisible();
     await expect(partnership.getByText('Реклама', { exact: true })).toHaveCount(0);
-    const partnerLinks = partnership.locator('a[rel~="sponsored"]');
+    const partnerLinks = partnership.locator('.site-partnership__items > a[rel~="sponsored"]');
     await expect(partnerLinks).toHaveCount(2);
     await expect(partnerLinks.first()).toHaveCSS('border-radius', '10px');
     await expect(partnerLinks.first()).not.toHaveCSS('box-shadow', 'none');

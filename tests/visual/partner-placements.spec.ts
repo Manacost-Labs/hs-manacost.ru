@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext } from '@playwright/test';
+import { installFrontendObservers } from '../../ops/performance/browser-frontend-profile.mjs';
 
 const creative = '<svg xmlns="http://www.w3.org/2000/svg" width="729" height="90"><rect width="729" height="90" fill="#123b5d"/></svg>';
 
@@ -135,9 +136,11 @@ test('without JavaScript both partner links remain reachable', async ({ browser,
   await page.goto('/');
   const items = page.locator('.site-partnership__item');
   await expect(items).toHaveCount(2);
+  await expect(page.locator('.site-partnership__links').getByRole('link', { name: 'Sirus', exact: true })).toBeVisible();
   await items.nth(1).focus();
   await expect(items.nth(1)).toBeFocused();
   await expect(items.nth(1)).toBeInViewport();
+  await expect(items.nth(1)).toHaveCSS('opacity', '1');
   await context.close();
 });
 
@@ -163,4 +166,59 @@ test('controls fit at narrow, intermediate and landscape widths', async ({ page,
       expect(box!.y + box!.height).toBeLessThanOrEqual(menu!.y);
     }
   }
+});
+
+test('delayed controller never relocates either creative after first paint', async ({ page, context }) => {
+  await isolate(context);
+  await context.addInitScript(installFrontendObservers);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/partner-placements.js*', async route => { await gate; await route.continue(); });
+  await page.goto('/', { waitUntil: 'commit' });
+  const root = page.locator(rootSelector);
+  const items = root.locator('.site-partnership__item');
+  await expect(items.first().locator('img')).toHaveJSProperty('naturalWidth', 729);
+  await expect(items.nth(1).locator('img')).toHaveJSProperty('naturalWidth', 729);
+  await page.waitForTimeout(300); // Let the progressive HTML/CSS paint before JS arrives.
+  const rectangles = () => items.evaluateAll(links => links.map(link => {
+    const { x, y, width, height } = link.getBoundingClientRect();
+    return { x, y, width, height };
+  }));
+  const before = await rectangles();
+  release();
+  await expect(root).toHaveAttribute('data-enhanced', '');
+  expect(await rectangles()).toEqual(before);
+  await page.mouse.move(0, 500);
+  await expect(items.nth(1)).toHaveClass(/is-active/, { timeout: 10000 });
+  await expect(items.nth(1)).toHaveCSS('opacity', '1');
+  const bannerShifts = await page.evaluate<number>(`window.__hsFrontend.shifts
+    .filter(shift => shift.sources.some(source => source.classes.includes('site-partnership__item')))
+    .reduce((total, shift) => total + shift.value, 0)`);
+  expect(bannerShifts).toBe(0);
+});
+
+
+test('blocked controller leaves visible partner links usable with JavaScript enabled', async ({ page, context }) => {
+  await isolate(context);
+  await page.route('**/partner-placements.js*', route => route.abort('blockedbyclient'));
+  await page.goto('/');
+  const root = page.locator(rootSelector);
+  await expect(root).not.toHaveAttribute('data-enhanced', '');
+  const fallback = root.locator('.site-partnership__links');
+  await expect(fallback.getByRole('link', { name: 'Playerok', exact: true })).toBeVisible();
+  await expect(fallback.getByRole('link', { name: 'Sirus', exact: true })).toBeVisible();
+});
+
+test('late controller preserves keyboard focus on the selected partner', async ({ page, context }) => {
+  await isolate(context);
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/partner-placements.js*', async route => { await gate; await route.continue(); });
+  await page.goto('/', { waitUntil: 'commit' });
+  const root = page.locator(rootSelector);
+  await root.locator('.site-partnership__links').getByRole('link', { name: 'Sirus', exact: true }).focus();
+  release();
+  await expect(root.locator('.site-partnership__item').nth(1)).toBeFocused();
+  await expect(root.locator('.site-partnership__item').nth(1)).toHaveCSS('opacity', '1');
 });
