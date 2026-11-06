@@ -60,6 +60,7 @@ Unified_HS_Deck_Activity_Log::init();
 Unified_HS_Deckstring_Helper::init();
 Unified_HS_Archetype_Detector::init();
 Unified_HS_English_Title_Monitor::init();
+Unified_HS_Deck_Events::init();
 Unified_HS_Ad_Tracker::init();
 
 // --- i18n ------------------------------------------------------------------

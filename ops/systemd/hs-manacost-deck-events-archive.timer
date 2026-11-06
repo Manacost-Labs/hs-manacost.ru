@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly archive of raw HS Manacost deck events older than 90 days
+
+[Timer]
+OnBootSec=20min
+OnCalendar=*-*-* *:35:00 UTC
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
