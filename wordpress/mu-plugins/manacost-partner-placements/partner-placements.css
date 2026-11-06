@@ -58,103 +58,111 @@
 
 .site-partnership__items {
 	position: relative;
+	display: flex;
 	width: 100%;
 	aspect-ratio: 729 / 90;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
 }
 
 .site-partnership__item {
-	position: absolute;
-	inset: 0;
+	position: relative;
+	flex: 0 0 100%;
 	display: block;
 	min-width: 0;
 	aspect-ratio: 729 / 90;
 	border-radius: 10px;
 	background: #002844;
 	box-shadow: 0 10px 28px rgba(2, 8, 18, 0.28);
-	line-height: 0;
-	opacity: 0;
 	overflow: hidden;
+	scroll-snap-align: start;
+}
+
+.site-partnership[data-enhanced] .site-partnership__items {
+	display: block;
+	overflow: visible;
+}
+
+.site-partnership[data-enhanced] .site-partnership__item {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
 	pointer-events: none;
+	transition: opacity 700ms ease-in-out;
 }
 
-.site-partnership__item:first-child {
-	z-index: 2;
-	opacity: 1;
-	pointer-events: auto;
-	animation: site-partnership-first 10s infinite;
-}
-
-.site-partnership__item:last-child {
+.site-partnership[data-enhanced] .site-partnership__item.is-active {
 	z-index: 1;
-	opacity: 0;
-	pointer-events: none;
-	animation: site-partnership-second 10s infinite;
-}
-
-.site-partnership__items:hover .site-partnership__item,
-.site-partnership__items:focus-within .site-partnership__item {
-	animation-play-state: paused;
-}
-
-.site-partnership__item:focus-visible {
-	z-index: 3;
 	opacity: 1;
-	outline: 3px solid var(--td_theme_color, #2a77bf);
-	outline-offset: 3px;
 	pointer-events: auto;
-	animation: none;
 }
 
-.site-partnership__items:focus-within .site-partnership__item:not(:focus) {
-	opacity: 0;
-	pointer-events: none;
+.site-partnership__item:focus-visible,
+.site-partnership__controls button:focus-visible {
+	outline: 3px solid #73c4ff;
+	outline-offset: 3px;
+}
+
+.site-partnership__fallback {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font: 600 clamp(16px, 3vw, 24px) / 1.2 sans-serif;
 }
 
 .site-partnership__item img {
+	position: relative;
 	display: block;
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
+	background: #002844;
+	color: #fff;
 }
 
-@keyframes site-partnership-first {
-	0%, 48% {
-		z-index: 2;
-		opacity: 1;
-		pointer-events: auto;
-	}
-
-	52%, 98% {
-		z-index: 1;
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	100% {
-		z-index: 2;
-		opacity: 1;
-		pointer-events: auto;
-	}
+.site-partnership__item img[data-failed] {
+	visibility: hidden;
 }
 
-@keyframes site-partnership-second {
-	0%, 48% {
-		z-index: 1;
-		opacity: 0;
-		pointer-events: none;
-	}
+.site-partnership__controls {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 4px;
+	min-height: 48px;
+	visibility: hidden;
+	color: #fff;
+	font: 14px / 1.4 sans-serif;
+}
 
-	52%, 98% {
-		z-index: 2;
-		opacity: 1;
-		pointer-events: auto;
-	}
+.site-partnership[data-enhanced] .site-partnership__controls {
+	visibility: visible;
+}
 
-	100% {
-		z-index: 1;
-		opacity: 0;
-		pointer-events: none;
-	}
+.site-partnership__position {
+	padding-inline: 12px;
+	/* Keep the counter readable on the transparent desktop header. */
+	border-radius: 4px;
+	background: #002844;
+}
+
+.site-partnership__controls button {
+	min-width: 44px;
+	min-height: 44px;
+	padding: 8px 12px;
+	border: 1px solid #45657c;
+	border-radius: 6px;
+	background: #002844;
+	color: #fff;
+	font: inherit;
+	cursor: pointer;
+}
+
+.site-partnership__controls button:hover {
+	background: #164561;
 }
 
 @media (min-width: 768px) {
@@ -170,7 +178,7 @@
 
 	#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap > .td-header-wrap.td-header-style-1,
 	body:has(> .site-partnership) #td-outer-wrap > .td-header-wrap.td-header-style-1 {
-		min-height: 218px;
+		min-height: 246px;
 	}
 
 	#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap > .td-header-wrap.td-header-style-1 > .td-header-menu-wrap-full,
@@ -198,7 +206,7 @@
 @media (min-width: 1019px) {
 	#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap > .td-header-wrap.td-header-style-1,
 	body:has(> .site-partnership) #td-outer-wrap > .td-header-wrap.td-header-style-1 {
-		min-height: 222px;
+		min-height: 250px;
 	}
 
 	.site-masthead-mark {
@@ -245,13 +253,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.site-partnership__item {
-		animation: none;
-	}
-
-	.site-partnership__item:first-child {
-		z-index: 2;
-		opacity: 1;
-		pointer-events: auto;
+	.site-partnership[data-enhanced] .site-partnership__item {
+		transition: none;
 	}
 }

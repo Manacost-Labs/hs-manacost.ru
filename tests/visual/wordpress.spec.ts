@@ -32,7 +32,7 @@ async function removeDynamicEditorNotices(page: Page): Promise<void> {
 test.beforeEach(async ({ context }) => {
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
-    const partner = url.pathname.endsWith('/728x90.jpg.webp')
+    const partner = (url.pathname.endsWith('/site-media/primary-mark/') || url.pathname.endsWith('/728x90.jpg.webp'))
       ? { label: 'PLAYEROK', color: '#123b5d' }
       : url.pathname.endsWith('/site-media/secondary-mark/') || url.pathname.endsWith('/728h90.png.webp')
         ? { label: 'SIRUS', color: '#35206e' }
@@ -96,6 +96,7 @@ for (const target of [
     await expect(partnerLinks.nth(1)).toBeFocused();
     await expect(partnerLinks.nth(1)).toHaveCSS('opacity', '1');
     await expect(partnerLinks.nth(1).locator('img')).toBeVisible();
+    await partnerLinks.first().focus();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     expect(await partnership.evaluate(element => Boolean(element.closest('.td-a-rec, .banner-rotator')))).toBe(false);
     const partnershipBackground = await partnership.evaluate(element => getComputedStyle(element).backgroundColor);
