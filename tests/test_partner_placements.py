@@ -41,6 +41,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         $actions = [];
         $filters = [];
         $styles = [];
+        $scripts = [];
         $conditional_calls = 0;
         $admin = {json.dumps(admin)};
         $feed = {json.dumps(feed)};
@@ -74,6 +75,10 @@ class PartnerPlacementsTest(unittest.TestCase):
         function wp_enqueue_style($handle, $src, $dependencies = [], $version = false) {{
             $GLOBALS['styles'][$handle] = [$src, $dependencies, $version];
         }}
+        function wp_enqueue_script($handle, $src, $dependencies, $version, $args) {{
+            $GLOBALS['scripts'][$handle] = [$src, $dependencies, $version, $args];
+        }}
+        function wp_script_add_data($handle, $key, $value) {{}}
         function esc_url($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
         function esc_html($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
@@ -81,6 +86,10 @@ class PartnerPlacementsTest(unittest.TestCase):
         if ($rest) {{ define('REST_REQUEST', true); }}
         require {json.dumps(str(PLUGIN))};
 
+        $optimizer_exclusions = ['keep-existing-rule'];
+        foreach ($filters['rocket_delay_js_exclusions'] ?? [] as $entry) {{
+            $optimizer_exclusions = call_user_func($entry[0], $optimizer_exclusions);
+        }}
         $legacy_header = [
             'td_ads' => [
                 'header' => [
@@ -138,6 +147,8 @@ class PartnerPlacementsTest(unittest.TestCase):
             'actions' => array_keys($actions),
             'filters' => array_keys($filters),
             'styles' => $styles,
+            'scripts' => $scripts,
+            'optimizer_exclusions' => $optimizer_exclusions,
             'legacy_header' => $legacy_header,
             'network_header' => $network_header,
             'ad_inserter' => $decoded_ad_inserter,
@@ -183,7 +194,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertIn('href="/site-link/secondary/"', markup)
                 self.assertIn('rel="sponsored noopener noreferrer"', markup)
                 self.assertIn(
-                    'src="/wp-content/uploads/2026/07/728x90.jpg.webp"', markup
+                    'src="/site-media/primary-mark/"', markup
                 )
                 self.assertIn(
                     'src="/site-media/secondary-mark/"', markup
@@ -195,7 +206,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn('width="728" height="90"', markup)
                 masthead = re.search(r'<a class="site-masthead-mark".*?<img[^>]*>', markup, re.S).group(0)
                 self.assertNotIn("fetchpriority", masthead)
-                primary = re.search(r'<img src="/wp-content/uploads/2026/07/728x90\.jpg\.webp"[^>]*>', markup).group(0)
+                primary = re.search(r'<img src="/site-media/primary-mark/"[^>]*>', markup).group(0)
                 self.assertIn('fetchpriority="high"', primary)
                 self.assertIn('data-no-lazy="1"', primary)
                 self.assertNotIn("sirus.cc", markup)
@@ -204,13 +215,35 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.0.9",
+                    "1.1.0",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
         local_result = self.run_plugin(host="127.0.0.1:8888", local=True)
         self.assertIn('class="site-partnership"', local_result["markup"])
         self.assertIn("wp_body_open", local_result["actions"])
+
+    def test_optimizer_preserves_controller_and_dynamic_state_styles(self) -> None:
+        result = self.run_plugin()
+        for hook in ("rocket_delay_js_exclusions", "perfmatters_delay_js_exclusions", "rocket_rucss_external_exclusions", "perfmatters_rucss_excluded_stylesheets"):
+            self.assertIn(hook, result["filters"])
+        self.assertEqual([
+            "keep-existing-rule",
+            "/wp-content/mu-plugins/manacost-partner-placements/partner-placements.js",
+            "/wp-content/mu-plugins/manacost-partner-placements/partner-placements.css",
+        ], result["optimizer_exclusions"])
+
+    def test_header_has_image_failure_fallback_and_keyboard_controls(self) -> None:
+        result = self.run_plugin()
+        markup = str(result["markup"])
+        self.assertIn('class="site-partnership__fallback">Playerok</span>', markup)
+        self.assertIn('class="site-partnership__fallback">Sirus</span>', markup)
+        self.assertIn('aria-label="Следующий партнёр"', markup)
+        self.assertIn('aria-label="Приостановить смену баннеров"', markup)
+        self.assertEqual(2, markup.count('data-no-lazy="1"'))
+        self.assertEqual(2, markup.count('loading="eager"'))
+        self.assertNotIn('728x90', markup)
+        self.assertEqual("1.1.0", result["scripts"]["manacost-partner-placements"][2])
 
     def test_suppresses_only_the_known_legacy_direct_placements(self) -> None:
         result = self.run_plugin()
@@ -254,6 +287,42 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertLess(success_status, content_type)
         self.assertLess(content_type, body)
 
+    def test_fixed_image_routes_validate_upstream_and_never_accept_query_urls(self) -> None:
+        for route, filename in (("primary", "2026/07/728x90.jpg.webp"), ("secondary", "2026/03/728h90.png.webp")):
+            for invalid in (False, True):
+                with self.subTest(route=route, invalid=invalid):
+                    script = f"""
+                    define('ABSPATH', '/');
+                    $_SERVER['HTTP_HOST'] = 'hs-manacost.ru';
+                    $_SERVER['REQUEST_URI'] = '/site-media/{route}-mark/?url=https://example.invalid/';
+                    function add_action(...$args) {{}}
+                    function add_filter(...$args) {{}}
+                    function is_admin() {{ return false; }}
+                    function wp_doing_ajax() {{ return false; }}
+                    function wp_unslash($value) {{ return $value; }}
+                    function sanitize_text_field($value) {{ return $value; }}
+                    function wp_parse_url($value, $part) {{ return parse_url($value, $part); }}
+                    function status_header($status) {{ fwrite(STDERR, "status:$status"); }}
+                    function wp_safe_remote_get($url, $args) {{
+                        fwrite(STDERR, $url . json_encode($args));
+                        return [];
+                    }}
+                    function is_wp_error($value) {{ return false; }}
+                    function wp_remote_retrieve_response_code($value) {{ return 200; }}
+                    function wp_remote_retrieve_header($value, $name) {{ return {json.dumps('text/html' if invalid else 'image/webp')}; }}
+                    function wp_remote_retrieve_body($value) {{ return str_repeat('x', 2048); }}
+                    require {json.dumps(str(PLUGIN))};
+                    Manacost_Partner_Placements::maybe_serve_first_party_route();
+                    """
+                    result = subprocess.run([PHP_BINARY, "-r", script], capture_output=True, text=True, check=False)
+                    self.assertEqual(0, result.returncode, result.stderr)
+                    self.assertIn("https://hs-manacost.ru/wp-content/uploads/" + filename, result.stderr)
+                    self.assertNotIn("example.invalid", result.stderr)
+                    self.assertIn('"redirection":0', result.stderr)
+                    self.assertIn('"limit_response_size":1048576', result.stderr)
+                    self.assertIn("status:503" if invalid else "status:200", result.stderr)
+                    self.assertEqual("Asset temporarily unavailable" if invalid else "x" * 2048, result.stdout)
+
     def test_skips_non_public_requests_and_unknown_hosts(self) -> None:
         contexts = (
             {"admin": True},
@@ -282,8 +351,8 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertIn("position: absolute", css)
         self.assertIn("background: transparent", css)
         self.assertIn("border: 0", css)
-        self.assertIn("@keyframes site-partnership-first", css)
-        self.assertIn("@keyframes site-partnership-second", css)
+        self.assertIn("transition: opacity 700ms", css)
+        self.assertNotIn("@keyframes site-partnership", css)
         self.assertIn("aspect-ratio: 729 / 90", css)
         self.assertIn("@media (min-width: 768px)", css)
         self.assertIn("@media (max-width: 767px)", css)
@@ -295,7 +364,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertNotIn("object-position: left center", css)
         self.assertNotIn("#f7f9fb", css)
         self.assertNotIn("grid-template-columns", css)
-        self.assertNotIn("display: none", css)
+        self.assertNotIn("transition: all", css)
 
     def test_styles_reserve_the_desktop_header_when_ad_filters_hide_the_logo_row(self) -> None:
         css = STYLESHEET.read_text(encoding="utf-8")
@@ -308,8 +377,8 @@ class PartnerPlacementsTest(unittest.TestCase):
 
         self.assertIn(header_selector, css)
         self.assertIn(menu_selector, css)
-        self.assertIn("min-height: 218px", css)
-        self.assertIn("min-height: 222px", css)
+        self.assertIn("min-height: 246px", css)
+        self.assertIn("min-height: 250px", css)
         self.assertIn("inset-block-end: 0", css)
         self.assertIn("inset-inline: 0", css)
         self.assertIn(".site-masthead-mark", css)

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.0.10
+ * Version: 1.1.0
  * Author: Manacost
  *
  * @package Manacost
@@ -12,13 +12,14 @@ defined( 'ABSPATH' ) || exit;
 
 /** Owns the direct Playerok and Sirus placements on public Manacost pages. */
 final class Manacost_Partner_Placements {
-	private const PLAYEROK_URL   = 'https://bit.ly/hsmanacostru2110';
-	private const SIRUS_URL      = 'https://sirus.cc/hsmanacost';
-	private const PLAYEROK_IMAGE = '/wp-content/uploads/2026/07/728x90.jpg.webp';
-	private const SIRUS_IMAGE    = '/site-media/secondary-mark/';
-	private const SIRUS_LINK     = '/site-link/secondary/';
-	private const SIRUS_SOURCE   = 'https://hs-manacost.ru/wp-content/uploads/2026/03/728h90.png.webp';
-	private const BRAND_IMAGE    = '/wp-content/uploads/2026/01/unnamed.png';
+	private const PLAYEROK_URL    = 'https://bit.ly/hsmanacostru2110';
+	private const SIRUS_URL       = 'https://sirus.cc/hsmanacost';
+	private const PLAYEROK_IMAGE  = '/site-media/primary-mark/';
+	private const PLAYEROK_SOURCE = 'https://hs-manacost.ru/wp-content/uploads/2026/07/728x90.jpg.webp';
+	private const SIRUS_IMAGE     = '/site-media/secondary-mark/';
+	private const SIRUS_LINK      = '/site-link/secondary/';
+	private const SIRUS_SOURCE    = 'https://hs-manacost.ru/wp-content/uploads/2026/03/728h90.png.webp';
+	private const BRAND_IMAGE     = '/wp-content/uploads/2026/01/unnamed.png';
 
 	/**
 	 * Prevents themes that fire the header hook twice from duplicating the placement.
@@ -29,13 +30,16 @@ final class Manacost_Partner_Placements {
 
 	/** Registers supported public extension points before regular plugins and the theme load. */
 	public static function boot(): void {
-		if ( in_array( self::request_path(), array( self::SIRUS_IMAGE, self::SIRUS_LINK ), true ) && ! defined( 'DONOTCACHEPAGE' ) ) {
+		if ( in_array( self::request_path(), array( self::PLAYEROK_IMAGE, self::SIRUS_IMAGE, self::SIRUS_LINK ), true ) && ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
 		}
 
 		add_filter( 'option_td_011', array( __CLASS__, 'suppress_legacy_header' ), 100 );
 		add_filter( 'option_ad_inserter', array( __CLASS__, 'suppress_legacy_article_block' ), 100 );
 		add_filter( 'the_content', array( __CLASS__, 'prepend_article_placement' ), 8 );
+		foreach ( array( 'rocket_delay_js_exclusions', 'perfmatters_delay_js_exclusions', 'rocket_rucss_external_exclusions', 'perfmatters_rucss_excluded_stylesheets' ) as $hook ) {
+			add_filter( $hook, array( __CLASS__, 'preserve_assets' ) );
+		}
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 		add_action( 'td_wp_booster_after_header', array( __CLASS__, 'render_header' ), 20 );
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_serve_first_party_route' ), -1000 );
@@ -106,8 +110,33 @@ final class Manacost_Partner_Placements {
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.css',
 			array(),
-			'1.0.9'
+			'1.1.0'
 		);
+		wp_enqueue_script(
+			'manacost-partner-placements',
+			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.js',
+			array(),
+			'1.1.0',
+			array( 'in_footer' => true )
+		);
+		wp_script_add_data( 'manacost-partner-placements', 'strategy', 'defer' );
+	}
+
+	/**
+	 * Keeps first-interaction controls and runtime state selectors out of optimizers.
+	 *
+	 * @param mixed $exclusions Existing optimizer rules.
+	 * @return mixed
+	 */
+	public static function preserve_assets( $exclusions ) {
+		if ( ! is_array( $exclusions ) ) {
+			return $exclusions;
+		}
+
+		$exclusions[] = '/wp-content/mu-plugins/manacost-partner-placements/partner-placements.js';
+		$exclusions[] = '/wp-content/mu-plugins/manacost-partner-placements/partner-placements.css';
+
+		return array_values( array_unique( $exclusions ) );
 	}
 
 	/**
@@ -129,7 +158,7 @@ final class Manacost_Partner_Placements {
 		return self::sirus_placement_markup() . $content;
 	}
 
-	/** Serves the neutral first-party Sirus image and outbound route. */
+	/** Serves fixed first-party partner images and the existing Sirus outbound route. */
 	public static function maybe_serve_first_party_route(): void {
 		if ( ! self::should_filter_legacy_options() ) {
 			return;
@@ -142,12 +171,16 @@ final class Manacost_Partner_Placements {
 			exit;
 		}
 
-		if ( self::SIRUS_IMAGE !== $path ) {
+		$sources = array(
+			self::PLAYEROK_IMAGE => self::PLAYEROK_SOURCE,
+			self::SIRUS_IMAGE    => self::SIRUS_SOURCE,
+		);
+		if ( ! isset( $sources[ $path ] ) ) {
 			return;
 		}
 
 		$response = wp_safe_remote_get(
-			self::SIRUS_SOURCE,
+			$sources[ $path ],
 			array(
 				'timeout'             => 5,
 				'redirection'         => 0,
@@ -193,13 +226,20 @@ final class Manacost_Partner_Placements {
 			</a>
 			<div class="site-partnership__inner">
 				<div class="site-partnership__items">
-					<?php // The first banner is the LCP on pages without a cover, so Rocket must not defer it. ?>
+					<?php // Preload both creatives: a hidden second slide must not wait for lazy loading. ?>
 					<a class="site-partnership__item" href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Playerok — партнёр Manacost' ); ?>">
-						<img src="<?php echo esc_url( self::PLAYEROK_IMAGE ); ?>" width="729" height="90" alt="" decoding="async" fetchpriority="high" data-no-lazy="1">
+						<span class="site-partnership__fallback">Playerok</span>
+						<img src="<?php echo esc_url( self::PLAYEROK_IMAGE ); ?>" width="729" height="90" alt="Playerok" decoding="async" loading="eager" fetchpriority="high" data-no-lazy="1">
 					</a>
 					<a class="site-partnership__item" href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Sirus — партнёр Manacost' ); ?>">
-						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="729" height="90" alt="" decoding="async">
+						<span class="site-partnership__fallback">Sirus</span>
+						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="729" height="90" alt="Sirus" decoding="async" loading="eager" data-no-lazy="1">
 					</a>
+				</div>
+				<div class="site-partnership__controls">
+					<span class="site-partnership__position" aria-live="off">1 / 2</span>
+					<button type="button" class="site-partnership__pause" aria-label="Приостановить смену баннеров" aria-pressed="false">Пауза</button>
+					<button type="button" class="site-partnership__next" aria-label="Следующий партнёр">Далее <span aria-hidden="true">→</span></button>
 				</div>
 			</div>
 		</aside>

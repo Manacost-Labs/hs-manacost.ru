@@ -20,3 +20,15 @@
 5. Recheck cold and warm requests through every route.
 
 The current expected top creative is `/wp-content/uploads/2026/07/728x90.jpg`. The known obsolete Playerok creative `/wp-content/uploads/2026/03/heartstone_sajt.png.webp` must not reappear.
+
+## Direct partner header
+
+Playerok uses `/site-media/primary-mark/`; Sirus uses `/site-media/secondary-mark/`.
+Both routes fetch only their fixed creative source and retain the original campaign destinations.
+The Playerok source above remains the expected artwork, not its public image URL.
+
+Verify loaded, slow, blocked and missing images; CSS image hiding; JavaScript disabled;
+keyboard focus, pause, manual next and reduced motion. Automatic rotation requires
+two successfully loaded images, pauses while hidden/hovered/focused, and crossfades
+only opacity. Failed images retain a readable partner link. Filters hiding the whole
+placement can still suppress it; do not add reinsertion loops or blocking gates.
