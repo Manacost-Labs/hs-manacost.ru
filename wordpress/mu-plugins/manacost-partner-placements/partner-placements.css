@@ -189,6 +189,10 @@
 	font: 14px / 1.4 sans-serif;
 }
 
+.site-partnership[data-enhanced] .site-partnership__links {
+	visibility: hidden;
+}
+
 .site-partnership__links a {
 	box-sizing: border-box;
 	text-decoration: none;

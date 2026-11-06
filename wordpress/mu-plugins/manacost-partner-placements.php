@@ -241,12 +241,10 @@ final class Manacost_Partner_Placements {
 					<button type="button" class="site-partnership__pause" aria-label="Приостановить смену баннеров" aria-pressed="false">Пауза</button>
 					<button type="button" class="site-partnership__next" aria-label="Следующий партнёр">Далее <span aria-hidden="true">→</span></button>
 				</div>
-				<noscript>
-					<div class="site-partnership__links">
-						<a href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer">Playerok</a>
-						<a href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer">Sirus</a>
-					</div>
-				</noscript>
+				<div class="site-partnership__links">
+					<a href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer">Playerok</a>
+					<a href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer">Sirus</a>
+				</div>
 			</div>
 		</aside>
 		<?php

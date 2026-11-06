@@ -8,6 +8,7 @@
     const position = root.querySelector('.site-partnership__position');
     if (items.length < 2 || !pause || !next || !position) return;
 
+    const focusedPartner = [...root.querySelectorAll('.site-partnership__links a')].indexOf(document.activeElement);
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = items.map(() => 'pending');
     let active = 0;
@@ -42,7 +43,7 @@
     };
 
     // Enhance only after the complete controller is available; without JS the
-    // fixed layers keep their geometry; noscript links and focus work without JS.
+    // fixed layers keep their geometry; plain links work if the script is unavailable.
     select(active);
     root.setAttribute('data-enhanced', '');
     items.forEach((item, index) => {
@@ -84,6 +85,10 @@
       paused = motion.matches;
       updatePause();
     });
+    if (focusedPartner >= 0) {
+      select(focusedPartner);
+      items[focusedPartner].focus({ preventScroll: true });
+    }
     updatePause();
   };
 
