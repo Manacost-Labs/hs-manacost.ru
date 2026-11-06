@@ -2,7 +2,7 @@
 import { chromium, devices } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { collectFrontendProfile } from './browser-frontend-profile.mjs';
+import { collectFrontendProfile, installFrontendObservers } from './browser-frontend-profile.mjs';
 import { navigateWithNetworkRecovery, classifyDiagnosticFailure } from './browser-fixture-request.mjs';
 
 const origin = 'https://test.hs-manacost.ru';
@@ -32,16 +32,7 @@ try {
           if (url.origin !== origin && !['image', 'font', 'stylesheet', 'script'].includes(request.resourceType())) return route.abort();
           return route.continue();
         });
-        await context.addInitScript(() => {
-          window.__hsFrontend = { shifts: [], lcp: 0, longTasks: 0 };
-          for (const [type, collect] of [
-            ['layout-shift', entry => { if (!entry.hadRecentInput) window.__hsFrontend.shifts.push({ time: entry.startTime, value: entry.value }); }],
-            ['largest-contentful-paint', entry => { window.__hsFrontend.lcp = entry.startTime; window.__hsFrontend.lcpEntry = { startTime: entry.startTime, url: entry.url,
-              tag: entry.element?.tagName, kind: !entry.element ? 'detached' : !entry.url ? 'text' : entry.element.tagName === 'IMG' ? 'img' : 'background-image',
-              loading: entry.element?.getAttribute('loading'), fetchpriority: entry.element?.getAttribute('fetchpriority') }; }],
-            ['longtask', () => { window.__hsFrontend.longTasks++; }],
-          ]) { try { new PerformanceObserver(list => list.getEntries().forEach(collect)).observe({ type, buffered: true }); } catch {} }
-        });
+        await context.addInitScript(installFrontendObservers);
         const page = await context.newPage();
         const cdp = await context.newCDPSession(page);
         await cdp.send('Network.enable');
@@ -56,7 +47,7 @@ try {
           for (const shift of measured.shifts) { if (shift.time - last < 1000 && shift.time - start < 5000) value += shift.value; else { value = shift.value; start = shift.time; } last = shift.time; cls = Math.max(cls, value); }
           const navigation = performance.getEntriesByType('navigation')[0];
           const images = [...document.images].filter(image => { const bounds = image.getBoundingClientRect(); return bounds.top < innerHeight && bounds.bottom > 0 && bounds.width > 0 && bounds.height > 0; });
-          return { cls, lcp_ms: measured.lcp, long_tasks: measured.longTasks, ttfb_ms: navigation?.responseStart - navigation?.requestStart,
+          return { cls, layout_shifts: measured.shifts, lcp_ms: measured.lcp, long_tasks: measured.longTasks, ttfb_ms: navigation?.responseStart - navigation?.requestStart,
             overflow: document.documentElement.scrollWidth > innerWidth,
             failed_visible_images: images.filter(image => image.complete && !image.naturalWidth).length,
             pending_visible_images: images.filter(image => !image.complete).length,

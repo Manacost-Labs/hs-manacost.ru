@@ -71,6 +71,35 @@ def budgets() -> dict[str, object]:
 
 
 class AdminPerformanceAutomationTests(unittest.TestCase):
+    def test_layout_shift_evidence_records_geometry_without_content(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import { installFrontendObservers } from './ops/performance/browser-frontend-profile.mjs';
+globalThis.window = globalThis;
+const rect = {x:0, y:10, width:390, height:100};
+const node = {tagName:'MAIN', classList:['td-main-content-wrap','private-customer-name'], textContent:'secret', id:'private-id'};
+globalThis.PerformanceObserver = class {
+  constructor(callback) { this.callback = callback; }
+  observe({type}) {
+    if (type !== 'layout-shift') return;
+    this.callback({getEntries:()=>[
+      {hadRecentInput:true, startTime:1, value:1, sources:[]},
+      {hadRecentInput:false, startTime:100, value:0.12, sources:[{node, previousRect:rect, currentRect:{...rect,y:110}}]},
+    ]});
+  }
+};
+installFrontendObservers();
+assert.equal(window.__hsFrontend.shifts.length,1);
+const shift=window.__hsFrontend.shifts[0];
+assert.equal(shift.value,0.12);
+assert.equal(shift.sources[0].tag,'MAIN');
+assert.equal(shift.sources[0].current.y - shift.sources[0].previous.y,100);
+assert.deepEqual(shift.sources[0].classes,['td-main-content-wrap']);
+assert.doesNotMatch(JSON.stringify(shift),/secret|private/);
+"""
+        result = subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, capture_output=True, text=True, timeout=15)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_navigation_recovery_is_bounded_and_specific(self) -> None:
         result = subprocess.run(["node", "--input-type=module", "-e", textwrap.dedent("""
             import assert from 'node:assert/strict';
@@ -678,6 +707,14 @@ assert.ok(!JSON.stringify(result.failed_visible_resources).includes('pending'));
 assert.ok(!JSON.stringify(result.failed_visible_resources).includes('loaded'));
 assert.ok(!JSON.stringify(result).includes('private'));
 assert.ok(!JSON.stringify(result).includes('untrusted'));
+globalThis.document = { querySelectorAll: () => [
+  image('https://test.hs-manacost.ru/site-media/primary-mark/?token=private-token'),
+  image('https://hs-manacost.com/site-media/secondary-mark/'),
+  image('https://test.hs-manacost.ru/site-media/private-token/'),
+] };
+assert.deepEqual(collectFrontendProfile().failed_visible_resources.map(item => item.path), [
+  '/site-media/primary-mark/', '/site-media/secondary-mark/',
+]);
 globalThis.__hsFrontend = {};
 assert.equal(collectFrontendProfile().lcp_resource, null);
 console.log('PASS');
