@@ -28,7 +28,9 @@ Both routes fetch only their fixed creative source and retain the original campa
 The Playerok source above remains the expected artwork, not its public image URL.
 
 Verify loaded, slow, blocked and missing images; CSS image hiding; JavaScript disabled;
-keyboard focus, pause, manual next and reduced motion. Automatic rotation requires
+keyboard focus, pause, manual next and reduced motion. Keep both creative layers in
+their final positions before JavaScript loads; delayed initialization must not move
+the second creative or cause CLS at its first reveal. Automatic rotation requires
 two successfully loaded images, pauses while hidden/hovered/focused, and crossfades
 only opacity. Failed images retain a readable partner link. Filters hiding the whole
 placement can still suppress it; do not add reinsertion loops or blocking gates.

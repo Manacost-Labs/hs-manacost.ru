@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Manacost
  *
  * @package Manacost
@@ -110,13 +110,13 @@ final class Manacost_Partner_Placements {
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.css',
 			array(),
-			'1.1.0'
+			'1.1.1'
 		);
 		wp_enqueue_script(
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.js',
 			array(),
-			'1.1.0',
+			'1.1.1',
 			array( 'in_footer' => true )
 		);
 		wp_script_add_data( 'manacost-partner-placements', 'strategy', 'defer' );
@@ -241,6 +241,12 @@ final class Manacost_Partner_Placements {
 					<button type="button" class="site-partnership__pause" aria-label="Приостановить смену баннеров" aria-pressed="false">Пауза</button>
 					<button type="button" class="site-partnership__next" aria-label="Следующий партнёр">Далее <span aria-hidden="true">→</span></button>
 				</div>
+				<noscript>
+					<div class="site-partnership__links">
+						<a href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer">Playerok</a>
+						<a href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer">Sirus</a>
+					</div>
+				</noscript>
 			</div>
 		</aside>
 		<?php

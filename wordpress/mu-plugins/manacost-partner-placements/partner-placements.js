@@ -42,7 +42,7 @@
     };
 
     // Enhance only after the complete controller is available; without JS the
-    // two fixed-size links stay reachable through native horizontal scrolling.
+    // fixed layers keep their geometry; noscript links and focus work without JS.
     select(active);
     root.setAttribute('data-enhanced', '');
     items.forEach((item, index) => {
