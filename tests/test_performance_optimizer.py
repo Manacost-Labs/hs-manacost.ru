@@ -11,6 +11,56 @@ OPTIMIZER = ROOT / "wordpress/mu-plugins/manacost-performance-optimizer.php"
 
 
 class PerformanceOptimizerTest(unittest.TestCase):
+    def test_authenticated_home_promotes_covers_without_public_optimizations(self) -> None:
+        script = r'''
+        define('ABSPATH', '/');
+        function add_action(...$args) {}
+        function add_filter(...$args) {}
+        function is_admin() { return false; }
+        function is_user_logged_in() { return true; }
+        function wp_doing_ajax() { return false; }
+        function is_feed() { return false; }
+        function is_preview() { return false; }
+        function is_robots() { return false; }
+        function is_trackback() { return false; }
+        function is_front_page() { return true; }
+        function is_home() { return true; }
+        function wp_is_mobile() { return false; }
+        function home_url() { return 'https://hs-manacost.ru'; }
+        function wp_parse_url($url, $part = -1) { return parse_url($url, $part); }
+        function sanitize_text_field($value) { return $value; }
+        function wp_unslash($value) { return $value; }
+        function esc_url($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+        function esc_attr($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+        require $argv[1];
+        $html = '<html><head></head><body><div id="wpadminbar">Editor</div>'
+          . '<div class="td-big-grid-flex"><a class="td-image-wrap" title="Cover">'
+          . '<span class="entry-thumb td-thumb-css" data-bg="https://hs-manacost.ru/wp-content/uploads/cover-1068x542.jpg"></span>'
+          . '</a></div><script src="https://mc.yandex.ru/metrika/tag.js"></script></body></html>';
+        ob_start();
+        Manacost_Performance_Optimizer::start();
+        echo $html;
+        if (ob_get_level() > 1) ob_end_flush();
+        $home = ob_get_clean();
+        $_SERVER['REQUEST_URI'] = '/account/';
+        ob_start();
+        Manacost_Performance_Optimizer::start();
+        echo $html;
+        if (ob_get_level() > 1) ob_end_flush();
+        echo json_encode([$home, ob_get_clean()]);
+        '''
+        home, account = json.loads(subprocess.run(
+            ["php", "-r", script, str(OPTIMIZER)], text=True,
+            capture_output=True, check=True).stdout)
+        self.assertIn('class="manacost-lcp-picture"', home)
+        self.assertIn('loading="eager"', home)
+        self.assertIn('fetchpriority="high"', home)
+        self.assertIn('id="manacost-grid-critical"', home)
+        self.assertIn('id="wpadminbar">Editor', home)
+        self.assertIn('<script src="https://mc.yandex.ru/metrika/tag.js"></script>', home)
+        self.assertNotIn('manacost-perf-active', home)
+        self.assertNotIn('manacost-lcp-picture', account)
+
     def test_both_critical_grid_images_are_high_without_changing_sources(self) -> None:
         script = r'''
         define('ABSPATH', '/');
