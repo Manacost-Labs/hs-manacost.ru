@@ -107,7 +107,6 @@
 }
 
 .site-partnership__item:focus-visible,
-.site-partnership__controls button:focus-visible,
 .site-partnership__links a:focus-visible {
 	outline: 3px solid #73c4ff;
 	outline-offset: 3px;
@@ -137,33 +136,10 @@
 	visibility: hidden;
 }
 
-.site-partnership__controls {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 4px;
-	min-height: 48px;
-	visibility: hidden;
-	color: #fff;
-	font: 14px / 1.4 sans-serif;
-}
-
-.site-partnership[data-enhanced] .site-partnership__controls {
-	visibility: visible;
-}
-
-.site-partnership__position {
-	padding-inline: 12px;
-	/* Keep the counter readable on the transparent desktop header. */
-	border-radius: 4px;
-	background: #002844;
-}
-
-.site-partnership__controls button,
 .site-partnership__links a {
 	min-width: 44px;
-	min-height: 44px;
-	padding: 8px 12px;
+	min-height: 32px;
+	padding: 4px 8px;
 	border: 1px solid #45657c;
 	border-radius: 6px;
 	background: #002844;
@@ -172,7 +148,6 @@
 	cursor: pointer;
 }
 
-.site-partnership__controls button:hover,
 .site-partnership__links a:hover {
 	background: #164561;
 }
@@ -180,12 +155,11 @@
 .site-partnership__links {
 	position: absolute;
 	inset-inline: 0;
-	inset-block-end: 0;
+	inset-block: 0;
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
 	gap: 4px;
-	min-height: 48px;
 	font: 14px / 1.4 sans-serif;
 }
 
@@ -211,7 +185,7 @@
 
 	#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap > .td-header-wrap.td-header-style-1,
 	body:has(> .site-partnership) #td-outer-wrap > .td-header-wrap.td-header-style-1 {
-		min-height: 246px;
+		min-height: 218px;
 	}
 
 	#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap > .td-header-wrap.td-header-style-1 > .td-header-menu-wrap-full,
@@ -239,7 +213,7 @@
 @media (min-width: 1019px) {
 	#td-outer-wrap:has(> .site-partnership) > .tdc-header-wrap > .td-header-wrap.td-header-style-1,
 	body:has(> .site-partnership) #td-outer-wrap > .td-header-wrap.td-header-style-1 {
-		min-height: 250px;
+		min-height: 222px;
 	}
 
 	.site-masthead-mark {

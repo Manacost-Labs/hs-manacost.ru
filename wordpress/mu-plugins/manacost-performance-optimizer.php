@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Performance Optimizer
  * Description: Public-page performance hardening for hs-manacost.ru without delaying partner advertising.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: Manacost
  *
  * @package Manacost
@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/manacost-performance-optimizer/thumbnail-loading.php';
 
-/** Applies bounded performance changes to anonymous public pages. */
+/** Optimizes listing images and guest-only page assets without changing private pages. */
 final class Manacost_Performance_Optimizer {
 	private const PRIMARY_HOST = 'hs-manacost.ru';
 	private const MIRROR_HOST  = 'hs-manacost.com';
@@ -70,13 +70,14 @@ final class Manacost_Performance_Optimizer {
 		}
 	}
 
-	/** Starts buffering only eligible public home-page requests. */
+	/** Starts the guest pipeline or the signed-in listing-image buffer. */
 	public static function start(): void {
-		if ( ! self::should_optimize() ) {
-			return;
+		if ( self::should_optimize() ) {
+			ob_start( array( __CLASS__, 'optimize_html' ) );
+		} elseif ( is_user_logged_in() && self::should_optimize( true ) && self::is_listing_request() ) {
+			// Editors need discoverable covers too, without guest-only rewrites.
+			ob_start( array( __CLASS__, 'optimize_listing_images' ) );
 		}
-
-		ob_start( array( __CLASS__, 'optimize_html' ) );
 	}
 
 	/**
@@ -92,7 +93,7 @@ final class Manacost_Performance_Optimizer {
 
 		if ( self::feature_enabled( 'MANACOST_MOBILE_LITE_ENABLED', true ) ) {
 			$html = self::remove_legacy_first_view_assets( $html );
-			$html = self::optimize_first_view( $html );
+			$html = self::optimize_listing_images( $html );
 			$html = self::add_mobile_critical_assets( $html );
 		}
 
@@ -139,16 +140,17 @@ final class Manacost_Performance_Optimizer {
 	/**
 	 * Checks the host and public request context.
 	 *
+	 * @param bool $allow_authenticated Allow only the separate listing-image path for signed-in users.
 	 * @return bool
 	 */
-	private static function should_optimize(): bool {
+	private static function should_optimize( bool $allow_authenticated = false ): bool {
 		if ( ! self::feature_enabled( 'MANACOST_PERF_ENABLED', true ) ) {
 			return false;
 		}
 
 		if (
 			is_admin()
-			|| is_user_logged_in()
+			|| ( is_user_logged_in() && ! $allow_authenticated )
 			|| wp_doing_ajax()
 			|| is_feed()
 			|| is_preview()
@@ -217,7 +219,31 @@ final class Manacost_Performance_Optimizer {
 	}
 
 	/**
-	 * Optimizes the first meaningful image on public listing pages.
+	 * Makes listing covers visible without waiting for the theme's image loader.
+	 *
+	 * @param string $html Rendered listing HTML, including authenticated pages.
+	 * @return string
+	 */
+	public static function optimize_listing_images( string $html ): string {
+		if ( ! self::feature_enabled( 'MANACOST_MOBILE_LITE_ENABLED', true ) || ! self::is_listing_request() || false === stripos( $html, '</head>' ) ) {
+			return $html;
+		}
+
+		$html = self::optimize_first_view( $html );
+		if ( false === strpos( $html, 'manacost-lcp-picture' ) || false !== strpos( $html, 'id="manacost-grid-critical"' ) ) {
+			return $html;
+		}
+
+		$css = '<style id="manacost-grid-critical">'
+			. 'body .manacost-lcp-thumb{background-image:none!important;overflow:hidden;opacity:1!important;transform:none!important;transition:none!important;}'
+			. '.manacost-lcp-picture,.manacost-lcp-picture img{display:block;width:100%;height:100%;}'
+			. '.manacost-lcp-picture img{object-fit:cover;}'
+			. '</style>' . "\n";
+		return self::inject_into_head( $html, $css );
+	}
+
+	/**
+	 * Optimizes the first meaningful image on listing pages.
 	 *
 	 * @param string $html Rendered page HTML.
 	 * @return string
@@ -352,9 +378,6 @@ final class Manacost_Performance_Optimizer {
 			. 'html,body{background:#010101!important;background-image:none!important;}'
 			. '.td-header-wrap,.td-mobile-header-wrap,.td-header-menu-wrap-full{background:#002844;}'
 			. '.td-a-rec img{max-width:100%;height:auto;}'
-			. '.manacost-lcp-thumb{background-image:none!important;overflow:hidden;}'
-			. '.manacost-lcp-picture,.manacost-lcp-picture img{display:block;width:100%;height:100%;}'
-			. '.manacost-lcp-picture img{object-fit:cover;}'
 			. '}</style>' . "\n";
 		return self::inject_into_head( $html, $critical );
 	}

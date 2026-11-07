@@ -19,7 +19,7 @@ async function isolate(context: BrowserContext, failed: string[] = []) {
 
 const rootSelector = '.site-partnership';
 
-test('loaded creatives crossfade, pause on focus/hover, and support manual controls', async ({ page, context }) => {
+test('loaded creatives crossfade automatically without buttons and pause on focus/hover', async ({ page, context }) => {
   await isolate(context);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.clock.install();
@@ -57,14 +57,11 @@ test('loaded creatives crossfade, pause on focus/hover, and support manual contr
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await root.getByRole('button', { name: 'Приостановить смену баннеров' }).click();
-  await expect(root.locator('.site-partnership__pause')).toHaveAttribute('aria-pressed', 'true');
-  await root.getByRole('button', { name: 'Следующий партнёр' }).click();
+  await expect(root.getByRole('button')).toHaveCount(0);
+  await page.clock.fastForward(6100);
   await expect(items.nth(1)).toHaveClass(/is-active/);
-  await page.mouse.move(0, 500);
-  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
-  await page.clock.fastForward(13000);
-  await expect(items.nth(1)).toHaveClass(/is-active/);
+  await page.clock.fastForward(6100);
+  await expect(items.first()).toHaveClass(/is-active/);
 });
 
 test('reduced motion starts paused and both links remain keyboard accessible', async ({ page, context }) => {
@@ -73,7 +70,7 @@ test('reduced motion starts paused and both links remain keyboard accessible', a
   await page.clock.install();
   await page.goto('/');
   const root = page.locator(rootSelector);
-  await expect(root.locator('.site-partnership__pause')).toHaveAttribute('aria-pressed', 'true');
+  await expect(root.getByRole('button')).toHaveCount(0);
   await page.clock.fastForward(13000);
   await expect(root.locator('.site-partnership__item').first()).toHaveClass(/is-active/);
   await root.locator('.site-partnership__item').first().focus();
@@ -145,21 +142,17 @@ test('without JavaScript both partner links remain reachable', async ({ browser,
 });
 
 // Include both Newspaper breakpoint boundaries and widths between them.
-test('controls fit at narrow, intermediate and landscape widths', async ({ page, context }, info) => {
+test('banner fits without controls at narrow, intermediate and landscape widths', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'Shared responsive matrix');
   await isolate(context);
   for (const width of [320, 390, 600, 767, 768, 900, 1018, 1019, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: width >= 768 ? 600 : 844 });
     await page.goto('/');
     const root = page.locator(rootSelector);
-    const controls = root.getByRole('button');
-    for (const button of await controls.all()) {
-      const box = await button.boundingBox();
-      expect(box!.width).toBeGreaterThanOrEqual(44);
-      expect(box!.height).toBeGreaterThanOrEqual(44);
-      expect(box!.x).toBeGreaterThanOrEqual(0);
-      expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
-    }
+    await expect(root.getByRole('button')).toHaveCount(0);
+    const creativeBox = await root.locator('.site-partnership__items').boundingBox();
+    expect(creativeBox!.x).toBeGreaterThanOrEqual(0);
+    expect(creativeBox!.x + creativeBox!.width).toBeLessThanOrEqual(width + 1);
     if (width >= 768) {
       const box = await root.boundingBox();
       const menu = await page.locator('.td-header-menu-wrap-full').boundingBox();
@@ -201,6 +194,7 @@ test('delayed controller never relocates either creative after first paint', asy
 
 test('blocked controller leaves visible partner links usable with JavaScript enabled', async ({ page, context }) => {
   await isolate(context);
+  await page.setViewportSize({ width: 320, height: 844 });
   await page.route('**/partner-placements.js*', route => route.abort('blockedbyclient'));
   await page.goto('/');
   const root = page.locator(rootSelector);
@@ -208,6 +202,12 @@ test('blocked controller leaves visible partner links usable with JavaScript ena
   const fallback = root.locator('.site-partnership__links');
   await expect(fallback.getByRole('link', { name: 'Playerok', exact: true })).toBeVisible();
   await expect(fallback.getByRole('link', { name: 'Sirus', exact: true })).toBeVisible();
+  const headerBox = await root.boundingBox();
+  for (const link of await fallback.getByRole('link').all()) {
+    const box = await link.boundingBox();
+    expect(box!.y).toBeGreaterThanOrEqual(headerBox!.y);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(headerBox!.y + headerBox!.height);
+  }
 });
 
 test('late controller preserves keyboard focus on the selected partner', async ({ page, context }) => {

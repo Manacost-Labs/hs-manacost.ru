@@ -215,7 +215,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.1.1",
+                    "1.2.0",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
@@ -233,17 +233,17 @@ class PartnerPlacementsTest(unittest.TestCase):
             "/wp-content/mu-plugins/manacost-partner-placements/partner-placements.css",
         ], result["optimizer_exclusions"])
 
-    def test_header_has_image_failure_fallback_and_keyboard_controls(self) -> None:
+    def test_header_has_image_failure_fallback_without_carousel_buttons(self) -> None:
         result = self.run_plugin()
         markup = str(result["markup"])
         self.assertIn('class="site-partnership__fallback">Playerok</span>', markup)
         self.assertIn('class="site-partnership__fallback">Sirus</span>', markup)
-        self.assertIn('aria-label="Следующий партнёр"', markup)
-        self.assertIn('aria-label="Приостановить смену баннеров"', markup)
+        self.assertNotIn('<button', markup)
+        self.assertNotIn('site-partnership__position', markup)
         self.assertEqual(2, markup.count('data-no-lazy="1"'))
         self.assertEqual(2, markup.count('loading="eager"'))
         self.assertNotIn('728x90', markup)
-        self.assertEqual("1.1.1", result["scripts"]["manacost-partner-placements"][2])
+        self.assertEqual("1.2.0", result["scripts"]["manacost-partner-placements"][2])
 
     def test_suppresses_only_the_known_legacy_direct_placements(self) -> None:
         result = self.run_plugin()
@@ -377,8 +377,8 @@ class PartnerPlacementsTest(unittest.TestCase):
 
         self.assertIn(header_selector, css)
         self.assertIn(menu_selector, css)
-        self.assertIn("min-height: 246px", css)
-        self.assertIn("min-height: 250px", css)
+        self.assertIn("min-height: 218px", css)
+        self.assertIn("min-height: 222px", css)
         self.assertIn("inset-block-end: 0", css)
         self.assertIn("inset-inline: 0", css)
         self.assertIn(".site-masthead-mark", css)

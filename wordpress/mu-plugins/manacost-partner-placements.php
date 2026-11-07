@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.1.1
+ * Version: 1.2.0
  * Author: Manacost
  *
  * @package Manacost
@@ -110,13 +110,13 @@ final class Manacost_Partner_Placements {
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.css',
 			array(),
-			'1.1.1'
+			'1.2.0'
 		);
 		wp_enqueue_script(
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.js',
 			array(),
-			'1.1.1',
+			'1.2.0',
 			array( 'in_footer' => true )
 		);
 		wp_script_add_data( 'manacost-partner-placements', 'strategy', 'defer' );
@@ -235,11 +235,6 @@ final class Manacost_Partner_Placements {
 						<span class="site-partnership__fallback">Sirus</span>
 						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="729" height="90" alt="Sirus" decoding="async" loading="eager" data-no-lazy="1">
 					</a>
-				</div>
-				<div class="site-partnership__controls">
-					<span class="site-partnership__position" aria-live="off">1 / 2</span>
-					<button type="button" class="site-partnership__pause" aria-label="Приостановить смену баннеров" aria-pressed="false">Пауза</button>
-					<button type="button" class="site-partnership__next" aria-label="Следующий партнёр">Далее <span aria-hidden="true">→</span></button>
 				</div>
 				<div class="site-partnership__links">
 					<a href="<?php echo esc_url( self::PLAYEROK_URL ); ?>" target="_blank" rel="sponsored noopener noreferrer">Playerok</a>
