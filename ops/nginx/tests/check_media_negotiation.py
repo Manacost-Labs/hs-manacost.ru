@@ -128,6 +128,7 @@ def main():
                         proxy_pass http://127.0.0.1:{port};
                         proxy_set_header Host $host;
                         proxy_cache edge{index}; proxy_cache_valid 200 1m;
+                        proxy_cache_valid 403 404 429 500 502 503 504 1m;
                         add_header X-Test-Cache $upstream_cache_status always;
                     }}
                 }}"""
@@ -344,6 +345,39 @@ def main():
                 assert response.status == 413
             finally:
                 client.close()
+
+            # An explicit sidecar can be requested before offload completes.
+            # A transient S3 error must not poison that URL on either edge,
+            # even if S3 supplies a long-lived cache header on its error.
+            for edge_index, edge_port in enumerate(ports[1:]):
+                for prefix, extension in (
+                    (CURRENT_UPLOAD_PREFIX, ".png.webp"),
+                    (CURRENT_UPLOAD_PREFIX, ".png.avif"),
+                    (HISTORICAL_UPLOAD_PREFIX, ".jpg"),
+                    ("/wp-content/uploads-webpc/uploads/2026/11/", ".png.webp"),
+                ):
+                    for failure in (403, 404, 429, 500, 502, 503, 504):
+                        name = f"pending-{edge_index}-{failure}{extension}"
+                        key = prefix + name
+                        ObjectStorage.objects[key] = (failure, "application/xml", b"pending")
+                        status, headers, _ = request_from_prefix(prefix, name, target=edge_port)
+                        assert status == failure, (status, headers)
+                        assert headers.get("Cache-Control") == "no-store", (name, headers)
+                        ObjectStorage.objects[key] = (200, "image/webp", b"offload-complete")
+                        status, headers, body = request_from_prefix(prefix, name, target=edge_port)
+                        assert (status, body) == (200, b"offload-complete"), (name, headers, body)
+                        assert headers["X-Test-Cache"] == "MISS", headers
+                        status, headers, body = request_from_prefix(prefix, name, target=edge_port)
+                        assert (status, body) == (200, b"offload-complete"), (name, headers, body)
+                        assert headers["X-Test-Cache"] == "HIT", headers
+
+            ObjectStorage.objects[PREFIX + "private.png.webp"] = (503, "application/xml", b"pending")
+            assert request("private.png.webp", extra={"Host": "test.hs-manacost.ru"})[0] == 401
+            status, headers, _ = request("private.png.webp", extra={
+                "Host": "test.hs-manacost.ru", "Authorization": authenticated
+            })
+            assert status == 503 and headers["Cache-Control"] == "private, no-store", headers
+            assert "Authorization" not in ObjectStorage.requests[-1][1]
 
             # Two independent local cache proxies: order/reload must not poison
             # representation choice. This does not prove live regional config.
