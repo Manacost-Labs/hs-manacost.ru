@@ -403,6 +403,7 @@
 
 		function guest( message ) {
 			clearPrivate();
+			window.hsManacostReaderHint?.( false );
 			if ( guestPanel ) guestPanel.hidden = false;
 			status.textContent = loginFailed
 				? 'Не получилось завершить вход через HearthPulse. Попробуйте ещё раз.'

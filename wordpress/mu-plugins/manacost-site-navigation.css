@@ -130,6 +130,13 @@
 		display: block;
 		position: relative;
 	}
+
+	/* header-session.js: the signed-in reader replaces the «Кабинет» label. */
+	.td-header-wrap .td-header-menu-wrap .sf-menu > li.mc-reader-entry--signed-in > a {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -138,3 +145,33 @@
 		transition: none;
 	}
 }
+
+/* Signed-in reader on the «Кабинет» entry (desktop and mobile menus). */
+.mc-reader-entry__avatar {
+	display: inline-grid;
+	place-items: center;
+	flex: 0 0 auto;
+	width: 24px;
+	height: 24px;
+	border: 1px solid #c9a96f;
+	border-radius: 50%;
+	background: #0d3550;
+	color: #e4c78f;
+	font: 700 12px/1 Georgia, "Times New Roman", serif;
+	object-fit: cover;
+	vertical-align: middle;
+}
+.mc-reader-entry__name {
+	display: inline-block;
+	max-width: 140px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	vertical-align: middle;
+	text-transform: none;
+}
+.mc-reader-entry__name { max-width: 220px; margin-left: 8px; }
+.mc-reader-entry__label { display: none; }
+/* The desktop bar has no room for a name: avatar + «Кабинет», name in the tooltip. */
+.td-header-wrap .sf-menu .mc-reader-entry__name { display: none; }
+.td-header-wrap .sf-menu .mc-reader-entry__label { display: inline; }

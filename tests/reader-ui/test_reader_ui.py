@@ -221,6 +221,8 @@ echo json_encode($GLOBALS['assets']);'''
         # article; keep the aggregate source guard below 156 KiB.
         self.assertLessEqual(sum(path.stat().st_size for path in assets), 156_000)
         self.assertLessEqual((PHP.parent / 'bootstrap.js').stat().st_size, 2_500)
+        # Loaded on every public page, so it keeps its own small guard.
+        self.assertLessEqual((PHP.parent / 'header-session.js').stat().st_size, 2_700)
         self.assertLessEqual((PHP.parent / 'comments.js').stat().st_size, 35_700)
         self.assertLessEqual((PHP.parent / 'comments.css').stat().st_size, 16_000)
 
