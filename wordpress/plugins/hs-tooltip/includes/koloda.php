@@ -24,7 +24,8 @@ function hs_smart_tooltip_koloda_image_url( string $url ): string {
 		|| ( $parts['host'] ?? '' ) !== 'api.kolodahearthstone.com'
 		|| isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] )
 		|| strlen( $url ) > 2048 || preg_match( '/[\x00-\x20\x7f]/', $url )
-		|| ! preg_match( '#^/uploads/(?:constructed-related|cards)/[A-Za-z0-9_-]+\.(?:png|webp|jpe?g)$#D', $parts['path'] ?? '' )
+		// Revised art lives under a SHA-256 name in card-history-media.
+		|| ! preg_match( '#^/uploads/(?:(?:constructed-related|cards)/[A-Za-z0-9_-]+|card-history-media/[a-f0-9]{64})\.(?:png|webp|jpe?g)$#D', $parts['path'] ?? '' )
 	) {
 		return '';
 	}
