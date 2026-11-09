@@ -41,6 +41,8 @@
 		const status = root.querySelector( '[data-reader-status]' );
 		const identity = root.querySelector( '[data-reader-identity]' );
 		const actions = root.querySelector( '[data-reader-actions]' );
+		const guestPanel = root.querySelector( '[data-reader-guest]' );
+		let loginFailed = takeLoginFailure();
 		const accountMenu = root.querySelector( '[data-reader-account-menu]' );
 		const accountActions = root.querySelector( '[data-reader-account-actions]' );
 		const administrator = root.querySelector( '[data-reader-administrator]' );
@@ -213,6 +215,13 @@
 			finally { if ( ticket === generation && sessionActive ) setCommunityDataBusy( false ); }
 		}
 
+		function savedDate( createdAt ) {
+			const date = new Date( createdAt );
+			if ( ! createdAt || Number.isNaN( date.getTime() ) ) return '';
+			const sameYear = date.getFullYear() === new Date().getFullYear();
+			return date.toLocaleDateString( 'ru-RU', sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' } ).replace( /\s*г\.$/, '' );
+		}
+
 		function favoriteRow( item ) {
 			const row = document.createElement( 'li' );
 			row.className = 'mc-reader__favorite';
@@ -225,7 +234,8 @@
 			controls.className = 'mc-reader__favorite-actions';
 			const saved = document.createElement( 'span' );
 			saved.className = 'mc-reader__favorite-label';
-			saved.textContent = 'Сохранено';
+			saved.textContent = savedDate( item.createdAt );
+			saved.hidden = ! saved.textContent;
 			const remove = actionButton( 'Убрать', 'mc-reader__favorite-remove mc-ui-button mc-ui-button--text' );
 			remove.setAttribute( 'aria-label', `Убрать «${ item.title }» из избранного` );
 			remove.addEventListener( 'click', () => { void removeFavorite( item, remove ); } );
@@ -352,6 +362,7 @@
 			identity.replaceChildren();
 			identity.hidden = true;
 			actions.replaceChildren();
+			if ( guestPanel ) guestPanel.hidden = true;
 			accountActions.replaceChildren();
 			accountMenu.open = false;
 			accountMenu.hidden = true;
@@ -381,9 +392,22 @@
 			return node;
 		}
 
+		// Failed or expired logins return here as ?login=failed (origin nginx).
+		function takeLoginFailure() {
+			const url = new URL( window.location.href );
+			if ( url.searchParams.get( 'login' ) !== 'failed' ) return false;
+			url.searchParams.delete( 'login' );
+			window.history.replaceState( window.history.state, '', url.pathname + url.search + url.hash );
+			return true;
+		}
+
 		function guest( message ) {
 			clearPrivate();
-			status.textContent = message;
+			if ( guestPanel ) guestPanel.hidden = false;
+			status.textContent = loginFailed
+				? 'Не получилось завершить вход через HearthPulse. Попробуйте ещё раз.'
+				: message;
+			loginFailed = false;
 			const login = link( 'Войти через HearthPulse', 'mc-reader__button mc-reader__button--primary mc-ui-button' );
 			login.href = loginEndpoint;
 			actions.append( login );
@@ -416,6 +440,7 @@
 				preserveDraft: wasActive && refreshOptions.preserveDraft,
 				acceptVersion: refreshOptions.acceptVersion,
 			} );
+			loginFailed = false;
 			favoritesOwnerId = nextFavoritesOwnerId;
 			currentProfileId = nextFavoritesOwnerId;
 			currentCsrfToken = data.csrfToken;

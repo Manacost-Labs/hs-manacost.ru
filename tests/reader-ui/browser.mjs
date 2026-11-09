@@ -72,7 +72,7 @@ const server = createServer((request, response) => {
     else send();
     return;
   }
-  if (request.url !== '/') { response.writeHead(404); response.end(); return; }
+  if (!['/', '/?login=failed'].includes(request.url)) { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   // The account shell owns the only page title, just as the dedicated template does.
   response.end(`<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width">${sharedBootstrap ? earlyBootstrap : ''}<script src="/parser-block.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/theme-boxed.css"><link rel="stylesheet" href="/ui.css"><link rel="stylesheet" href="/reader.css"><link rel="stylesheet" href="/tailwind.css"><title>Local reader test</title>${sharedBootstrap ? '<script defer src="/bootstrap.js"></script>' : ''}<script defer src="/profile-editor.js"></script><script defer src="/account-ready.js"></script><script defer src="/reader.js"></script></head><body class="td-boxed-layout"><header class="td-container-wrap" data-theme-header-outer></header><main class="td-main-content-wrap td-container-wrap mc-reader-page"><div class="td-container"><div class="td-page-content">${shell}</div></div></main><footer class="td-container-wrap" data-theme-footer-outer></footer><script defer src="/footer-block.js"></script></body></html>`);
@@ -250,6 +250,13 @@ try {
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
   }
   await capture('guest');
+  assert.equal(await page.getByRole('heading', { name: 'Ваш профиль на Манакосте', level: 2 }).isVisible(), true, 'guests see what the cabinet offers');
+  await page.goto(`${origin}/?login=failed`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('[data-reader-status]').textContent !== 'Проверяем вход…');
+  assert.match(await status.textContent(), /Не получилось завершить вход через HearthPulse/);
+  assert.equal(new URL(page.url()).search, '', 'the failure marker is removed so a reload shows the normal prompt');
+  await ready();
+  assert.equal(await status.textContent(), 'Войдите через HearthPulse, чтобы открыть свой профиль.');
   assert.equal(await page.getByRole('heading', { name: 'Личный кабинет', level: 1 }).count(), 1);
   assert.equal(await page.getByText('Профиль Манакоста', { exact: true }).count(), 0);
   assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 0, 'unavailable future navigation must not be rendered');

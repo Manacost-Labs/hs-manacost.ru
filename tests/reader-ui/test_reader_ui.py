@@ -345,7 +345,7 @@ echo json_encode($GLOBALS['assets']);'''
         self.assertNotIn('reader API', self.php)
     def test_responsive_accessible_geometry(self):
         self.assertRegex(self.css, r'--mc-reader-(?:ink|muted|ember|line|interactive-line)\s*:')
-        for selector in ('.mc-reader__title-group', '.mc-reader__profile-kicker', '.mc-reader__profile'):
+        for selector in ('.mc-reader__title-group', '.mc-reader__profile-banner', '.mc-reader__profile', '.mc-reader__gate'):
             self.assertIn(selector, self.css)
         self.assertRegex(self.css, r'min-(?:height|block-size)\s*:\s*44px')
         self.assertRegex(self.css, r'overflow-wrap\s*:\s*anywhere')

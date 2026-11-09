@@ -39,6 +39,15 @@ test('production origin reader location is private, bounded and loopback-only', 
   assert.equal(source.includes('auth_basic'), false);
 });
 
+test('failed login callbacks return to the cabinet instead of raw JSON', () => {
+  const source = readFileSync(new URL('../../../ops/reader/origin-production.conf', import.meta.url), 'utf8');
+  const callback = source.slice(source.indexOf('location = /reader-auth/callback {'));
+  assert.ok(callback.startsWith('location = /reader-auth/callback {'));
+  for (const contract of ['proxy_pass http://127.0.0.1:18183;', 'proxy_intercept_errors on;',
+    'error_page 400 401 403 429 500 502 503 504 =303 https://hs-manacost.ru/account/?login=failed;',
+    'proxy_set_header Authorization "";', 'proxy_cache off;']) assert.ok(callback.includes(contract), contract);
+});
+
 test('loopback editorial endpoints expose only signed WordPress predicates', () => {
   const source = readFileSync(new URL('../../../ops/reader/internal-editorial.conf', import.meta.url), 'utf8');
   for (const contract of ['listen 127.0.0.1:18184;', 'listen 127.0.0.1:18185;',
@@ -76,7 +85,9 @@ test('production service template isolates state, secrets and the loopback liste
     'EnvironmentFile=/etc/manacost-reader/service.env', 'Environment=NODE_ENV=production',
     'Environment=READER_PORT=18183', 'Environment=READER_DATABASE=/var/lib/manacost-reader/reader.sqlite',
     'UMask=0077', 'ProtectSystem=strict', 'ProtectHome=true', 'NoNewPrivileges=true',
-    'PrivateTmp=true', 'IPAddressDeny=any', 'IPAddressAllow=213.186.33.99']) assert.ok(source.includes(contract), contract);
+    'PrivateTmp=true', 'IPAddressDeny=any', 'IPAddressAllow=213.186.33.99',
+    // The identity provider edge; without it login fails with identity_unavailable.
+    'IPAddressAllow=57.129.183.118']) assert.ok(source.includes(contract), contract);
   assert.equal(/(?:SECRET|TOKEN|PASSWORD|COOKIE_KEYS)=/.test(source), false);
 });
 
