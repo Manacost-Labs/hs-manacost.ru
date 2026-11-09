@@ -47,6 +47,11 @@ function hs_manacost_reader_asset_manifest(): array {
 				'file'         => 'bootstrap.js',
 				'dependencies' => array(),
 			),
+			'header-session' => array(
+				'handle'       => 'hs-manacost-reader-header-session',
+				'file'         => 'header-session.js',
+				'dependencies' => array(),
+			),
 			'profile-editor' => array(
 				'handle'       => 'hs-manacost-reader-profile-editor',
 				'file'         => 'profile-editor.js',
@@ -181,6 +186,32 @@ function hs_manacost_reader_tailwind_assets(): void {
 		$dependencies,
 		hs_manacost_reader_asset_version( 'tailwind.css' )
 	);
+}
+
+/**
+ * Show the signed-in reader on the «Кабинет» menu entry of every public page.
+ *
+ * The script is static and cache-safe; guests without the hint cookie make no
+ * Reader request. It must not wait for the optimizers' first-interaction delay.
+ */
+function hs_manacost_reader_header_session_assets(): void {
+	if ( is_admin() || is_feed() || ! hs_manacost_reader_page() ) {
+		return;
+	}
+	hs_manacost_reader_enqueue_script( 'header-session' );
+	foreach ( array( 'rocket_delay_js_exclusions', 'perfmatters_delay_js_exclusions' ) as $hook ) {
+		add_filter( $hook, 'hs_manacost_reader_header_session_exclusions' );
+	}
+}
+
+/**
+ * Keep the header indicator out of "delay until interaction" optimizers.
+ *
+ * @param string[] $exclusions Existing optimizer exclusions.
+ * @return string[]
+ */
+function hs_manacost_reader_header_session_exclusions( array $exclusions ): array {
+	return array_values( array_unique( array_merge( $exclusions, array( 'hs-manacost-reader/header-session.js' ) ) ) );
 }
 
 /** Load the account bundle only on the private account surface. */

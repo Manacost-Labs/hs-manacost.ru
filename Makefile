@@ -97,6 +97,7 @@ reader-browser-test: lightbox-browser-test
 	@node tests/reader-ui/comments-browser.mjs
 	@node tests/reader-ui/comments-flows.mjs
 	@node tests/reader-ui/community-browser.mjs
+	@node tests/reader-ui/header-session-browser.mjs
 
 web-v2-check:
 	@npm ci --prefix services/web-v2 --ignore-scripts
