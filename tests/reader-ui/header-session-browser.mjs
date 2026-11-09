@@ -52,19 +52,19 @@ try {
 
   // 2. The first cabinet/article page after login uses the shared bootstrap and sets the hint.
   await tab.goto(`${origin}/article`);
-  await tab.locator('.sf-menu .mc-reader-entry__avatar').waitFor();
+  await tab.locator('.sf-menu .mc-reader-entry__label').waitFor();
   assert.equal(await hint(), '1');
   assert.equal(meCalls, 1, 'the header must reuse the page bootstrap instead of a second request');
 
   // 3. Every other page now shows the reader, escaped, in both menus.
   await tab.goto(`${origin}/`);
-  await tab.locator('.sf-menu .mc-reader-entry__avatar').waitFor();
+  await tab.locator('.sf-menu .mc-reader-entry__label').waitFor();
   assert.equal(await entry.locator('.mc-reader-entry__name').textContent(), 'Читатель <b>Манакоста</b>');
   assert.equal(await tab.locator('.td-mobile-content .mc-reader-entry__name').isVisible(), true, 'the mobile menu shows the name');
   assert.equal(await entry.locator('.mc-reader-entry__name').isVisible(), false, 'the desktop bar keeps «Кабинет» to avoid overflow');
   assert.equal(await entry.locator('.mc-reader-entry__label').isVisible(), true);
   assert.equal(await entry.getAttribute('aria-label'), 'Личный кабинет: Читатель <b>Манакоста</b>');
-  assert.equal(await entry.locator('img.mc-reader-entry__avatar').getAttribute('src'), '/reader-api/v1/profile/avatar?v=3');
+  assert.equal(await tab.locator('.mc-reader-entry img, .mc-reader-entry__avatar').count(), 0, 'the menu entry shows no avatar');
   assert.equal(await entry.getAttribute('href'), '/account/');
   assert.equal(await tab.evaluate(() => document.querySelector('.sf-menu b')), null, 'names are text, never HTML');
 
