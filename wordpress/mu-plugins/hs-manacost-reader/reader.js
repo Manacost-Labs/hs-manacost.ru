@@ -247,7 +247,7 @@
 		function renderFavorites() {
 			if ( ! favoritesList ) return;
 			favoritesList.replaceChildren( ...favoritesRows.map( favoriteRow ) );
-			if ( favoritesLoaded && favoritesStatus ) favoritesStatus.textContent = favoritesRows.length ? '' : 'Здесь появятся статьи, которые вы сохраните на сайте.';
+			if ( favoritesLoaded && favoritesStatus ) favoritesStatus.textContent = favoritesRows.length ? '' : 'Пока пусто. Нажмите «Сохранить статью» в конце любого материала, и он появится здесь.';
 			if ( favoritesMore && favoritesLoaded ) {
 				favoritesMore.hidden = ! favoritesCursor;
 				favoritesMore.disabled = false;

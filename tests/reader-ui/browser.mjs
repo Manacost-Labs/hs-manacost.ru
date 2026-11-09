@@ -352,7 +352,7 @@ try {
   assert.equal(favoriteCalls.at(-1).method, 'GET');
   await capture('favorites');
   await page.locator('[data-reader-favorites-list] [data-favorite-id] button').click();
-  await page.getByText('Здесь появятся статьи, которые вы сохраните на сайте.').waitFor();
+  await page.getByText('Пока пусто. Нажмите «Сохранить статью» в конце любого материала, и он появится здесь.').waitFor();
   assert.equal(favoriteCalls.at(-1).method, 'DELETE');
   assert.equal(favoriteCalls.at(-1).headers['x-reader-csrf'], 'synthetic-only');
   await page.locator('[data-reader-profile-overview]').waitFor({ state: 'visible' });
