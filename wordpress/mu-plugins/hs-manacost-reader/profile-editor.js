@@ -16,6 +16,7 @@
 		[ 'warlock', 'Чернокнижник' ],
 		[ 'warrior', 'Воин' ],
 	] );
+	const classTints = { 'death-knight': '#4f7a96', 'demon-hunter': '#2f6f4f', druid: '#7a5230', hunter: '#3d7a35', mage: '#3567c4', paladin: '#a8831f', priest: '#7f8c98', rogue: '#55585c', shaman: '#2c4fa8', warlock: '#6d3a99', warrior: '#9b2f28' };
 	const codepointLength = ( value ) => Array.from( value ).length;
 	const hasOwn = ( value, key ) => Object.prototype.hasOwnProperty.call( value, key );
 	const sameDraft = ( left, right ) => left.displayName === right.displayName && left.bio === right.bio && left.favoriteClass === right.favoriteClass
@@ -208,6 +209,8 @@
 				classCrest.alt = '';
 				classCrest.hidden = true;
 			}
+			overview?.style.setProperty( '--mc-reader-class', classTints[ current.favoriteClass ] || '' );
+			overview?.style.setProperty( '--mc-reader-crest', icon ? `url("${ icon }")` : '' );
 			previewBio.textContent = current.bio || 'Описание пока не добавлено.';
 			const source = localAvatarUrl || serverProfile?.avatarUrl || defaultAvatar || '';
 			for ( const view of avatarViews ) {

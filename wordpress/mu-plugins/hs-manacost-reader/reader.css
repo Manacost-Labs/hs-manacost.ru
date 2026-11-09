@@ -37,11 +37,11 @@
 .mc-reader .mc-reader__guest:not([hidden]) + .mc-reader__status { margin-top: 24px; }
 .mc-reader .mc-reader__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .mc-reader .mc-reader__actions:not(:empty) { margin-top: 16px; }
-.mc-reader .mc-reader__actions .mc-reader__button--primary { min-width: min(100%, 260px); }
 .mc-reader .mc-reader__profile { position: relative; margin-top: 24px; overflow: hidden; border: 1px solid var(--mc-reader-line); border-radius: 12px; background: var(--mc-r-surface); }
-.mc-reader .mc-reader__profile-banner { height: 104px; border-bottom: 2px solid #c9a96f; background: radial-gradient(120% 140% at 85% 0%, rgb(201 169 111 / 28%), transparent 55%), linear-gradient(120deg, #002844 0%, #0d3a55 60%, #154454 100%); }
+.mc-reader .mc-reader__profile-banner { position: relative; height: 104px; border-bottom: 2px solid #c9a96f; background: radial-gradient(120% 140% at 85% 0%, rgb(201 169 111 / 28%), transparent 55%), linear-gradient(120deg, #002844 30%, var(--mc-reader-class, #154454)); }
+.mc-reader .mc-reader__profile-banner::after { content: ""; position: absolute; inset: 8px 24px; background: var(--mc-reader-crest, none) right / contain no-repeat; opacity: .35; }
 .mc-reader .mc-reader__profile .mc-reader__identity-wrap { padding: 0 28px 28px; }
-.mc-reader .mc-reader__profile .mc-reader__avatar { width: 112px; height: 112px; margin-top: -56px; border: 4px solid var(--mc-r-surface); box-shadow: 0 0 0 1px #c9a96f, 0 6px 18px rgb(0 40 68 / 18%); }
+.mc-reader .mc-reader__profile .mc-reader__avatar { position: relative; width: 112px; height: 112px; margin-top: -56px; border: 4px solid var(--mc-r-surface); box-shadow: 0 0 0 1px #c9a96f, 0 6px 18px rgb(0 40 68 / 18%); }
 .mc-reader .mc-reader__profile .mc-reader__identity-copy { padding-top: 16px; }
 .mc-reader .mc-reader__identity-wrap { display: flex; align-items: flex-start; gap: 20px; min-width: 0; }
 .mc-reader .mc-reader__avatar { display: grid; place-items: center; flex: 0 0 auto; width: 88px; height: 88px; overflow: hidden; border: 1px solid #c9a96f; border-radius: 50%; background: var(--mc-r-surface-subtle); color: var(--mc-reader-ember); font: 700 28px/1 var(--mc-ui-heading); }
@@ -68,7 +68,7 @@
 .mc-reader .mc-reader__crest { display: block; flex: 0 0 auto; width: 38px; height: 38px; object-fit: contain; }
 .mc-reader .mc-reader__class-mark p { margin: 0; color: var(--mc-reader-muted); font: 500 12px/1.35 var(--mc-ui-body); white-space: nowrap; }
 .mc-reader .mc-reader__class-mark strong { display: block; color: var(--mc-reader-ink); font: 650 15px/1.3 var(--mc-ui-body); }
-.mc-reader .mc-reader__favorites { margin-top: 32px; padding: 0; border: 0; background: transparent; }
+.mc-reader .mc-reader__favorites { margin-top: 32px; }
 .mc-reader .mc-reader__favorites-sentinel { display: block; block-size: 1px; }
 .mc-reader .mc-reader__favorites-head { padding-bottom: 4px; }
 .mc-reader .mc-reader__favorites-head h2 { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--mc-reader-ink); font: 700 clamp(1.375rem, 2.6vw, 1.75rem)/1.2 var(--mc-ui-heading); }
@@ -76,7 +76,6 @@
 .mc-reader .mc-reader__favorites-status { min-height: 24px; margin: 12px 0 0; padding: 20px; border: 1px dashed var(--mc-reader-line); border-radius: 12px; color: var(--mc-reader-muted); font-size: 14px; line-height: 1.5; text-align: center; }
 .mc-reader .mc-reader__favorites-status:empty { display: none; }
 .mc-reader .mc-reader__favorites-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
-.mc-reader .mc-reader__favorites-list:empty { margin: 0; }
 .mc-reader .mc-reader__favorite { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; margin: 0; padding: 10px 12px 10px 20px; border: 1px solid var(--mc-reader-line); border-radius: 10px; background: var(--mc-r-surface); transition: border-color 140ms; }
 .mc-reader .mc-reader__favorite:hover { border-color: #c9a96f; }
 .mc-reader .mc-reader__favorite-link { min-width: 0; color: var(--mc-reader-ink); font: 700 1.0625rem/1.4 var(--mc-ui-heading); text-decoration: none; }
@@ -104,7 +103,6 @@
 .mc-reader .mc-reader__social-fields { min-width: 0; margin: 28px 0 0; padding: 0; border: 0; }
 .mc-reader .mc-reader__social-fields legend { float: left; width: 100%; margin: 0; padding: 0; }
 .mc-reader .mc-reader__social-fields legend + * { clear: both; }
-.mc-reader .mc-reader__social-fields .mc-reader__social-help:first-of-type { margin-top: 4px; }
 .mc-reader .mc-reader__social-help { max-width: 620px; }
 .mc-reader .mc-reader__social-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 16px; }
 .mc-reader .mc-reader__social-fields .mc-reader__field { margin: 0; }
@@ -113,8 +111,6 @@
 .mc-reader .mc-reader__social-fields [for="mc-reader-twitch"] .mc-reader__icon { color: #7040b5; }
 .mc-reader .mc-reader__social-fields [for="mc-reader-youtube"] .mc-reader__icon { color: #ad2637; }
 .mc-reader .mc-reader__form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-.mc-reader .mc-reader__publication { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--mc-reader-line); }
-.mc-reader .mc-reader__publication h3 { margin: 0 0 8px; color: var(--mc-reader-ink); font: 650 18px/1.4 var(--mc-ui-body); }
 .mc-reader .mc-reader__editor-status { margin: 16px 0 0; color: var(--mc-reader-muted); font-size: 14px; line-height: 1.5; }
 .mc-reader .mc-reader__editor-status:empty { margin: 0; }
 .mc-reader .mc-reader__editor-status[data-state="error"] { padding: 10px 12px; border-radius: 6px; background: #fdecea; color: var(--mc-r-error); }
@@ -157,7 +153,6 @@
   .mc-reader .mc-reader__identity-wrap { gap: 16px; }
   .mc-reader .mc-reader__avatar { width: 72px; height: 72px; font-size: 24px; }
   .mc-reader .mc-reader__profile .mc-reader__avatar { width: 80px; height: 80px; margin-top: -40px; }
-  .mc-reader .mc-reader__edit-button { width: 100%; margin-left: 0; }
   .mc-reader .mc-reader__identity { font-size: 1.375rem; overflow-wrap: anywhere; word-break: normal; }
   .mc-reader .mc-reader__profile-controls { align-items: flex-start; flex-direction: column; }
   .mc-reader .mc-reader__preview { display: block; }
