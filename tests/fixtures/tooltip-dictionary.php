@@ -86,7 +86,8 @@ copy($source . '/hs-smart-tooltip.php', $temp . '/hs-smart-tooltip.php');
 foreach (glob($source . '/includes/*.php') as $file) { copy($file, $temp . '/includes/' . basename($file)); }
 $rows = json_decode(file_get_contents(__DIR__ . '/tooltip-koloda-cards.json'), true);
 $bg_rows = json_decode(file_get_contents(__DIR__ . '/tooltip-koloda-bgs-cards.json'), true);
-$bg_rows[] = ['card_id' => 'BG19_010', 'dbf' => 64038, 'name' => ['ru' => 'Сточная крыса'], 'card_type' => ['slug' => 'minion'], 'tavern_tier' => 2, 'images' => ['card' => 'https://api.kolodahearthstone.com/uploads/cards/BG19_010.png']];
+$bg_rows[] = ['card_id' => 'BG19_010', 'dbf' => 64038, 'name' => ['ru' => 'Сточная крыса'], 'card_type' => ['slug' => 'minion'], 'tavern_tier' => 2, 'images' => ['card' => 'https://api.kolodahearthstone.com/uploads/card-history-media/0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f.png?v=2026-11-09%2003%3A29%3A56']];
+// Since 2026-11 Koloda serves revised card art from content-addressed card-history-media paths.
 $bg_old = json_decode(file_get_contents($source . '/hs_bgs_dictionary.json'), true);
 unset($bg_old['by_id']['BG36_111']);
 $bg_before = json_encode($bg_old, JSON_UNESCAPED_UNICODE);

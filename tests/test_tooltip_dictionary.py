@@ -68,7 +68,15 @@ class TooltipDictionaryTests(unittest.TestCase):
                                 cwd=ROOT, capture_output=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(result.stdout.startswith(b"\x89PNG"))
+        history = "https://api.kolodahearthstone.com/uploads/card-history-media/" + "ab" * 32 + ".png?v=2026-11-09%2003%3A29%3A56"
+        result = subprocess.run(["php", "tests/fixtures/tooltip-dictionary.php", "proxy", history],
+                                cwd=ROOT, capture_output=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith(b"\x89PNG"), "revised card art must pass the proxy")
         for url in ("https://api.kolodahearthstone.com/api/v1/cards",
+                    "https://api.kolodahearthstone.com/uploads/card-history-media/BE_036.png",
+                    "https://api.kolodahearthstone.com/uploads/card-history-media/" + "AB" * 32 + ".png",
+                    "https://api.kolodahearthstone.com/uploads/card-history-media/../" + "ab" * 32 + ".png",
                     "https://api.kolodahearthstone.com/uploads/constructed-related/../private.png",
                     "http://api.kolodahearthstone.com/uploads/constructed-related/BE_036.png",
                     "https://api.kolodahearthstone.com:8443/uploads/constructed-related/BE_036.png"):
