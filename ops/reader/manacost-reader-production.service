@@ -31,6 +31,8 @@ IPAddressAllow=::1
 # Current host resolver; recheck /etc/resolv.conf before installation.
 IPAddressAllow=213.186.33.99
 # Current public HearthPulse edges; re-resolve and review before installation.
+# hearthpulse.net moved to 57.129.183.118 (2026-11); older edges kept for cached resolvers.
+IPAddressAllow=57.129.183.118
 IPAddressAllow=162.19.220.14
 IPAddressAllow=186.246.28.244
 IPAddressAllow=194.67.92.242
