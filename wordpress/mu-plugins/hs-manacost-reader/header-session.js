@@ -12,21 +12,14 @@
   const decorate = data => {
     const name = typeof data?.user?.displayName === 'string' ? data.user.displayName.trim().slice(0, 40) : '';
     if (!name) return;
-    const avatar = data.profile?.avatarUrl;
-    const safeAvatar = typeof avatar === 'string' && /^\/reader-api\/v1\/profile\/avatar\?v=[\w-]+$/.test(avatar) ? avatar : '';
     for (const link of document.querySelectorAll('a[data-mc-reader-entry]')) {
-      const mark = document.createElement(safeAvatar ? 'img' : 'span');
-      mark.className = 'mc-reader-entry__avatar';
-      mark.setAttribute('aria-hidden', 'true');
-      if (safeAvatar) { mark.src = safeAvatar; mark.alt = ''; mark.width = 24; mark.height = 24; mark.decoding = 'async'; }
-      else mark.textContent = Array.from(name)[0].toUpperCase();
       const label = document.createElement('span');
       label.className = 'mc-reader-entry__name';
       label.textContent = name;
       const plain = document.createElement('span');
       plain.className = 'mc-reader-entry__label';
       plain.textContent = 'Кабинет';
-      link.replaceChildren(mark, label, plain);
+      link.replaceChildren(label, plain);
       link.title = `Личный кабинет: ${name}`;
       link.setAttribute('aria-label', `Личный кабинет: ${name}`);
       link.closest('li')?.classList.add('mc-reader-entry--signed-in');
