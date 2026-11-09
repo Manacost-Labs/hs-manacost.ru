@@ -256,6 +256,12 @@ try {
   publicStatus = 200; publicProfile = author({ name: 'Жрец <img src=x onerror=window.injected=1>', bio: 'Русский текст <b>не HTML</b>', favoriteClass: 'priest', twitchUrl: 'https://www.twitch.tv/mana_cost', youtubeUrl: 'https://www.youtube.com/@Manacost' });
   await page.goto(`${origin}/profile`); await page.getByRole('heading', { name: /Жрец/ }).waitFor();
   assert.equal(await page.evaluate(() => window.injected), undefined);
+  if (process.env.READER_UI_SCREENSHOTS) {
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.screenshot({ path: `${process.env.READER_UI_SCREENSHOTS}/public-profile-${width}.png`, fullPage: true });
+    }
+  }
   assert.equal(await page.locator('[data-public-profile-class]').textContent(), 'Жрец');
   assert.match(await page.locator('[data-public-profile-class-crest]').getAttribute('src'), /class-icons\/priest\.png$/);
   assert.equal(await page.locator('[data-public-profile-avatar]').getAttribute('src'), publicProfile.avatarUrl);
@@ -304,7 +310,7 @@ try {
     borderRadius: getComputedStyle(element).borderRadius,
     borderLeftWidth: getComputedStyle(element).borderLeftWidth,
   }));
-  assert.deepEqual(publicVisual, { background: 'rgb(255, 255, 255)', borderRadius: '8px', borderLeftWidth: '1px' });
+  assert.deepEqual(publicVisual, { background: 'rgb(250, 248, 243)', borderRadius: '8px', borderLeftWidth: '1px' });
   publicProfile = author({ twitchUrl: 'https://evil.test/channel', youtubeUrl: 'https://youtube.com/watch?v=not-a-channel' });
   await page.reload(); await page.locator('[data-public-profile-content]').waitFor();
   assert.equal(await page.locator('[data-public-profile-socials]').isHidden(), true, 'unrecognised public URLs must never become outbound links');

@@ -114,3 +114,7 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-reader-ui *, .mc-reader-ui *::before, .mc-reader-ui *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+[data-class=death-knight]{--mc-tint:#4f7a96}[data-class=demon-hunter]{--mc-tint:#2f6f4f}[data-class=druid]{--mc-tint:#7a5230}[data-class=hunter]{--mc-tint:#3d7a35}[data-class=mage]{--mc-tint:#3567c4}[data-class=paladin]{--mc-tint:#a8831f}[data-class=priest]{--mc-tint:#7f8c98}[data-class=rogue]{--mc-tint:#55585c}[data-class=shaman]{--mc-tint:#2c4fa8}[data-class=warlock]{--mc-tint:#6d3a99}[data-class=warrior]{--mc-tint:#9b2f28}
+.mc-reader-ui .mc-reader__profile-banner{position:relative;height:104px;border-bottom:2px solid #c9a96f;background:radial-gradient(120% 140% at 85% 0%,rgb(201 169 111/28%),transparent 55%),linear-gradient(120deg,#002844 30%,var(--mc-tint,#154454))}
+.mc-reader-ui .mc-reader__profile-banner::after{content:"";position:absolute;inset:8px 24px;background:var(--mc-reader-crest,none) right/contain no-repeat;opacity:.35}
+@media (max-width:680px){.mc-reader-ui .mc-reader__profile-banner{height:80px}}

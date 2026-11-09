@@ -43,6 +43,7 @@
     content.hidden = true; image.hidden = true; image.removeAttribute('src');
     placeholder.textContent = 'М'; placeholder.hidden = false;
     classRow.hidden = true; classCrest.hidden = true; classCrest.removeAttribute('src'); classCrest.alt = '';
+    content.dataset.class = ''; content.style.removeProperty('--mc-reader-crest');
     for (const selector of ['[data-public-profile-name]', '[data-public-profile-bio]', '[data-public-profile-class]']) $(selector).textContent = '';
     $('[data-public-profile-paid]').hidden = true;
     $('[data-public-profile-administrator]').hidden = true;
@@ -67,12 +68,14 @@
       placeholder.textContent = initials(profile.name);
       $('[data-public-profile-bio]').textContent = profile.bio;
       const className = classes[profile.favoriteClass] || '';
+      content.dataset.class = className ? profile.favoriteClass : '';
       $('[data-public-profile-class]').textContent = className;
       classRow.hidden = !className;
       if (className && /^\/wp-content\/mu-plugins\/hs-manacost-reader\/class-icons\/$/.test(classIconBase)) {
         classCrest.src = `${classIconBase}${profile.favoriteClass.replace(/-/g, '')}.png`;
         classCrest.alt = `Эмблема класса ${className}`;
         classCrest.hidden = false;
+        content.style.setProperty('--mc-reader-crest', `url("${classCrest.src}")`);
       }
 
       let socialCount = 0;
