@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Partner Placements
  * Description: Renders transparent first-party partner placements outside ad-network wrappers.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: Manacost
  *
  * @package Manacost
@@ -110,13 +110,13 @@ final class Manacost_Partner_Placements {
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.css',
 			array(),
-			'1.2.0'
+			'1.2.1'
 		);
 		wp_enqueue_script(
 			'manacost-partner-placements',
 			plugin_dir_url( __FILE__ ) . 'manacost-partner-placements/partner-placements.js',
 			array(),
-			'1.2.0',
+			'1.2.1',
 			array( 'in_footer' => true )
 		);
 		wp_script_add_data( 'manacost-partner-placements', 'strategy', 'defer' );
