@@ -215,7 +215,7 @@ class PartnerPlacementsTest(unittest.TestCase):
                 self.assertNotIn("banner-rotator", markup)
                 self.assertIn("manacost-partner-placements", result["styles"])
                 self.assertEqual(
-                    "1.2.0",
+                    "1.2.1",
                     result["styles"]["manacost-partner-placements"][2],
                 )
 
@@ -243,7 +243,7 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertEqual(2, markup.count('data-no-lazy="1"'))
         self.assertEqual(2, markup.count('loading="eager"'))
         self.assertNotIn('728x90', markup)
-        self.assertEqual("1.2.0", result["scripts"]["manacost-partner-placements"][2])
+        self.assertEqual("1.2.1", result["scripts"]["manacost-partner-placements"][2])
 
     def test_suppresses_only_the_known_legacy_direct_placements(self) -> None:
         result = self.run_plugin()

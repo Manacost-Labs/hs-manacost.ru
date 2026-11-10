@@ -6,7 +6,6 @@
     if (items.length < 2) return;
 
     const focusedPartner = [...root.querySelectorAll('.site-partnership__links a')].indexOf(document.activeElement);
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = items.map(() => 'pending');
     let active = 0;
     let hovered = false;
@@ -15,7 +14,7 @@
     const ready = () => items.map((_, index) => index).filter(index => states[index] === 'ready');
     const schedule = () => {
       window.clearTimeout(timer);
-      if (motion.matches || hovered || document.hidden || root.contains(document.activeElement) || ready().length < 2) return;
+      if (hovered || document.hidden || root.contains(document.activeElement) || ready().length < 2) return;
       timer = window.setTimeout(() => advance(), 6000);
     };
     const select = index => {
@@ -63,7 +62,6 @@
     root.addEventListener('focusin', schedule);
     root.addEventListener('focusout', () => window.setTimeout(schedule, 0));
     document.addEventListener('visibilitychange', schedule);
-    motion.addEventListener('change', schedule);
     if (focusedPartner >= 0) {
       select(focusedPartner);
       items[focusedPartner].focus({ preventScroll: true });

@@ -64,15 +64,22 @@ test('loaded creatives crossfade automatically without buttons and pause on focu
   await expect(items.first()).toHaveClass(/is-active/);
 });
 
-test('reduced motion starts paused and both links remain keyboard accessible', async ({ page, context }) => {
+test('reduced motion rotates without a transition and both links remain keyboard accessible', async ({ page, context }) => {
   await isolate(context);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install();
   await page.goto('/');
   const root = page.locator(rootSelector);
+  const items = root.locator('.site-partnership__item');
   await expect(root.getByRole('button')).toHaveCount(0);
-  await page.clock.fastForward(13000);
-  await expect(root.locator('.site-partnership__item').first()).toHaveClass(/is-active/);
+  await expect(items.first()).toHaveClass(/is-active/);
+  await expect(items.first()).toHaveCSS('transition-duration', '0s');
+  // Every partner must still be shown; only the crossfade is dropped.
+  await page.clock.fastForward(6100);
+  await expect(items.nth(1)).toHaveClass(/is-active/);
+  await expect(items.nth(1)).toHaveCSS('opacity', '1');
+  await page.clock.fastForward(6100);
+  await expect(items.first()).toHaveClass(/is-active/);
   await root.locator('.site-partnership__item').first().focus();
   await page.keyboard.press('Tab');
   await expect(root.locator('.site-partnership__item').nth(1)).toBeFocused();
