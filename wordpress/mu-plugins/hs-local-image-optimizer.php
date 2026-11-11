@@ -440,8 +440,7 @@ final class HS_Local_Image_Optimizer_WordPress {
 			return $token;
 		}
 
-		$current = get_option( self::LOCK_OPTION, array() );
-		if ( ! is_array( $current ) || ( time() - (int) ( $current['created_at'] ?? 0 ) ) <= self::LOCK_TTL ) {
+		if ( ! self::lock_expired( get_option( self::LOCK_OPTION, array() ) ) ) {
 			return null;
 		}
 
@@ -462,12 +461,25 @@ final class HS_Local_Image_Optimizer_WordPress {
 	}
 
 	/**
+	 * Whether a stored worker lock is older than LOCK_TTL and may be replaced.
+	 *
+	 * @param mixed $lock Stored lock option value.
+	 *
+	 * @return bool
+	 */
+	private static function lock_expired( $lock ): bool {
+		return is_array( $lock ) && ( time() - (int) ( $lock['created_at'] ?? 0 ) ) > self::LOCK_TTL;
+	}
+
+	/**
 	 * Whether any optimizer job is still scheduled or the worker is running.
 	 *
 	 * @return bool
 	 */
 	private static function has_pending_jobs(): bool {
-		if ( false !== get_option( self::LOCK_OPTION, false ) ) {
+		// A lock left behind by a killed worker expires; it is not running work.
+		$lock = get_option( self::LOCK_OPTION, false );
+		if ( false !== $lock && ! self::lock_expired( $lock ) ) {
 			return true;
 		}
 

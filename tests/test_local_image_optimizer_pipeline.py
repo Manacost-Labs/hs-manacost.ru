@@ -282,6 +282,24 @@ class QueueSafetyTest(unittest.TestCase):
         self.assertEqual(state["meta"]["_hs_local_image_optimizer_requeues"], 1)
         self.assertIsNone(state["result"])
 
+    def test_lock_of_a_killed_worker_does_not_block_recovery(self) -> None:
+        state = self.recover(
+            "$GLOBALS['options']['hs_local_image_optimizer_worker_lock'] = ['token' => 'dead', 'created_at' => time() - 901];"
+        )
+
+        self.assertEqual(state["queued"], [[42, 0]])
+
+    def test_expired_lock_is_taken_over_by_the_next_job(self) -> None:
+        state = self.run_bridge(
+            """
+            $GLOBALS['options']['hs_local_image_optimizer_worker_lock'] = ['token' => 'dead', 'created_at' => time() - 901];
+            HS_Local_Image_Optimizer_WordPress::process_attachment(42, 0);
+            """
+        )
+
+        # The job ran (missing source -> ordinary retry) instead of waiting.
+        self.assertEqual(state["scheduled"], [{"delay": 60, "args": [42, 1]}])
+
     def test_lost_job_recovery_is_bounded(self) -> None:
         state = self.recover("$GLOBALS['meta']['_hs_local_image_optimizer_requeues'] = 3;")
 

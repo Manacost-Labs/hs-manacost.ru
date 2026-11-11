@@ -952,14 +952,14 @@
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 567
+        "line": 579
       },
       {
         "name": "_hs_local_image_optimizer_pipeline",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 568
+        "line": 580
       },
       {
         "name": "_hs_local_image_optimizer_queued_at",
@@ -973,14 +973,14 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 496
+        "line": 508
       },
       {
         "name": "_hs_local_image_optimizer_queued_at",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 499
+        "line": 511
       },
       {
         "name": "_hs_local_image_optimizer_requeues",
@@ -1001,14 +1001,14 @@
         "resolved": true,
         "api": "delete_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 571
+        "line": 583
       },
       {
         "name": "_hs_local_image_optimizer_result",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 569
+        "line": 581
       },
       {
         "name": "_hs_local_image_optimizer_stats",
@@ -1661,35 +1661,35 @@
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 448
+        "line": 447
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "add_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 449
+        "line": 448
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 458
+        "line": 457
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 460
+        "line": 459
       },
       {
         "name": "hs_local_image_optimizer_worker_lock",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 470
+        "line": 481
       },
       {
         "name": "hs_tooltip_logs",
@@ -2565,7 +2565,7 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-local-image-optimizer.php",
-        "line": 557
+        "line": 569
       },
       {
         "name": "hs_local_image_optimizer_requeue_lost",
