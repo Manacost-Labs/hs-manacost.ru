@@ -15,21 +15,28 @@ if ( ! is_dir( $hs_local_image_optimizer_src ) ) {
 	// Repository layout used by the isolated test suite.
 	$hs_local_image_optimizer_src = dirname( __DIR__ ) . '/src/';
 }
-foreach (
-	array(
-		'ProfileSelector.php',
-		'AttachmentFiles.php',
-		'CandidatePublisher.php',
-		'EncoderCommand.php',
-		'ProcessRunner.php',
-		'ImageWorker.php',
-		'AdminStats.php',
-		'AdminMediaUi.php',
-	) as $hs_local_image_optimizer_file
-) {
+$hs_local_image_optimizer_files = array(
+	'ProfileSelector.php',
+	'AttachmentFiles.php',
+	'CandidatePublisher.php',
+	'class-hs-local-image-encoder-command.php',
+	'class-hs-local-image-process-runner.php',
+	'class-hs-local-image-worker.php',
+	'AdminStats.php',
+	'class-hs-local-image-admin-media-ui.php',
+);
+foreach ( $hs_local_image_optimizer_files as $hs_local_image_optimizer_file ) {
+	if ( ! is_readable( $hs_local_image_optimizer_src . $hs_local_image_optimizer_file ) ) {
+		// A deployment copies this file before its source directory. Stay
+		// inactive for that moment instead of failing every request.
+		unset( $hs_local_image_optimizer_src, $hs_local_image_optimizer_files, $hs_local_image_optimizer_file );
+		return;
+	}
+}
+foreach ( $hs_local_image_optimizer_files as $hs_local_image_optimizer_file ) {
 	require_once $hs_local_image_optimizer_src . $hs_local_image_optimizer_file;
 }
-unset( $hs_local_image_optimizer_src, $hs_local_image_optimizer_file );
+unset( $hs_local_image_optimizer_src, $hs_local_image_optimizer_files, $hs_local_image_optimizer_file );
 
 /**
  * Connects the local image pipeline to WordPress media lifecycle hooks.
@@ -43,16 +50,31 @@ final class HS_Local_Image_Optimizer_WordPress {
 	private static array $pending_attachments = array();
 
 	private const HOOK           = 'hs_local_image_optimizer_process_attachment';
+	private const RECOVERY_HOOK  = 'hs_local_image_optimizer_requeue_lost';
 	private const GROUP          = 'hs-local-image-optimizer';
 	private const LOCK_OPTION    = 'hs_local_image_optimizer_worker_lock';
 	private const QUEUED_META    = '_hs_local_image_optimizer_queued_at';
 	private const FINISHED_META  = '_hs_local_image_optimizer_finished_at';
 	private const RESULT_META    = '_hs_local_image_optimizer_result';
 	private const PIPELINE_META  = '_hs_local_image_optimizer_pipeline';
+	private const REQUEUES_META  = '_hs_local_image_optimizer_requeues';
 	private const ENABLED_OPTION = 'hs_local_image_optimizer_enabled';
 	private const PIPELINE       = 'quality-v1';
 	private const LOCK_TTL       = 900;
 	private const MAX_ATTEMPTS   = 5;
+	private const RETRY_DELAY    = 60;
+
+	// Waiting for the single worker is not a failure: a burst of uploads is
+	// allowed to queue for this long, well beyond LOCK_TTL, before giving up.
+	private const BUSY_DELAY    = 30;
+	private const MAX_BUSY_WAIT = 7200;
+
+	// A job whose process was killed leaves no result. The recovery sweep
+	// re-queues such attachments a bounded number of times.
+	private const LOST_AFTER     = 900;
+	private const LOST_WINDOW    = 604800;
+	private const MAX_REQUEUES   = 3;
+	private const RECOVERY_BATCH = 20;
 
 	/**
 	 * Register WordPress integration hooks.
@@ -62,6 +84,8 @@ final class HS_Local_Image_Optimizer_WordPress {
 		add_action( 'shutdown', array( __CLASS__, 'flush_pending_queue' ), 20 );
 		add_action( self::HOOK, array( __CLASS__, 'process_attachment' ), 10, 2 );
 		add_action( 'delete_attachment', array( __CLASS__, 'delete_sidecars' ), 5, 1 );
+		add_action( 'init', array( __CLASS__, 'schedule_recovery' ) );
+		add_action( self::RECOVERY_HOOK, array( __CLASS__, 'requeue_lost_attachments' ) );
 
 		// Imagify must not process the same attachment when the local pipeline is active.
 		add_filter( 'imagify_auto_optimize_attachment', array( __CLASS__, 'filter_imagify_auto_optimize' ), 1, 3 );
@@ -158,6 +182,69 @@ final class HS_Local_Image_Optimizer_WordPress {
 	}
 
 	/**
+	 * Keep the hourly recovery sweep scheduled while the optimizer is enabled.
+	 */
+	public static function schedule_recovery(): void {
+		if ( self::is_enabled_for( 0 ) && ! wp_next_scheduled( self::RECOVERY_HOOK ) ) {
+			wp_schedule_event( time() + self::LOST_AFTER, 'hourly', self::RECOVERY_HOOK );
+		}
+	}
+
+	/**
+	 * Re-queue attachments whose job disappeared without a result, for example
+	 * because its PHP process was killed. Runs only while the queue is idle, so
+	 * a job that is merely waiting is never duplicated.
+	 */
+	public static function requeue_lost_attachments(): void {
+		global $wpdb;
+
+		if ( ! self::is_enabled_for( 0 ) || self::has_pending_jobs() ) {
+			return;
+		}
+
+		$now = time();
+		// No ORDER BY: sorting by meta_id makes MariaDB walk the whole postmeta
+		// primary key instead of the few rows of this meta key.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded hourly maintenance read of live queue state.
+		$attachment_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT queued.post_id
+				FROM {$wpdb->postmeta} queued
+				LEFT JOIN {$wpdb->postmeta} finished
+					ON finished.post_id = queued.post_id AND finished.meta_key = %s
+				WHERE queued.meta_key = %s
+					AND queued.meta_value + 0 BETWEEN %d AND %d
+					AND ( finished.meta_id IS NULL OR finished.meta_value + 0 < queued.meta_value + 0 )
+				LIMIT %d",
+				self::FINISHED_META,
+				self::QUEUED_META,
+				$now - self::LOST_WINDOW,
+				$now - self::LOST_AFTER,
+				self::RECOVERY_BATCH
+			)
+		);
+
+		foreach ( $attachment_ids as $attachment_id ) {
+			$attachment_id = (int) $attachment_id;
+			$requeues      = (int) get_post_meta( $attachment_id, self::REQUEUES_META, true );
+			if ( $requeues >= self::MAX_REQUEUES ) {
+				self::finish(
+					$attachment_id,
+					array(
+						'status' => 'failed_retries',
+						'reason' => 'job_lost',
+					)
+				);
+				continue;
+			}
+
+			update_post_meta( $attachment_id, self::REQUEUES_META, $requeues + 1 );
+			self::log( 'requeue id=' . $attachment_id . ' reason=job_lost' );
+			self::queue_attachment( $attachment_id );
+		}
+	}
+
+	/**
 	 * Create optimized sidecars for one attachment.
 	 *
 	 * @param int $attachment_id Attachment post ID.
@@ -170,7 +257,7 @@ final class HS_Local_Image_Optimizer_WordPress {
 
 		$lock_token = self::acquire_lock();
 		if ( null === $lock_token ) {
-			self::retry( $attachment_id, $attempt, 'worker_busy' );
+			self::wait_for_worker( $attachment_id, $attempt );
 			return;
 		}
 
@@ -186,6 +273,7 @@ final class HS_Local_Image_Optimizer_WordPress {
 			$parent_post_type = $parent_id > 0 ? (string) get_post_type( $parent_id ) : '';
 			$worker           = new HS_Local_Image_Worker();
 			$results          = array();
+			$sources          = array();
 			$files            = HS_Local_Image_Attachment_Files::collect( $attached_file, $metadata );
 			if ( empty( $files ) ) {
 				self::retry( $attachment_id, $attempt, 'no_eligible_source_files' );
@@ -194,17 +282,15 @@ final class HS_Local_Image_Optimizer_WordPress {
 
 			foreach ( $files as $file ) {
 				$source_file = apply_filters( 'hs_local_image_optimizer_source_file', $file, $attachment_id );
-				if ( ! is_string( $source_file ) || $source_file !== $file ) {
-					$results[ basename( $file ) ] = array( 'status' => 'failed_source_path' );
-					continue;
+				if ( is_string( $source_file ) && $source_file === $file ) {
+					$sources[] = $file;
 				}
+			}
 
-				$results[ basename( $file ) ] = $worker->process(
-					$source_file,
-					array(
-						'post_type' => $parent_post_type,
-					)
-				);
+			// One batch per attachment: the worker encodes its files in parallel.
+			$processed = $worker->process_many( $sources, array( 'post_type' => $parent_post_type ) );
+			foreach ( $files as $file ) {
+				$results[ basename( $file ) ] = $processed[ $file ] ?? array( 'status' => 'failed_source_path' );
 			}
 			if ( self::has_processing_failure( $results ) ) {
 				self::retry( $attachment_id, $attempt, 'processing_failed', $results );
@@ -354,8 +440,7 @@ final class HS_Local_Image_Optimizer_WordPress {
 			return $token;
 		}
 
-		$current = get_option( self::LOCK_OPTION, array() );
-		if ( ! is_array( $current ) || ( time() - (int) ( $current['created_at'] ?? 0 ) ) <= self::LOCK_TTL ) {
+		if ( ! self::lock_expired( get_option( self::LOCK_OPTION, array() ) ) ) {
 			return null;
 		}
 
@@ -376,7 +461,73 @@ final class HS_Local_Image_Optimizer_WordPress {
 	}
 
 	/**
-	 * Reschedule work while the optimizer is busy.
+	 * Whether a stored worker lock is older than LOCK_TTL and may be replaced.
+	 *
+	 * @param mixed $lock Stored lock option value.
+	 *
+	 * @return bool
+	 */
+	private static function lock_expired( $lock ): bool {
+		return is_array( $lock ) && ( time() - (int) ( $lock['created_at'] ?? 0 ) ) > self::LOCK_TTL;
+	}
+
+	/**
+	 * Whether any optimizer job is still scheduled or the worker is running.
+	 *
+	 * @return bool
+	 */
+	private static function has_pending_jobs(): bool {
+		// A lock left behind by a killed worker expires; it is not running work.
+		$lock = get_option( self::LOCK_OPTION, false );
+		if ( false !== $lock && ! self::lock_expired( $lock ) ) {
+			return true;
+		}
+
+		if ( function_exists( 'as_next_scheduled_action' ) ) {
+			return false !== as_next_scheduled_action( self::HOOK, null, self::GROUP );
+		}
+
+		foreach ( (array) _get_cron_array() as $hooks ) {
+			if ( isset( $hooks[ self::HOOK ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Keep a job queued while another attachment holds the worker. Waiting
+	 * does not consume the failure budget; the same attempt is rescheduled
+	 * until MAX_BUSY_WAIT has passed since the attachment was queued.
+	 *
+	 * @param int $attachment_id Attachment post ID.
+	 * @param int $attempt Current retry number.
+	 */
+	private static function wait_for_worker( int $attachment_id, int $attempt ): void {
+		$queued_at = (int) get_post_meta( $attachment_id, self::QUEUED_META, true );
+		if ( $queued_at <= 0 ) {
+			$queued_at = time();
+			update_post_meta( $attachment_id, self::QUEUED_META, $queued_at );
+		}
+
+		if ( ( time() - $queued_at ) > self::MAX_BUSY_WAIT ) {
+			self::finish(
+				$attachment_id,
+				array(
+					'status' => 'failed_retries',
+					'reason' => 'worker_busy',
+				)
+			);
+			return;
+		}
+
+		self::log( 'wait id=' . $attachment_id . ' attempt=' . $attempt . ' reason=worker_busy' );
+		self::schedule( $attachment_id, $attempt, self::BUSY_DELAY );
+	}
+
+	/**
+	 * Reschedule work after a processing failure.
 	 *
 	 * @param int                  $attachment_id Attachment post ID.
 	 * @param int                  $attempt Current retry number.
@@ -398,12 +549,24 @@ final class HS_Local_Image_Optimizer_WordPress {
 			return;
 		}
 
+		self::schedule( $attachment_id, $next_attempt, self::RETRY_DELAY );
+	}
+
+	/**
+	 * Schedule a delayed job for one attachment.
+	 *
+	 * @param int $attachment_id Attachment post ID.
+	 * @param int $attempt Retry number passed to the job.
+	 * @param int $delay Delay in seconds.
+	 */
+	private static function schedule( int $attachment_id, int $attempt, int $delay ): void {
 		if ( function_exists( 'as_schedule_single_action' ) ) {
-			as_schedule_single_action( time() + 60, self::HOOK, array( $attachment_id, $next_attempt ), self::GROUP, false );
+			// Non-unique for the same reason as queue_attachment().
+			as_schedule_single_action( time() + $delay, self::HOOK, array( $attachment_id, $attempt ), self::GROUP, false );
 			return;
 		}
 
-		wp_schedule_single_event( time() + 60, self::HOOK, array( $attachment_id, $next_attempt ) );
+		wp_schedule_single_event( time() + $delay, self::HOOK, array( $attachment_id, $attempt ) );
 	}
 
 	/**
@@ -416,6 +579,11 @@ final class HS_Local_Image_Optimizer_WordPress {
 		update_post_meta( $attachment_id, self::FINISHED_META, time() );
 		update_post_meta( $attachment_id, self::PIPELINE_META, self::PIPELINE );
 		update_post_meta( $attachment_id, self::RESULT_META, wp_json_encode( $result, JSON_UNESCAPED_SLASHES ) );
+		if ( 'processed' === ( $result['status'] ?? '' ) ) {
+			delete_post_meta( $attachment_id, self::REQUEUES_META );
+			// Sidecars just changed: refresh the sizes the media library shows.
+			HS_Local_Image_Admin_Media_UI::refresh_stats( $attachment_id );
+		}
 		self::log( 'finish id=' . $attachment_id . ' status=' . (string) ( $result['status'] ?? 'unknown' ) );
 	}
 
