@@ -21,70 +21,70 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 298
+        "line": 297
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 786
+        "line": 785
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1060
+        "line": 1059
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 2560
+        "line": 2559
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5205
+        "line": 5185
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 6041
+        "line": 6021
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 6065
+        "line": 6045
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 6083
+        "line": 6063
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 6098
+        "line": 6078
       },
       {
         "name": "_custom_tags",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 6101
+        "line": 6081
       },
       {
         "name": "_custom_tags",
@@ -105,42 +105,42 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 784
+        "line": 783
       },
       {
         "name": "_deck_code",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1031
+        "line": 1030
       },
       {
         "name": "_deck_code",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 3582
+        "line": 3581
       },
       {
         "name": "_deck_code",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5197
+        "line": 5177
       },
       {
         "name": "_deck_code",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5971
+        "line": 5951
       },
       {
         "name": "_deck_code",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 6155
+        "line": 6135
       },
       {
         "name": "_deck_code",
@@ -154,21 +154,21 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1770
+        "line": 1769
       },
       {
         "name": "_deck_copies",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5570
+        "line": 5550
       },
       {
         "name": "_deck_copies",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5571
+        "line": 5551
       },
       {
         "name": "_deck_copies",
@@ -182,49 +182,49 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 807
+        "line": 806
       },
       {
         "name": "_deck_dislikes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1769
+        "line": 1768
       },
       {
         "name": "_deck_dislikes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5215
+        "line": 5195
       },
       {
         "name": "_deck_dislikes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5478
+        "line": 5458
       },
       {
         "name": "_deck_dislikes",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5480
+        "line": 5460
       },
       {
         "name": "_deck_dislikes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5499
+        "line": 5479
       },
       {
         "name": "_deck_dislikes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5545
+        "line": 5525
       },
       {
         "name": "_deck_dislikes",
@@ -238,28 +238,28 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 791
+        "line": 790
       },
       {
         "name": "_deck_games",
         "resolved": true,
         "api": "delete_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1044
+        "line": 1043
       },
       {
         "name": "_deck_games",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1046
+        "line": 1045
       },
       {
         "name": "_deck_games",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4797
+        "line": 4777
       },
       {
         "name": "_deck_games",
@@ -294,56 +294,56 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5229
+        "line": 5209
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 806
+        "line": 805
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1768
+        "line": 1767
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5214
+        "line": 5194
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5474
+        "line": 5454
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5476
+        "line": 5456
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5498
+        "line": 5478
       },
       {
         "name": "_deck_likes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5544
+        "line": 5524
       },
       {
         "name": "_deck_likes",
@@ -357,7 +357,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4778
+        "line": 4758
       },
       {
         "name": "_deck_losses",
@@ -392,63 +392,63 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5228
+        "line": 5208
       },
       {
         "name": "_deck_player",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 289
+        "line": 288
       },
       {
         "name": "_deck_player",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 788
+      },
+      {
+        "name": "_deck_player",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1067
+      },
+      {
+        "name": "_deck_player",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 5214
+      },
+      {
+        "name": "_deck_source_url",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 301
+      },
+      {
+        "name": "_deck_source_url",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
         "line": 789
       },
       {
-        "name": "_deck_player",
-        "resolved": true,
-        "api": "update_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1068
-      },
-      {
-        "name": "_deck_player",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5234
-      },
-      {
-        "name": "_deck_source_url",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 302
-      },
-      {
-        "name": "_deck_source_url",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 790
-      },
-      {
         "name": "_deck_source_url",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1072
+        "line": 1071
       },
       {
         "name": "_deck_source_url",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5235
+        "line": 5215
       },
       {
         "name": "_deck_source_url",
@@ -462,70 +462,70 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 288
+        "line": 287
       },
       {
         "name": "_deck_streamer",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 788
+        "line": 787
       },
       {
         "name": "_deck_streamer",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1064
+        "line": 1063
       },
       {
         "name": "_deck_streamer",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1742
+        "line": 1741
       },
       {
         "name": "_deck_streamer",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 2572
+        "line": 2571
       },
       {
         "name": "_deck_streamer",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5233
+        "line": 5213
       },
       {
         "name": "_deck_winrate",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 792
+        "line": 791
       },
       {
         "name": "_deck_winrate",
         "resolved": true,
         "api": "delete_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1053
+        "line": 1052
       },
       {
         "name": "_deck_winrate",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1055
+        "line": 1054
       },
       {
         "name": "_deck_winrate",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4798
+        "line": 4778
       },
       {
         "name": "_deck_winrate",
@@ -546,7 +546,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4777
+        "line": 4757
       },
       {
         "name": "_deck_wins",
@@ -581,112 +581,112 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5230
+        "line": 5210
       },
       {
         "name": "_dust_cost",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 787
+        "line": 786
       },
       {
         "name": "_dust_cost",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1038
+        "line": 1037
       },
       {
         "name": "_dust_cost",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5213
+        "line": 5193
       },
       {
         "name": "_exclude_from_random",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 803
+        "line": 802
       },
       {
         "name": "_exclude_from_random",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1101
+        "line": 1100
       },
       {
         "name": "_exclude_from_random",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1719
-      },
-      {
-        "name": "_exclude_from_random",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1798
-      },
-      {
-        "name": "_feed_shortcode",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 801
-      },
-      {
-        "name": "_feed_shortcode",
-        "resolved": true,
-        "api": "update_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1091
-      },
-      {
-        "name": "_feed_shortcode",
-        "resolved": true,
-        "api": "delete_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1093
-      },
-      {
-        "name": "_feed_shortcode",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5237
-      },
-      {
-        "name": "_hide_from_feed",
-        "resolved": true,
-        "api": "get_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 794
-      },
-      {
-        "name": "_hide_from_feed",
-        "resolved": true,
-        "api": "update_post_meta",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1083
-      },
-      {
-        "name": "_hide_from_feed",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
         "line": 1718
       },
       {
+        "name": "_exclude_from_random",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1797
+      },
+      {
+        "name": "_feed_shortcode",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 800
+      },
+      {
+        "name": "_feed_shortcode",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1090
+      },
+      {
+        "name": "_feed_shortcode",
+        "resolved": true,
+        "api": "delete_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1092
+      },
+      {
+        "name": "_feed_shortcode",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 5217
+      },
+      {
         "name": "_hide_from_feed",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1781
+        "line": 793
+      },
+      {
+        "name": "_hide_from_feed",
+        "resolved": true,
+        "api": "update_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1082
+      },
+      {
+        "name": "_hide_from_feed",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1717
+      },
+      {
+        "name": "_hide_from_feed",
+        "resolved": true,
+        "api": "get_post_meta",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 1780
       },
       {
         "name": "_hide_from_feed",
@@ -791,63 +791,63 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 804
+        "line": 803
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1104
+        "line": 1103
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1720
+        "line": 1719
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1782
+        "line": 1781
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4629
+        "line": 4609
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5684
+        "line": 5664
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5716
+        "line": 5696
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5717
+        "line": 5697
       },
       {
         "name": "_hs_deck_archived",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5968
+        "line": 5948
       },
       {
         "name": "_hs_deck_archived",
@@ -1141,105 +1141,105 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 785
+        "line": 784
       },
       {
         "name": "_rank_proof",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1076
+        "line": 1075
       },
       {
         "name": "_rank_proof",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5201
+        "line": 5181
       },
       {
         "name": "_show_all_class_modes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 802
+        "line": 801
       },
       {
         "name": "_show_all_class_modes",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1098
+        "line": 1097
       },
       {
         "name": "_show_all_class_modes",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5273
+        "line": 5253
       },
       {
         "name": "_show_announcement_single",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 805
+        "line": 804
       },
       {
         "name": "_show_announcement_single",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1107
+        "line": 1106
       },
       {
         "name": "_show_announcement_single",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4633
+        "line": 4613
       },
       {
         "name": "_show_proof_single",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 793
+        "line": 792
       },
       {
         "name": "_show_proof_single",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1080
+        "line": 1079
       },
       {
         "name": "_show_proof_single",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4994
+        "line": 4974
       },
       {
         "name": "_use_feed_shortcode",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 800
+        "line": 799
       },
       {
         "name": "_use_feed_shortcode",
         "resolved": true,
         "api": "update_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1086
+        "line": 1085
       },
       {
         "name": "_use_feed_shortcode",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5236
+        "line": 5216
       },
       {
         "name": "_wp_attachment_image_alt",
@@ -1274,14 +1274,14 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5199
+        "line": 5179
       },
       {
         "name": "evidence",
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5203
+        "line": 5183
       },
       {
         "name": "post_view_7days_last_day",
@@ -1437,77 +1437,77 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1502
+        "line": 1501
       },
       {
         "name": "hs_decks_announcement_button_text",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5995
+        "line": 5975
       },
       {
         "name": "hs_decks_announcement_button_url",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1503
+        "line": 1502
       },
       {
         "name": "hs_decks_announcement_button_url",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5996
+        "line": 5976
       },
       {
         "name": "hs_decks_announcement_image",
-        "resolved": true,
-        "api": "get_option",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1501
-      },
-      {
-        "name": "hs_decks_announcement_image",
-        "resolved": true,
-        "api": "get_option",
-        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5994
-      },
-      {
-        "name": "hs_decks_announcement_text",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
         "line": 1500
       },
       {
+        "name": "hs_decks_announcement_image",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 5974
+      },
+      {
         "name": "hs_decks_announcement_text",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5993
+        "line": 1499
+      },
+      {
+        "name": "hs_decks_announcement_text",
+        "resolved": true,
+        "api": "get_option",
+        "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
+        "line": 5973
       },
       {
         "name": "hs_decks_cache_version",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 160
+        "line": 159
       },
       {
         "name": "hs_decks_cache_version",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 163
+        "line": 162
       },
       {
         "name": "hs_decks_cache_version",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 178
+        "line": 177
       },
       {
         "name": "hs_decks_cache_version",
@@ -1528,49 +1528,49 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1352
+        "line": 1351
       },
       {
         "name": "hs_decks_help_text",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 2303
+        "line": 2302
       },
       {
         "name": "hs_decks_help_text",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 2462
+        "line": 2461
       },
       {
         "name": "hs_decks_per_page",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1388
+        "line": 1387
       },
       {
         "name": "hs_decks_per_page",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 2238
+        "line": 2237
       },
       {
         "name": "hs_decks_per_page",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 2277
+        "line": 2276
       },
       {
         "name": "hs_decks_per_page",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 3949
+        "line": 3948
       },
       {
         "name": "hs_decks_per_page",
@@ -1591,49 +1591,49 @@
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 516
+        "line": 515
       },
       {
         "name": "hs_decks_post_type_version",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 521
+        "line": 520
       },
       {
         "name": "hs_decks_rewrite_flush_needed",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 465
+        "line": 464
       },
       {
         "name": "hs_decks_rewrite_flush_needed",
         "resolved": true,
         "api": "delete_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 469
+        "line": 468
       },
       {
         "name": "hs_decks_rewrite_flush_needed",
         "resolved": true,
         "api": "update_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 520
+        "line": 519
       },
       {
         "name": "hs_decks_single_bottom_content",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1580
+        "line": 1579
       },
       {
         "name": "hs_decks_single_top_content",
         "resolved": true,
         "api": "get_option",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1579
+        "line": 1578
       },
       {
         "name": "hs_local_image_optimizer_enabled",
@@ -2616,14 +2616,14 @@
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5740
+        "line": 5720
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_ASSIGN_TERMS",
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5807
+        "line": 5787
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_CLEAR_ACTIVITY_LOG",
@@ -2700,21 +2700,21 @@
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1495
+        "line": 1494
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_DECKS",
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5791
+        "line": 5771
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_DECKS",
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5870
+        "line": 5850
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_DECKS",
@@ -2728,28 +2728,28 @@
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1575
+        "line": 1574
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_SETTINGS",
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 445
+        "line": 444
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_SETTINGS",
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1332
+        "line": 1331
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_TAGS",
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1610
+        "line": 1609
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_MANAGE_TERMS",
@@ -2791,7 +2791,7 @@
         "resolved": false,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1401
+        "line": 1400
       },
       {
         "name": "@constant:Unified_HS_Capabilities::CAP_VIEW_SHORTCODES",
@@ -2966,49 +2966,49 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1025
+        "line": 1024
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 4629
+        "line": 4609
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5680
+        "line": 5660
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5711
+        "line": 5691
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5820
+        "line": 5800
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5841
+        "line": 5821
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 5968
+        "line": 5948
       },
       {
         "name": "edit_post",
@@ -3120,7 +3120,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/plugins/wp-manacost-decks_old/hs-deck-manager/hs-decks-manager.php",
-        "line": 1733
+        "line": 1732
       },
       {
         "name": "manage_options",

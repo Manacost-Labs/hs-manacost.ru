@@ -120,7 +120,6 @@ class HS_Decks_Manager {
             add_filter('aioseo_twitter_tags', array($this, 'filter_aioseo_archetype_twitter_tags'), 20);
             add_filter('template_include', array($this, 'template_include_archetype_archive'));
             add_action('wp_head', array($this, 'render_archetype_seo_meta'), 2);
-            add_action('wp_head', array($this, 'render_deck_single_noindex_meta'), 1);
             return;
         }
 
@@ -4057,12 +4056,6 @@ class HS_Decks_Manager {
     }
 
     public function filter_wp_robots($robots) {
-        if (is_singular('hs_deck')) {
-            unset($robots['index']);
-            $robots['noindex'] = true;
-            $robots['follow'] = true;
-        }
-
         if (is_tax('deck_archetype')) {
             unset($robots['noindex']);
             $robots['index'] = true;
@@ -4075,12 +4068,6 @@ class HS_Decks_Manager {
     public function filter_aioseo_robots_meta($attributes) {
         $attributes = is_array($attributes) ? $attributes : array();
 
-        if (is_singular('hs_deck')) {
-            unset($attributes['index'], $attributes['nofollow']);
-            $attributes['noindex'] = 'noindex';
-            $attributes['follow'] = 'follow';
-        }
-
         if (is_tax('deck_archetype')) {
             unset($attributes['noindex'], $attributes['nofollow']);
             $attributes['index'] = 'index';
@@ -4088,13 +4075,6 @@ class HS_Decks_Manager {
         }
 
         return $attributes;
-    }
-
-    public function render_deck_single_noindex_meta() {
-        if (!is_singular('hs_deck')) {
-            return;
-        }
-        echo '<meta name="robots" content="noindex, follow">' . "\n";
     }
 
     private function get_current_archetype_term_for_seo() {
