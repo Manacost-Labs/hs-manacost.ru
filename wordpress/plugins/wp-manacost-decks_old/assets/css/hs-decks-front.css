@@ -1372,7 +1372,7 @@ body.hs-modal-open { overflow: hidden; }
     font-variant-numeric: tabular-nums;
 }
 
-/* Партнёрский баннер Sirus над лентой: баннер слева, логотип Neverest справа. */
+/* Партнёрский баннер Sirus над лентой: логотип Neverest слева, баннер справа. */
 .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) {
     display: flex;
     align-items: center;
@@ -1398,6 +1398,7 @@ body.hs-modal-open { overflow: hidden; }
 .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img)::after {
     content: "";
     content: "" / "Sirus — World of Warcraft Neverest";
+    order: -1;
     flex: 1 1 0;
     align-self: stretch;
     min-width: 140px;
@@ -1502,17 +1503,18 @@ body.hs-modal-open { overflow: hidden; }
     }
 }
 @media (max-width: 600px) {
+    /* На телефоне только баннер; псевдоэлемент остаётся без размера ради имени ссылки. */
     .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) {
-        flex-wrap: wrap;
-        gap: 6px;
+        gap: 0;
     }
     .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) > img {
         flex: 1 1 100%;
     }
     .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img)::after {
-        flex: 1 1 100%;
-        height: 52px;
+        flex: 0 0 0;
+        width: 0;
         min-width: 0;
+        background: none;
     }
 }
 @media (max-width: 360px) {
