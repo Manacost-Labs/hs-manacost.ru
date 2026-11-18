@@ -370,10 +370,6 @@ jQuery(document).ready(function($) {
         }
     });
 
-    $(document).on('click', '.deck-source', function() {
-        trackDeckEvent($(this).closest('.deck-card, .hs-deck-group-card').data('deck-id'), 'source_click', 'deck_card');
-    });
-
     $(document).on('input', '.hs-archetypes-search', function() {
         const search = String($(this).val() || '').toLowerCase().trim();
         $('.hs-archetype-card').each(function() {
@@ -719,13 +715,42 @@ jQuery(document).ready(function($) {
             }
         }
 
+        function checkedServerValue(name) {
+            return form.find('input[name="' + name + '"]:checked').val() || '';
+        }
+
+        function formatDeckCount(count) {
+            const value = Math.max(0, parseInt(count, 10) || 0);
+            const mod10 = value % 10;
+            const mod100 = value % 100;
+            let word = 'колод';
+            if (mod10 === 1 && mod100 !== 11) {
+                word = 'колода';
+            } else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+                word = 'колоды';
+            }
+            return value.toLocaleString('ru-RU') + ' ' + word;
+        }
+
+        function updateAdvancedFilterCount() {
+            const badge = $('#hs-advanced-count');
+            let active = getActiveServerTags().length ? 1 : 0;
+            $('#filter-games, #filter-winrate, #filter-dust, #filter-archetype, #filter-streamer, #filter-source').each(function() {
+                if (String($(this).val() || '').trim() !== '') {
+                    active++;
+                }
+            });
+            badge.text(active).prop('hidden', active === 0);
+        }
+
         function collectServerFilters(page) {
             updateServerTagFields();
+            updateAdvancedFilterCount();
             const values = {
                 hs_search: $('#deck-search').val() || '',
                 hs_period: $('#filter-period').val() || '',
-                hs_class: $('#filter-class').val() || '',
-                hs_mode: $('#filter-mode').val() || grid.data('mode') || '',
+                hs_class: checkedServerValue('hs_class'),
+                hs_mode: checkedServerValue('hs_mode') || grid.data('mode') || '',
                 hs_archetype: $('#filter-archetype').val() || grid.data('archetype') || '',
                 hs_streamer: $('#filter-streamer').val() || '',
                 hs_source: $('#filter-source').val() || '',
@@ -811,6 +836,9 @@ jQuery(document).ready(function($) {
                     }
                     grid.html(response.data.html || '');
                     loadMore.html(response.data.pagination || '');
+                    if (typeof response.data.total !== 'undefined') {
+                        $('#hs-filters-count').text('Найдено: ' + formatDeckCount(response.data.total));
+                    }
                     setupVoteState(grid);
                     hydrateVoteCounts(grid);
                     setupAdImpressions();
@@ -835,6 +863,9 @@ jQuery(document).ready(function($) {
             $('#hs-tags-mode-value').val('any');
             form.find('select').each(function() {
                 $(this).val($(this).find('option:first').val());
+            });
+            form.find('input[type="radio"]').each(function() {
+                this.checked = this.value === '';
             });
             $('#filter-sort').val('date');
             $('.tag-filter-btn').removeClass('active');
@@ -865,8 +896,12 @@ jQuery(document).ready(function($) {
             scheduleServerFilters(1, false, 600);
         });
 
-        $('#filter-period, #filter-class, #filter-mode, #filter-archetype, #filter-streamer, #filter-source, #filter-sort').on('change', function() {
+        $('#filter-period, #filter-archetype, #filter-streamer, #filter-source, #filter-sort').on('change', function() {
             scheduleServerFilters(1, false, 300);
+        });
+
+        form.on('change', 'input[name="hs_class"], input[name="hs_mode"]', function() {
+            scheduleServerFilters(1, false, 150);
         });
 
         $(document).on('click', '.tag-filter-btn', function() {

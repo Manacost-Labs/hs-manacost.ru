@@ -369,23 +369,6 @@ body.hs-modal-open { overflow: hidden; }
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta-secondary > .deck-player {
     color: var(--mc-card-ink) !important;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta-secondary > a.deck-source {
-    display: inline-flex;
-    align-items: center;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    color: var(--mc-card-blue);
-    font: 700 0.75rem/1.4 var(--mc-card-body-font);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta-secondary > a.deck-source:hover {
-    background: transparent;
-    color: var(--mc-card-navy);
-}
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta span:empty,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta-secondary span:empty {
     display: none;
@@ -752,7 +735,6 @@ body.hs-modal-open { overflow: hidden; }
     }
 }
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-title a:focus-visible,
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-source:focus-visible,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-img-clickable:focus-visible,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .copy-code-btn:focus-visible,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .proof-btn:focus-visible,
@@ -980,6 +962,587 @@ body.hs-modal-open { overflow: hidden; }
 }
 .hs-decks-container-server .hs-tags-filter {
     grid-column: 1 / -1;
+}
+
+/* =====================================================================
+   Feed filters v2: поиск + период + сортировка, режимы и классы чипами,
+   редкие фильтры в раскрывающейся панели. Только серверная лента.
+   ===================================================================== */
+.hs-decks-container-server {
+    --hs-feed-ink: #102a36;
+    --hs-feed-navy: #063b51;
+    --hs-feed-blue: #0b6f87;
+    --hs-feed-gold: #a67c2d;
+    --hs-feed-wash: #eef3f5;
+    --hs-feed-field: #f6f8f9;
+    --hs-feed-line: #cbd7dc;
+    --hs-feed-line-soft: #e1e8eb;
+    --hs-feed-muted: #5b707b;
+    --hs-feed-focus: #0b6f87;
+    --hs-feed-font: var(--td_default_google_font_1, "Open Sans", Arial, sans-serif);
+}
+.hs-decks-container-server .hs-decks-filters-server {
+    position: relative;
+    margin-bottom: 28px;
+    padding: 22px 20px 16px;
+    background: #ffffff;
+    border: 1px solid var(--hs-feed-line-soft);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(16, 42, 54, 0.05), 0 10px 24px rgba(16, 42, 54, 0.06);
+    font-family: var(--hs-feed-font);
+}
+.hs-decks-container-server .hs-decks-filters-server::before {
+    content: "";
+    position: absolute;
+    inset: -1px -1px auto;
+    height: 4px;
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(90deg, var(--hs-feed-gold) 0 56px, var(--hs-feed-navy) 56px 100%);
+}
+.hs-decks-filters-server .hs-filters-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 200px) minmax(170px, 220px);
+    gap: 12px;
+    align-items: end;
+}
+.hs-decks-filters-server .hs-filter-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+}
+.hs-decks-filters-server .hs-filter-field > span:first-child,
+.hs-decks-filters-server .hs-filter-chips-label {
+    color: var(--hs-feed-muted);
+    font: 700 11px/1.2 var(--hs-feed-font);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.hs-decks-filters-server .hs-filter-field input,
+.hs-decks-filters-server .hs-filter-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid var(--hs-feed-line);
+    border-radius: 6px;
+    background-color: var(--hs-feed-field);
+    color: var(--hs-feed-ink);
+    font: 600 14px/1.2 var(--hs-feed-font);
+    box-shadow: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.hs-decks-filters-server .hs-filter-field select {
+    padding-right: 36px;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5' fill='none' stroke='%235b707b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    cursor: pointer;
+}
+.hs-decks-filters-server .hs-filter-field input::placeholder {
+    color: #8a99a1;
+    font-weight: 500;
+    opacity: 1;
+}
+.hs-decks-filters-server .hs-filter-field input:hover,
+.hs-decks-filters-server .hs-filter-field select:hover {
+    border-color: var(--hs-feed-muted);
+}
+.hs-decks-filters-server .hs-filter-field input:focus,
+.hs-decks-filters-server .hs-filter-field select:focus {
+    outline: none;
+    border-color: var(--hs-feed-focus);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(11, 111, 135, 0.18);
+}
+.hs-decks-filters-server .hs-filter-search-box {
+    position: relative;
+    display: block;
+}
+.hs-decks-filters-server .hs-filter-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    color: var(--hs-feed-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+.hs-decks-filters-server .hs-filter-search input {
+    padding-left: 40px;
+    font-weight: 500;
+}
+
+/* Режим и класс: нативные radio, визуально — сегменты и чипы. */
+.hs-decks-filters-server .hs-filter-chips {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    margin-top: 16px;
+}
+.hs-decks-filters-server .hs-filter-chips-label {
+    padding-top: 12px;
+}
+.hs-decks-filters-server .hs-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+.hs-decks-filters-server .hs-chip {
+    position: relative;
+    display: inline-flex;
+    margin: 0;
+    cursor: pointer;
+}
+.hs-decks-filters-server .hs-chip input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.hs-decks-filters-server .hs-chip-body {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--hs-feed-line);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--hs-feed-ink);
+    font: 600 13px/1.1 var(--hs-feed-font);
+    white-space: nowrap;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.hs-decks-filters-server .hs-chip--class .hs-chip-body {
+    padding-left: 5px;
+}
+.hs-decks-filters-server .hs-chip-icon {
+    display: block;
+    flex: none;
+    width: 26px;
+    max-width: none;
+    height: 26px;
+    margin: 0;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.hs-decks-filters-server .hs-chip:hover .hs-chip-body {
+    border-color: var(--hs-feed-blue);
+    background: var(--hs-feed-wash);
+}
+.hs-decks-filters-server .hs-chip input:checked + .hs-chip-body {
+    border-color: var(--hs-feed-navy);
+    background: var(--hs-feed-navy);
+    color: #ffffff;
+}
+.hs-decks-filters-server .hs-chip input:focus-visible + .hs-chip-body {
+    outline: 2px solid var(--hs-feed-focus);
+    outline-offset: 2px;
+}
+.hs-decks-filters-server .hs-filter-chips--modes .hs-chip-row {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    justify-self: start;
+    padding: 3px;
+    border: 1px solid var(--hs-feed-line);
+    border-radius: 8px;
+    background: var(--hs-feed-field);
+}
+.hs-decks-filters-server .hs-filter-chips--modes .hs-chip-body {
+    min-height: 34px;
+    padding: 0 16px;
+    border-color: transparent;
+    background: transparent;
+}
+.hs-decks-filters-server .hs-filter-chips--modes .hs-chip:hover .hs-chip-body {
+    border-color: transparent;
+    background: #ffffff;
+}
+
+/* Нижняя строка: панель доп. фильтров, итог, действия. */
+.hs-decks-filters-server .hs-filters-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hs-feed-line-soft);
+}
+.hs-decks-filters-server .hs-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--hs-feed-line);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--hs-feed-ink);
+    font: 700 13px/1 var(--hs-feed-font);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.hs-decks-filters-server .hs-filter-toggle:hover,
+.hs-decks-filters-server .hs-filter-toggle.active {
+    border-color: var(--hs-feed-blue);
+    background: var(--hs-feed-wash);
+    color: var(--hs-feed-navy);
+}
+.hs-decks-filters-server .hs-filter-toggle svg {
+    color: var(--hs-feed-blue);
+}
+.hs-decks-filters-server .hs-filter-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    background: var(--hs-feed-gold);
+    color: #ffffff;
+    font: 700 11px/20px var(--hs-feed-font);
+    text-align: center;
+}
+.hs-decks-filters-server .hs-filter-badge[hidden] {
+    display: none;
+}
+.hs-decks-filters-server .hs-filters-summary {
+    margin: 0;
+    color: var(--hs-feed-muted);
+    font: 600 13px/1.3 var(--hs-feed-font);
+    font-variant-numeric: tabular-nums;
+}
+.hs-decks-filters-server .hs-filters-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+.hs-decks-filters-server .hs-filter-link {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--hs-feed-blue);
+    font: 700 13px/1 var(--hs-feed-font);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.hs-decks-filters-server .hs-filter-link:hover {
+    background: var(--hs-feed-wash);
+    color: var(--hs-feed-navy);
+}
+.hs-decks-filters-server .hs-filter-toggle:focus-visible,
+.hs-decks-filters-server .hs-filter-link:focus-visible,
+.hs-decks-filters-server .tag-filter-btn:focus-visible {
+    outline: 2px solid var(--hs-feed-focus);
+    outline-offset: 2px;
+}
+.hs-decks-container-server .hs-decks-filters-server .hs-advanced-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid var(--hs-feed-line-soft);
+    border-radius: 6px;
+    background: var(--hs-feed-field);
+}
+.hs-decks-filters-server .hs-advanced-filters .hs-filter-field input,
+.hs-decks-filters-server .hs-advanced-filters .hs-filter-field select {
+    background-color: #ffffff;
+}
+.hs-decks-filters-server .hs-tags-filter {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+.hs-decks-filters-server .tags-filter-title {
+    color: var(--hs-feed-muted);
+    font: 700 11px/1.2 var(--hs-feed-font);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.hs-decks-filters-server .tag-filter-btn {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--hs-feed-line);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--hs-feed-ink);
+    font: 600 12px/1 var(--hs-feed-font);
+    transform: none;
+}
+.hs-decks-filters-server .tag-filter-btn:hover {
+    border-color: var(--hs-feed-blue);
+    background: var(--hs-feed-wash);
+    color: var(--hs-feed-navy);
+    transform: none;
+}
+.hs-decks-filters-server .tag-filter-btn.active {
+    border-color: var(--hs-feed-navy);
+    background: var(--hs-feed-navy);
+    color: #ffffff;
+}
+
+/* Пагинация серверной ленты. */
+.hs-decks-container-server .hs-load-more-container {
+    gap: 10px;
+    margin-top: 32px;
+    padding: 0 0 8px;
+}
+.hs-decks-container-server .hs-feed-pagination-server {
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+.hs-decks-container-server .hs-page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.hs-decks-container-server .hs-feed-pagination-server .hs-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--hs-feed-line);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--hs-feed-ink);
+    font: 700 14px/1 var(--hs-feed-font);
+    font-variant-numeric: tabular-nums;
+    box-shadow: none;
+    transform: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.hs-decks-container-server .hs-feed-pagination-server .hs-page-btn:hover:not(:disabled):not(.active) {
+    border-color: var(--hs-feed-blue);
+    background: var(--hs-feed-wash);
+    color: var(--hs-feed-navy);
+    transform: none;
+}
+.hs-decks-container-server .hs-feed-pagination-server .hs-page-btn.active {
+    border-color: var(--hs-feed-navy);
+    background: var(--hs-feed-navy);
+    color: #ffffff;
+    box-shadow: none;
+    cursor: default;
+}
+.hs-decks-container-server .hs-feed-pagination-server .hs-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.hs-decks-container-server .hs-feed-pagination-server .hs-page-btn:focus-visible {
+    outline: 2px solid var(--hs-feed-focus);
+    outline-offset: 2px;
+}
+.hs-decks-container-server .hs-feed-pagination-server .hs-page-step {
+    min-width: 0;
+    padding: 0 14px;
+    color: var(--hs-feed-navy);
+}
+.hs-decks-container-server .hs-page-ellipsis {
+    min-width: 22px;
+    color: var(--hs-feed-muted);
+    font-weight: 700;
+    text-align: center;
+}
+.hs-decks-container-server .hs-load-more-info {
+    color: var(--hs-feed-muted);
+    font: 500 13px/1.4 var(--hs-feed-font);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Партнёрский баннер Sirus над лентой: логотип Neverest слева, баннер справа. */
+.tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-sizing: border-box;
+    margin: 4px 20px 0;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #e1e8eb;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(16, 42, 54, 0.05), 0 10px 24px rgba(16, 42, 54, 0.06);
+    line-height: 0;
+}
+.tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) > img {
+    display: block;
+    flex: 0 1 729px;
+    min-width: 0;
+    max-width: 729px;
+    height: auto;
+    margin: 0;
+    border-radius: 6px;
+}
+.tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img)::after {
+    content: "";
+    content: "" / "Sirus — World of Warcraft Neverest";
+    order: -1;
+    flex: 1 1 0;
+    align-self: stretch;
+    min-width: 140px;
+    background: url("../images/partners/sirus-neverest.webp") center / contain no-repeat;
+}
+.tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img):focus-visible {
+    outline: 2px solid #0b6f87;
+    outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+    .hs-decks-container-server .hs-decks-filters-server {
+        margin-bottom: 20px;
+        padding: 18px 14px 12px;
+    }
+    .hs-decks-filters-server .hs-filters-bar {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px;
+    }
+    .hs-decks-filters-server .hs-filter-search {
+        grid-column: 1 / -1;
+    }
+    .hs-decks-filters-server .hs-filter-chips {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+    }
+    .hs-decks-filters-server .hs-filter-chips-label {
+        padding-top: 0;
+    }
+    .hs-decks-filters-server .hs-filter-chips--modes .hs-chip-row {
+        display: flex;
+        justify-self: stretch;
+    }
+    .hs-decks-filters-server .hs-filter-chips--modes .hs-chip {
+        flex: 1 1 auto;
+    }
+    .hs-decks-filters-server .hs-filter-chips--modes .hs-chip-body {
+        padding: 0 8px;
+    }
+    .hs-decks-filters-server .hs-filter-chips--classes .hs-chip-row {
+        flex-wrap: nowrap;
+        margin: 0 -14px;
+        padding: 2px 14px 4px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scroll-padding-inline: 14px;
+        scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+        mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    }
+    .hs-decks-filters-server .hs-filter-chips--classes .hs-chip-row::-webkit-scrollbar {
+        display: none;
+    }
+    .hs-decks-filters-server .hs-chip {
+        flex: none;
+    }
+    .hs-decks-filters-server .hs-filters-footer {
+        gap: 8px 12px;
+        margin-top: 14px;
+        padding-top: 12px;
+    }
+    .hs-decks-filters-server .hs-filters-summary {
+        flex: 1 1 auto;
+    }
+    .hs-decks-filters-server .hs-filters-actions {
+        margin-left: -10px;
+    }
+    .hs-decks-container-server .hs-decks-filters-server .hs-advanced-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 12px;
+    }
+    .hs-decks-container-server .hs-feed-pagination-server {
+        gap: 6px;
+    }
+    .hs-decks-container-server .hs-feed-pagination-server .hs-page-btn {
+        min-width: 38px;
+        height: 38px;
+        min-height: 38px;
+        padding: 0 8px;
+        font-size: 13px;
+    }
+    .hs-decks-container-server .hs-feed-pagination-server .hs-page-step {
+        min-width: 38px;
+        padding: 0;
+    }
+    .hs-decks-container-server .hs-page-step-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) {
+        margin: 12px 12px 0;
+        padding: 8px;
+    }
+    .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) > img {
+        border-radius: 4px;
+    }
+}
+@media (max-width: 600px) {
+    /* На телефоне только баннер; псевдоэлемент остаётся без размера ради имени ссылки. */
+    .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) {
+        gap: 0;
+    }
+    .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img) > img {
+        flex: 1 1 100%;
+    }
+    .tdc-content-wrap:has(> .hs-decks-container-server) > a:has(> img)::after {
+        flex: 0 0 0;
+        width: 0;
+        min-width: 0;
+        background: none;
+    }
+}
+@media (max-width: 360px) {
+    .hs-decks-container-server .hs-page-numbers {
+        gap: 3px;
+    }
+    .hs-decks-container-server .hs-feed-pagination-server .hs-page-btn {
+        min-width: 34px;
+        height: 36px;
+        min-height: 36px;
+        padding: 0 6px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hs-decks-filters-server .hs-chip-body,
+    .hs-decks-filters-server .hs-filter-toggle,
+    .hs-decks-filters-server .hs-filter-link,
+    .hs-decks-container-server .hs-feed-pagination-server .hs-page-btn {
+        transition: none;
+    }
+}
+@media (forced-colors: active) {
+    .hs-decks-filters-server .hs-chip input:checked + .hs-chip-body,
+    .hs-decks-container-server .hs-feed-pagination-server .hs-page-btn.active {
+        border-color: Highlight;
+        background: Highlight;
+        color: HighlightText;
+    }
 }
 .hs-archetypes-index,
 .hs-archetype-page {

@@ -66,7 +66,9 @@ if (!function_exists('hs_mb_lower')) {
  *   • HS_Decks_Bulk_Actions      (генерация шорткода группы)
  */
 class HS_Decks_Manager {
-    const DEFAULT_PER_PAGE = 13;
+    // 16 колод + рекламная карточка после каждой 8-й = 18 ячеек: ровные ряды в сетке на 2 и 3 колонки.
+    const DEFAULT_PER_PAGE = 16;
+    const FEED_AD_INTERVAL = 8;
     const MOBILE_IMAGE_MIN_WIDTH = 640;
     const MOBILE_IMAGE_MAX_WIDTH = 768;
 
@@ -369,51 +371,86 @@ class HS_Decks_Manager {
         return '';
     }
 
-    private function get_deck_class_icon_url(array $class_slugs, array $class_names) {
-        $icons = array(
-            'чернокнижник' => '2026/01/heroes_warlock_icon.png.webp',
-            'chernoknizhnik' => '2026/01/heroes_warlock_icon.png.webp',
-            'warlock' => '2026/01/heroes_warlock_icon.png.webp',
-            'demonolog' => '2026/01/heroes_warlock_icon.png.webp',
-            'маг' => '2026/01/heroes_mage_icon.png.webp',
-            'mag' => '2026/01/heroes_mage_icon.png.webp',
-            'mage' => '2026/01/heroes_mage_icon.png.webp',
-            'друид' => '2026/01/heroes_druid_icon.png.webp',
-            'druid' => '2026/01/heroes_druid_icon.png.webp',
-            'паладин' => '2026/01/heroes_paladin_icon.png.webp',
-            'paladin' => '2026/01/heroes_paladin_icon.png.webp',
-            'воин' => '2026/01/heroes_warrior_icon.png.webp',
-            'voin' => '2026/01/heroes_warrior_icon.png.webp',
-            'warrior' => '2026/01/heroes_warrior_icon.png.webp',
-            'шаман' => '2026/01/heroes_shaman_icon.png.webp',
-            'shaman' => '2026/01/heroes_shaman_icon.png.webp',
-            'разбойник' => '2026/01/heroes_rogue_icon.png.webp',
-            'razbojnik' => '2026/01/heroes_rogue_icon.png.webp',
-            'rogue' => '2026/01/heroes_rogue_icon.png.webp',
-            'жрец' => '2026/01/heroes_priest_icon.png.webp',
-            'zhrec' => '2026/01/heroes_priest_icon.png.webp',
-            'priest' => '2026/01/heroes_priest_icon.png.webp',
-            'охотник' => '2026/01/heroes_hunter_icon.png.webp',
-            'oxotnik' => '2026/01/heroes_hunter_icon.png.webp',
-            'hunter' => '2026/01/heroes_hunter_icon.png.webp',
-            'охотникнадемонов' => '2026/01/icon_heroes_dh.png.webp',
-            'oxotniknademonov' => '2026/01/icon_heroes_dh.png.webp',
-            'demonhunter' => '2026/01/icon_heroes_dh.png.webp',
-            'demonhunterclass' => '2026/01/icon_heroes_dh.png.webp',
-            'dh' => '2026/01/icon_heroes_dh.png.webp',
-            'рыцарьсмерти' => '2022/11/heroes_dk_icon.png',
-            'deathknight' => '2022/11/heroes_dk_icon.png',
-            'dk' => '2022/11/heroes_dk_icon.png',
+    /**
+     * Канонический ключ класса (warlock, mage, …, dh, dk) по slug или названию термина.
+     */
+    private function get_deck_class_key(array $class_slugs, array $class_names) {
+        $keys = array(
+            'чернокнижник' => 'warlock',
+            'chernoknizhnik' => 'warlock',
+            'warlock' => 'warlock',
+            'demonolog' => 'warlock',
+            'маг' => 'mage',
+            'mag' => 'mage',
+            'mage' => 'mage',
+            'друид' => 'druid',
+            'druid' => 'druid',
+            'паладин' => 'paladin',
+            'paladin' => 'paladin',
+            'воин' => 'warrior',
+            'voin' => 'warrior',
+            'warrior' => 'warrior',
+            'шаман' => 'shaman',
+            'shaman' => 'shaman',
+            'разбойник' => 'rogue',
+            'razbojnik' => 'rogue',
+            'rogue' => 'rogue',
+            'жрец' => 'priest',
+            'zhrec' => 'priest',
+            'priest' => 'priest',
+            'охотник' => 'hunter',
+            'oxotnik' => 'hunter',
+            'hunter' => 'hunter',
+            'охотникнадемонов' => 'dh',
+            'oxotniknademonov' => 'dh',
+            'demonhunter' => 'dh',
+            'demonhunterclass' => 'dh',
+            'dh' => 'dh',
+            'рыцарьсмерти' => 'dk',
+            'deathknight' => 'dk',
+            'dk' => 'dk',
         );
 
         foreach (array_merge($class_slugs, $class_names) as $class_label) {
-            $key = $this->display_token_key($class_label);
-            if ($key !== '' && isset($icons[$key])) {
-                return $this->get_upload_asset_url($icons[$key]);
+            $token = $this->display_token_key($class_label);
+            if ($token !== '' && isset($keys[$token])) {
+                return $keys[$token];
             }
         }
 
         return '';
+    }
+
+    private function get_deck_class_icon_url(array $class_slugs, array $class_names) {
+        $icons = array(
+            'warlock' => '2026/01/heroes_warlock_icon.png.webp',
+            'mage' => '2026/01/heroes_mage_icon.png.webp',
+            'druid' => '2026/01/heroes_druid_icon.png.webp',
+            'paladin' => '2026/01/heroes_paladin_icon.png.webp',
+            'warrior' => '2026/01/heroes_warrior_icon.png.webp',
+            'shaman' => '2026/01/heroes_shaman_icon.png.webp',
+            'rogue' => '2026/01/heroes_rogue_icon.png.webp',
+            'priest' => '2026/01/heroes_priest_icon.png.webp',
+            'hunter' => '2026/01/heroes_hunter_icon.png.webp',
+            'dh' => '2026/01/icon_heroes_dh.png.webp',
+            'dk' => '2022/11/heroes_dk_icon.png',
+        );
+
+        $class_key = $this->get_deck_class_key($class_slugs, $class_names);
+        return isset($icons[$class_key]) ? $this->get_upload_asset_url($icons[$class_key]) : '';
+    }
+
+    /**
+     * Иконка для фильтра ленты из ассетов плагина: оригиналы в медиатеке
+     * вынесены в offload-хранилище и локально могут отсутствовать.
+     */
+    private function get_filter_class_icon_url(array $class_slugs, array $class_names) {
+        $class_key = $this->get_deck_class_key($class_slugs, $class_names);
+        if ($class_key === '' || !file_exists(UNIFIED_HS_PLUGINS_DIR . 'assets/images/classes/' . $class_key . '.webp')) {
+            return '';
+        }
+
+        return UNIFIED_HS_PLUGINS_URL . 'assets/images/classes/' . $class_key . '.webp';
     }
 
     private function filter_duplicate_visible_tags(array $tags, array $already_visible_labels) {
@@ -1805,7 +1842,7 @@ class HS_Decks_Manager {
     }
 
     private function should_insert_feed_ad_after($deck_index) {
-        return $deck_index > 0 && $deck_index % 6 === 0;
+        return $deck_index > 0 && $deck_index % self::FEED_AD_INTERVAL === 0;
     }
 
     private function get_filter_terms($taxonomy) {
@@ -2159,42 +2196,96 @@ class HS_Decks_Manager {
         $per_page = max(1, absint($per_page));
 
         if ($total_items <= $per_page) {
-            return '<div class="hs-load-more-info">Показано ' . esc_html(number_format_i18n($total_items)) . ' колод</div>';
+            return '<div class="hs-load-more-info">' . esc_html('Показано: ' . self::format_deck_count($total_items)) . '</div>';
         }
+
+        $current_page = min($current_page, $total_pages);
+        $start = (($current_page - 1) * $per_page) + 1;
+        $end = min($total_items, $current_page * $per_page);
+        $chevron = '<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 16 16"><path d="%s" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
         ob_start();
         ?>
-        <nav class="hs-feed-pagination hs-feed-pagination-server" aria-label="Пагинация колод">
-            <button type="button" class="hs-page-btn hs-page-prev" data-page="<?php echo esc_attr($current_page - 1); ?>"<?php disabled($current_page <= 1); ?>>Назад</button>
-            <?php
-            $last_rendered = 0;
-            for ($page = 1; $page <= $total_pages; $page++) {
-                $is_edge = $page === 1 || $page === $total_pages;
-                $is_near = abs($page - $current_page) <= 2;
-                if (!$is_edge && !$is_near) {
-                    if ($last_rendered !== -1) {
-                        echo '<span class="hs-page-ellipsis" aria-hidden="true">…</span>';
-                        $last_rendered = -1;
-                    }
-                    continue;
-                }
-                ?>
-                <button type="button" class="hs-page-btn<?php echo $page === $current_page ? ' active' : ''; ?>" data-page="<?php echo esc_attr($page); ?>"<?php echo $page === $current_page ? ' aria-current="page"' : ''; ?>><?php echo esc_html($page); ?></button>
-                <?php
-                $last_rendered = $page;
-            }
-            ?>
-            <button type="button" class="hs-page-btn hs-page-next" data-page="<?php echo esc_attr($current_page + 1); ?>"<?php disabled($current_page >= $total_pages); ?>>Вперёд</button>
+        <nav class="hs-feed-pagination hs-feed-pagination-server" aria-label="Страницы ленты колод">
+            <button type="button" class="hs-page-btn hs-page-step hs-page-prev" data-page="<?php echo esc_attr(max(1, $current_page - 1)); ?>"<?php disabled($current_page <= 1); ?>>
+                <?php printf($chevron, 'M10 3 5 8l5 5'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG. ?>
+                <span class="hs-page-step-label">Назад</span>
+            </button>
+            <span class="hs-page-numbers">
+                <?php foreach ($this->get_feed_pagination_items($current_page, $total_pages) as $item): ?>
+                    <?php if ($item === 'gap'): ?>
+                        <span class="hs-page-ellipsis" aria-hidden="true">…</span>
+                    <?php else: ?>
+                        <button type="button" class="hs-page-btn<?php echo $item === $current_page ? ' active' : ''; ?>" data-page="<?php echo esc_attr($item); ?>"<?php echo $item === $current_page ? ' aria-current="page"' : ''; ?>><?php echo esc_html(number_format_i18n($item)); ?></button>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </span>
+            <button type="button" class="hs-page-btn hs-page-step hs-page-next" data-page="<?php echo esc_attr(min($total_pages, $current_page + 1)); ?>"<?php disabled($current_page >= $total_pages); ?>>
+                <span class="hs-page-step-label">Вперёд</span>
+                <?php printf($chevron, 'M6 3l5 5-5 5'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG. ?>
+            </button>
         </nav>
         <div class="hs-load-more-info">
             <?php
-            $start = (($current_page - 1) * $per_page) + 1;
-            $end = min($total_items, $current_page * $per_page);
-            echo esc_html(sprintf('Страница %d из %d · показано %d-%d из %d колод', $current_page, $total_pages, $start, $end, $total_items));
+            echo esc_html(sprintf(
+                'Страница %1$s из %2$s · колоды %3$s–%4$s из %5$s',
+                number_format_i18n($current_page),
+                number_format_i18n($total_pages),
+                number_format_i18n($start),
+                number_format_i18n($end),
+                number_format_i18n($total_items)
+            ));
             ?>
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    /**
+     * Компактное окно пагинации: первая, последняя, текущая ±1 страница.
+     * Пропуск в одну страницу показывается номером, многоточие — только для пропуска от двух.
+     *
+     * @return array<int, int|string> Номера страниц и маркер 'gap'.
+     */
+    private function get_feed_pagination_items($current_page, $total_pages) {
+        $pages = array(1, $total_pages);
+        for ($page = $current_page - 1; $page <= $current_page + 1; $page++) {
+            if ($page >= 1 && $page <= $total_pages) {
+                $pages[] = $page;
+            }
+        }
+        $pages = array_values(array_unique($pages));
+        sort($pages);
+
+        $items = array();
+        $previous = 0;
+        foreach ($pages as $page) {
+            $gap = $page - $previous;
+            if ($gap === 2) {
+                $items[] = $previous + 1;
+            } elseif ($gap > 2) {
+                $items[] = 'gap';
+            }
+            $items[] = $page;
+            $previous = $page;
+        }
+
+        return $items;
+    }
+
+    private static function format_deck_count($count) {
+        $count = max(0, (int) $count);
+        $mod10 = $count % 10;
+        $mod100 = $count % 100;
+        if ($mod10 === 1 && $mod100 !== 11) {
+            $word = 'колода';
+        } elseif ($mod10 >= 2 && $mod10 <= 4 && ($mod100 < 12 || $mod100 > 14)) {
+            $word = 'колоды';
+        } else {
+            $word = 'колод';
+        }
+
+        return number_format_i18n($count) . ' ' . $word;
     }
 
     private function normalize_deck_feed_filters_for_cache(array $filters) {
@@ -2305,18 +2396,34 @@ class HS_Decks_Manager {
 
             $this->enqueue_front_assets();
 
+            usort($modes, static function ($left, $right) {
+                return (int) $right->count <=> (int) $left->count;
+            });
+            $advanced_active = count(array_filter(array(
+                $filters['games_min'] > 0,
+                $filters['winrate_min'] > 0,
+                $filters['dust_max'] > 0,
+                $filters['archetype'] !== '',
+                $filters['streamer'] !== '',
+                $filters['source'] !== '',
+                !empty($filters['tags']),
+            )));
+
             ob_start();
             ?>
             <div class="hs-decks-container hs-decks-container-server">
-                <form class="hs-decks-filters hs-decks-filters-server" id="hs-decks-filter-form" method="get">
+                <form class="hs-decks-filters hs-decks-filters-server" id="hs-decks-filter-form" method="get" role="search" aria-label="Фильтры колод">
                     <input type="hidden" name="hs_page" id="hs-page" value="<?php echo esc_attr($filters['page']); ?>">
                     <input type="hidden" name="hs_tags" id="hs-tags-value" value="<?php echo esc_attr(implode(',', $filters['tags'])); ?>">
                     <input type="hidden" name="hs_tags_mode" id="hs-tags-mode-value" value="<?php echo esc_attr($filters['tags_mode']); ?>">
 
-                    <div class="filter-row filter-row-main">
+                    <div class="hs-filters-bar">
                         <label class="hs-filter-field hs-filter-search">
                             <span>Поиск</span>
-                            <input type="text" id="deck-search" name="hs_search" value="<?php echo esc_attr($filters['search']); ?>" placeholder="Название, код, тег или автор">
+                            <span class="hs-filter-search-box">
+                                <svg class="hs-filter-search-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 18 18"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m12.2 12.2 3.8 3.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                                <input type="search" id="deck-search" name="hs_search" value="<?php echo esc_attr($filters['search']); ?>" placeholder="Название, код, тег или автор" autocomplete="off" enterkeyhint="search">
+                            </span>
                         </label>
 
                         <label class="hs-filter-field">
@@ -2334,40 +2441,6 @@ class HS_Decks_Manager {
                         </label>
 
                         <label class="hs-filter-field">
-                            <span>Класс</span>
-                            <select id="filter-class" name="hs_class">
-                                <option value="">Все классы</option>
-                                <?php foreach ($classes as $class): ?>
-                                    <option value="<?php echo esc_attr($class->slug); ?>"<?php selected($filters['class'], $class->slug); ?>><?php echo esc_html($class->name); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-
-                        <label class="hs-filter-field">
-                            <span>Режим</span>
-                            <select id="filter-mode" name="hs_mode">
-                                <option value="">Все режимы</option>
-                                <?php foreach ($modes as $mode): ?>
-                                    <option value="<?php echo esc_attr($mode->slug); ?>"<?php selected($filters['mode'], $mode->slug); ?>><?php echo esc_html($mode->name); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-                    </div>
-
-                    <div class="filter-row filter-row-metrics">
-                        <label class="hs-filter-field hs-filter-field--compact">
-                            <span>Игр от</span>
-                            <input type="number" id="filter-games" name="hs_games_min" value="<?php echo esc_attr($filters['games_min'] ?: ''); ?>" placeholder="20" min="0" step="1">
-                        </label>
-                        <label class="hs-filter-field hs-filter-field--compact">
-                            <span>Winrate от</span>
-                            <input type="number" id="filter-winrate" name="hs_winrate_min" value="<?php echo esc_attr($filters['winrate_min'] ?: ''); ?>" placeholder="55" min="0" max="100" step="0.1">
-                        </label>
-                        <label class="hs-filter-field hs-filter-field--compact">
-                            <span>Пыль до</span>
-                            <input type="number" id="filter-dust" name="hs_dust_max" value="<?php echo esc_attr($filters['dust_max'] ?: ''); ?>" placeholder="4000" min="0" step="100">
-                        </label>
-                        <label class="hs-filter-field">
                             <span>Сортировка</span>
                             <select id="filter-sort" name="hs_sort">
                                 <option value="date"<?php selected($filters['sort'], 'date'); ?>>Сначала новые</option>
@@ -2379,13 +2452,56 @@ class HS_Decks_Manager {
                                 <option value="dislikes"<?php selected($filters['sort'], 'dislikes'); ?>>Больше дизлайков</option>
                             </select>
                         </label>
-                        <button type="button" class="hs-filter-toggle" id="hs-advanced-toggle" aria-expanded="<?php echo ($filters['archetype'] || $filters['streamer'] || $filters['source'] || !empty($filters['tags'])) ? 'true' : 'false'; ?>" aria-controls="hs-advanced-filters">
-                            Еще фильтры
-                        </button>
-                        <button type="button" class="hs-filter-reset" id="hs-filter-reset">Сбросить</button>
                     </div>
 
-                    <div class="hs-advanced-filters" id="hs-advanced-filters"<?php echo ($filters['archetype'] || $filters['streamer'] || $filters['source'] || !empty($filters['tags'])) ? '' : ' hidden'; ?>>
+                    <div class="hs-filter-chips hs-filter-chips--modes" role="radiogroup" aria-labelledby="hs-filter-mode-label">
+                        <span class="hs-filter-chips-label" id="hs-filter-mode-label">Режим</span>
+                        <div class="hs-chip-row">
+                            <label class="hs-chip"><input type="radio" name="hs_mode" value=""<?php checked($filters['mode'], ''); ?>><span class="hs-chip-body">Все</span></label>
+                            <?php foreach ($modes as $mode): ?>
+                            <label class="hs-chip"><input type="radio" name="hs_mode" value="<?php echo esc_attr($mode->slug); ?>"<?php checked($filters['mode'], $mode->slug); ?>><span class="hs-chip-body"><?php echo esc_html($mode->name); ?></span></label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="hs-filter-chips hs-filter-chips--classes" role="radiogroup" aria-labelledby="hs-filter-class-label">
+                        <span class="hs-filter-chips-label" id="hs-filter-class-label">Класс</span>
+                        <div class="hs-chip-row">
+                            <label class="hs-chip"><input type="radio" name="hs_class" value=""<?php checked($filters['class'], ''); ?>><span class="hs-chip-body">Все</span></label>
+                            <?php foreach ($classes as $class): ?>
+                            <?php $class_icon_url = $this->get_filter_class_icon_url(array($class->slug), array($class->name)); ?>
+                            <label class="hs-chip hs-chip--class"><input type="radio" name="hs_class" value="<?php echo esc_attr($class->slug); ?>"<?php checked($filters['class'], $class->slug); ?>><span class="hs-chip-body"><?php if ($class_icon_url): ?><img class="hs-chip-icon" src="<?php echo esc_url($class_icon_url); ?>" alt="" width="22" height="22" loading="lazy" decoding="async"><?php endif; ?><?php echo esc_html($class->name); ?></span></label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="hs-filters-footer">
+                        <button type="button" class="hs-filter-toggle<?php echo $advanced_active ? ' active' : ''; ?>" id="hs-advanced-toggle" aria-expanded="<?php echo $advanced_active ? 'true' : 'false'; ?>" aria-controls="hs-advanced-filters">
+                            <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 16 16"><path d="M2 4h7M13 4h1M2 12h1M7 12h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                            <span>Ещё фильтры</span>
+                            <span class="hs-filter-badge" id="hs-advanced-count"<?php echo $advanced_active ? '' : ' hidden'; ?>><?php echo esc_html($advanced_active); ?></span>
+                        </button>
+                        <p class="hs-filters-summary" id="hs-filters-count" aria-live="polite"><?php echo esc_html('Найдено: ' . self::format_deck_count($feed['total'])); ?></p>
+                        <div class="hs-filters-actions">
+                            <button type="button" class="hs-filter-link" onclick="document.getElementById('help-modal').style.display='flex'">Помощь</button>
+                            <button type="button" class="hs-filter-link hs-filter-reset" id="hs-filter-reset">Сбросить</button>
+                        </div>
+                    </div>
+
+                    <div class="hs-advanced-filters" id="hs-advanced-filters"<?php echo $advanced_active ? '' : ' hidden'; ?>>
+                        <label class="hs-filter-field">
+                            <span>Игр от</span>
+                            <input type="number" id="filter-games" name="hs_games_min" value="<?php echo esc_attr($filters['games_min'] ?: ''); ?>" placeholder="20" min="0" step="1" inputmode="numeric">
+                        </label>
+                        <label class="hs-filter-field">
+                            <span>Winrate от, %</span>
+                            <input type="number" id="filter-winrate" name="hs_winrate_min" value="<?php echo esc_attr($filters['winrate_min'] ?: ''); ?>" placeholder="55" min="0" max="100" step="0.1" inputmode="decimal">
+                        </label>
+                        <label class="hs-filter-field">
+                            <span>Пыль до</span>
+                            <input type="number" id="filter-dust" name="hs_dust_max" value="<?php echo esc_attr($filters['dust_max'] ?: ''); ?>" placeholder="4000" min="0" step="100" inputmode="numeric">
+                        </label>
+
                         <label class="hs-filter-field">
                             <span>Архетип</span>
                             <select id="filter-archetype" name="hs_archetype">
@@ -2433,8 +2549,6 @@ class HS_Decks_Manager {
                             </div>
                         </div>
                     </div>
-
-                    <div class="hs-help-link" onclick="document.getElementById('help-modal').style.display='flex'">Помощь</div>
                 </form>
 
                 <div class="hs-decks-grid" id="decks-grid" data-server-feed="1" data-per-page="<?php echo esc_attr($per_page); ?>">
@@ -5232,7 +5346,6 @@ class HS_Decks_Manager {
         // Стример
         $streamer = get_post_meta($post_id, '_deck_streamer', true);
         $player = get_post_meta($post_id, '_deck_player', true);
-        $source_url = get_post_meta($post_id, '_deck_source_url', true);
         $use_feed_shortcode = get_post_meta($post_id, '_use_feed_shortcode', true) === '1';
         $feed_shortcode = get_post_meta($post_id, '_feed_shortcode', true);
         
@@ -5359,9 +5472,6 @@ class HS_Decks_Manager {
                     <?php endif; ?>
                     <?php if ($display_player): ?>
                     <span class="deck-player"><?php echo esc_html($display_player); ?></span>
-                    <?php endif; ?>
-                    <?php if ($source_url): ?>
-                    <a class="deck-source" href="<?php echo esc_url($source_url); ?>" target="_blank" rel="nofollow noopener">Источник</a>
                     <?php endif; ?>
                 </div>
                 <?php if (!empty($custom_tags_array)): ?>
