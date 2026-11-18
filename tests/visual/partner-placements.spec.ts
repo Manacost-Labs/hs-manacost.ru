@@ -99,7 +99,7 @@ for (const failed of [['primary'], ['primary', 'secondary']]) {
     await first.focus();
     await expect(first).toHaveCSS('opacity', '1');
     await expect(first.locator('.site-partnership__fallback')).toBeVisible();
-    await expect(first).toHaveAttribute('href', 'https://bit.ly/hsmanacostru2110');
+    await expect(first).toHaveAttribute('href', 'https://bit.ly/hsmanacostru1811');
   });
 }
 
