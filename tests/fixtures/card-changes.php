@@ -157,6 +157,12 @@ $responses[url('constructed_card', 'BAD_3')] = new WP_Error('http_request_failed
 $S::refresh([['constructed', 'BAD_3', $D]]);
 check(isset($cache['hs_cc_cooldown']), 'Transport errors start the cooldown and never throw');
 unset($cache['hs_cc_cooldown']);
+// A later, shorter failure in the same batch never cuts an earlier Retry-After.
+$responses[url('constructed_card', 'RA_1')] = status(503, ['retry-after' => '600']);
+$responses[url('constructed_card', 'RA_2')] = status(503);
+$S::refresh([['constructed', 'RA_1', $D], ['constructed', 'RA_2', $D]]);
+check($cache['hs_cc_cooldown'] === 'http_503' && $ttl['hs_cc_cooldown'] >= 599, 'The longest Retry-After in a batch wins: ' . $ttl['hs_cc_cooldown']);
+unset($cache['hs_cc_cooldown']);
 
 // The real transport path (Requests::request_multiple): objects are normalized, exceptions become an outage.
 $passthrough = true;

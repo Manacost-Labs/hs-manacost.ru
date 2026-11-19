@@ -20,6 +20,23 @@ final class HS_Card_Changes_Search {
 	);
 
 	/**
+	 * Thumbnail hosts and upload path prefixes per source. The editor's browser loads these images directly.
+	 * The dictionary list mirrors the hosts the HS Smart Tooltip image proxy accepts.
+	 */
+	private const IMAGE_HOSTS = array(
+		'archive'    => array(
+			'api.kolodahearthstone.com' => '/uploads/',
+		),
+		'dictionary' => array(
+			'art.hearthstonejson.com'       => '/v1/',
+			'api.hearthstonejson.com'       => '/v1/',
+			'd15f34w2p8l1cc.cloudfront.net' => '/',
+			'static.wikia.nocookie.net'     => '/',
+			'api.kolodahearthstone.com'     => '/uploads/',
+		),
+	);
+
+	/**
 	 * Search both sources.
 	 *
 	 * @param string   $term Russian name or part of it.
@@ -205,18 +222,26 @@ final class HS_Card_Changes_Search {
 			'id'     => $id,
 			'mode'   => $mode,
 			'name'   => $name,
-			'img'    => self::thumbnail( $image ),
+			'img'    => self::thumbnail( $image, $source ),
 			'source' => $source,
 		);
 	}
 
 	/**
-	 * Thumbnails are shown only from HTTPS: the archive host's uploads or the dictionary's own image hosts.
+	 * Thumbnails are shown only over HTTPS from the source's allowlisted host and upload path; anything else is dropped.
 	 *
-	 * @param mixed $url Candidate URL.
+	 * @param mixed  $url Candidate URL.
+	 * @param string $source "dictionary" or "archive".
 	 */
-	private static function thumbnail( $url ): string {
-		if ( ! is_string( $url ) || ! str_starts_with( $url, 'https://' ) || strlen( $url ) > 300 ) {
+	private static function thumbnail( $url, string $source ): string {
+		if ( ! is_string( $url ) || strlen( $url ) > 300 || 1 === preg_match( '/[\x00-\x20\\\\]/', $url ) ) {
+			return '';
+		}
+		$parts  = wp_parse_url( $url );
+		$host   = is_array( $parts ) ? strtolower( (string) ( $parts['host'] ?? '' ) ) : '';
+		$prefix = self::IMAGE_HOSTS[ $source ][ $host ] ?? null;
+		$path   = is_array( $parts ) ? (string) ( $parts['path'] ?? '' ) : '';
+		if ( null === $prefix || 'https' !== ( $parts['scheme'] ?? '' ) || isset( $parts['port'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || ! str_starts_with( $path, $prefix ) || str_contains( $path, '/../' ) ) {
 			return '';
 		}
 		return esc_url_raw( $url );

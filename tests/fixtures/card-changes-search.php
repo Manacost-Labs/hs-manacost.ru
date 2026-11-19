@@ -57,11 +57,22 @@ check($limited['archive'] === 'limited' && count($calls) === $count, 'When rate 
 $responses[archive_url('/api/v1/cards', 'Падение')] = status(500, ['retry-after' => '90']);
 $responses[archive_url('/api/v1/constructed-cards', 'Падение')] = status(500, ['retry-after' => '90']);
 $r = $S::run('Падение', 'all', $allow);
-check($r['items'] === [] && $r['archive'] === 'unavailable' && $cache['hs_cc_cooldown'] === 'http_500' && $ttl['hs_cc_cooldown'] === 90, 'A failing archive starts the cooldown and yields no rows: ' . json_encode([$r, $cache['hs_cc_cooldown'] ?? null, $ttl['hs_cc_cooldown'] ?? null], JSON_UNESCAPED_UNICODE));
+check($r['items'] === [] && $r['archive'] === 'unavailable' && $cache['hs_cc_search_cooldown'] === 'http_500' && $ttl['hs_cc_search_cooldown'] === 90, 'A failing archive starts the search cooldown and yields no rows: ' . json_encode([$r, $cache['hs_cc_search_cooldown'] ?? null, $ttl['hs_cc_search_cooldown'] ?? null], JSON_UNESCAPED_UNICODE));
+check(!isset($cache['hs_cc_cooldown']), 'A search outage leaves the history cooldown untouched');
 $count = count($calls);
 $r = $S::run('Матриарх жгучего холода', 'all', $allow);
 check($count === count($calls) && $r['archive'] === 'unavailable', 'Cooldown: no archive request, dictionary only');
-unset($cache['hs_cc_cooldown']);
+// Card history keeps resolving while search is cooling down (editor resolve by ID, background refresh).
+$responses['https://api.kolodahearthstone.com/api/v1/card-history/constructed_card/BE_285'] = json_ok(fx('constructed_card-BE_285'));
+$resolved = HS_Card_Changes_Source::resolve_live('constructed', 'BE_285', '2026-11-04 00:00:00');
+check(count($calls) === $count + 1 && $resolved['state'] !== 'unavailable', 'History resolves during a search outage: ' . $resolved['state']);
+unset($cache['hs_cc_search_cooldown']);
+// The longest delay in a batch wins: a later 500 without Retry-After keeps the earlier 600 s.
+$responses[archive_url('/api/v1/constructed-cards', 'Длинная пауза')] = status(503, ['retry-after' => '600']);
+$responses[archive_url('/api/v1/cards', 'Длинная пауза')] = status(500);
+$S::run('Длинная пауза', 'all', $allow);
+check($ttl['hs_cc_search_cooldown'] >= 599, 'A later shorter failure keeps the earlier Retry-After: ' . $ttl['hs_cc_search_cooldown']);
+unset($cache['hs_cc_search_cooldown']);
 
 // Invalid rows are dropped; thumbnails must be HTTPS.
 $bad = ['data' => [
@@ -70,18 +81,23 @@ $bad = ['data' => [
     ['card_id' => 'BG99_002', 'name' => ['ru' => '<script>alert(1)</script>Имя'], 'images' => ['card' => 'http://insecure.example/x.png']],
     ['card_id' => 'BG99_003', 'name' => 'строка вместо объекта'],
     ['card_id' => 'BG99_004', 'name' => ['ru' => '']],
+    ['card_id' => 'BG99_005', 'name' => ['ru' => 'Чужой хост'], 'images' => ['card' => 'https://tracker.example.net/uploads/x.png']],
+    ['card_id' => 'BG99_006', 'name' => ['ru' => 'Чужой путь'], 'images' => ['card' => 'https://api.kolodahearthstone.com/api/v1/me']],
+    ['card_id' => 'BG99_007', 'name' => ['ru' => 'Похожий хост'], 'images' => ['card' => 'https://api.kolodahearthstone.com.evil.example/uploads/x.png']],
+    ['card_id' => 'BG99_008', 'name' => ['ru' => 'Учётка в URL'], 'images' => ['card' => 'https://user@api.kolodahearthstone.com/uploads/x.png']],
     'not-an-array',
 ]];
 $responses[archive_url('/api/v1/cards', 'Тест строк')] = json_ok(json_encode($bad, JSON_UNESCAPED_UNICODE) === false ? '' : json_encode($bad, JSON_UNESCAPED_UNICODE));
 $responses[archive_url('/api/v1/constructed-cards', 'Тест строк')] = json_ok('{"data":[]}');
 $r = $S::run('Тест строк', 'all', $allow);
-check($ids($r) === ['bg:BG99_001', 'bg:BG99_002'], 'Only valid rows survive: ' . json_encode($ids($r)));
-check(!str_contains(json_encode($r['items'], JSON_UNESCAPED_UNICODE), '<') && $r['items'][1]['img'] === '', 'Names lose markup and insecure thumbnails are dropped');
+check($ids($r) === ['bg:BG99_001', 'bg:BG99_002', 'bg:BG99_005', 'bg:BG99_006', 'bg:BG99_007', 'bg:BG99_008'], 'Only valid rows survive: ' . json_encode($ids($r)));
+check(!str_contains(json_encode($r['items'], JSON_UNESCAPED_UNICODE), '<') && $r['items'][0]['img'] !== '' && $r['items'][1]['img'] === '', 'Names lose markup and insecure thumbnails are dropped');
+check(array_column(array_slice($r['items'], 2), 'img') === ['', '', '', ''], 'HTTPS thumbnails off the archive upload allowlist are dropped: ' . json_encode(array_column($r['items'], 'img')));
 $responses[archive_url('/api/v1/cards', 'Форма')] = json_ok('{"data":{"a":1}}');
 $responses[archive_url('/api/v1/constructed-cards', 'Форма')] = json_ok('{"data":{"a":1}}');
 $r = $S::run('Форма', 'all', $allow);
-check($r['archive'] === 'unavailable' && isset($cache['hs_cc_cooldown']), 'A response of the wrong shape counts as an outage');
-unset($cache['hs_cc_cooldown']);
+check($r['archive'] === 'unavailable' && isset($cache['hs_cc_search_cooldown']), 'A response of the wrong shape counts as an outage');
+unset($cache['hs_cc_search_cooldown']);
 
 // Kill switch is covered by the main fixture; a missing dictionary plugin leaves the archive working.
 echo "PASS\n";

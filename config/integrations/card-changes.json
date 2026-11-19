@@ -19,7 +19,7 @@
   "timeout_seconds": 5,
   "retry": {
     "max_attempts": 1,
-    "backoff": "No in-request retry; provider-wide cooldown of 60 seconds on error, honoring numeric or HTTP-date Retry-After between 60 and 3600 seconds."
+    "backoff": "No in-request retry; a cooldown of 60 seconds on error, honoring numeric or HTTP-date Retry-After between 60 and 3600 seconds; the longest delay in a batch wins. Card search has its own cooldown, so a search outage never pauses history resolution or the background refresh."
   },
   "idempotency": "Read-only GET. Rendering, saving and composing perform no provider writes; saving a post and cache misses only schedule a background refresh.",
   "rate_limit": "Page views read the cache only. A background job (one deduplicated WP-Cron event per post) makes at most 4 parallel requests, shares a 20-second budget across batches and older pages (3 pages of 50 versions per card at most), and caps responses at 512 KiB; a per-key lock stops concurrent refetches. A resolved pair is cached 30 days and never goes stale. In the editor only resolve reaches the provider (60 per minute per editor); compose never does (120 per minute). Card search queries the archive at most 40 times per minute per editor (12 rows per mode, one parallel request per mode, cached 10 minutes); beyond that the local dictionary answers alone.",

@@ -83,7 +83,10 @@ class CardChangesTest(unittest.TestCase):
         self.assertIn("base !== 'https://test.hs-manacost.ru'", probe)
         # The disposable post is removed in `finally`, only when it carries this run's unique marker.
         final = probe.split("} finally {", 1)[1]
-        self.assertIn("stored.title.raw === marker", final)
+        self.assertIn("post.title.raw === marker", final)
+        # A lost create response is resolved by looking the draft up by marker and author, not reported as clean.
+        self.assertIn("search=${encodeURIComponent(marker)}", final)
+        self.assertIn("report.cleaned = !createSent", final)
         self.assertIn("?force=true", final)
         self.assertIn("'private'", probe)
         self.assertNotIn("'publish'", probe)

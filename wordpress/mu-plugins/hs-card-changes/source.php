@@ -24,6 +24,15 @@ final class HS_Card_Changes_Source {
 	private const MAX_PAGES   = 3;
 	private const BUDGET      = 20;
 	private const QUEUE_TTL   = 5 * MINUTE_IN_SECONDS;
+	private const COOLDOWN    = 'hs_cc_cooldown';
+	private const SEARCH_COOL = 'hs_cc_search_cooldown';
+
+	/**
+	 * Cooldown end per transient key set by this process, so a later shorter delay never cuts an earlier longer one.
+	 *
+	 * @var array<string,int>
+	 */
+	private static array $cooldown_until = array();
 
 	/** Background hooks; page views and saves only schedule them. */
 	public static function register(): void {
@@ -74,7 +83,7 @@ final class HS_Card_Changes_Source {
 	 * @param list<array{0:string,1:string,2:string}> $requests Mode, card and date triples.
 	 */
 	public static function refresh( array $requests ): void {
-		if ( self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
+		if ( self::disabled() || false !== get_transient( self::COOLDOWN ) ) {
 			return;
 		}
 		$claimed = array();
@@ -92,7 +101,7 @@ final class HS_Card_Changes_Source {
 			}
 			do_action( 'hs_card_changes_batch', count( $chunk ) );
 			self::fetch_chunk( $chunk, $deadline );
-			if ( false !== get_transient( 'hs_cc_cooldown' ) ) {
+			if ( false !== get_transient( self::COOLDOWN ) ) {
 				break;
 			}
 		}
@@ -129,7 +138,7 @@ final class HS_Card_Changes_Source {
 	 * @param int                               $post_id Post to warm as a whole, or 0 for the single card.
 	 */
 	public static function queue( array $request, int $post_id ): void {
-		if ( self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
+		if ( self::disabled() || false !== get_transient( self::COOLDOWN ) ) {
 			return;
 		}
 		$marker = 'hs_cc_queued_' . ( $post_id > 0 ? 'post_' . $post_id : HS_Card_Changes_Cache::key( ...$request ) );
@@ -171,14 +180,15 @@ final class HS_Card_Changes_Source {
 	/**
 	 * Editor search (admin AJAX only): GET provider list endpoints in parallel through the same bounded transport.
 	 *
-	 * Honours the kill switch, WP_HTTP_BLOCK_EXTERNAL and the provider cooldown; a failure starts the cooldown.
+	 * Honours the kill switch and WP_HTTP_BLOCK_EXTERNAL. Search has its own cooldown: a search outage never
+	 * pauses card history resolution or the background refresh.
 	 *
 	 * @param array<string,string> $paths Provider paths with query strings, keyed by caller identifier.
 	 * @return array<string,list<mixed>|null> Rows per identifier; null when the provider failed or is unavailable.
 	 */
 	public static function get_lists( array $paths ): array {
 		$out = array_fill_keys( array_keys( $paths ), null );
-		if ( ! $paths || self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
+		if ( ! $paths || self::disabled() || false !== get_transient( self::SEARCH_COOL ) ) {
 			return $out;
 		}
 		$urls = array();
@@ -199,7 +209,7 @@ final class HS_Card_Changes_Source {
 	 */
 	private static function decode_list( ?array $response ): ?array {
 		if ( null === $response ) {
-			self::fail( 60, 'unavailable' );
+			self::fail( 60, 'unavailable', self::SEARCH_COOL );
 			return null;
 		}
 		if ( 404 === $response['status'] ) {
@@ -209,7 +219,7 @@ final class HS_Card_Changes_Source {
 			? json_decode( $response['body'], true, 32 ) : null;
 		$rows = is_array( $data ) ? ( $data['data'] ?? null ) : null;
 		if ( ! is_array( $rows ) || ! array_is_list( $rows ) || count( $rows ) > 200 ) {
-			self::fail( 200 === $response['status'] ? 60 : $response['retry'], 'http_' . $response['status'] );
+			self::fail( 200 === $response['status'] ? 60 : $response['retry'], 'http_' . $response['status'], self::SEARCH_COOL );
 			return null;
 		}
 		do_action( 'hs_card_changes_provider_result', 'success' );
@@ -431,13 +441,19 @@ final class HS_Card_Changes_Source {
 	}
 
 	/**
-	 * Provider-wide cooldown so a failing API is not retried by every request.
+	 * Cooldown so a failing API is not retried by every request. Within a batch the longest delay wins.
 	 *
 	 * @param int    $seconds Cooldown length.
 	 * @param string $code Safe operational outcome.
+	 * @param string $key History (default) or search cooldown.
 	 */
-	private static function fail( int $seconds, string $code ): void {
-		set_transient( 'hs_cc_cooldown', $code, $seconds );
+	private static function fail( int $seconds, string $code, string $key = self::COOLDOWN ): void {
+		$until = time() + $seconds;
+		if ( false !== get_transient( $key ) && ( self::$cooldown_until[ $key ] ?? 0 ) > $until ) {
+			$until = self::$cooldown_until[ $key ];
+		}
+		self::$cooldown_until[ $key ] = $until;
+		set_transient( $key, $code, max( 1, $until - time() ) );
 		do_action( 'hs_card_changes_provider_result', $code );
 	}
 }

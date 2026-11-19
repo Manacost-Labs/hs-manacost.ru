@@ -51,5 +51,6 @@ function shortcode_parse_atts($text) { preg_match_all('/([\w-]+)="([^"]*)"/u', $
 function esc_html($v) { return htmlspecialchars($v, ENT_QUOTES); }
 function esc_attr($v) { return htmlspecialchars($v, ENT_QUOTES); }
 function esc_url($v) { return htmlspecialchars($v, ENT_QUOTES); }
+function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
 function esc_url_raw($v) { return preg_match('/[\x00-\x20<>"]/', $v) ? '' : $v; }
 function check($v, $message) { if (!$v) throw new RuntimeException('FAIL: ' . $message); }

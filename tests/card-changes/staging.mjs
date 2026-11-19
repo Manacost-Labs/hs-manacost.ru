@@ -39,6 +39,7 @@ page.on('requestfailed', request => {
 page.on('pageerror', error => { if (/hs-card-changes/.test(error.stack || '')) report.plugin_errors.push(String(error.message).slice(0, 200)); });
 let nonce;
 let fixture;
+let createSent = false;
 async function navigate(target, url) {
   const { response, retries } = await navigateWithNetworkRecovery(target, url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   report.navigation_retries += retries;
@@ -83,6 +84,7 @@ try {
   }
   assert.match(nonce ?? '', /^[a-z0-9]{10}$/i, 'Signed in');
   report.stage = 'create-draft';
+  createSent = true;
   fixture = await api('posts', 'POST', { title: marker, content: `<p>${marker}</p>`, status: 'draft' });
   assert.ok(Number.isSafeInteger(fixture.id) && fixture.id > 0);
 
@@ -170,17 +172,20 @@ try {
   await page.screenshot({ path: '.artifacts/card-changes/staging-failure.png', timeout: 10000 }).catch(() => {});
   report.ok = false;
 } finally {
-  // Remove only our own disposable draft, identified by its unique marker, even after a failure.
-  if (fixture?.id && nonce) {
+  // Remove only our own disposable draft, identified by its unique marker and author, even after a failure.
+  // A lost create response may still have created it, so then the draft is looked up by marker instead of by ID.
+  if (createSent && nonce) {
     try {
       const owner = await api('users/me');
-      const stored = await api(`posts/${fixture.id}?context=edit`);
-      if (stored.author === owner.id && stored.title.raw === marker && stored.content.raw.includes(marker)) {
-        const removed = await api(`posts/${fixture.id}?force=true`, 'DELETE');
-        report.cleaned = removed.deleted === true;
-      }
+      const ours = post => post.author === owner.id && post.title.raw === marker && post.content.raw.includes(marker);
+      const found = fixture?.id
+        ? [await api(`posts/${fixture.id}?context=edit`)]
+        : await api(`posts?context=edit&author=${owner.id}&status=draft,private&per_page=10&search=${encodeURIComponent(marker)}`);
+      let cleaned = true;
+      for (const post of found.filter(ours)) cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
+      report.cleaned = cleaned && (fixture?.id ? found.some(ours) : true);
     } catch { report.cleaned = false; }
-  } else report.cleaned = true;
+  } else report.cleaned = !createSent;
   report.ok &&= report.cleaned;
   await browser.close();
   await mkdir('.artifacts/card-changes', { recursive: true });

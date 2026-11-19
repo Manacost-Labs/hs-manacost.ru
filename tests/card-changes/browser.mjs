@@ -259,7 +259,14 @@ try {
   await blockPage.locator('.hs-card-changes-open').first().click();
   await blockPage.locator('#hs-card-changes-dialog[open]').waitFor();
   await blockPage.locator('#hs-cc-date').fill(PATCH);
+  // A search that outlives the 15 s client timeout ends in a retry message, not an endless «Загружаем…».
+  const stall = route => (route.request().postData() || '').includes('mode=search') ? undefined : route.fallback();
+  await blockPage.route('**/admin-ajax.php', stall);
   await blockPage.locator('#hs-cc-search').fill('Матриарх');
+  await blockPage.getByText('Сервер не ответил за 15 секунд. Повторите запрос.').waitFor({ timeout: 25000 });
+  await blockPage.unroute('**/admin-ajax.php', stall);
+  check('search timeout', true);
+  await blockPage.locator('#hs-cc-search').press('Enter');
   await blockPage.locator('.hs-ccd-result', { hasText: 'BE_036' }).first().click();
   await rowsReady(blockPage, 1);
   await previewReady(blockPage, 1);

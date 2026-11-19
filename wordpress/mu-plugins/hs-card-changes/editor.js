@@ -11,6 +11,7 @@
 	const text = {
 		short: 'Введите хотя бы две буквы названия.', loading: 'Загружаем…', empty: 'Ничего не найдено. Проверьте написание или добавьте карту по идентификатору.',
 		error: 'Не удалось выполнить запрос. Повторите. Если сессия истекла, сохраните текст и войдите снова.',
+		timeout: 'Сервер не ответил за 15 секунд. Повторите запрос.',
 		limit: `В статью можно добавить до ${config.maxItems} изменений за раз.`, editorError: 'Редактор ещё не готов. Закройте окно и повторите вставку.',
 		pair: (item) => `До — ${item.before.at} UTC · После — ${item.after.at} UTC`,
 		single: (item) => `Пары для этой даты нет — будет показана текущая карта (${item.after.at} UTC).`,
@@ -43,7 +44,8 @@
 		requests.get(channel)?.abort();
 		const controller = new AbortController();
 		requests.set(channel, controller);
-		const timer = setTimeout(() => controller.abort(), 15000);
+		let timedOut = false;
+		const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
 		try {
 			const response = await fetch(config.url, {
 				method: 'POST', credentials: 'same-origin', signal: controller.signal,
@@ -53,7 +55,9 @@
 			if (!response.ok || !payload.success) throw new Error(payload.data?.message || text.error);
 			return payload.data;
 		} catch (error) {
-			throw error.name === 'AbortError' ? Object.assign(new Error(text.error), { name: 'AbortError' }) : error;
+			// Only a superseded or closed request stays silent; the current request's timeout is shown with a retry hint.
+			if (error.name !== 'AbortError') throw error;
+			throw timedOut ? new Error(text.timeout) : Object.assign(new Error(text.error), { name: 'AbortError' });
 		} finally {
 			clearTimeout(timer);
 			if (requests.get(channel) === controller) requests.delete(channel);
