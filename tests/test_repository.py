@@ -126,6 +126,10 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("smoke-check.sh staging", staging)
         self.assertIn("skip_novosibirsk", staging)
         self.assertIn("MANACOST_SKIP_NOVOSIBIRSK", staging)
+        self.assertIn(
+            "MANACOST_SKIP_NOVOSIBIRSK: ${{ inputs.skip_novosibirsk || vars.MANACOST_NSK_MAINTENANCE == 'true' }}",
+            staging,
+        )
         self.assertIn("workflow_dispatch:", production)
         self.assertIn(
             "verify-staging:\n    runs-on: [self-hosted, linux, x64, hs-manacost-production]",
