@@ -506,80 +506,37 @@ jQuery(document).ready(function($) {
         modal.find('.hs-modal-close').trigger('focus');
     });
 
-    function getVoteCards(scope) {
-        const root = scope ? $(scope) : $(document);
-        let cards = root.find('.deck-card[data-deck-id]');
-        if (root.is('.deck-card[data-deck-id]')) {
-            cards = cards.add(root);
-        }
-        return cards.filter(function() {
-            return $(this).find('.vote-btn').length > 0;
-        });
-    }
-
-    function hasVoteCookie(deckId) {
-        const prefix = 'hs_voted_' + deckId + '=';
-        return document.cookie.split(';').some(function(cookie) {
-            return cookie.trim().indexOf(prefix) === 0;
-        });
-    }
-
-    function setupVoteState(scope) {
-        getVoteCards(scope).each(function() {
-            const card = $(this);
-            if (!hasVoteCookie(card.data('deck-id'))) {
-                return;
+    // Clipboard API недоступен в части встроенных браузеров (Telegram, VK) и без HTTPS.
+    function copyTextToClipboard(text) {
+        function legacyCopy() {
+            const field = document.createElement('textarea');
+            field.value = text;
+            field.setAttribute('readonly', '');
+            field.style.position = 'fixed';
+            field.style.top = '-1000px';
+            field.style.opacity = '0';
+            document.body.appendChild(field);
+            field.select();
+            let copied = false;
+            try {
+                copied = document.execCommand('copy');
+            } catch (error) {
+                copied = false;
             }
-            card.addClass('voted');
-            card.find('.vote-btn').prop('disabled', true);
-        });
-    }
-
-    function hydrateVoteCounts(scope) {
-        if (typeof hsDecks === 'undefined' || !hsDecks.ajaxurl) {
-            return;
+            document.body.removeChild(field);
+            return copied ? Promise.resolve() : Promise.reject(new Error('copy command failed'));
         }
 
-        const cards = getVoteCards(scope);
-        const ids = [];
-        cards.each(function() {
-            const deckId = parseInt($(this).data('deck-id'), 10);
-            if (deckId && ids.indexOf(deckId) === -1 && ids.length < 100) {
-                ids.push(deckId);
-            }
-        });
-        if (!ids.length) {
-            return;
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text).catch(legacyCopy);
         }
-
-        $.ajax({
-            url: hsDecks.ajaxurl,
-            type: 'POST',
-            data: {
-                action: hsDecks.voteCountsAction || 'hs_decks_vote_counts',
-                post_ids: ids,
-                nonce: hsDecks.nonce
-            },
-            success: function(response) {
-                if (!response || !response.success || !response.data || !response.data.counts) {
-                    return;
-                }
-                Object.keys(response.data.counts).forEach(function(deckId) {
-                    const counts = response.data.counts[deckId] || {};
-                    const matchingCards = $('.deck-card[data-deck-id="' + parseInt(deckId, 10) + '"]').filter(function() {
-                        // Не перезаписываем более свежий результат локального vote AJAX
-                        // ответом hydration-запроса, который мог стартовать раньше.
-                        return !$(this).data('voteUpdated');
-                    });
-                    matchingCards.attr('data-likes', parseInt(counts.likes, 10) || 0);
-                    matchingCards.attr('data-dislikes', parseInt(counts.dislikes, 10) || 0);
-                    matchingCards.find('.like-btn .vote-count').text(parseInt(counts.likes, 10) || 0);
-                    matchingCards.find('.dislike-btn .vote-count').text(parseInt(counts.dislikes, 10) || 0);
-                });
-            }
-        });
+        return legacyCopy();
     }
-    
+
+    $(document).on('focus click', '.deck-code-input', function() {
+        this.select();
+    });
+
     $(document).on('click', '.copy-code-btn', function() {
         const btn = $(this);
         const code = btn.data('code');
@@ -590,10 +547,19 @@ jQuery(document).ready(function($) {
             return;
         }
         
-        navigator.clipboard.writeText(code).then(function() {
-            const originalText = btn.text();
+        // Подпись меняется в .copy-code-label, чтобы не стереть иконки кнопки.
+        const label = btn.find('.copy-code-label');
+        const labelTarget = label.length ? label : btn;
+
+        if (typeof btn.data('copyLabel') === 'undefined') {
+            btn.data('copyLabel', labelTarget.text());
+        }
+        const originalText = btn.data('copyLabel');
+
+        copyTextToClipboard(String(code)).then(function() {
+            clearTimeout(btn.data('copyResetTimer'));
             btn.addClass('copy-success');
-            btn.text('✓ Скопировано!');
+            labelTarget.text(label.length ? 'Скопировано' : '✓ Скопировано!');
             
             if (deckId && !wasDeckCopyRecentlySent(deckId)) {
                 markDeckCopySent(deckId);
@@ -608,82 +574,22 @@ jQuery(document).ready(function($) {
                 });
             }
             
-            setTimeout(function() {
+            btn.data('copyResetTimer', setTimeout(function() {
                 btn.removeClass('copy-success');
-                btn.text(originalText);
-            }, 2000);
+                labelTarget.text(originalText);
+            }, 2000));
         }).catch(function(err) {
-            alert('Ошибка копирования');
+            // Копирование запрещено браузером: выделяем код, чтобы его можно было скопировать вручную.
+            const input = btn.closest('.deck-code-field').find('.deck-code-input');
+            if (input.length) {
+                input.trigger('focus');
+                return;
+            }
+            alert('Не удалось скопировать код. Выделите его и скопируйте вручную.');
             console.error('Copy failed:', err);
         });
     });
     
-    $(document).on('click', '.vote-btn', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const btn = $(this);
-        const deckCard = btn.closest('.deck-card');
-        const deckId = deckCard.data('deck-id');
-        const voteType = btn.data('vote');
-        
-        if (deckCard.hasClass('voted')) {
-            alert('Вы уже голосовали за эту колоду');
-            return;
-        }
-        
-        btn.prop('disabled', true);
-        
-        $.ajax({
-            url: hsDecks.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'vote_deck',
-                post_id: deckId,
-                vote_type: voteType,
-                nonce: hsDecks.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    const newCount = response.data.new_count;
-                    const matchingCards = $('.deck-card[data-deck-id="' + parseInt(deckId, 10) + '"]');
-                    const responseLikes = parseInt(response.data.likes, 10);
-                    const responseDislikes = parseInt(response.data.dislikes, 10);
-                    const previousLikes = parseInt(matchingCards.first().attr('data-likes'), 10) || 0;
-                    const previousDislikes = parseInt(matchingCards.first().attr('data-dislikes'), 10) || 0;
-                    const likesCount = Number.isNaN(responseLikes)
-                        ? (voteType === 'like' ? newCount : previousLikes)
-                        : responseLikes;
-                    const dislikesCount = Number.isNaN(responseDislikes)
-                        ? (voteType === 'dislike' ? newCount : previousDislikes)
-                        : responseDislikes;
-                    matchingCards.data('voteUpdated', true);
-                    matchingCards.find('.like-btn .vote-count').text(likesCount);
-                    matchingCards.find('.dislike-btn .vote-count').text(dislikesCount);
-                    btn.addClass('vote-success');
-                    matchingCards.addClass('voted');
-                    
-                    matchingCards.attr('data-likes', likesCount);
-                    matchingCards.attr('data-dislikes', dislikesCount);
-                    
-                    setTimeout(function() {
-                        btn.removeClass('vote-success');
-                    }, 500);
-                    
-                    matchingCards.find('.vote-btn').prop('disabled', true);
-                } else {
-                    alert(response.data.message || 'Ошибка голосования');
-                    btn.prop('disabled', false);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Ошибка AJAX:', {xhr: xhr, status: status, error: error});
-                alert('Ошибка сервера');
-                btn.prop('disabled', false);
-            }
-        });
-    });
-
     if ($('#decks-grid').data('server-feed')) {
         const form = $('#hs-decks-filter-form');
         const grid = $('#decks-grid');
@@ -839,8 +745,6 @@ jQuery(document).ready(function($) {
                     if (typeof response.data.total !== 'undefined') {
                         $('#hs-filters-count').text('Найдено: ' + formatDeckCount(response.data.total));
                     }
-                    setupVoteState(grid);
-                    hydrateVoteCounts(grid);
                     setupAdImpressions();
                     setupDeckViewTracking(grid);
                     appliedFilterKey = filterKey;
@@ -1344,9 +1248,6 @@ jQuery(document).ready(function($) {
         currentPage = 1;
         filterDecks();
     });
-    
-    setupVoteState(document);
-    hydrateVoteCounts(document);
     
     updatePagination();
     setupAdImpressions();

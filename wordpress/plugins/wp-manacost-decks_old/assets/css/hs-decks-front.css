@@ -168,8 +168,6 @@ body.hs-modal-open { overflow: hidden; }
 .no-decks { text-align: center; padding: 40px; color: #7f8c8d; font-size: 18px; grid-column: 1 / -1; }
 .copy-success { animation: copySuccess 0.5s; }
 @keyframes copySuccess { 0%, 100% { background: #3498db; } 50% { background: #27ae60; } }
-.vote-success { animation: voteSuccess 0.5s; }
-@keyframes voteSuccess { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
 .hs-load-more-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 40px; padding: 20px; }
 .hs-load-more-btn { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: #fff; border: none; padding: 15px 40px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); min-width: 250px; }
 .hs-load-more-btn:hover:not(:disabled) { background: linear-gradient(135deg, #2980b9 0%, #21618c 100%); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
@@ -187,10 +185,6 @@ body.hs-modal-open { overflow: hidden; }
 .hs-deck-layout-block { background: rgba(255,255,255,0.7); border-radius: 12px; padding: 18px; margin: 25px 0; box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
 .hs-deck-layout-block--top { border-left: 4px solid #3498db; }
 .hs-deck-layout-block--bottom { border-left: 4px solid #d4af37; }
-.hs-deck-code-block { background: #f6f1e3; border-radius: 12px; padding: 18px; margin: 25px 0; box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
-.hs-deck-code-block h4 { margin: 0 0 12px 0; color: #2c3e50; font-size: 16px; }
-.hs-deck-code-block textarea { width: 100%; min-height: 110px; border-radius: 8px; border: 1px solid #d8c9aa; padding: 12px; font-size: 14px; font-family: monospace; background: #fff; resize: vertical; }
-.hs-deck-code-block button { margin-top: 12px; width: 100%; }
 .hs-decks-container-random { padding-top: 10px; }
 .hs-decks-grid-random { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px; }
 .hs-decks-grid-random[data-random-columns="1"] { grid-template-columns: 1fr; }
@@ -316,7 +310,8 @@ body.hs-modal-open { overflow: hidden; }
     gap: 6px;
     margin: 11px 0 0;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta span {
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta > span,
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta > a {
     display: inline-flex;
     align-items: center;
     max-width: 100%;
@@ -331,6 +326,19 @@ body.hs-modal-open { overflow: hidden; }
     white-space: normal;
     transition: none;
 }
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta > :has(> .deck-chip-icon) {
+    gap: 6px;
+    padding-left: 5px;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-chip-icon {
+    display: block;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    max-width: none;
+    margin: 0;
+    object-fit: contain;
+}
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-class {
     background: var(--mc-card-navy);
     border-color: var(--mc-card-navy);
@@ -339,6 +347,25 @@ body.hs-modal-open { overflow: hidden; }
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-mode {
     background: #e7eef1;
     color: var(--mc-card-ink);
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-chip-link {
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-class.deck-chip-link:hover {
+    background: var(--mc-card-blue);
+    border-color: var(--mc-card-blue);
+    color: #ffffff;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-mode.deck-chip-link:hover {
+    background: #d9e6eb;
+    border-color: #9fb6bf;
+    color: var(--mc-card-ink);
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-chip-link:focus-visible {
+    outline: 3px solid var(--mc-card-focus);
+    outline-offset: 2px;
 }
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-dust {
     background: #f3e9d4;
@@ -473,55 +500,48 @@ body.hs-modal-open { overflow: hidden; }
     box-shadow: none !important;
 }
 
-/* The supplied code-to-Hearthstone artwork replaces the visible button label.
- * It is used as a mask so the same source image follows the deck palette. */
+/* Кнопка копирования: иконка и подпись, после копирования — галочка и «Скопировано». */
 .copy-code-btn {
-    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     box-sizing: border-box;
-    min-height: 52px;
-    padding: 7px 14px;
-    overflow: hidden;
-    font-size: 0 !important;
-    line-height: 0;
+    line-height: 1.2;
+    text-align: center;
 }
-.copy-code-btn::before {
-    content: "";
-    display: block;
-    width: min(96px, calc(100% - 12px));
-    aspect-ratio: 1557 / 571;
-    background-color: var(--mc-card-gold, #d4af58);
-    -webkit-mask: url('../images/deck-code-copy.png') center / contain no-repeat;
-    mask: url('../images/deck-code-copy.png') center / contain no-repeat;
-    transition: background-color 140ms ease, transform 140ms ease;
-}
-.copy-code-btn:hover::before {
-    background-color: #fff7df;
-    transform: translateY(-1px);
-}
-.copy-code-btn.copy-success::before {
-    background-color: #ffffff;
-}
-.copy-code-btn.copy-success::after {
-    content: "\2713";
-    position: absolute;
-    top: 6px;
-    right: 7px;
-    display: grid;
-    width: 20px;
-    height: 20px;
+.copy-code-btn.copy-success { animation: none; background: #2f7653; }
+.copy-code-icon {
+    display: inline-grid;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
     place-items: center;
-    border-radius: 50%;
-    background: #ffffff;
-    color: var(--mc-card-like, #25885f);
-    font: 800 14px/1 system-ui, sans-serif;
-    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.2);
 }
-.copy-code-btn:disabled::before {
-    background-color: currentColor;
+.copy-code-icon svg {
+    grid-area: 1 / 1;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: opacity 140ms ease, transform 140ms ease;
 }
+.copy-code-icon-done,
+.copy-code-btn.copy-success .copy-code-icon-copy {
+    opacity: 0;
+    transform: scale(0.6);
+}
+.copy-code-btn.copy-success .copy-code-icon-done {
+    opacity: 1;
+    transform: none;
+}
+.copy-code-label { min-width: 0; }
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .copy-code-icon { color: #e3c47c; }
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .copy-code-btn.copy-success .copy-code-icon,
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .copy-code-btn:disabled .copy-code-icon { color: inherit; }
 .copy-code-btn:focus-visible {
     outline: 3px solid var(--mc-card-focus, #2f80ed);
     outline-offset: 3px;
@@ -587,158 +607,315 @@ body.hs-modal-open { overflow: hidden; }
     background: transparent;
     color: var(--mc-card-dislike);
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-voting {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
-    gap: 0;
-    margin-top: 14px;
-    padding: 0;
-    overflow: hidden;
-    background: var(--mc-card-paper);
-    border: 1px solid var(--mc-card-line);
-    border-radius: 4px;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-voting::before {
-    content: "Оценка читателей";
-    grid-column: 1 / -1;
-    padding: 7px 10px;
-    background: var(--mc-card-wash);
-    border-bottom: 1px solid var(--mc-card-line);
+/* Страница колоды: заголовок и картинку выводит тема, панель — режим, пыль, код, статистика, ссылки. */
+.hs-single-deck-container.hs-deck-page-panel { max-width: none; margin: 22px 0 0; }
+.hs-single-deck-container.hs-deck-page-panel .deck-card.deck-page { margin: 0; }
+.deck-card.deck-page:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta { margin-top: 0; }
+.deck-card.deck-page:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta-secondary { margin-top: 12px; }
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta-label {
+    margin-right: 4px;
     color: var(--mc-card-muted);
-    font: 700 0.62rem/1.2 var(--mc-card-body-font);
+    font-weight: 600;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-field { margin-top: 16px; }
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-field-label {
+    display: block;
+    margin: 0 0 7px;
+    color: var(--mc-card-muted);
+    font: 700 0.66rem/1.2 var(--mc-card-body-font);
     letter-spacing: 0.08em;
-    text-align: left;
     text-transform: uppercase;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-btn {
-    appearance: none;
-    position: relative;
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
-    align-items: center;
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-field-row {
+    display: flex;
     gap: 8px;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-input {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    width: auto;
     min-width: 0;
-    min-height: 50px;
-    padding: 8px 10px;
-    background: var(--mc-card-paper);
-    border: 0;
-    border-radius: 0;
+    height: 44px;
+    margin: 0;
+    padding: 0 12px;
+    background: var(--mc-card-wash);
+    border: 1px solid var(--mc-card-line);
+    border-radius: 4px;
+    box-shadow: none;
     color: var(--mc-card-ink);
-    font: 700 0.76rem/1.2 var(--mc-card-body-font);
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 140ms ease, color 140ms ease;
+    font: 500 0.8rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    text-overflow: ellipsis;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-btn + .vote-btn {
-    border-left: 1px solid var(--mc-card-line);
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-input:focus {
+    background: #ffffff;
+    border-color: var(--mc-card-blue);
+    outline: 3px solid rgba(11, 111, 135, 0.25);
+    outline-offset: 0;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-sign {
-    display: inline-grid;
-    width: 28px;
-    height: 28px;
-    place-items: center;
-    border: 0;
-    border-radius: 3px;
-    transition: background-color 140ms ease, color 140ms ease;
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-field .copy-code-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-sign svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+@media (max-width: 480px) {
+    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-field-row { flex-direction: column; }
+    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-code-input { width: 100%; }
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .dislike-btn .vote-sign svg {
-    transform: rotate(180deg);
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-label {
-    min-width: 0;
+
+/* Картинка колоды (её выводит тема) и панель плагина — одна карточка. */
+body.single-hs_deck .td-post-content > .td-post-featured-image:has(+ .hs-deck-page-panel) {
+    position: relative;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 5px 0 0;
     overflow: hidden;
-    color: var(--mc-card-ink);
+    background: #ffffff;
+    border: 1px solid #cbd7dc;
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+}
+body.single-hs_deck .td-post-content > .td-post-featured-image:has(+ .hs-deck-page-panel)::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 auto;
+    box-sizing: border-box;
+    height: 5px;
+    background: #063b51;
+    border-left: 56px solid #a67c2d;
+    pointer-events: none;
+}
+body.single-hs_deck .td-post-content > .td-post-featured-image:has(+ .hs-deck-page-panel) img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0;
+}
+body.single-hs_deck .td-post-featured-image + .hs-single-deck-container.hs-deck-page-panel { margin-top: 0; }
+body.single-hs_deck .td-post-featured-image + .hs-deck-page-panel .deck-card.deck-page:not(.deck-shortcode):not(.hs-decks-ad-card) {
+    border-top: 0;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 14px 24px -16px rgba(16, 42, 54, 0.28);
+}
+body.single-hs_deck .td-post-featured-image + .hs-deck-page-panel .deck-card.deck-page:not(.deck-shortcode):not(.hs-decks-ad-card)::before {
+    display: none;
+}
+@media (max-width: 768px) {
+    body.single-hs_deck .td-post-content > .td-post-featured-image:has(+ .hs-deck-page-panel) { border-radius: 4px 4px 0 0; }
+    body.single-hs_deck .td-post-content > .td-post-featured-image:has(+ .hs-deck-page-panel)::before { border-left-width: 42px; }
+    body.single-hs_deck .td-post-featured-image + .hs-deck-page-panel .deck-card.deck-page:not(.deck-shortcode):not(.hs-decks-ad-card) { border-radius: 0 0 4px 4px; }
+}
+
+/* «Другие колоды» под карточкой на странице колоды. */
+.hs-deck-related {
+    --hs-related-ink: #102a36;
+    --hs-related-muted: #5b707b;
+    --hs-related-line: #cbd7dc;
+    margin: 28px 0 0;
+    font-family: var(--td_default_google_font_1, "Open Sans", Arial, sans-serif);
+}
+.hs-deck-related-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 16px;
+    margin: 0 0 12px;
+}
+.td-post-content .hs-deck-related-heading,
+.hs-deck-related-heading {
+    margin: 0;
+    padding: 0;
+    color: var(--hs-related-ink);
+    font: 700 1.15rem/1.3 var(--td_default_google_font_2, "Roboto", Arial, sans-serif);
+}
+.hs-deck-related-all {
+    color: #0b6f87;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.hs-deck-related-all:hover { color: #063b51; text-decoration: underline; }
+.td-post-content .hs-deck-related-list,
+.hs-deck-related-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.hs-deck-related .hs-deck-related-list > li,
+.td-post-content .hs-deck-related .hs-deck-related-list > li:not(:last-child) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.hs-deck-related-list li::before { content: none; }
+.hs-deck-related-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-sizing: border-box;
+    height: 100%;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid var(--hs-related-line);
+    border-radius: 6px;
+    color: var(--hs-related-ink);
+    text-decoration: none;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.hs-deck-related-item:hover {
+    border-color: #8fa9b3;
+    box-shadow: 0 6px 16px rgba(16, 42, 54, 0.08);
+    color: var(--hs-related-ink);
+    text-decoration: none;
+}
+.hs-deck-related-item:focus-visible { outline: 3px solid #0b6f87; outline-offset: 2px; }
+.td-post-content .hs-deck-related-icon,
+.hs-deck-related-icon {
+    display: block;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    object-fit: contain;
+}
+.hs-deck-related-body {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 2px;
+    min-width: 0;
+}
+.hs-deck-related-title {
+    overflow: hidden;
+    font: 700 0.86rem/1.25 var(--td_default_google_font_2, "Roboto", Arial, sans-serif);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .like-btn {
-    color: var(--mc-card-like);
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .dislike-btn {
-    color: var(--mc-card-dislike);
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .like-btn .vote-sign {
-    background: #e5f1eb;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .dislike-btn .vote-sign {
-    background: #f7e8e7;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .like-btn:hover:not(:disabled) {
-    background: #f1f7f4;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .dislike-btn:hover:not(:disabled) {
-    background: #fbf2f1;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .like-btn:hover:not(:disabled) .vote-sign {
-    background: var(--mc-card-like);
-    color: #ffffff;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .dislike-btn:hover:not(:disabled) .vote-sign {
-    background: var(--mc-card-dislike);
-    color: #ffffff;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-btn:disabled {
-    opacity: 0.64;
-    cursor: not-allowed;
-}
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-count {
-    min-width: 24px;
-    margin: 0;
-    padding: 3px 5px;
-    background: var(--mc-card-wash);
-    border: 1px solid var(--mc-card-line);
-    border-radius: 3px;
-    color: var(--mc-card-ink);
+.hs-deck-related-meta {
+    overflow: hidden;
+    color: var(--hs-related-muted);
     font-size: 0.72rem;
-    font-weight: 800;
+    font-weight: 600;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hs-deck-related-stat {
+    display: grid;
+    flex: 0 0 auto;
+    justify-items: end;
+    gap: 1px;
+}
+.hs-deck-related-winrate {
+    font: 800 0.9rem/1.1 var(--td_default_google_font_2, "Roboto", Arial, sans-serif);
     font-variant-numeric: tabular-nums;
-    text-align: center;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-btn.vote-success {
-    animation: none;
-    box-shadow: inset 0 0 0 2px currentColor;
+.hs-deck-related-winrate.winrate-good { color: #2f7653; }
+.hs-deck-related-winrate.winrate-medium { color: #6f521b; }
+.hs-deck-related-winrate.winrate-low { color: #9d4843; }
+.hs-deck-related-games {
+    color: var(--hs-related-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-voting .vote-btn:focus-visible {
-    z-index: 1;
-    outline-offset: -3px;
+@media (max-width: 600px) {
+    .td-post-content .hs-deck-related-list,
+    .hs-deck-related-list { grid-template-columns: 1fr; }
 }
-@media (max-width: 360px) {
-    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-btn {
-        grid-template-columns: 24px minmax(0, 1fr) auto;
-        gap: 4px;
-        padding-inline: 6px;
-        font-size: 0.69rem;
-    }
-    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-sign {
-        width: 24px;
-        height: 24px;
-    }
-    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-sign svg {
-        width: 14px;
-        height: 14px;
-    }
-    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-count {
-        min-width: 22px;
-        padding: 2px 3px;
-        font-size: 0.68rem;
+@media (prefers-reduced-motion: reduce) {
+    .hs-deck-related-item,
+    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-meta .deck-chip-link { transition: none; }
+}
+
+/* Лайки и отдельный блок кода убраны; HTML, закэшированный до релиза (SW, edge),
+ * не должен показать их голую разметку. В старой карточке есть своя кнопка копирования. */
+.deck-voting,
+.hs-deck-code-block { display: none !important; }
+/* «Об архетипе»: ссылка на страницу архетипа HearthPulse вместо лайков. */
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #fbf6ea;
+    border: 1px solid #e2cfa6;
+    border-radius: 4px;
+    color: var(--mc-card-ink);
+    text-decoration: none;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link:hover {
+    background: #f7eedb;
+    border-color: var(--mc-card-gold);
+    color: var(--mc-card-ink);
+    text-decoration: none;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link-logo {
+    display: block;
+    flex: 0 0 auto;
+    width: 30px;
+    height: auto;
+    max-width: none;
+    margin: 0;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link-text {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 2px;
+    min-width: 0;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link-title {
+    color: var(--mc-card-ink);
+    font: 700 0.84rem/1.25 var(--mc-card-title-font);
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link-meta {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--mc-card-muted);
+    font: 600 0.72rem/1.35 var(--mc-card-body-font);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link-arrow {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--mc-card-gold-dark);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 140ms ease;
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link:hover .deck-archetype-link-arrow {
+    transform: translate(2px, -2px);
+}
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link .screen-reader-text {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+    .copy-code-icon svg,
+    .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link-arrow {
+        transition: none;
     }
 }
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-title a:focus-visible,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-img-clickable:focus-visible,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .copy-code-btn:focus-visible,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .proof-btn:focus-visible,
-.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .vote-btn:focus-visible {
+.deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link:focus-visible {
     outline: 3px solid var(--mc-card-focus);
     outline-offset: 3px;
 }

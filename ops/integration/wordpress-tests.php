@@ -287,5 +287,6 @@ require __DIR__ . '/deck-events-schema.php';
 require __DIR__ . '/listing-thumbnails.php';
 require __DIR__ . '/dashboard-latest-decks.php';
 require __DIR__ . '/deck-feed-layout.php';
+require __DIR__ . '/deck-card-archetype.php';
 
 echo "WordPress PHP integration assertions: OK\n";
