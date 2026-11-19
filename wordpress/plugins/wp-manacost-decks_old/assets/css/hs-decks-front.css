@@ -896,6 +896,7 @@ body.single-hs_deck .td-post-featured-image + .hs-deck-page-panel .deck-card.dec
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link:hover .deck-archetype-link-arrow {
     transform: translate(2px, -2px);
 }
+.hs-deck-related-all .screen-reader-text,
 .deck-card:not(.deck-shortcode):not(.hs-decks-ad-card) .deck-archetype-link .screen-reader-text {
     position: absolute !important;
     width: 1px;
