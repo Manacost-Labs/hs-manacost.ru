@@ -186,15 +186,18 @@ try {
         found = await lookup();
       }
       let cleaned = true;
-      for (const post of found.filter(ours)) cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
-      if (!fixture?.id && cleaned) {
-        // One more delayed pass: a draft committed after the last lookup is deleted too, never reported clean.
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        const late = (await lookup()).filter(ours);
-        for (const post of late) cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
-        if (late.length) cleaned = cleaned && !(await lookup()).some(ours);
+      let deleted = 0;
+      for (const post of found.filter(ours)) {
+        cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
+        deleted++;
       }
-      report.cleaned = cleaned && (fixture?.id ? found.some(ours) : true);
+      if (fixture?.id) report.cleaned = cleaned && found.some(ours);
+      else {
+        // The create response was lost. Cleanup is proven only by deleting our draft and finding none left;
+        // "never seen" cannot rule out a draft committed later, so it is reported as unverified, not clean.
+        report.cleaned = cleaned && deleted > 0 && !(await lookup()).some(ours);
+        if (!report.cleaned) report.cleanup_unverified = `lost create response; delete any draft titled ${marker}`;
+      }
     } catch { report.cleaned = false; }
   } else report.cleaned = !createSent;
   report.ok &&= report.cleaned;
