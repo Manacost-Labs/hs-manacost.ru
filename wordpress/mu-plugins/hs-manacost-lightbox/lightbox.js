@@ -105,6 +105,7 @@
   }
 
   function itemFromImage(image) {
+    if (image?.closest('[data-hs-lightbox-pair]')) return null;
     const contentRoot = image?.closest(rootSelector);
     const forcedContainer = image?.closest(forcedLinkSelector);
     if (!contentRoot && !forcedContainer) return null;
@@ -205,6 +206,7 @@
             <p class="hs-lightbox__error" role="alert"></p>
           </figure>
           <button class="hs-lightbox__control hs-lightbox__nav hs-lightbox__next" type="button">${icon('m9 18 6-6-6-6')}</button>
+          <div class="hs-lightbox__pair"></div>
         </div>
       </div>`;
     document.body.append(element);
@@ -218,6 +220,7 @@
       loading: element.querySelector('.hs-lightbox__loading'),
       next: element.querySelector('.hs-lightbox__next'),
       original: element.querySelector('.hs-lightbox__original'),
+      pair: element.querySelector('.hs-lightbox__pair'),
       originalLabel: element.querySelector('.hs-lightbox__original-label'),
       previous: element.querySelector('.hs-lightbox__previous'),
       stage: element.querySelector('.hs-lightbox__stage'),
@@ -237,6 +240,9 @@
       pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
     });
     nodes.stage.addEventListener('pointerup', handleSwipe);
+    nodes.pair.addEventListener('click', event => {
+      if (event.target === nodes.pair) closeDialog();
+    });
     nodes.stage.addEventListener('click', event => {
       if (event.target === nodes.stage) closeDialog();
     });
@@ -327,8 +333,52 @@
     dialogNodes.close.focus({ preventScroll: true });
   }
 
+  function pairFigure(item) {
+    const figure = document.createElement('figure');
+    figure.className = 'hs-lightbox__pair-item';
+    const image = document.createElement('img');
+    image.className = 'hs-lightbox__pair-image';
+    image.decoding = 'async';
+    image.alt = item.alt;
+    image.src = item.source;
+    figure.append(image);
+    if (item.label) {
+      const caption = document.createElement('figcaption');
+      caption.className = 'hs-lightbox__pair-caption';
+      caption.textContent = item.label;
+      figure.append(caption);
+    }
+    return figure;
+  }
+
+  // A trigger carrying [data-hs-lightbox-pair] shows its images side by side, e.g. a card before and after a change.
+  function openPair(trigger) {
+    const images = Array.from(trigger.querySelectorAll('img')).map(image => ({
+      source: safeUrl(image.currentSrc || image.getAttribute('src')),
+      alt: (image.getAttribute('alt') || '').replace(/\s+/g, ' ').trim(),
+      label: image.dataset.hsLabel || '',
+    })).filter(item => item.source);
+    if (!images.length) return false;
+    if (!dialog) createDialog();
+    dialogNodes.pair.replaceChildren(...images.map(pairFigure));
+    dialog.classList.add('is-pair');
+    activeItems = [];
+    activeIndex = 0;
+    opener = trigger;
+    dialogNodes.title.textContent = trigger.dataset.hsLightboxTitle || messages.title;
+    dialogNodes.counter.textContent = '';
+    documentRoot.dataset.hsLightboxOpen = 'true';
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    dialogNodes.close.focus({ preventScroll: true });
+    return true;
+  }
+
   function restorePage() {
     delete documentRoot.dataset.hsLightboxOpen;
+    dialog.classList.remove('is-pair');
+    dialogNodes.pair.replaceChildren();
+    dialogNodes.title.textContent = messages.title;
     dialogNodes.image.removeAttribute('src');
     if (opener?.isConnected) opener.focus({ preventScroll: true });
     opener = null;
@@ -348,6 +398,14 @@
 
   function interceptActivation(event) {
     if (event.type === 'click' && (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) return;
+    const pair = event.target instanceof Element ? event.target.closest('[data-hs-lightbox-pair]') : null;
+    if (pair) {
+      if (!openPair(pair)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return;
+    }
     const item = itemFromTarget(event.target);
     if (!item) return;
     enhanceItem(item);

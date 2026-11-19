@@ -134,6 +134,7 @@ integration:
 	@ops/integration/run.sh
 	@ops/integration/api-gallery.sh
 	@bash ops/integration/article-cards.sh
+	@bash ops/integration/card-changes.sh
 
 visual:
 	@RUN_VISUAL=1 ops/integration/run.sh

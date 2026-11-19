@@ -1,0 +1,186 @@
+{
+ "data": {
+  "entity": "constructed_card",
+  "card_id": "BE_285",
+  "versions": [
+   {
+    "version_id": 34033,
+    "observed_at": "2026-11-08 06:48:23.894439",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 4,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47.png",
+      "sha256": "0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 32402,
+    "observed_at": "2026-11-03 20:29:37.656389",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 4,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47.png",
+      "sha256": "0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 31459,
+    "observed_at": "2026-10-21 05:29:31.094665",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+      "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 30422,
+    "observed_at": "2026-10-20 18:16:51.448352",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+      "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 29789,
+    "observed_at": "2026-10-14 08:05:49.896594",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+      "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 29424,
+    "observed_at": "2026-10-13 20:29:02.897633",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+      "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 29423,
+    "observed_at": "2026-10-13 20:29:02.896926",
+    "event": "renamed",
+    "snapshot": {
+     "card_id": "BE_285",
+     "name_ru": "Рыцарь-гибрид",
+     "text_ru": "<b>Похищение жизни</b>",
+     "mana_cost": 2,
+     "attack": 3,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "unverified",
+      "reason": "historical_mutable_url",
+      "archive_url": null,
+      "sha256": null,
+      "mime_type": null
+     }
+    }
+   }
+  ],
+  "coverage": {
+   "first_observed_at": "2026-10-13 20:29:02.896926",
+   "last_observed_at": "2026-11-08 06:48:23.894439"
+  },
+  "pagination": {
+   "page": 1,
+   "per_page": 50,
+   "total": 7,
+   "total_pages": 1
+  }
+ }
+}

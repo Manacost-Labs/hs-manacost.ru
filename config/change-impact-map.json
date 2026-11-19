@@ -30,6 +30,16 @@
       "checks": ["make code-quality", "make contracts", "make integration", "make visual", "bash ops/integration/article-cards.sh", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-card-changes.php", "wordpress/mu-plugins/hs-card-changes/**", "tests/test_card_changes.py", "tests/fixtures/card-changes.php", "tests/fixtures/card-changes/**", "tests/card-changes/**", "ops/integration/card-changes.sh", "config/integrations/card-changes.json", "docs/runbooks/card-changes.md"],
+      "owner": "editor-card-changes",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["editor", "admin", "frontend", "external-api", "accessibility"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com"],
+      "skills": ["wordpress-article-editor", "wordpress-admin-ui", "wp-plugin-development", "wordpress-external-integrations", "wordpress-privacy-consent", "wordpress-accessibility", "newspaper-tagdiv", "playwright"],
+      "checks": ["make code-quality", "make contracts", "make integration", "make visual", "bash ops/integration/card-changes.sh", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": [
         "wordpress/mu-plugins/manacost-smart-sidebar.php",
         "wordpress/mu-plugins/manacost-smart-sidebar.css",

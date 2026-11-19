@@ -1,0 +1,162 @@
+{
+ "data": {
+  "entity": "constructed_card",
+  "card_id": "BE_036",
+  "versions": [
+   {
+    "version_id": 35424,
+    "observed_at": "2026-11-15 06:39:57.150301",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_036",
+     "name_ru": "МАТРИАРХ",
+     "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1).",
+     "mana_cost": 10,
+     "attack": 9,
+     "health": 7,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png",
+      "sha256": "9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 34032,
+    "observed_at": "2026-11-08 06:48:23.891336",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_036",
+     "name_ru": "МАТРИАРХ",
+     "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1).",
+     "mana_cost": 10,
+     "attack": 9,
+     "health": 7,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png",
+      "sha256": "9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 32380,
+    "observed_at": "2026-11-03 20:29:37.596806",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_036",
+     "name_ru": "МАТРИАРХ",
+     "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1).",
+     "mana_cost": 10,
+     "attack": 9,
+     "health": 7,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png",
+      "sha256": "9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 29220,
+    "observed_at": "2026-10-13 20:29:02.769992",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_036",
+     "name_ru": "МАТРИАРХ",
+     "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1).",
+     "mana_cost": 9,
+     "attack": 9,
+     "health": 7,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958.png",
+      "sha256": "f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 28076,
+    "observed_at": "2026-10-12 00:26:13.468421",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BE_036",
+     "name_ru": "МАТРИАРХ",
+     "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1).",
+     "mana_cost": 9,
+     "attack": 9,
+     "health": 7,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/37cefbca7f87b464fa5ed9702ec875f46a4cfef1bbe173aa3caafb2262649d4c.png",
+      "sha256": "37cefbca7f87b464fa5ed9702ec875f46a4cfef1bbe173aa3caafb2262649d4c",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 533,
+    "observed_at": "2026-10-11 23:57:09.912017",
+    "event": "baseline",
+    "snapshot": {
+     "card_id": "BE_036",
+     "name_ru": "МАТРИАРХ",
+     "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1).",
+     "mana_cost": 9,
+     "attack": 9,
+     "health": 7,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "unverified",
+      "reason": "historical_mutable_url",
+      "archive_url": null,
+      "sha256": null,
+      "mime_type": null
+     }
+    }
+   }
+  ],
+  "coverage": {
+   "first_observed_at": "2026-10-11 23:57:09.912017",
+   "last_observed_at": "2026-11-15 06:39:57.150301"
+  },
+  "pagination": {
+   "page": 1,
+   "per_page": 50,
+   "total": 6,
+   "total_pages": 1
+  }
+ }
+}

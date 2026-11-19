@@ -1,0 +1,45 @@
+{
+  "name": "card-history",
+  "owner": "hs-card-changes MU plugin",
+  "purpose": "Resolve the card before and after a balance patch and the changed stats, to render and insert Hearthstone card changes into articles.",
+  "direction": "outbound",
+  "endpoints": {
+    "history": "https://api.kolodahearthstone.com/api/v1/card-history/{constructed_card|card}/{card-id}[?page=N]",
+    "images": "https://api.kolodahearthstone.com/uploads/card-history-media/{sha256}.png; loaded by readers' browsers, never fetched by the server"
+  },
+  "authentication": "None for the provider; GET without credentials, cookies or user identifiers. Editor endpoint wp_ajax_hs_card_changes requires nonce hs_card_changes and edit_post on the edited post.",
+  "data_classes": [
+    "public card identifiers",
+    "patch date entered by the editor",
+    "public card names, stats and archive image hashes",
+    "safe operational outcome"
+  ],
+  "timeout_seconds": 5,
+  "retry": {
+    "max_attempts": 1,
+    "backoff": "No in-request retry; provider-wide cooldown of 60 seconds on error, honoring numeric or HTTP-date Retry-After between 60 and 3600 seconds."
+  },
+  "idempotency": "Read-only GET. Shortcode rendering and dialog composition perform no provider writes; the editor insert is undoable and never saves the post.",
+  "rate_limit": "At most 4 parallel requests, 9 seconds of provider time per page render, 50 versions per page and 3 pages per card, 512 KiB response cap. A resolved pair is cached 30 days, so a card is requested once per patch date; search and composition run only while an editor uses the dialog, and one editor may resolve at most 60 cards per minute.",
+  "observability": {
+    "hook": "hs_card_changes_provider_result",
+    "fields": [
+      "safe outcome code"
+    ],
+    "excluded": [
+      "card identifiers",
+      "post content",
+      "user identity",
+      "response body",
+      "credentials"
+    ]
+  },
+  "degradation": "A cached pair, or a pair pinned in the shortcode by the editor dialog, renders without any request. During an outage uncached cards render as plates without images; the last good copy is served for 30 days. The page render never throws.",
+  "disable_switch": {
+    "constant": "HS_CARD_CHANGES_REMOTE_ENABLED",
+    "disabled_value": false,
+    "owner": "site operator"
+  },
+  "privacy": "Only card identifiers and a date leave the server, with a service User-Agent and no article text. Card images are loaded by the reader's browser from api.kolodahearthstone.com, which therefore sees the reader's network address like any third-party image host. No new cookies, tracking, storage or personal data.",
+  "rollback": "Revert the plugin release through the normal pipeline. Shortcodes remain plain text in post_content; no DB schema, media mutation or destructive uninstall. Cached transients expire on their own."
+}

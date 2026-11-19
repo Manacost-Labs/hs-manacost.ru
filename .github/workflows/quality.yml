@@ -96,6 +96,8 @@ jobs:
         run: ops/integration/api-gallery.sh
       - name: Check article picker, permissions and editor round-trip
         run: bash ops/integration/article-cards.sh
+      - name: Check card changes shortcodes, editor dialog and lightbox
+        run: bash ops/integration/card-changes.sh
       - name: Upload admin performance reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,4 +121,7 @@ jobs:
             .artifacts/article-cards/browser-report.json
             .artifacts/article-cards/integrity.json
             .artifacts/article-cards/screenshots/
+            .artifacts/card-changes/browser-report.json
+            .artifacts/card-changes/integrity.json
+            .artifacts/card-changes/screenshots/
           retention-days: 14

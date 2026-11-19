@@ -2086,6 +2086,20 @@
         "line": 989
       },
       {
+        "name": "hs_card_change",
+        "resolved": true,
+        "api": "add_shortcode",
+        "file": "wordpress/mu-plugins/hs-card-changes/render.php",
+        "line": 25
+      },
+      {
+        "name": "hs_card_changes",
+        "resolved": true,
+        "api": "add_shortcode",
+        "file": "wordpress/mu-plugins/hs-card-changes/render.php",
+        "line": 24
+      },
+      {
         "name": "hs_deck",
         "resolved": true,
         "api": "add_shortcode",
@@ -2212,6 +2226,13 @@
         "api": "add_action",
         "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
         "line": 18
+      },
+      {
+        "name": "wp_ajax_hs_card_changes",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
+        "line": 21
       },
       {
         "name": "wp_ajax_hs_deck_archetypes_page",
@@ -2862,6 +2883,20 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
         "line": 694
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
+        "line": 32
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
+        "line": 142
       },
       {
         "name": "edit_post",
