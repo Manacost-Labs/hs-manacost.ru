@@ -33,6 +33,7 @@ const pageHtml = `<!doctype html>
   <figure><a id="long-caption-link" href="/images/portrait.jpg" data-caption="${longCaption}"><img src="/images/portrait.jpg" width="640" height="960" alt="Иллюстрация с длинной подписью"></a></figure>
   <a id="social-link" href="https://t.me/manacost_ru"><img src="/images/one.jpg" width="49" height="49" alt="Telegram"></a>
   <a id="excluded-link" data-no-lightbox href="/images/one.jpg"><img src="/images/one.jpg" width="960" height="640" alt="Не открывать"></a>
+  <figure><a id="pair-link" href="/images/two.webp" data-hs-lightbox-pair data-hs-lightbox-title="Карта до и после" aria-haspopup="dialog"><span><img src="/images/one.jpg" width="960" height="640" alt="Карта до изменения" data-hs-label="До"></span><span><img src="/images/two.webp" width="960" height="640" alt="Карта после изменения" data-hs-label="После"></span></a></figure>
   <button id="image-control" type="button"><img src="/images/portrait.jpg" width="160" height="240" alt="Обычная кнопка с изображением"></button>
 </div></article>
 <section class="mc-comments__list" id="comments"></section>
@@ -279,6 +280,28 @@ try {
   assert.equal(await dialog.locator('.hs-lightbox__image').evaluate(element => getComputedStyle(element).animationName), 'none', 'reduced-motion preference removes the zoom animation');
   await page.keyboard.press('Escape');
   await dialog.waitFor({ state: 'hidden' });
+
+  // A [data-hs-lightbox-pair] trigger shows its images side by side and never joins gallery navigation.
+  const pairLink = page.locator('#pair-link');
+  await pairLink.focus();
+  await page.keyboard.press('Enter');
+  const pairDialog = page.getByRole('dialog', { name: 'Карта до и после' });
+  await pairDialog.waitFor();
+  assert.deepEqual(await pairDialog.locator('.hs-lightbox__pair-caption').allTextContents(), ['До', 'После']);
+  assert.deepEqual(await pairDialog.locator('.hs-lightbox__pair-image').evaluateAll(list => list.map(image => image.alt)), ['Карта до изменения', 'Карта после изменения']);
+  const [pairLeft, pairRight] = await pairDialog.locator('.hs-lightbox__pair-image').evaluateAll(list => list.map(image => image.getBoundingClientRect().toJSON()));
+  assert.ok(pairRight.x >= pairLeft.x + pairLeft.width - 1 && Math.abs(pairLeft.y - pairRight.y) < 4, 'pair images sit side by side');
+  const captionBottom = await pairDialog.locator('.hs-lightbox__pair-caption').first().evaluate(element => element.getBoundingClientRect().bottom);
+  assert.ok(pairLeft.y - captionBottom >= 0 && pairLeft.y - captionBottom <= 24, 'captions sit directly above their images');
+  assert.ok(await pairDialog.evaluate(element => Number(getComputedStyle(element, '::backdrop').backgroundColor.match(/[\d.]+/g)[3]) >= 0.95), 'pair backdrop is nearly opaque');
+  assert.equal(await pairDialog.evaluate(element => getComputedStyle(element.querySelector('.hs-lightbox__surface')).backgroundColor.endsWith('0.97)')), true);
+  assert.equal(await pairDialog.locator('.hs-lightbox__nav').evaluateAll(list => list.every(button => getComputedStyle(button).display === 'none')), true, 'no gallery navigation in pair mode');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await pairDialog.locator('.hs-lightbox__pair-image').count(), 2, 'arrow keys do nothing in pair mode');
+  await page.keyboard.press('Escape');
+  await pairDialog.waitFor({ state: 'hidden' });
+  assert.equal(await pairLink.evaluate(element => document.activeElement === element), true, 'closing a pair restores the opener');
+  assert.equal(await page.locator('#pair-link img[data-hs-lightbox-trigger]').count(), 0, 'pair images are not enhanced as single-image triggers');
 
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await phone.goto(origin);

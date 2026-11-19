@@ -1,0 +1,114 @@
+{
+ "data": {
+  "entity": "constructed_card",
+  "card_id": "JAIL_444",
+  "versions": [
+   {
+    "version_id": 34823,
+    "observed_at": "2026-11-12 06:50:18.048860",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "JAIL_444",
+     "name_ru": "Костоправ",
+     "text_ru": "<b>Подготовка</b>. <b>Боевой клич:</b> уничтожает остальных ваших существ. Вы берете карту и восстанавливаете кристалл маны за каждое уничтоженное существо.",
+     "mana_cost": 6,
+     "attack": 6,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/ca39a252cbb4491d8ccfac3c15b123e7962d6b1cf221b5ca9ec1f45f0aebbda3.png",
+      "sha256": "ca39a252cbb4491d8ccfac3c15b123e7962d6b1cf221b5ca9ec1f45f0aebbda3",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 34822,
+    "observed_at": "2026-11-12 06:50:18.048860",
+    "event": "baseline",
+    "snapshot": {
+     "card_id": "JAIL_444",
+     "name_ru": "Костоправ",
+     "text_ru": "<b>Подготовка</b>. <b>Боевой клич:</b> уничтожает остальных ваших существ. Вы берете карту и восстанавливаете кристалл маны за каждое уничтоженное существо.",
+     "mana_cost": 6,
+     "attack": 6,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "unverified",
+      "reason": "historical_mutable_url",
+      "archive_url": null,
+      "sha256": null,
+      "mime_type": null
+     }
+    }
+   },
+   {
+    "version_id": 32354,
+    "observed_at": "2026-11-03 20:29:37.541686",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "JAIL_444",
+     "name_ru": "Костоправ",
+     "text_ru": "<b>Подготовка</b>. <b>Боевой клич:</b> уничтожает остальных ваших существ. Вы берете карту и восстанавливаете кристалл маны за каждое уничтоженное существо.",
+     "mana_cost": 6,
+     "attack": 6,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/ca39a252cbb4491d8ccfac3c15b123e7962d6b1cf221b5ca9ec1f45f0aebbda3.png",
+      "sha256": "ca39a252cbb4491d8ccfac3c15b123e7962d6b1cf221b5ca9ec1f45f0aebbda3",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 5220,
+    "observed_at": "2026-10-11 23:57:09.912017",
+    "event": "baseline",
+    "snapshot": {
+     "card_id": "JAIL_444",
+     "name_ru": "Костоправ",
+     "text_ru": "<b>Подготовка</b>. <b>Боевой клич:</b> уничтожает остальных ваших существ. Вы берете карту и восстанавливаете кристалл маны за каждое уничтоженное существо.",
+     "mana_cost": 5,
+     "attack": 5,
+     "health": 3,
+     "durability": null,
+     "armor": null
+    },
+    "media": {
+     "image_url": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/f5c7a8c2bebdc63e7e29e3076f22f622cea414f3777d16e502b2b5aa31d50ee8.png",
+      "sha256": "f5c7a8c2bebdc63e7e29e3076f22f622cea414f3777d16e502b2b5aa31d50ee8",
+      "mime_type": "image/png"
+     }
+    }
+   }
+  ],
+  "coverage": {
+   "first_observed_at": "2026-10-11 23:57:09.912017",
+   "last_observed_at": "2026-11-12 06:50:18.048860"
+  },
+  "pagination": {
+   "page": 1,
+   "per_page": 50,
+   "total": 4,
+   "total_pages": 1
+  }
+ }
+}

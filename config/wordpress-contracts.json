@@ -2086,6 +2086,20 @@
         "line": 989
       },
       {
+        "name": "hs_card_change",
+        "resolved": true,
+        "api": "add_shortcode",
+        "file": "wordpress/mu-plugins/hs-card-changes/render.php",
+        "line": 42
+      },
+      {
+        "name": "hs_card_changes",
+        "resolved": true,
+        "api": "add_shortcode",
+        "file": "wordpress/mu-plugins/hs-card-changes/render.php",
+        "line": 41
+      },
+      {
         "name": "hs_deck",
         "resolved": true,
         "api": "add_shortcode",
@@ -2212,6 +2226,13 @@
         "api": "add_action",
         "file": "wordpress/mu-plugins/hs-article-cards/admin.php",
         "line": 18
+      },
+      {
+        "name": "wp_ajax_hs_card_changes",
+        "resolved": true,
+        "api": "add_action",
+        "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
+        "line": 22
       },
       {
         "name": "wp_ajax_hs_deck_archetypes_page",
@@ -2489,6 +2510,20 @@
         "api": "wp_schedule_event",
         "file": "wordpress/mu-plugins/hs-api-gallery/class-votes.php",
         "line": 58
+      },
+      {
+        "name": "hs_card_changes_refresh",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-card-changes/source.php",
+        "line": 143
+      },
+      {
+        "name": "hs_card_changes_warm",
+        "resolved": true,
+        "api": "wp_schedule_single_event",
+        "file": "wordpress/mu-plugins/hs-card-changes/source.php",
+        "line": 141
       },
       {
         "name": "hs_editor_ai_expire",
@@ -2862,6 +2897,20 @@
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-article-versions.php",
         "line": 694
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
+        "line": 33
+      },
+      {
+        "name": "edit_post",
+        "resolved": true,
+        "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
+        "line": 142
       },
       {
         "name": "edit_post",

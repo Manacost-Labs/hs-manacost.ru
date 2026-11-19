@@ -1,0 +1,102 @@
+{
+ "data": {
+  "entity": "card",
+  "card_id": "BG36_362",
+  "versions": [
+   {
+    "version_id": 32793,
+    "observed_at": "2026-11-04 09:22:32.236241",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BG36_362",
+     "name": "Жертвенный страж гнева",
+     "attack": 6,
+     "health": 3,
+     "tavern_tier": 4
+    },
+    "media": {
+     "card_image": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png",
+      "sha256": "c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 32700,
+    "observed_at": "2026-11-04 08:13:07.991560",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BG36_362",
+     "name": "Жертвенный страж гнева",
+     "attack": 6,
+     "health": 3,
+     "tavern_tier": 4
+    },
+    "media": {
+     "card_image": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png",
+      "sha256": "c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 25195,
+    "observed_at": "2026-10-11 23:57:19.761770",
+    "event": "changed",
+    "snapshot": {
+     "card_id": "BG36_362",
+     "name": "Жертвенный страж гнева",
+     "attack": 5,
+     "health": 3,
+     "tavern_tier": 4
+    },
+    "media": {
+     "card_image": {
+      "status": "archived",
+      "reason": null,
+      "archive_url": "/uploads/card-history-media/6acc7c499a8c7fca0fd53930bcfed62888c7bcbb09b01ed6584017330b44e99f.png",
+      "sha256": "6acc7c499a8c7fca0fd53930bcfed62888c7bcbb09b01ed6584017330b44e99f",
+      "mime_type": "image/png"
+     }
+    }
+   },
+   {
+    "version_id": 18937,
+    "observed_at": "2026-10-11 23:57:11.686966",
+    "event": "baseline",
+    "snapshot": {
+     "card_id": "BG36_362",
+     "name": "Жертвенный страж гнева",
+     "attack": 5,
+     "health": 3,
+     "tavern_tier": 4
+    },
+    "media": {
+     "card_image": {
+      "status": "unverified",
+      "reason": "historical_mutable_url",
+      "archive_url": null,
+      "sha256": null,
+      "mime_type": null
+     }
+    }
+   }
+  ],
+  "coverage": {
+   "first_observed_at": "2026-10-11 23:57:11.686966",
+   "last_observed_at": "2026-11-04 09:22:32.236241"
+  },
+  "pagination": {
+   "page": 1,
+   "per_page": 50,
+   "total": 4,
+   "total_pages": 1
+  }
+ }
+}
