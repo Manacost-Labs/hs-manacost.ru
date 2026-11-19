@@ -708,6 +708,10 @@ class wfWAFRuleComparison implements wfWAFRuleInterface {
 	}
 
 	public function evaluate() {
+		$this->result = false;
+		$this->failedSubjects = array();
+		$this->matches = null;
+		$this->multiplier = null;
 		$type = $this->getActionType();
 		if ($type===null) {
 			return false;
@@ -721,16 +725,66 @@ class wfWAFRuleComparison implements wfWAFRuleInterface {
 		}
 
 		$this->result = false;
+		$action = wfWAFUtils::strtolower($this->getAction());
+		$pathActions = array('match', 'notmatch', 'contains', 'notcontains', 'equals', 'notequals',
+			'identical', 'notidentical', 'matchcount', 'containscount');
 		/** @var wfWAFRuleComparisonSubject $subject */
 		foreach ($subjects as $subject) {
-			$global = $subject->getValue();
+			$values = in_array($action, $pathActions, true) ? $subject->getPathValues() : null;
 			$subjectKey = $subject->getKey();
-
-			if ($this->_evaluate(array($this, $this->getAction()), $global, $subjectKey, $type===self::ACTION_TYPE_SCALAR)) {
+			if ($values !== null) {
+				$matched = count($values) === 1
+					? $this->_evaluate(array($this, $this->getAction()), $values[0], $subjectKey, true)
+					: $this->evaluatePathValues($values, $subjectKey, $action);
+			} else {
+				$matched = $this->_evaluate(array($this, $this->getAction()), $subject->getValue(), $subjectKey, $type === self::ACTION_TYPE_SCALAR);
+			}
+			if ($matched) {
 				$this->result = true;
 			}
 		}
 		return $this->result;
+	}
+
+	/**
+	 * Compare path representations without duplicating scores or changing parameter keys.
+	 * @param array $values Raw-first, independently filtered path representations.
+	 * @param string $subjectKey Existing rule parameter key.
+	 * @param string $action Lowercase comparison action.
+	 * @return bool Whether this logical subject satisfies the comparison.
+	 */
+	private function evaluatePathValues($values, $subjectKey, $action) {
+		$negative = in_array($action, array('notmatch', 'notcontains', 'notequals', 'notidentical'), true);
+		$counted = $action === 'matchcount' || $action === 'containscount';
+		$previous = $this->failedSubjects;
+		$selected = array();
+		$selectedCount = -1;
+		foreach ($values as $value) {
+			$this->failedSubjects = array();
+			$matched = $this->_evaluate(array($this, $this->getAction()), $value, $subjectKey, true);
+			if ($negative && !$matched) {
+				$selected = array();
+				break;
+			}
+			if ($matched) {
+				$count = 0;
+				foreach ($this->failedSubjects as $failure) {
+					$count += $failure['multiplier'];
+				}
+				if (!$selected || ($counted && $count > $selectedCount)) {
+					$selected = $this->failedSubjects;
+					$selectedCount = $count;
+				}
+				if (!$negative && !$counted) {
+					break;
+				}
+			}
+		}
+		$this->failedSubjects = array_merge($previous, $selected);
+		$last = $selected ? end($selected) : null;
+		$this->matches = $last ? $last['matches'] : null;
+		$this->multiplier = $last ? $last['multiplier'] : null;
+		return !empty($selected);
 	}
 
 	/**
@@ -753,7 +807,24 @@ class wfWAFRuleComparison implements wfWAFRuleInterface {
 					$result = true;
 				}
 			}
-		} else if (call_user_func($callback, $global)) {
+		} else {
+			$this->matches = null;
+			$this->multiplier = null;
+			$rule = $this->getRule();
+			if (wfWAFUtils::strtolower($this->getAction()) === 'matchcount' && $rule instanceof wfWAFRule && $rule->getCategory() === 'sqli') {
+				$result = $this->getWAF()->matchSQLiRegex($rule, $subjectKey, (string) $global, (string) $this->getExpected());
+				if ($result === false) {
+					return false;
+				}
+				$this->multiplier = $result['count'];
+				$this->matches = $result['matches'];
+				if ($this->multiplier === 0) {
+					return false;
+				}
+			}
+			else if (!call_user_func($callback, $global)) {
+				return false;
+			}
 			$result = true;
 			$this->failedSubjects[] = array(
 				'subject'    => $subjectKey,
@@ -874,6 +945,11 @@ class wfWAFRuleComparison implements wfWAFRuleInterface {
 		return md5((string) $subject) === $this->getExpected();
 	}
 	
+	/**
+	 * Matches uploaded file contents while temporarily bounding PCRE backtracking when permitted.
+	 * @param mixed $subject Uploaded filename to inspect.
+	 * @return bool Whether a malware pattern matches.
+	 */
 	public function filePatternsMatch($subject) {
 		$request = $this->getWAF()->getRequest();
 		$files = $request->getFiles();
@@ -882,73 +958,74 @@ class wfWAFRuleComparison implements wfWAFRuleInterface {
 		if (!is_array($patterns) || !is_array($files)) {
 			return false;
 		}
-		
+
 		$backtrackLimit = ini_get('pcre.backtrack_limit');
-		if (is_numeric($backtrackLimit)) {
-			$backtrackLimit = (int) $backtrackLimit;
-			if ($backtrackLimit > 10000000) {
-				ini_set('pcre.backtrack_limit', 1000000);
-			}
+		$previousBacktrackLimit = false;
+		if (is_numeric($backtrackLimit) && (int) $backtrackLimit > 10000000 && function_exists('ini_set')) {
+			$previousBacktrackLimit = @ini_set('pcre.backtrack_limit', '1000000');
 		}
-		else {
-			$backtrackLimit = false;
-		}
-		
-		foreach ($files as $file) {
-			if ($file['name'] == (string) $subject) {
-				if (!is_file($file['tmp_name'])) {
-					continue;
-				}
-				$fh = @fopen($file['tmp_name'], 'r');
-				if (!$fh) {
-					continue;
-				}
-				$totalRead = 0;
-				
-				$first = true;
-				$readsize = max(min(10 * 1024 * 1024, wfWAFUtils::iniSizeToBytes(ini_get('upload_max_filesize'))), 1 * 1024 * 1024);
-				while (!feof($fh)) {
-					$data = fread($fh, $readsize);
-					$totalRead += strlen($data);
-					if ($totalRead < 1) {
-						return false;
+
+		try {
+			foreach ($files as $file) {
+				if ($file['name'] == (string) $subject) {
+					if (!is_file($file['tmp_name'])) {
+						continue;
 					}
-					
-					$commonStringsChecked = array();
-					foreach ($patterns as $index => $rule) {
-						if (@preg_match('/' . $rule . '/iS', '') === false) {
-							continue; //This PCRE version can't compile the rule
-						}
-						
-						if (!$first && substr($rule, 0, 1) == '^') {
-							continue; //Signature only applies to file beginning
-						}
-						
-						if (isset($commonStrings[$index])) {
-							foreach ($commonStrings[$index] as $s) {
-								if (!isset($commonStringsChecked[$s])) {
-									$commonStringsChecked[$s] = (preg_match('/' . $s . '/iS', $data) == 1);
+					$fh = @fopen($file['tmp_name'], 'r');
+					if (!$fh) {
+						continue;
+					}
+					try {
+						$first = true;
+						$readsize = max(min(10 * 1024 * 1024, wfWAFUtils::iniSizeToBytes(ini_get('upload_max_filesize'))), 1 * 1024 * 1024);
+						while (!feof($fh)) {
+							$data = fread($fh, $readsize);
+							if ($data === false || $data === '') {
+								break;
+							}
+
+							$commonStringsChecked = array();
+							foreach ($patterns as $index => $rule) {
+								if (@preg_match('/' . $rule . '/iS', '') === false) {
+									continue; //This PCRE version can't compile the rule
 								}
-								
-								if (!$commonStringsChecked[$s]) {
-									continue 2;
+
+								if (!$first && substr($rule, 0, 1) == '^') {
+									continue; //Signature only applies to file beginning
+								}
+
+								if (isset($commonStrings[$index])) {
+									foreach ($commonStrings[$index] as $s) {
+										if (!isset($commonStringsChecked[$s])) {
+											$commonStringsChecked[$s] = (preg_match('/' . $s . '/iS', $data) == 1);
+										}
+
+										if (!$commonStringsChecked[$s]) {
+											continue 2;
+										}
+									}
+								}
+
+								if (preg_match('/(' . $rule . ')/iS', $data, $matches)) {
+									return true;
 								}
 							}
-						}
-						
-						if (preg_match('/(' . $rule . ')/iS', $data, $matches)) {
-							if ($backtrackLimit !== false) { ini_set('pcre.backtrack_limit', $backtrackLimit); }
-							return true;
+
+							$first = false;
 						}
 					}
-					
-					$first = false;
-				}	
+					finally {
+						fclose($fh);
+					}
+				}
+			}
+			return false;
+		}
+		finally {
+			if ($previousBacktrackLimit !== false && function_exists('ini_set')) {
+				@ini_set('pcre.backtrack_limit', $previousBacktrackLimit);
 			}
 		}
-		
-		if ($backtrackLimit !== false) { ini_set('pcre.backtrack_limit', $backtrackLimit); }
-		return false;
 	}
 
 	private function checkForPhp($path) {
@@ -1460,6 +1537,7 @@ class wfWAFRuleComparisonGroup implements wfWAFRuleInterface {
 		}
 
 		$this->result = false;
+		$this->failedComparisons = array();
 		$operator = null;
 		/** @var wfWAFRuleComparison|wfWAFRuleLogicalOperator|wfWAFRuleComparisonGroup $comparison */
 		for ($i = 0; $i < count($this->items); $i++) {
@@ -1478,9 +1556,16 @@ class wfWAFRuleComparisonGroup implements wfWAFRuleInterface {
 			if ($comparison instanceof wfWAFRuleComparison || $comparison instanceof wfWAFRuleComparisonGroup) {
 				$comparison->setRule($this->getRule());
 				if ($operator instanceof wfWAFRuleLogicalOperator) {
+					$operatorName = wfWAFUtils::strtolower($operator->getOperator());
+					$skipped = ($this->result && in_array($operatorName, array('or', '||'), true)) ||
+						(!$this->result && in_array($operatorName, array('and', '&&'), true));
 					$operator->setCurrentValue($this->result);
 					$operator->setComparison($comparison);
 					$this->result = $operator->evaluate();
+					if ($skipped) {
+						// A skipped comparison may still contain results from an earlier evaluation.
+						continue;
+					}
 				} else {
 					$this->result = $comparison->evaluate();
 				}
@@ -1808,28 +1893,64 @@ class wfWAFRuleComparisonSubject {
 		);
 	}
 
-	private function getRootValue($subject) {
+	/**
+	 * Resolve the root before nested filters or property access.
+	 * @param mixed $subject Root reference or filtered subject.
+	 * @param bool $decodePath Whether to decode a path root once.
+	 * @return mixed Root value.
+	 */
+	private function getRootValue($subject, $decodePath = false) {
 		if ($subject instanceof wfWAFRuleComparisonSubject) {
-			return $subject->getValue();
+			return $subject->getValue($decodePath);
 		}
 		else {
-			return $this->getWAF()->getGlobal($subject);
+			$value = $this->getWAF()->getGlobal($subject);
+			return $decodePath && $subject === 'request.path' && is_string($value) ? urldecode($value) : $value;
 		}
 	}
 
 	/**
+	 * Resolve a subject, optionally decoding its path root before applying filters.
+	 * @param bool $decodePath Whether to decode a request.path root once.
 	 * @return mixed|null
 	 */
-	public function getValue() {
+	public function getValue($decodePath = false) {
 		$subject = $this->getSubject();
 		if (!is_array($subject)) {
-			return $this->runFilters($this->getRootValue($subject), $subject);
+			return $this->runFilters($this->getRootValue($subject, $decodePath));
 		}
 		else if (count($subject) > 0) {
 			$globalKey = array_shift($subject);
-			return $this->runFilters($this->_getValue($subject, $this->getRootValue($globalKey)));
+			return $this->runFilters($this->_getValue($subject, $this->getRootValue($globalKey, $decodePath)));
 		}
 		return null;
+	}
+
+	/**
+	 * Return at most two filtered values for a subject rooted in request.path.
+	 * @return array|null Raw and once-decoded values, or null for another subject.
+	 */
+	public function getPathValues() {
+		$root = $this->getSubject();
+		while (is_array($root) || $root instanceof self) {
+			if ($root instanceof self) {
+				$root = $root->getSubject();
+			} else {
+				$root = count($root) ? reset($root) : null;
+			}
+		}
+		if ($root !== 'request.path') {
+			return null;
+		}
+		$values = array($this->getValue());
+		$path = $this->getWAF()->getRequest()->getPath();
+		if (is_string($path) && urldecode($path) !== $path) {
+			$decoded = $this->getValue(true);
+			if ($decoded !== $values[0]) {
+				$values[] = $decoded;
+			}
+		}
+		return $values;
 	}
 
 	/**
@@ -1888,9 +2009,19 @@ class wfWAFRuleComparisonSubject {
 		return $value;
 	}
 
+	/**
+	 * Replaces supported leaves recursively, preserving array keys and nesting.
+	 * @param mixed $value Subject; null array elements are treated as empty strings.
+	 * @param string|array $find Values to replace.
+	 * @param string|array $replace Replacement values.
+	 * @return mixed Transformed subject, or unchanged unsupported value.
+	 */
 	public function filterReplace($value, $find, $replace) {
 		if (is_array($value)) {
-			return str_replace($find, $replace, $value);
+			foreach ($value as $key => $item) {
+				$value[$key] = $this->filterReplace($item === null ? '' : $item, $find, $replace);
+			}
+			return $value;
 		}
 		if (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
 			return str_replace($find, $replace, (string) $value);
@@ -1898,9 +2029,23 @@ class wfWAFRuleComparisonSubject {
 		return $value;
 	}
 
+	/**
+	 * Replaces supported leaves recursively, preserving array keys and nesting.
+	 * @param mixed $value Subject; null array elements are treated as empty strings.
+	 * @param string|array $pattern Regular expressions.
+	 * @param string|array $replacement Replacement values.
+	 * @param int $limit Maximum replacements per pattern per string; -1 is unlimited.
+	 * @return mixed Transformed subject, or unchanged unsupported value.
+	 */
 	public function filterPregReplace($value, $pattern, $replacement, $limit=-1) {
 		if (is_array($value)) {
-			return preg_replace($pattern, $replacement, $value, $limit);
+			foreach ($value as $key => $item) {
+				$value[$key] = $this->filterPregReplace($item === null ? '' : $item, $pattern, $replacement, $limit);
+				if ($value[$key] === null) {
+					unset($value[$key]); // Match preg_replace() array-subject failure handling.
+				}
+			}
+			return $value;
 		}
 		if (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
 			return preg_replace($pattern, $replacement, (string) $value, $limit);
@@ -1931,8 +2076,16 @@ class wfWAFRuleComparisonSubject {
 		return $this->getMatchingKeys($values, $patterns);
 	}
 
+	/**
+	 * Decodes JSON from scalar or string-convertible values.
+	 * @param mixed $value Input to decode.
+	 * @return mixed Decoded value, or null for invalid JSON or unsupported input.
+	 */
 	public function filterJson($value) {
-		return wfWAFUtils::json_decode(@(string)$value, true);
+		if (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
+			return wfWAFUtils::json_decode((string)$value, true);
+		}
+		return null;
 	}
 
 	private function renderSubject() {

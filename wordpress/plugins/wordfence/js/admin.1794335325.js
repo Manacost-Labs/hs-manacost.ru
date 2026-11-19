@@ -35,8 +35,20 @@
 
 				$('.do-show').click(function() {
 					var $this = $(this);
-					$this.hide();
-					$($this.data('selector')).show();
+					var selector = $this.data('selector');
+					var target = $();
+					if (typeof selector === 'string') {
+						try {
+							target = $(document).find(selector);
+						}
+						catch (error) {
+							// Invalid selectors do not identify existing content.
+						}
+					}
+					if (target.length) {
+						$this.hide();
+						target.show();
+					}
 					return false;
 				});
 				
@@ -257,8 +269,9 @@
 			 * @param {function} cb
 			 * @param {function} cbErr
 			 * @param {boolean} noLoading
+			 * @param {function|boolean} onCancel Optional cleanup for canceled requests.
 			 */
-			ajax(action, data, cb = () => {}, cbErr = () => {}, noLoading = false) {
+			ajax(action, data, cb = () => {}, cbErr = () => {}, noLoading = false, onCancel = false) {
 				const onSuccess = (typeof cb === 'function') ? cb : () => {};
 				const onError = (typeof cbErr === 'function') ? cbErr : () => {};
 
@@ -273,8 +286,16 @@
 					data = Object.assign({}, data, { action, nonce: this.ajaxNonce(action) });
 				}
 
+				let nativeAborted = false;
+				const xhrFactory = $.ajaxSettings.xhr;
 				if (!noLoading) { this.showLoading(); }
 				jQuery.ajax({
+					xhr: function() {
+						const xhr = xhrFactory.apply(this, arguments);
+						// jQuery reports native aborts as "error"; observe them before its transport handler.
+						if (xhr && typeof xhr.addEventListener === 'function') { xhr.addEventListener('abort', () => { nativeAborted = true; }); }
+						return xhr;
+					},
 					type: 'POST',
 					url: WordfenceAdminVars.ajaxURL,
 					dataType: 'json',
@@ -287,8 +308,12 @@
 						}
 						onSuccess(json);
 					},
-					error: (response) => {
+					error: (response, textStatus) => {
 						if (!noLoading) { this.removeLoading(); }
+						if (textStatus === 'abort' || (textStatus === 'error' && nativeAborted)) {
+							if (typeof onCancel === 'function') { onCancel(); }
+							return;
+						}
 						onError();
 					},
 				});

@@ -206,8 +206,8 @@ class wfWAFRequest implements wfWAFRequestInterface {
 		$request->setMetadata(array());
 
 		list($headersString, $bodyString) = explode("\n\n", $requestString, 2);
-		$headersString = trim($headersString);
-		$bodyString = trim($bodyString);
+		$headersString = trim($headersString, " \t\n\r\0\x0B");
+		$bodyString = trim($bodyString, " \t\n\r\0\x0B");
 		
 		if (defined('WFWAF_DISABLE_RAW_BODY') && WFWAF_DISABLE_RAW_BODY) {
 			$request->setRawBody('');
@@ -224,21 +224,18 @@ class wfWAFRequest implements wfWAFRequestInterface {
 			$request->setUri($uri);
 			if (($pos = wfWAFUtils::strpos($uri, '?')) !== false) {
 				$queryString = wfWAFUtils::substr($uri, $pos + 1);
-				parse_str($queryString, $queryStringArray);
+				$queryStringArray = wfWAFUtils::parseQueryString($queryString);
 				$request->setQueryString($queryStringArray);
 
-				$path = wfWAFUtils::substr($uri, 0, $pos);
-				$request->setPath($path);
-			} else {
-				$request->setPath($uri);
 			}
+			$request->setPath(self::extractRequestPath($uri));
 		}
 		$kvHeaders = array();
 		for ($i = 1; $i < count($headers); $i++) {
 			$headerString = $headers[$i];
 			list($header, $headerValue) = explode(':', $headerString, 2);
-			$header = trim($header);
-			$headerValue = trim($headerValue);
+			$header = trim($header, " \t\n\r\0\x0B");
+			$headerValue = trim($headerValue, " \t\n\r\0\x0B");
 			$kvHeaders[$header] = $headerValue;
 
 			switch (wfWAFUtils::strtolower($header)) {
@@ -259,7 +256,7 @@ class wfWAFRequest implements wfWAFRequestInterface {
 					$cookieArray = array();
 					$cookies = str_replace('&', '%26', $headerValue);
 					$cookies = preg_replace('/\s*;\s*/', '&', $cookies);
-					parse_str($cookies, $cookieArray);
+					$cookieArray = wfWAFUtils::parseQueryString($cookies);
 					$request->setCookies($cookieArray);
 					break;
 			}
@@ -288,13 +285,13 @@ class wfWAFRequest implements wfWAFRequestInterface {
 					foreach ($chunkHeaders as $chunkHeader) {
 						if (wfWAFUtils::strpos($chunkHeader, ':') !== false) {
 							list($chunkHeaderKey, $chunkHeaderValue) = explode(':', $chunkHeader, 2);
-							$chunkHeaderKey = trim($chunkHeaderKey);
-							$chunkHeaderValue = trim($chunkHeaderValue);
+							$chunkHeaderKey = trim($chunkHeaderKey, " \t\n\r\0\x0B");
+							$chunkHeaderValue = trim($chunkHeaderValue, " \t\n\r\0\x0B");
 							switch ($chunkHeaderKey) {
 								case 'Content-Disposition':
 									$dataAttributes = explode(';', $chunkHeaderValue);
 									foreach ($dataAttributes as $attr) {
-										$attr = trim($attr);
+										$attr = trim($attr, " \t\n\r\0\x0B");
 										if (preg_match('/^name="(.*?)"$/i', $attr, $attrMatch)) {
 											$param['name'] = $attrMatch[1];
 											continue;
@@ -327,7 +324,7 @@ class wfWAFRequest implements wfWAFRequestInterface {
 				}
 
 				if ($body) {
-					parse_str($body, $postBody);
+					$postBody = wfWAFUtils::parseQueryString($body);
 					if (is_array($postBody)) {
 						$request->setBody($postBody);
 					} else {
@@ -342,7 +339,7 @@ class wfWAFRequest implements wfWAFRequestInterface {
 				}
 
 			} else {
-				parse_str($bodyString, $postBody);
+				$postBody = wfWAFUtils::parseQueryString($bodyString);
 				if (is_array($postBody)) {
 					$request->setBody($postBody);
 				} else {
@@ -416,7 +413,6 @@ class wfWAFRequest implements wfWAFRequestInterface {
 		$request->setURI('');
 		$request->setMetadata(array());
 
-		$request->setBody(wfWAFUtils::stripMagicQuotes($_POST));
 		if (defined('WFWAF_DISABLE_RAW_BODY') && WFWAF_DISABLE_RAW_BODY) {
 			$request->setRawBody('');
 		}
@@ -486,16 +482,75 @@ class wfWAFRequest implements wfWAFRequestInterface {
 			$request->setProtocol((array_key_exists('HTTPS', $_SERVER) && $_SERVER['HTTPS'] && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
 			$request->setUri(array_key_exists('REQUEST_URI', $_SERVER) ? wfWAFUtils::stripMagicQuotes($_SERVER['REQUEST_URI']) : '');
 
-			$uri = parse_url($request->getURI());
-			if (is_array($uri) && array_key_exists('path', $uri)) {
-				$path = $uri['path'];
-			} else {
-				$path = $request->getURI();
-			}
-			$request->setPath($path);
+			$request->setPath(self::extractRequestPath($request->getURI()));
 		}
 
+		$overrides = array(
+			$request->getHeaders('X-Http-Method-Override'),
+			$request->getHeaders('X-Method-Override'),
+		);
+		$query = $request->getQueryString();
+		if (isset($query['_method'])) {
+			$overrides[] = $query['_method'];
+		}
+		$request->setBody(self::bodyFromGlobals($request->getMethod(), $request->getHeaders('Content-Type'), $request->getRawBody(), wfWAFUtils::stripMagicQuotes($_POST), $overrides));
+
 		return $request;
+	}
+
+	/**
+	 * Select form body parameters that PHP or WordPress REST can expose for the request method.
+	 * @param string $method HTTP method.
+	 * @param string|null $contentType Request Content-Type header.
+	 * @param string $rawBody Saved raw request body.
+	 * @param array $postBody Native PHP POST parameters.
+	 * @param array $overrides Candidate method overrides used to select body inspection.
+	 * @return array Body parameters for WAF rules.
+	 */
+	protected static function bodyFromGlobals($method, $contentType, $rawBody, $postBody, $overrides = array()) {
+		$method = strtoupper($method);
+		$parseBody = $method !== 'POST';
+		if (!$parseBody) {
+			foreach ($overrides as $override) {
+				if (is_scalar($override) && strtoupper((string) $override) !== 'POST') {
+					$parseBody = true;
+					break;
+				}
+			}
+		}
+		if (!$parseBody) {
+			return $postBody;
+		}
+		if (defined('WFWAF_DISABLE_RAW_BODY') && WFWAF_DISABLE_RAW_BODY) {
+			return $method === 'POST' ? $postBody : array();
+		}
+
+		$separator = strpos((string) $contentType, ';');
+		$mediaType = $separator ? substr($contentType, 0, $separator) : (string) $contentType;
+		$mediaType = strtolower(trim($mediaType));
+		// WordPress REST treats empty headers and media types without a slash as absent.
+		if (!empty($contentType) && strpos($mediaType, '/') !== false && $mediaType !== 'application/x-www-form-urlencoded') {
+			return $method === 'POST' ? $postBody : array();
+		}
+
+		parse_str($rawBody, $body);
+		return $method === 'POST' ? array_merge($body, $postBody) : $body;
+	}
+
+	/**
+	 * Extract a raw path without interpreting origin-form leading slashes as a host.
+	 * @param string $target HTTP request target.
+	 * @return string Raw path, excluding the query string.
+	 */
+	private static function extractRequestPath($target) {
+		if (preg_match('#^https?://#i', $target)) {
+			$parts = @parse_url($target);
+			if (is_array($parts)) {
+				return isset($parts['path']) ? $parts['path'] : '/';
+			}
+		}
+		$pos = wfWAFUtils::strpos($target, '?');
+		return $pos === false ? $target : wfWAFUtils::substr($target, 0, $pos);
 	}
 
 	private $auth;

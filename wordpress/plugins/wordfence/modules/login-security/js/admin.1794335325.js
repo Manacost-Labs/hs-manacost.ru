@@ -114,8 +114,10 @@
 		 * @param string|array|object payload
 		 * @param function successCallback
 		 * @param function failureCallback
+		 * @param boolean noLoading Reserved for compatibility with the Vue AJAX interface.
+		 * @param function cancelCallback Optional cleanup called only when the request is canceled.
 		 */
-		ajax: function(action, payload, successCallback, failureCallback) {
+		ajax: function(action, payload, successCallback, failureCallback, noLoading, cancelCallback) {
 			if (typeof(payload) == 'string') {
 				if (payload.length > 0) {
 					payload += '&';
@@ -139,7 +141,15 @@
 			}
 			
 			
+			var nativeAborted = false;
+			var xhrFactory = $.ajaxSettings.xhr;
 			$.ajax({
+				xhr: function() {
+					var xhr = xhrFactory.apply(this, arguments);
+					// jQuery reports native aborts as "error"; observe them before its transport handler.
+					if (xhr && typeof xhr.addEventListener === 'function') { xhr.addEventListener('abort', function() { nativeAborted = true; }); }
+					return xhr;
+				},
 				type: 'POST',
 				url: WFLSVars.ajaxurl,
 				dataType: "json",
@@ -147,7 +157,11 @@
 				success: function(json) {
 					typeof successCallback == 'function' && successCallback(json);
 				},
-				error: function() {
+				error: function(response, textStatus) {
+					if (textStatus === 'abort' || (textStatus === 'error' && nativeAborted)) {
+						typeof cancelCallback === 'function' && cancelCallback();
+						return;
+					}
 					typeof failureCallback == 'function' && failureCallback();
 				}
 			});
