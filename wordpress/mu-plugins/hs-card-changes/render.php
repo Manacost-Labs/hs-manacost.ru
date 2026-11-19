@@ -105,7 +105,7 @@ final class HS_Card_Changes_Render {
 	 */
 	private static function queue_target(): ?int {
 		if ( is_main_query() && is_singular() && in_the_loop() && ! is_feed() && ! wp_is_json_request() ) {
-			return (int) get_the_ID();
+			return (int) get_queried_object_id();
 		}
 		return null;
 	}

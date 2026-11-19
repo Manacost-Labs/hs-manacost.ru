@@ -5,7 +5,7 @@ define('MINUTE_IN_SECONDS', 60);
 define('HOUR_IN_SECONDS', 3600);
 define('DAY_IN_SECONDS', 86400);
 if (($argv[1] ?? '') === 'disabled') define('HS_CARD_CHANGES_REMOTE_ENABLED', false);
-$cache = []; $calls = []; $events = []; $responses = []; $batches = []; $scheduled = []; $posts = []; $ttl = []; $main_query = false; $passthrough = false;
+$cache = []; $calls = []; $events = []; $responses = []; $batches = []; $scheduled = []; $posts = []; $ttl = []; $main_query = false; $passthrough = false; $purged = [];
 class WP_Error {
     public function __construct(public $code = '', public $message = '') {}
 }
@@ -42,6 +42,9 @@ function has_shortcode($content, $tag) { return str_contains($content, '[' . $ta
 function wp_enqueue_style(...$a) { $GLOBALS['styles'][] = $a[0]; }
 function plugins_url($path = '', $file = '') { return 'https://example.test/' . $path; }
 function get_the_ID() { return 77; }
+function get_queried_object_id() { return 77; }
+function clean_post_cache($id) { $GLOBALS['purged'][] = $id; }
+function wp_json_encode($v) { return json_encode($v); }
 function get_post_field($field, $id) { return $id === 78 ? '0000-00-00 00:00:00' : '2026-11-03 15:55:00'; }
 function get_shortcode_regex($tags) { return '\[(\[?)(' . implode('|', $tags) . ')(?![\w-])([^\]\/]*(?:\/(?!\])[^\]\/]*)*?)(?:(\/)\]|\](?:([^\[]*+(?:\[(?!\/\2\])[^\[]*+)*+)\[\/\2\])?)(\]?)'; }
 function shortcode_parse_atts($text) { preg_match_all('/([\w-]+)="([^"]*)"/u', $text, $m, PREG_SET_ORDER); $a = []; foreach ($m as $x) $a[$x[1]] = $x[2]; return $a; }
@@ -296,6 +299,12 @@ check($scheduled === [], 'Nothing is scheduled for posts without unpinned change
 $posts[77] = $post; $cache = ['hs_cc_queued_post_77' => 1];
 HS_Card_Changes_Warm::run(77);
 check(count($calls) === 2 && !isset($cache['hs_cc_queued_post_77']) && $S::lookup('constructed', 'BE_036', $D)['state'] === 'pair', 'The warm-up job fetches the post\'s cards and clears its marker');
+check($purged === [77], 'A warm-up that changed the cache purges the post page cache once: ' . json_encode($purged));
+$cache['hs_cc_queued_post_77'] = 1; HS_Card_Changes_Warm::run(77);
+check($purged === [77], 'A warm-up that changed nothing does not purge again');
+$S::refresh([['constructed', 'BE_036', '2026-10-01 00:00:00']]);
+$settled = $cache[$K('constructed', 'BE_036', '2026-10-01 00:00:00')];
+check($settled['value']['state'] === 'single' && $settled['until'] > time() + 6 * HOUR_IN_SECONDS, 'A pair-less result for an old date stays fresh for hours, not minutes');
 check($R::asset_version('card-changes.css') !== 'missing' && $R::asset_version('nope.css') === 'missing', 'Assets are versioned by content hash');
 
 // 8. Editor boundary and shortcode generation.

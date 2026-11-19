@@ -39,8 +39,27 @@ final class HS_Card_Changes_Warm {
 	public static function run( int $post_id ): void {
 		$post = get_post( $post_id );
 		if ( $post instanceof WP_Post ) {
-			HS_Card_Changes_Source::refresh( HS_Card_Changes_Render::requests( $post->post_content, $post_id ) );
+			$requests = HS_Card_Changes_Render::requests( $post->post_content, $post_id );
+			$before   = self::signature( $requests );
+			HS_Card_Changes_Source::refresh( $requests );
+			if ( $requests && self::signature( $requests ) !== $before ) {
+				// The page cache may hold HTML rendered before the warm-up; WP Rocket purges the post on this hook.
+				clean_post_cache( $post_id );
+			}
 		}
 		HS_Card_Changes_Source::dequeue_post( $post_id );
+	}
+
+	/**
+	 * Fingerprint of the cached resolutions of a post, to purge its page only when something changed.
+	 *
+	 * @param list<array{0:string,1:string,2:string}> $requests Mode, card and date triples.
+	 */
+	private static function signature( array $requests ): string {
+		$resolutions = array();
+		foreach ( $requests as $request ) {
+			$resolutions[] = HS_Card_Changes_Cache::entry( ...$request )['resolution'] ?? null;
+		}
+		return hash( 'sha256', (string) wp_json_encode( $resolutions ) );
 	}
 }

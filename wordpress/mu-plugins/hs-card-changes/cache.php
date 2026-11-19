@@ -13,10 +13,11 @@ defined( 'ABSPATH' ) || exit;
  * @phpstan-import-type Resolution from HS_Card_Changes_Pairs
  */
 final class HS_Card_Changes_Cache {
-	private const STORE_TTL    = 30 * DAY_IN_SECONDS;
-	private const FRESH_SINGLE = 10 * MINUTE_IN_SECONDS;
-	private const FRESH_NONE   = HOUR_IN_SECONDS;
-	private const LOCK_TTL     = 60;
+	private const STORE_TTL     = 30 * DAY_IN_SECONDS;
+	private const FRESH_SINGLE  = 10 * MINUTE_IN_SECONDS;
+	private const FRESH_SETTLED = 12 * HOUR_IN_SECONDS;
+	private const FRESH_NONE    = HOUR_IN_SECONDS;
+	private const LOCK_TTL      = 60;
 
 	/**
 	 * Cache key of one resolution.
@@ -124,7 +125,7 @@ final class HS_Card_Changes_Cache {
 	 * @param array<string,mixed>               $resolution Resolution.
 	 */
 	public static function store( array $request, array $resolution ): void {
-		$until = 'pair' === $resolution['state'] ? PHP_INT_MAX : time() + ( 'none' === $resolution['state'] ? self::FRESH_NONE : self::FRESH_SINGLE );
+		$until = 'pair' === $resolution['state'] ? PHP_INT_MAX : time() + self::freshness( (string) $resolution['state'], $request[2] );
 		set_transient(
 			'hs_cc_pair_' . self::key( ...$request ),
 			array(
@@ -133,6 +134,21 @@ final class HS_Card_Changes_Cache {
 			),
 			self::STORE_TTL
 		);
+	}
+
+	/**
+	 * Seconds a pair-less result stays fresh. Days after the patch date the archive has caught up,
+	 * so a missing pair is not worth re-asking every few minutes.
+	 *
+	 * @param string $state Resolution state.
+	 * @param string $date Normalized UTC date.
+	 */
+	private static function freshness( string $state, string $date ): int {
+		if ( 'none' === $state ) {
+			return self::FRESH_NONE;
+		}
+		$at = strtotime( $date . ' UTC' );
+		return false !== $at && $at < time() - 2 * DAY_IN_SECONDS ? self::FRESH_SETTLED : self::FRESH_SINGLE;
 	}
 
 	/**
