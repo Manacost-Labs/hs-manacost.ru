@@ -1,0 +1,93 @@
+.hs-google-source {
+	margin: 28px 0 8px;
+}
+
+.td-post-content .hs-google-source .hs-google-source__link,
+.hs-google-source .hs-google-source__link {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px 10px 14px;
+	border: 1px solid #e2e5e9;
+	border-radius: 10px;
+	background: #fff;
+	color: #1f2328;
+	font-family: var(--td_default_google_font_2, "Roboto", sans-serif);
+	font-size: 15px;
+	font-weight: 500;
+	line-height: 1.35;
+	text-decoration: none;
+	box-shadow: none;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.td-post-content .hs-google-source .hs-google-source__link:hover,
+.hs-google-source .hs-google-source__link:hover {
+	border-color: #c4c9cf;
+	background: #fafbfc;
+	color: #1f2328;
+	text-decoration: none;
+}
+
+.hs-google-source .hs-google-source__link:focus-visible {
+	outline: 2px solid #1a73e8;
+	outline-offset: 2px;
+}
+
+.hs-google-source .hs-google-source__logo {
+	flex: 0 0 auto;
+	inline-size: 22px;
+	block-size: 22px;
+	margin: 0;
+}
+
+.hs-google-source .hs-google-source__text {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+}
+
+.hs-google-source .hs-google-source__cta {
+	flex: 0 0 auto;
+	padding: 6px 12px;
+	border-radius: 999px;
+	background: #f1f3f4;
+	color: #1a73e8;
+	font-size: 14px;
+	line-height: 1.2;
+	white-space: nowrap;
+	transition: background-color 0.15s ease;
+}
+
+.hs-google-source .hs-google-source__link:hover .hs-google-source__cta {
+	background: #e8f0fe;
+}
+
+.hs-google-source .hs-google-source__hidden {
+	position: absolute;
+	inline-size: 1px;
+	block-size: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+	.td-post-content .hs-google-source .hs-google-source__link,
+	.hs-google-source .hs-google-source__link {
+		gap: 10px;
+		padding: 9px 10px 9px 12px;
+		font-size: 14px;
+	}
+
+	.hs-google-source .hs-google-source__cta {
+		padding: 6px 10px;
+		font-size: 13px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hs-google-source .hs-google-source__link,
+	.hs-google-source .hs-google-source__cta {
+		transition: none;
+	}
+}
