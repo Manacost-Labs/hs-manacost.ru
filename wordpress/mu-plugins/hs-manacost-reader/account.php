@@ -31,8 +31,6 @@ function hs_manacost_reader_account_icon( string $name ): string {
 		'retry'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M19.5 8.5V4.75L22 7.25A8 8 0 1 0 20 17.5"></path></svg>',
 		'crown'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="m4 8 4.25 3.25L12 5l3.75 6.25L20 8l-1.7 10H5.7L4 8Z"></path><path d="M6.25 20h11.5"></path></svg>',
 		'saved'   => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M6.5 3.75h11v16.5L12 16.5l-5.5 3.75V3.75Z"></path></svg>',
-		'comment' => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4.5 5.25h15v10.5h-8.25L6.75 19.5v-3.75H4.5V5.25Z"></path><path d="M8.25 9.5h7.5M8.25 12.5h4.5"></path></svg>',
-		'shield'  => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 3.25 19.25 6v5.5c0 4.4-3 7.7-7.25 9.25C7.75 19.2 4.75 15.9 4.75 11.5V6L12 3.25Z"></path><path d="m9 12 2.25 2.25L15.5 10"></path></svg>',
 		'back'    => '<svg class="mc-reader__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>',
 	);
 
@@ -57,6 +55,32 @@ function hs_manacost_reader_author_mark( string $service ): string {
 	}
 	$title = 'youtube' === $service ? 'YouTube' : 'Twitch';
 	return '<a class="mc-reader__author-mark mc-reader__author-mark--' . esc_attr( $service ) . '" data-reader-' . esc_attr( $service ) . '-mark href="#" target="_blank" rel="noopener noreferrer" aria-label="' . esc_attr( $labels[ $service ] ) . '" title="' . esc_attr( $labels[ $service ] ) . '" hidden>' . hs_manacost_reader_account_icon( $service ) . '<span>' . esc_html( $title ) . '</span></a>';
+}
+
+/**
+ * Render one decorative gold artwork from the bundled 1x/2x set.
+ *
+ * @param string $name Artwork identifier under art/.
+ * @param int    $size CSS pixel size; the 2x file is twice as large.
+ */
+function hs_manacost_reader_account_art( string $name, int $size ): string {
+	$base = '/wp-content/mu-plugins/hs-manacost-reader/art/' . $name . '-';
+	return '<img src="' . esc_attr( $base . $size . '.webp' ) . '"'
+		. ' srcset="' . esc_attr( $base . ( $size * 2 ) . '.webp' ) . ' 2x" width="' . $size . '" height="' . $size . '"'
+		. ' alt="" decoding="async">';
+}
+
+/**
+ * Render one guest benefit card; the text alone carries the meaning.
+ *
+ * @param string $art   Artwork identifier.
+ * @param string $title Short benefit name.
+ * @param string $text  One-sentence explanation.
+ */
+function hs_manacost_reader_guest_benefit( string $art, string $title, string $text ): string {
+	return '<li class="mc-reader__benefit">' . hs_manacost_reader_account_art( $art, 56 )
+		. '<div><h4 class="mc-reader__benefit-title">' . esc_html( $title ) . '</h4>'
+		. '<p class="mc-reader__benefit-text">' . esc_html( $text ) . '</p></div></li>';
 }
 
 /**
@@ -101,13 +125,16 @@ function hs_manacost_reader_account_shell( array $config = array() ): string {
 		. '<h1 class="mc-reader__eyebrow">Личный кабинет</h1></div>'
 		. '<details class="mc-reader__account-menu" data-reader-account-menu hidden><summary>' . hs_manacost_reader_account_icon( 'account' ) . 'Аккаунт' . hs_manacost_reader_account_icon( 'chevron' ) . '</summary><div class="mc-reader__account-actions" data-reader-account-actions></div></details></header>'
 		. '<div class="mc-reader__gate"><div class="mc-reader__guest" data-reader-guest hidden>'
-		. '<div class="mc-reader__guest-mark" aria-hidden="true">М</div>'
-		. '<h2 class="mc-reader__guest-title">Ваш профиль на Манакосте</h2>'
-		. '<ul class="mc-reader__benefits">'
-		. '<li>' . hs_manacost_reader_account_icon( 'saved' ) . '<span>Сохраняйте статьи и возвращайтесь к ним с любого устройства</span></li>'
-		. '<li>' . hs_manacost_reader_account_icon( 'comment' ) . '<span>Обсуждайте материалы под своим именем, фото и любимым классом</span></li>'
-		. '<li>' . hs_manacost_reader_account_icon( 'shield' ) . '<span>Вход через аккаунт HearthPulse — без отдельного пароля для сайта</span></li>'
-		. '</ul></div>'
+		. '<div class="mc-reader__guest-hero">' . hs_manacost_reader_account_art( 'emblem', 88 )
+		. '<div class="mc-reader__guest-copy"><p class="mc-reader__guest-kicker">Бесплатно для всех читателей</p>'
+		. '<h2 class="mc-reader__guest-title">Сохраняйте гайды и обсуждайте колоды</h2>'
+		. '<p class="mc-reader__guest-lede">Один профиль для закладок, комментариев и любимого класса — на телефоне и компьютере.</p></div></div>'
+		. '<section class="mc-reader__benefits-block" aria-labelledby="mc-reader-benefits-title"><h3 id="mc-reader-benefits-title" class="mc-reader__benefits-title">Что даёт профиль</h3><ul class="mc-reader__benefits">'
+		. hs_manacost_reader_guest_benefit( 'saved', 'Избранное', 'Сохраняйте статьи и гайды в один клик и открывайте их с телефона или компьютера.' )
+		. hs_manacost_reader_guest_benefit( 'discuss', 'Обсуждения', 'Комментируйте материалы под своим именем, с фото и значком любимого класса.' )
+		. hs_manacost_reader_guest_benefit( 'profile', 'Свой профиль', 'Аватар, пара слов о себе и ссылки на ваш Twitch и YouTube.' )
+		. hs_manacost_reader_guest_benefit( 'login', 'Быстрый вход', 'Через аккаунт HearthPulse — отдельный пароль для сайта не нужен.' )
+		. '</ul></section></div>'
 		. '<p class="mc-reader__status" data-reader-status role="status" aria-live="polite">Проверяем вход…</p>'
 		. '<div class="mc-reader__actions" data-reader-actions></div></div>'
 		. '<section class="mc-reader__profile" aria-labelledby="mc-reader-profile-title" data-reader-profile-overview hidden>'

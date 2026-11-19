@@ -1036,7 +1036,7 @@
         "resolved": true,
         "api": "get_post_meta",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 47
+        "line": 96
       },
       {
         "name": "_hs_show_on_homepage",
@@ -2416,14 +2416,14 @@
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 238
+        "line": 287
       },
       {
         "name": "manacost-reader/v1/threads",
         "resolved": true,
         "api": "register_rest_route",
         "file": "wordpress/mu-plugins/hs-manacost-reader/comments-editorial.php",
-        "line": 229
+        "line": 278
       },
       {
         "name": "manacost/v1/article-versions/(?P<post_id>\\d+)/(?P<version>\\d+)",

@@ -527,7 +527,7 @@
 						.then( async response => ( { response, data: await response.json().catch( () => ( {} ) ) } ) ) );
 				if ( ! current( requestController, requestGeneration ) ) return;
 				if ( response.status === 200 ) authenticated( data, { ...refreshOptions, preserveDraft: preservePrivate } );
-				else if ( response.status === 401 ) guest( 'Войдите через HearthPulse, чтобы открыть свой профиль.' );
+				else if ( response.status === 401 ) guest( 'После входа вы сразу вернётесь в кабинет.' );
 				else if ( response.status === 503 || response.status === 429 ) identityRetry( preservePrivate );
 				else throw new Error( 'identity_failed' );
 			} catch ( error ) {
