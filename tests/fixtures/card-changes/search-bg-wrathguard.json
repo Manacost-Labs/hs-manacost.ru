@@ -1,0 +1,27 @@
+{
+ "data": [
+  {
+   "card_id": "BG36_362",
+   "name": {
+    "ru": "Жертвенный страж гнева",
+    "en": "Sacrificial Wrathguard"
+   },
+   "card_type": {
+    "slug": "minion",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/battleground_card/BG36_362-61825e2d74cbc5ef.png",
+    "card": "https://api.kolodahearthstone.com/uploads/card-history-media/c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png?v=2026-11-19%2003%3A19%3A12"
+   }
+  }
+ ],
+ "pagination": {
+  "page": 1,
+  "per_page": 12,
+  "total": 1,
+  "total_pages": 1,
+  "has_next": false,
+  "has_prev": false
+ }
+}

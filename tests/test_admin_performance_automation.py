@@ -385,9 +385,10 @@ console.log('PASS');
             for secret_name in ("STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD"):
                 self.assertIn(f"secrets.{secret_name}", frontend)
             self.assertNotIn("STAGING_DIAGNOSTIC", frontend)
-            self.assertEqual(22, steps.count("secrets."))
+            # +4 for the card changes staging probe, which needs the same four protected staging secrets.
+            self.assertEqual(26, steps.count("secrets."))
         else:
-            self.assertEqual(20, steps.count("secrets."))
+            self.assertEqual(24, steps.count("secrets."))
 
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

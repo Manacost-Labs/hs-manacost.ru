@@ -5,22 +5,24 @@
   "direction": "outbound",
   "endpoints": {
     "history": "https://api.kolodahearthstone.com/api/v1/card-history/{constructed_card|card}/{card-id}[?page=N]; honours WP_HTTP_BLOCK_EXTERNAL / WP_ACCESSIBLE_HOSTS and pre_http_request",
-    "images": "https://api.kolodahearthstone.com/uploads/card-history-media/{sha256}.png; loaded by readers' browsers, never fetched by the server"
+    "images": "https://api.kolodahearthstone.com/uploads/card-history-media/{sha256}.png; loaded by readers' browsers, never fetched by the server",
+    "search": "https://api.kolodahearthstone.com/api/v1/constructed-cards?q={name}&per_page=12 and https://api.kolodahearthstone.com/api/v1/cards?q={name}&per_page=12 (editor card search by Russian name)"
   },
   "authentication": "None for the provider; GET without credentials, cookies or user identifiers. Editor endpoint wp_ajax_hs_card_changes requires nonce hs_card_changes and edit_post on the edited post.",
   "data_classes": [
     "public card identifiers",
     "patch date entered by the editor",
     "public card names, stats and archive image hashes",
-    "safe operational outcome"
+    "safe operational outcome",
+    "editor-entered card name search terms (public card names)"
   ],
   "timeout_seconds": 5,
   "retry": {
     "max_attempts": 1,
-    "backoff": "No in-request retry; provider-wide cooldown of 60 seconds on error, honoring numeric or HTTP-date Retry-After between 60 and 3600 seconds."
+    "backoff": "No in-request retry; a cooldown of 60 seconds on error, honoring numeric or HTTP-date Retry-After between 60 and 3600 seconds; the longest delay in a batch wins. Card search has its own cooldown, so a search outage never pauses history resolution or the background refresh."
   },
   "idempotency": "Read-only GET. Rendering, saving and composing perform no provider writes; saving a post and cache misses only schedule a background refresh.",
-  "rate_limit": "Page views read the cache only. A background job (one deduplicated WP-Cron event per post) makes at most 4 parallel requests, shares a 20-second budget across batches and older pages (3 pages of 50 versions per card at most), and caps responses at 512 KiB; a per-key lock stops concurrent refetches. A resolved pair is cached 30 days and never goes stale. In the editor only resolve reaches the provider (60 per minute per editor); compose never does (120 per minute).",
+  "rate_limit": "Page views read the cache only. A background job (one deduplicated WP-Cron event per post) makes at most 4 parallel requests, shares a 20-second budget across batches and older pages (3 pages of 50 versions per card at most), and caps responses at 512 KiB; a per-key lock stops concurrent refetches. A resolved pair is cached 30 days and never goes stale. In the editor only resolve reaches the provider (60 per minute per editor); compose never does (120 per minute). Card search queries the archive at most 40 times per minute per editor (12 rows per mode, one parallel request per mode, cached 10 minutes); beyond that the local dictionary answers alone.",
   "observability": {
     "hook": "hs_card_changes_provider_result",
     "fields": [

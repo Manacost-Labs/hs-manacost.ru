@@ -20,6 +20,31 @@ class CardChangesTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(result.stdout.strip(), "PASS")
 
+    def test_archive_search_merges_dictionary_and_archive(self):
+        result = subprocess.run(
+            ["php", "tests/fixtures/card-changes-search.php"], cwd=ROOT,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "PASS")
+
+    def test_editor_limit_counts_atomically(self):
+        result = subprocess.run(
+            ["php", "tests/fixtures/card-changes-throttle.php"], cwd=ROOT,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "PASS")
+
+    def test_search_uses_the_bounded_transport_and_throttle(self):
+        search = (PLUGIN / "search.php").read_text(encoding="utf-8")
+        self.assertIn("HS_Card_Changes_Source::get_lists", search)
+        self.assertNotIn("wp_remote_get", search)
+        self.assertNotIn("wp_safe_remote_get", search)
+        admin = (PLUGIN / "admin.php").read_text(encoding="utf-8")
+        self.assertIn("throttled( 'search' )", admin)
+        self.assertIn("HS_Card_Changes_Search::run", admin)
+
     def test_public_stylesheet_is_transparent_and_mobile_single_column(self):
         css = (PLUGIN / "card-changes.css").read_text(encoding="utf-8")
         self.assertRegex(css, r"\.hs-cc \{[^}]*background: transparent;[^}]*\}")
@@ -60,6 +85,22 @@ class CardChangesTest(unittest.TestCase):
         self.assertRegex(compose, r"HS_Card_Changes_Render::html\(.*\), true \)", "preview uses pinned-only rendering")
         self.assertIn("resolve_live", admin)
         self.assertNotIn("aria-live", re.search(r'<div id="hs-cc-preview"[^>]*>', (PLUGIN / "dialog.php").read_text(encoding="utf-8")).group(0))
+
+    def test_staging_probe_is_staging_only_and_cleans_up(self):
+        probe = (ROOT / "tests/card-changes/staging.mjs").read_text(encoding="utf-8")
+        self.assertIn("base !== 'https://test.hs-manacost.ru'", probe)
+        # The disposable post is removed in `finally`, only when it carries this run's unique marker.
+        final = probe.split("} finally {", 1)[1]
+        self.assertIn("post.title.raw === marker", final)
+        # A lost create response is resolved by looking the draft up by marker and author, not reported as clean.
+        self.assertIn("search=${encodeURIComponent(marker)}", final)
+        self.assertIn("report.cleaned = !createSent", final)
+        self.assertIn("?force=true", final)
+        self.assertIn("'private'", probe)
+        self.assertNotIn("'publish'", probe)
+        workflow = (ROOT / ".github/workflows/admin-performance-staging.yml").read_text(encoding="utf-8")
+        self.assertIn("node tests/card-changes/staging.mjs", workflow)
+        self.assertIn("CARD_CHANGES_NAME_SEARCH: ${{ github.ref == 'refs/heads/main' && 'required' || 'optional' }}", workflow)
 
     def test_ajax_boundary_requires_nonce_and_capability(self):
         admin = (PLUGIN / "admin.php").read_text(encoding="utf-8")

@@ -4,6 +4,15 @@ if (wp_get_environment_type() !== 'local' || wp_parse_url(home_url(), PHP_URL_HO
     throw new RuntimeException('Disposable loopback WordPress required');
 }
 add_filter('pre_http_request', static function ($pre, $args, $url) {
+    if (preg_match('#^https://api\.kolodahearthstone\.com/api/v1/(cards|constructed-cards)\?(.*)$#', $url, $m)) {
+        // Archive card search: recorded responses for the two queries the tests use, an empty list otherwise.
+        update_option('hs_cc_fixture_search_calls', (int) get_option('hs_cc_fixture_search_calls', 0) + 1, false);
+        if (get_option('hs_cc_fixture_mode') === 'down') return new WP_Error('http_request_failed', 'Fixture outage');
+        parse_str($m[2], $q);
+        $file = ($m[1] === 'cards' && ($q['q'] ?? '') === 'Жертвенный страж гнева') ? 'search-bg-wrathguard' : (($m[1] === 'constructed-cards' && ($q['q'] ?? '') === 'Матриарх') ? 'search-constructed-matriarch' : '');
+        $body = $file !== '' ? file_get_contents(ABSPATH . ".integration/card-changes/$file.json") : '{"data":[],"pagination":{"total":0}}';
+        return ['response' => ['code' => 200], 'headers' => ['content-type' => 'application/json; charset=utf-8'], 'body' => $body];
+    }
     if (!preg_match('#^https://api\.kolodahearthstone\.com/api/v1/card-history/(constructed_card|card)/([A-Za-z0-9_]+)(?:\?|$)#', $url, $m)) return $pre;
     update_option('hs_cc_fixture_calls', (int) get_option('hs_cc_fixture_calls', 0) + 1, false);
     if (get_option('hs_cc_fixture_mode') === 'down') return new WP_Error('http_request_failed', 'Fixture outage');

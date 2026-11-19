@@ -2232,7 +2232,7 @@
         "resolved": true,
         "api": "add_action",
         "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
-        "line": 22
+        "line": 23
       },
       {
         "name": "wp_ajax_hs_deck_archetypes_page",
@@ -2516,14 +2516,14 @@
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-card-changes/source.php",
-        "line": 143
+        "line": 152
       },
       {
         "name": "hs_card_changes_warm",
         "resolved": true,
         "api": "wp_schedule_single_event",
         "file": "wordpress/mu-plugins/hs-card-changes/source.php",
-        "line": 141
+        "line": 150
       },
       {
         "name": "hs_editor_ai_expire",
@@ -2903,14 +2903,14 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
-        "line": 33
+        "line": 34
       },
       {
         "name": "edit_post",
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-card-changes/admin.php",
-        "line": 142
+        "line": 143
       },
       {
         "name": "edit_post",

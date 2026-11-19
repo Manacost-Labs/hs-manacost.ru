@@ -66,6 +66,7 @@ $port = 18765;
 $server = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", ABSPATH . '.integration/card-changes-server.php'], [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes, ABSPATH, ['PHP_CLI_SERVER_WORKERS' => '4', 'PATH' => getenv('PATH')]);
 for ($i = 0; $i < 40 && !@fsockopen('127.0.0.1', $port); $i++) usleep(100000);
 @unlink('/tmp/hs-cc-server-hits.log');
+@unlink('/tmp/hs-cc-server-spans.log');
 add_filter('hs_card_changes_origin', static fn() => "http://127.0.0.1:$port");
 $date = '2026-11-04 00:00:00';
 $run = static function (string $card) use ($date) {
@@ -79,7 +80,14 @@ try {
     $started = microtime(true);
     HS_Card_Changes_Source::refresh(array_map(static fn($n) => ['constructed', "SCN_W$n", $date], [1, 2, 3, 4]));
     $parallel = microtime(true) - $started;
-    cc_check($parallel < 3.2 && HS_Card_Changes_Source::lookup('constructed', 'SCN_W4', $date)['state'] === 'single', 'Real transport: four requests run in parallel: ' . round($parallel, 1) . 's');
+    $all = array_map(static fn($n) => HS_Card_Changes_Source::lookup('constructed', "SCN_W$n", $date)['state'], [1, 2, 3, 4]);
+    cc_check($all === ['single', 'single', 'single', 'single'], 'Real transport: four batched requests all complete: ' . round($parallel, 1) . 's');
+    // Parallelism is asserted at the server, not by wall-clock time: the most requests in flight at once.
+    // Sequential requests never overlap; a CPU-throttled runner may delay a worker but not serialize all of them.
+    $spans = array_map(static fn($line) => array_map('floatval', array_slice(explode(' ', $line), 1)), file('/tmp/hs-cc-server-spans.log', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []);
+    $overlap = 0;
+    foreach ($spans as [$start]) $overlap = max($overlap, count(array_filter($spans, static fn($span) => $span[0] <= $start && $start < $span[1])));
+    cc_check(count($spans) === 4 && $overlap >= 2, 'Real transport: the batch runs concurrently at the server, overlap ' . $overlap . ' of ' . count($spans));
     [$state, , $cool] = $run('SCN_OK');
     cc_check($state === 'single' && $cool === false, 'Real transport: a valid response resolves');
     [$state, , $cool] = $run('SCN_404');

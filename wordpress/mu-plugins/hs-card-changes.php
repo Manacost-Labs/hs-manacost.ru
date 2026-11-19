@@ -21,6 +21,7 @@ HS_Card_Changes_Source::register();
 HS_Card_Changes_Warm::register();
 
 if ( is_admin() ) {
+	require_once __DIR__ . '/hs-card-changes/search.php';
 	require_once __DIR__ . '/hs-card-changes/admin.php';
 	HS_Card_Changes_Admin::register();
 }

@@ -12,5 +12,10 @@ switch ($m[1]) {
     case 'SCN_302': header('Location: http://' . $_SERVER['HTTP_HOST'] . '/redirected', true, 302); break;
     case 'SCN_BIG': $json('{"data":{"versions":[],"pad":"' . str_repeat('a', 700000) . '"}}'); break;
     case 'SCN_SLOW': sleep(9); $json($fixture); break;
-    default: usleep(1200000); $json($fixture);
+    default:
+        // Start and end of each slow request, so the test can prove the client's requests overlapped at the server.
+        $started = microtime(true);
+        usleep(1200000);
+        file_put_contents('/tmp/hs-cc-server-spans.log', $m[1] . ' ' . $started . ' ' . microtime(true) . "\n", FILE_APPEND | LOCK_EX);
+        $json($fixture);
 }

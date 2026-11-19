@@ -1,0 +1,162 @@
+{
+ "data": [
+  {
+   "card_id": "TOY_380",
+   "name": {
+    "ru": "Глиняный матриарх",
+    "en": "Clay Matriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_380-9bc5df18d6c2a1bc.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/TOY_380.png?v=2026-11-19%2016%3A35%3A39"
+   }
+  },
+  {
+   "card_id": "BE_036",
+   "name": {
+    "ru": "МАТРИАРХ",
+    "en": "M.O.T.H.E.R."
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/BE_036-cebfd7977692d5db.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/BE_036.png?v=2026-11-19%2016%3A35%3A40"
+   }
+  },
+  {
+   "card_id": "FIR_901",
+   "name": {
+    "ru": "Матриарх жгучего холода",
+    "en": "Frostburn Matriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/FIR_901-c66ba6a9cbc8d570.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/FIR_901.png?v=2026-11-19%2016%3A35%3A39"
+   }
+  },
+  {
+   "card_id": "RLK_924",
+   "name": {
+    "ru": "Матриарх крови Лиадрин",
+    "en": "Blood Matriarch Liadrin"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/RLK_924-8b233b9fa788325c.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/RLK_924.png?v=2026-11-19%2016%3A35%3A38"
+   }
+  },
+  {
+   "card_id": "AV_291",
+   "name": {
+    "ru": "Матриарх ледопардов",
+    "en": "Frostsaber Matriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/AV_291-b5376424e4018932.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/AV_291.png?v=2026-11-19%2016%3A35%3A38"
+   }
+  },
+  {
+   "card_id": "GIL_190",
+   "name": {
+    "ru": "Матриарх ночных драконов",
+    "en": "Nightscale Matriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/GIL_190-876d7831add0c230.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/GIL_190.png?v=2026-11-19%2016%3A35%3A36"
+   }
+  },
+  {
+   "card_id": "TLC_825",
+   "name": {
+    "ru": "Равазавр-матриарх",
+    "en": "Ravasaur Matriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TLC_825-bb2553c2c2bd056b.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/TLC_825.png?v=2026-11-19%2016%3A35%3A39"
+   }
+  },
+  {
+   "card_id": "CATA_305",
+   "name": {
+    "ru": "Разгневанный матриарх",
+    "en": "Incensed Matriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/CATA_305-e5e3212de203429a.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/CATA_305.png?v=2026-11-19%2016%3A35%3A43"
+   }
+  },
+  {
+   "card_id": "CS2_127",
+   "name": {
+    "ru": "Седоспин-патриарх",
+    "en": "Silverback Patriarch"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/CS2_127-164d31a4e2894965.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/CS2_127.png?v=2026-11-19%2016%3A35%3A44"
+   }
+  },
+  {
+   "card_id": "ONY_007",
+   "name": {
+    "ru": "Хале, матриарх-защитница",
+    "en": "Haleh, Matron Protectorate"
+   },
+   "card_type": {
+    "slug": "MINION",
+    "name_ru": "Существо"
+   },
+   "images": {
+    "tile": "https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/ONY_007-15465ced0247afe7.png",
+    "card": "https://api.kolodahearthstone.com/uploads/constructed-related/ONY_007.png?v=2026-11-19%2016%3A35%3A38"
+   }
+  }
+ ],
+ "pagination": {
+  "page": 1,
+  "per_page": 12,
+  "total": 10,
+  "total_pages": 1,
+  "has_next": false,
+  "has_prev": false
+ }
+}
