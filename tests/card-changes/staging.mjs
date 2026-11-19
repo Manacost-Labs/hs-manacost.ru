@@ -29,6 +29,13 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 const apiPage = await context.newPage();
+const navigationFailures = [];
+page.on('requestfailed', request => {
+  const code = request.failure()?.errorText;
+  if (request.isNavigationRequest() && /^net::ERR_[A-Z_]+$/.test(code ?? '') && navigationFailures.length < 4) {
+    navigationFailures.push({ path: new URL(request.url()).pathname, code });
+  }
+});
 page.on('pageerror', error => { if (/hs-card-changes/.test(error.stack || '')) report.plugin_errors.push(String(error.message).slice(0, 200)); });
 let nonce;
 let fixture;
@@ -60,8 +67,16 @@ try {
   await page.locator('#user_login').fill(process.env.WP_TEST_ADMIN_USER);
   await page.locator('#user_pass').fill(process.env.WP_TEST_ADMIN_PASSWORD);
   report.stage = 'login-redirect';
-  await page.locator('#wp-submit').click();
-  await finishAdminLogin(page, base);
+  try {
+    await page.locator('#wp-submit').click();
+    await finishAdminLogin(page, base);
+  } catch (error) {
+    // The login POST may already have redirected when the runner's network flaps; recover only the interrupted GET.
+    const interrupted = navigationFailures.some(failure => failure.code === 'net::ERR_NETWORK_CHANGED');
+    if (!interrupted) throw error;
+    report.navigation_retries++;
+    await navigate(page, nonceURL);
+  }
   report.stage = 'rest-nonce';
   nonce = (await (await navigate(apiPage, nonceURL)).text()).trim();
   assert.match(nonce, /^[a-z0-9]{10}$/i);
@@ -146,6 +161,7 @@ try {
   for (const key of ['WP_TEST_ADMIN_USER', 'WP_TEST_ADMIN_PASSWORD', 'STAGING_HTTP_USER', 'STAGING_HTTP_PASSWORD']) {
     message = message.replaceAll(process.env[key], '[redacted]');
   }
+  report.navigation_failures = navigationFailures;
   report.failure = message.replace(/https?:\/\/\S+/g, '[url]').slice(0, 1600);
   report.final_path = new URL(page.url()).pathname;
   await mkdir('.artifacts/card-changes', { recursive: true });
