@@ -48,8 +48,8 @@ if (!function_exists('hs_mb_lower')) {
  *   │   decks_shortcode, decks_random_shortcode, single_deck_shortcode,
  *   │   deck_group_shortcode, get_decks_html, get_single_deck_html,
  *   │   render_deck_card, filter_decks, get_total_games
- *   ├─ AJAX (голосование, копирование) ──────────────── строки 1823 – 1908
- *   │   handle_vote, track_copy, get_voter_id
+ *   ├─ AJAX (копирование, события) ──────────────────── строки 1823 – 1908
+ *   │   track_copy, track_event, get_voter_id
  *   ├─ Bulk-действия ────────────────────────────────── строки 1909 – 1953
  *   │   register_bulk_actions, handle_bulk_actions, bulk_action_admin_notice
  *   └─ Внутренние helpers (announcement, layout, tags) ─ строки 1954 – конец
@@ -62,13 +62,16 @@ if (!function_exists('hs_mb_lower')) {
  *   • HS_Decks_Meta_Boxes        (admin метабоксы)
  *   • HS_Decks_Admin_Pages       (Help/About/Layout/Announcement/Tags)
  *   • HS_Decks_Shortcodes        (рендеринг + кэш)
- *   • HS_Decks_Ajax_Handlers     (vote, copy)
+ *   • HS_Decks_Ajax_Handlers     (copy, events)
  *   • HS_Decks_Bulk_Actions      (генерация шорткода группы)
  */
 class HS_Decks_Manager {
     // 16 колод + рекламная карточка после каждой 8-й = 18 ячеек: ровные ряды в сетке на 2 и 3 колонки.
     const DEFAULT_PER_PAGE = 16;
     const FEED_AD_INTERVAL = 8;
+    // Архетипы-заглушки: колоды без настоящего архетипа, «похожими» их не считаем.
+    const PLACEHOLDER_ARCHETYPE_SLUGS = array('chernovik');
+    const RELATED_DECKS_LIMIT = 4;
     const MOBILE_IMAGE_MIN_WIDTH = 640;
     const MOBILE_IMAGE_MAX_WIDTH = 768;
 
@@ -85,6 +88,10 @@ class HS_Decks_Manager {
         add_action('added_post_meta', array($this, 'bump_decks_cache_version_on_meta_change'), 10, 4);
         add_action('updated_post_meta', array($this, 'bump_decks_cache_version_on_meta_change'), 10, 4);
         add_action('deleted_post_meta', array($this, 'bump_decks_cache_version_on_meta_change'), 10, 4);
+        if (class_exists('Unified_HS_Hearthpulse_Archetypes')) {
+            // Ссылки «Об архетипе» входят в HTML ленты, который кэшируется в transient.
+            add_action(Unified_HS_Hearthpulse_Archetypes::UPDATED_ACTION, array($this, 'bump_decks_cache_version'));
+        }
 
         // --- Шорткоды и фронт-AJAX (нужны и на фронте, и при wp-admin/admin-ajax.php) ---
         add_shortcode('hs_decks', array($this, 'decks_shortcode'));
@@ -94,10 +101,6 @@ class HS_Decks_Manager {
         add_shortcode('hs_decks_random', array($this, 'decks_random_shortcode'));
         add_shortcode('hs_deck_archetypes', array($this, 'archetypes_shortcode'));
         add_shortcode('hs_deck_archetype', array($this, 'archetype_shortcode'));
-        add_action('wp_ajax_vote_deck', array($this, 'handle_vote'));
-        add_action('wp_ajax_nopriv_vote_deck', array($this, 'handle_vote'));
-        add_action('wp_ajax_hs_decks_vote_counts', array($this, 'handle_vote_counts'));
-        add_action('wp_ajax_nopriv_hs_decks_vote_counts', array($this, 'handle_vote_counts'));
         add_action('wp_ajax_copy_deck_code', array($this, 'track_copy'));
         add_action('wp_ajax_nopriv_copy_deck_code', array($this, 'track_copy'));
         add_action('wp_ajax_hs_decks_filter', array($this, 'handle_filter_decks_ajax'));
@@ -451,6 +454,117 @@ class HS_Decks_Manager {
         }
 
         return UNIFIED_HS_PLUGINS_URL . 'assets/images/classes/' . $class_key . '.webp';
+    }
+
+    private function get_plugin_image_url($relative_path) {
+        if (!file_exists(UNIFIED_HS_PLUGINS_DIR . 'assets/images/' . $relative_path)) {
+            return '';
+        }
+
+        return UNIFIED_HS_PLUGINS_URL . 'assets/images/' . $relative_path;
+    }
+
+    private function get_deck_mode_icon_url(array $mode_slugs) {
+        $icons = array(
+            'standart' => 'formats/standard.webp',
+            'volnyj' => 'formats/wild.webp',
+            'tavern' => 'formats/tavern.webp',
+        );
+        foreach ($mode_slugs as $slug) {
+            if (isset($icons[$slug])) {
+                return $this->get_plugin_image_url($icons[$slug]);
+            }
+        }
+
+        return '';
+    }
+
+    private function render_deck_chip_icon($url) {
+        if ($url === '') {
+            return '';
+        }
+
+        return '<img class="deck-chip-icon" src="' . esc_url($url) . '" alt="" width="18" height="18" loading="lazy" decoding="async">';
+    }
+
+    private function get_decks_feed_url(array $query_args = array()) {
+        $url = (string) apply_filters('hs_decks_feed_url', home_url('/hearthstone-top-decks/'));
+        $query_args = array_filter(array_map('sanitize_title', $query_args));
+
+        return empty($query_args) ? $url : add_query_arg($query_args, $url);
+    }
+
+    /** Плашка класса или режима; на странице колоды — ссылка на ленту с этим фильтром. */
+    private function render_deck_chip($class_name, $icon_url, $label, $url = '', $link_label = '') {
+        $icon = $label !== '' ? $this->render_deck_chip_icon($icon_url) : '';
+        if ($url === '' || $label === '') {
+            return '<span class="' . esc_attr($class_name) . '">' . $icon . esc_html($label) . '</span>';
+        }
+
+        return '<a class="' . esc_attr($class_name) . ' deck-chip-link" href="' . esc_url($url) . '"'
+            . ($link_label !== '' ? ' title="' . esc_attr($link_label) . '" aria-label="' . esc_attr($link_label) . '"' : '')
+            . '>' . $icon . esc_html($label) . '</a>';
+    }
+
+    private function render_copy_code_button($deck_code) {
+        return '<button type="button" class="copy-code-btn" data-code="' . esc_attr($deck_code) . '">'
+            . '<span class="copy-code-icon" aria-hidden="true">'
+            . '<svg class="copy-code-icon-copy" viewBox="0 0 24 24" width="18" height="18" focusable="false"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>'
+            . '<svg class="copy-code-icon-done" viewBox="0 0 24 24" width="18" height="18" focusable="false"><path d="M20 6 9 17l-5-5"></path></svg>'
+            . '</span>'
+            . '<span class="copy-code-label">Скопировать код</span>'
+            . '</button>';
+    }
+
+    /**
+     * Ссылка «Об архетипе» на HearthPulse: страница архетипа, если он есть
+     * в индексе формата, иначе — список архетипов Стандарта или Вольного.
+     */
+    private function render_deck_archetype_link($post_id, $title, array $mode_slugs) {
+        if (!class_exists('Unified_HS_Hearthpulse_Archetypes')) {
+            return '';
+        }
+
+        $format = Unified_HS_Hearthpulse_Archetypes::format_for_mode_slugs($mode_slugs);
+        if ($format === '') {
+            return '';
+        }
+
+        $names = array();
+        $terms = get_the_terms($post_id, 'deck_archetype');
+        if ($terms && !is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                $names[] = $term->name;
+            }
+        }
+        $names[] = $title;
+
+        $link = Unified_HS_Hearthpulse_Archetypes::link_for_deck($names, $format);
+        if (empty($link['url'])) {
+            return '';
+        }
+
+        if (!empty($link['matched'])) {
+            $heading = 'Об архетипе';
+            $label = $link['label'] !== '' ? $link['label'] : $title;
+            $meta = $label . ' на HearthPulse';
+        } else {
+            $heading = $format === 'wild' ? 'Архетипы Вольного' : 'Архетипы Стандарта';
+            $meta = 'Винрейт и популярность на HearthPulse';
+        }
+
+        $logo_url = $this->get_plugin_image_url('partners/hearthpulse.webp');
+
+        return '<a class="deck-archetype-link" href="' . esc_url($link['url']) . '" target="_blank" rel="noopener"'
+            . ' data-archetype-match="' . (!empty($link['matched']) ? '1' : '0') . '">'
+            . ($logo_url !== '' ? '<img class="deck-archetype-link-logo" src="' . esc_url($logo_url) . '" alt="" width="34" height="40" loading="lazy" decoding="async">' : '')
+            . '<span class="deck-archetype-link-text">'
+            . '<span class="deck-archetype-link-title">' . esc_html($heading) . '</span>'
+            . '<span class="deck-archetype-link-meta">' . esc_html($meta) . '</span>'
+            . '</span>'
+            . '<svg class="deck-archetype-link-arrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg>'
+            . '<span class="screen-reader-text"> (откроется в новой вкладке)</span>'
+            . '</a>';
     }
 
     private function filter_duplicate_visible_tags(array $tags, array $already_visible_labels) {
@@ -1211,7 +1325,6 @@ class HS_Decks_Manager {
             'filterAction' => 'hs_decks_filter',
             'archetypesAction' => 'hs_deck_archetypes_page',
             'eventAction' => 'hs_decks_track_event',
-            'voteCountsAction' => 'hs_decks_vote_counts',
         ));
     }
 
@@ -1895,7 +2008,8 @@ class HS_Decks_Manager {
             $filters['period'] = 0;
         }
 
-        if (!in_array($filters['sort'], array('date', 'dust', 'winrate', 'games', 'likes', 'dislikes', 'copies'), true)) {
+        // Сортировки по лайкам убраны вместе с голосованием; старые ссылки откатываются на «Сначала новые».
+        if (!in_array($filters['sort'], array('date', 'dust', 'winrate', 'games', 'copies'), true)) {
             $filters['sort'] = 'date';
         }
 
@@ -2447,9 +2561,7 @@ class HS_Decks_Manager {
                                 <option value="games"<?php selected($filters['sort'], 'games'); ?>>Больше игр</option>
                                 <option value="winrate"<?php selected($filters['sort'], 'winrate'); ?>>Выше winrate</option>
                                 <option value="copies"<?php selected($filters['sort'], 'copies'); ?>>Больше копий</option>
-                                <option value="likes"<?php selected($filters['sort'], 'likes'); ?>>Больше лайков</option>
                                 <option value="dust"<?php selected($filters['sort'], 'dust'); ?>>Дешевле</option>
-                                <option value="dislikes"<?php selected($filters['sort'], 'dislikes'); ?>>Больше дизлайков</option>
                             </select>
                         </label>
                     </div>
@@ -2775,8 +2887,6 @@ class HS_Decks_Manager {
                             <option value="dust">Дешевле</option>
                             <option value="winrate">Выше winrate</option>
                             <option value="games">Больше игр</option>
-                            <option value="likes">Больше лайков</option>
-                            <option value="dislikes">Больше дизлайков</option>
                         </select>
                     </label>
                     <button type="button" class="hs-filter-toggle" id="hs-advanced-toggle" aria-expanded="false" aria-controls="hs-advanced-filters">
@@ -5104,6 +5214,182 @@ class HS_Decks_Manager {
             '</article>';
     }
 
+    private function render_deck_page_panel($post_id) {
+        if (get_post_meta($post_id, '_hs_deck_archived', true) === '1' && !current_user_can('edit_post', $post_id)) {
+            return '<p class="no-decks">Колода находится в архиве</p>';
+        }
+
+        $this->enqueue_front_assets();
+        $announcement_box = get_post_meta($post_id, '_show_announcement_single', true) === '1'
+            ? $this->get_global_announcement_box(true)
+            : '';
+        $show_proof = get_post_meta($post_id, '_show_proof_single', true) === '1';
+
+        return '<div class="hs-single-deck-container hs-deck-page-panel">'
+            . ($announcement_box ? '<div class="hs-announcement-wrapper">' . $announcement_box . '</div>' : '')
+            . $this->render_deck_card($post_id, $show_proof, true, false, null, true)
+            . '</div>'
+            . $this->render_related_decks($post_id);
+    }
+
+    /**
+     * Источник «Других колод»: тот же архетип и режим, а для колод без настоящего
+     * архетипа — тот же класс и режим. Видимость — как в ленте.
+     *
+     * @return array{filters: array, title: string, all_url: string, all_label: string}|null
+     */
+    private function get_related_decks_source($post_id) {
+        $mode = $this->get_deck_code_mode_data(get_post_meta($post_id, '_deck_code', true), $post_id);
+        $mode_slug = !empty($mode['slug']) ? (string) $mode['slug'] : '';
+        $mode_name = !empty($mode['name']) ? (string) $mode['name'] : '';
+        if ($mode_slug === '') {
+            return null;
+        }
+
+        $archetypes = get_the_terms($post_id, 'deck_archetype');
+        if ($archetypes && !is_wp_error($archetypes)) {
+            foreach ($archetypes as $archetype) {
+                if (in_array($archetype->slug, self::PLACEHOLDER_ARCHETYPE_SLUGS, true)) {
+                    continue;
+                }
+                $archetype_url = get_term_link($archetype, 'deck_archetype');
+                return array(
+                    'filters' => array('hs_archetype' => $archetype->slug, 'hs_mode' => $mode_slug),
+                    'title' => sprintf('Другие колоды архетипа «%s»', $archetype->name),
+                    'all_url' => is_wp_error($archetype_url)
+                        ? $this->get_decks_feed_url(array('hs_archetype' => $archetype->slug, 'hs_mode' => $mode_slug))
+                        : $this->get_archetype_mode_url($archetype_url, $mode_slug),
+                    'all_label' => 'Все колоды архетипа',
+                );
+            }
+        }
+
+        $classes = get_the_terms($post_id, 'deck_class');
+        if (!$classes || is_wp_error($classes) || count($classes) !== 1) {
+            return null;
+        }
+        $class = reset($classes);
+
+        return array(
+            'filters' => array('hs_class' => $class->slug, 'hs_mode' => $mode_slug),
+            'title' => sprintf('Другие колоды: %s, %s', $class->name, hs_mb_lower($mode_name)),
+            'all_url' => $this->get_decks_feed_url(array('hs_class' => $class->slug, 'hs_mode' => $mode_slug)),
+            'all_label' => 'Все такие колоды',
+        );
+    }
+
+    private function get_related_deck_ids($post_id, array $source) {
+        $cache_key = 'hs_deck_related_' . absint($post_id) . '_v' . self::get_decks_cache_version();
+        $cached = get_transient($cache_key);
+        if (is_array($cached)) {
+            return array_values(array_filter(array_map('absint', $cached)));
+        }
+
+        $filters = $this->read_deck_feed_filters(array(), $source['filters']);
+        $args = $this->build_deck_feed_query_args($filters, self::RELATED_DECKS_LIMIT);
+        // WP_Query игнорирует post__not_in при заданном post__in (архетип + режим), поэтому исключаем так.
+        if (!empty($args['post__in'])) {
+            $args['post__in'] = array_values(array_diff(array_map('absint', $args['post__in']), array(absint($post_id))));
+            if (empty($args['post__in'])) {
+                $args['post__in'] = array(0);
+            }
+        } else {
+            $args['post__not_in'] = array(absint($post_id));
+        }
+        $args['fields'] = 'ids';
+        $args['no_found_rows'] = true;
+        $ids = array_map('absint', (array) get_posts($args));
+
+        set_transient($cache_key, $ids, 6 * HOUR_IN_SECONDS);
+        return $ids;
+    }
+
+    private function render_related_decks($post_id) {
+        $source = $this->get_related_decks_source($post_id);
+        if ($source === null) {
+            return '';
+        }
+        $ids = $this->get_related_deck_ids($post_id, $source);
+        if (empty($ids)) {
+            return '';
+        }
+        update_meta_cache('post', $ids);
+        update_object_term_cache($ids, 'hs_deck');
+
+        $items = '';
+        foreach ($ids as $deck_id) {
+            $title = get_the_title($deck_id);
+            $classes = get_the_terms($deck_id, 'deck_class');
+            $class_slugs = array();
+            $class_names = array();
+            if ($classes && !is_wp_error($classes)) {
+                foreach ($classes as $term) {
+                    $class_slugs[] = $term->slug;
+                    $class_names[] = $term->name;
+                }
+            }
+            $icon_url = $this->get_filter_class_icon_url($class_slugs, $class_names);
+            $stats = $this->get_deck_stats($deck_id);
+            $dust = (int) get_post_meta($deck_id, '_dust_cost', true);
+            $streamer = trim((string) get_post_meta($deck_id, '_deck_streamer', true));
+            if ($this->is_unknown_deck_author($streamer)) {
+                $streamer = '';
+            }
+
+            $meta = array();
+            if ($streamer !== '') {
+                $meta[] = $streamer;
+            }
+            $meta[] = get_the_date('d.m.Y', $deck_id);
+            if ($dust > 0) {
+                $meta[] = number_format($dust, 0, ',', ' ') . ' пыли';
+            }
+
+            $stat = '';
+            if ($stats['has_stats']) {
+                $winrate_class = $stats['winrate'] >= 50 ? 'good' : ($stats['winrate'] >= 40 ? 'medium' : 'low');
+                $stat = '<span class="hs-deck-related-stat">'
+                    . '<span class="hs-deck-related-winrate winrate-' . esc_attr($winrate_class) . '">' . esc_html($this->format_winrate($stats['winrate'])) . '%</span>'
+                    . '<span class="hs-deck-related-games">' . esc_html(self::format_game_count((int) $stats['games'])) . '</span>'
+                    . '</span>';
+            }
+
+            $items .= '<li><a class="hs-deck-related-item" href="' . esc_url(get_permalink($deck_id)) . '">'
+                . ($icon_url !== '' ? '<img class="hs-deck-related-icon" src="' . esc_url($icon_url) . '" alt="" width="32" height="32" loading="lazy" decoding="async">' : '')
+                . '<span class="hs-deck-related-body">'
+                . '<span class="hs-deck-related-title">' . esc_html($title) . '</span>'
+                . '<span class="hs-deck-related-meta">' . esc_html(implode(' · ', $meta)) . '</span>'
+                . '</span>'
+                . $stat
+                . '</a></li>';
+        }
+
+        $heading_id = 'hs-deck-related-title-' . absint($post_id);
+
+        return '<section class="hs-deck-related" aria-labelledby="' . esc_attr($heading_id) . '">'
+            . '<div class="hs-deck-related-head">'
+            . '<h2 class="hs-deck-related-heading" id="' . esc_attr($heading_id) . '">' . esc_html($source['title']) . '</h2>'
+            . '<a class="hs-deck-related-all" href="' . esc_url($source['all_url']) . '">' . esc_html($source['all_label']) . '<span aria-hidden="true"> →</span></a>'
+            . '</div>'
+            . '<ul class="hs-deck-related-list">' . $items . '</ul>'
+            . '</section>';
+    }
+
+    private static function format_game_count($count) {
+        $count = max(0, (int) $count);
+        $mod100 = $count % 100;
+        $mod10 = $count % 10;
+        if ($mod10 === 1 && $mod100 !== 11) {
+            $word = 'игра';
+        } elseif ($mod10 >= 2 && $mod10 <= 4 && ($mod100 < 12 || $mod100 > 14)) {
+            $word = 'игры';
+        } else {
+            $word = 'игр';
+        }
+
+        return number_format($count, 0, ',', ' ') . ' ' . $word;
+    }
+
     private function get_single_deck_html($post_id) {
         $show_proof_option = get_post_meta($post_id, '_show_proof_single', true);
         return $this->render_deck_card($post_id, $show_proof_option === '1', false);
@@ -5302,12 +5588,16 @@ class HS_Decks_Manager {
         return implode('|', $keys);
     }
     
-    private function render_deck_card($post_id, $show_proof = true, $show_dust = true, $priority_image = false, $wide_image = null) {
+    /**
+     * @param bool $deck_page Своя страница колоды: заголовок и картинку уже выводит тема,
+     *                        поэтому карточка становится панелью с кодом, статистикой и ссылками.
+     */
+    private function render_deck_card($post_id, $show_proof = true, $show_dust = true, $priority_image = false, $wide_image = null, $deck_page = false) {
         $post_type = get_post_type($post_id);
         // Определяем контекст до построения responsive image attributes.
-        $is_single = !did_action('hs_decks_shortcode_called');
+        $is_single = $deck_page || !did_action('hs_decks_shortcode_called');
         $use_wide_image = is_bool($wide_image) ? $wide_image : $is_single;
-        $single_class = $is_single ? ' deck-single' : '';
+        $single_class = ($is_single ? ' deck-single' : '') . ($deck_page ? ' deck-page' : '');
         $deck_code = get_post_meta($post_id, '_deck_code', true);
         if (empty($deck_code) && $post_type === 'top_deck_legend') {
             $deck_code = get_post_meta($post_id, 'code', true);
@@ -5328,7 +5618,7 @@ class HS_Decks_Manager {
         $likes = get_post_meta($post_id, '_deck_likes', true) ?: 0;
         $dislikes = get_post_meta($post_id, '_deck_dislikes', true) ?: 0;
         $thumbnail_id = get_post_thumbnail_id($post_id);
-        $deck_image = $thumbnail_id ? $this->render_deck_image_markup($thumbnail_id, $title, $priority_image, $use_wide_image) : '';
+        $deck_image = ($thumbnail_id && !$deck_page) ? $this->render_deck_image_markup($thumbnail_id, $title, $priority_image, $use_wide_image) : '';
         
         $stats = $this->get_deck_stats($post_id);
         $wins = $stats['wins'];
@@ -5382,6 +5672,11 @@ class HS_Decks_Manager {
             $mode_slugs = array((string) $decoded_mode['slug']);
         }
         $mode_name_display = !empty($mode_names) ? implode(', ', $mode_names) : '';
+        $class_chip_icon_url = $this->get_filter_class_icon_url($class_slugs, $class_names);
+        $mode_chip_icon_url = $this->get_deck_mode_icon_url($mode_slugs);
+        $dust_icon_url = $this->get_plugin_image_url('dust.webp');
+        $class_chip_url = $deck_page && count($class_slugs) === 1 ? $this->get_decks_feed_url(array('hs_class' => $class_slugs[0])) : '';
+        $mode_chip_url = $deck_page && count($mode_slugs) === 1 ? $this->get_decks_feed_url(array('hs_mode' => $mode_slugs[0])) : '';
         
         $show_all_class_modes = get_post_meta($post_id, '_show_all_class_modes', true) === '1';
         $display_streamer = $this->is_unknown_deck_author($streamer) ? '' : trim((string) $streamer);
@@ -5450,30 +5745,42 @@ class HS_Decks_Manager {
              data-search="<?php echo esc_attr($search_string); ?>">
             
             <div class="deck-header">
+                <?php if (!$deck_page): ?>
                 <h3 class="deck-title">
                     <?php if ($class_icon_url): ?>
                     <img class="deck-class-icon" src="<?php echo esc_url($class_icon_url); ?>" alt="<?php echo esc_attr($show_all_class_modes ? 'Все классы' : $class_name_display); ?>" loading="lazy" decoding="async">
                     <?php endif; ?>
                     <a href="<?php echo esc_url($permalink); ?>"><?php echo esc_html($title); ?></a>
                 </h3>
+                <?php endif; ?>
                 <div class="deck-meta">
-                    <span class="deck-class"><?php echo esc_html($show_all_class_modes ? 'Все классы' : $class_name_display); ?></span>
-                    <span class="deck-mode"><?php echo esc_html($show_all_class_modes ? 'Все режимы' : $mode_name_display); ?></span>
+                    <?php
+                    // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- render_deck_chip() экранирует сам.
+                    echo $show_all_class_modes
+                        ? $this->render_deck_chip('deck-class', '', 'Все классы')
+                        : $this->render_deck_chip('deck-class', $class_chip_icon_url, $class_name_display, $class_chip_url, 'Колоды класса ' . $class_name_display);
+                    echo $show_all_class_modes
+                        ? $this->render_deck_chip('deck-mode', '', 'Все режимы')
+                        : $this->render_deck_chip('deck-mode', $mode_chip_icon_url, $mode_name_display, $mode_chip_url, 'Колоды режима ' . $mode_name_display);
+                    // phpcs:enable
+                    ?>
                     <?php if ($show_dust && $dust_cost > 0): ?>
-                    <span class="deck-dust">
-                        <?php echo number_format($dust_cost, 0, ',', ' '); ?> пыли
-                    </span>
+                    <span class="deck-dust"><?php echo $this->render_deck_chip_icon($dust_icon_url); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php echo esc_html(number_format($dust_cost, 0, ',', ' ')); ?> пыли</span>
                     <?php endif; ?>
                 </div>
+                <?php if (!$deck_page || $display_streamer || $display_player): ?>
                 <div class="deck-meta-secondary">
+                    <?php if (!$deck_page): ?>
                     <span class="deck-date"><?php echo $date; ?></span>
+                    <?php endif; ?>
                     <?php if ($display_streamer): ?>
-                    <span class="deck-streamer"><?php echo esc_html($display_streamer); ?></span>
+                    <span class="deck-streamer"><?php echo $deck_page ? '<span class="deck-meta-label">Стример</span> ' : ''; ?><?php echo esc_html($display_streamer); ?></span>
                     <?php endif; ?>
                     <?php if ($display_player): ?>
-                    <span class="deck-player"><?php echo esc_html($display_player); ?></span>
+                    <span class="deck-player"><?php echo $deck_page ? '<span class="deck-meta-label">Игрок</span> ' : ''; ?><?php echo esc_html($display_player); ?></span>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
                 <?php if (!empty($custom_tags_array)): ?>
                 <div class="deck-tags">
                     <?php 
@@ -5491,16 +5798,25 @@ class HS_Decks_Manager {
             </div>
             <?php endif; ?>
             
+            <?php if ($deck_page && $deck_code !== ''): ?>
+            <div class="deck-code-field">
+                <label class="deck-code-field-label" for="deck-code-<?php echo (int) $post_id; ?>">Код колоды</label>
+                <div class="deck-code-field-row">
+                    <input id="deck-code-<?php echo (int) $post_id; ?>" class="deck-code-input" type="text" value="<?php echo esc_attr($deck_code); ?>" readonly spellcheck="false" autocomplete="off">
+                    <?php echo $this->render_copy_code_button($deck_code); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            <?php if (!$deck_page || ($show_proof && $rank_proof)): ?>
             <div class="deck-actions">
-                <button type="button" class="copy-code-btn" data-code="<?php echo esc_attr($deck_code); ?>">
-                    Скопировать код
-                </button>
+                <?php if (!$deck_page) { echo $this->render_copy_code_button($deck_code); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 <?php if ($show_proof && $rank_proof): ?>
                     <button type="button" class="proof-btn" data-proof="<?php echo esc_url($rank_proof); ?>">
                         Доказательство Легенды
                     </button>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
             
             <?php if ($stats['has_stats']): ?>
             <div class="deck-stats deck-stats-modern">
@@ -5519,146 +5835,12 @@ class HS_Decks_Manager {
             </div>
             <?php endif; ?>
 
-            <?php if ($post_type === 'hs_deck'): ?>
-            <div class="deck-voting" role="group" aria-label="Оценить колоду">
-                <button type="button" class="vote-btn like-btn" data-vote="like" aria-label="Поставить лайк колоде">
-                    <span class="vote-sign" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M7 10v12"></path>
-                            <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path>
-                        </svg>
-                    </span>
-                    <span class="vote-label">Лайк</span>
-                    <span class="vote-count" aria-live="polite"><?php echo esc_html((int) $likes); ?></span>
-                </button>
-                <button type="button" class="vote-btn dislike-btn" data-vote="dislike" aria-label="Поставить дизлайк колоде">
-                    <span class="vote-sign" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M7 10v12"></path>
-                            <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path>
-                        </svg>
-                    </span>
-                    <span class="vote-label">Дизлайк</span>
-                    <span class="vote-count" aria-live="polite"><?php echo esc_html((int) $dislikes); ?></span>
-                </button>
-            </div>
-            <?php endif; ?>
+            <?php echo $show_all_class_modes ? '' : $this->render_deck_archetype_link($post_id, $title, $mode_slugs); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
         <?php
         return ob_get_clean();
     }
     
-    public function handle_vote() {
-        check_ajax_referer('hs_decks_nonce', 'nonce');
-
-        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
-        $vote_type = isset($_POST['vote_type']) ? sanitize_key($_POST['vote_type']) : '';
-
-        // Жёсткий allow-list типа голоса.
-        if (!in_array($vote_type, array('like', 'dislike'), true)) {
-            wp_send_json_error(array('message' => 'Некорректный тип голоса'));
-            return;
-        }
-
-        // Проверяем существование колоды.
-        if (!$post_id || get_post_type($post_id) !== 'hs_deck') {
-            wp_send_json_error(array('message' => 'Колода не найдена'));
-            return;
-        }
-
-        // Идентификатор голосующего: user_id для залогиненных, иначе хеш IP+UA.
-        // Cookie-защита остаётся как первый барьер, но настоящая защита — серверный transient.
-        $voter_id = $this->get_voter_id();
-        $lock_key = 'hs_voted_' . $post_id . '_' . $voter_id;
-        if (get_transient($lock_key)) {
-            wp_send_json_error(array('message' => 'Вы уже голосовали'));
-            return;
-        }
-        $cookie_name = 'hs_voted_' . $post_id;
-        if (isset($_COOKIE[$cookie_name])) {
-            wp_send_json_error(array('message' => 'Вы уже голосовали'));
-            return;
-        }
-
-        if ($vote_type === 'like') {
-            $likes = (int) get_post_meta($post_id, '_deck_likes', true);
-            $new_count = $likes + 1;
-            update_post_meta($post_id, '_deck_likes', $new_count);
-        } else {
-            $dislikes = (int) get_post_meta($post_id, '_deck_dislikes', true);
-            $new_count = $dislikes + 1;
-            update_post_meta($post_id, '_deck_dislikes', $new_count);
-        }
-
-        // Серверный lock на 30 дней (как и cookie). Безопасно от очистки cookie.
-        set_transient($lock_key, 1, 30 * DAY_IN_SECONDS);
-        setcookie($cookie_name, '1', time() + (30 * DAY_IN_SECONDS), COOKIEPATH ? COOKIEPATH : '/');
-
-        if (class_exists('Unified_HS_Deck_Events')) {
-            Unified_HS_Deck_Events::record(
-                $post_id,
-                $vote_type === 'like' ? Unified_HS_Deck_Events::EVENT_LIKE : Unified_HS_Deck_Events::EVENT_DISLIKE,
-                array(),
-                'vote'
-            );
-        }
-
-        wp_send_json_success(array(
-            'new_count' => $new_count,
-            'likes' => (int) get_post_meta($post_id, '_deck_likes', true),
-            'dislikes' => (int) get_post_meta($post_id, '_deck_dislikes', true),
-            'vote_type' => $vote_type,
-        ));
-    }
-
-    /**
-     * Возвращает актуальные счётчики для уже отрендеренных карточек одним запросом.
-     * Это сохраняет долгий HTML-cache ленты, не заставляя сбрасывать его после
-     * каждого голоса, и при этом не показывает посетителям устаревшие числа.
-     */
-    public function handle_vote_counts() {
-        if (!check_ajax_referer('hs_decks_nonce', 'nonce', false)) {
-            wp_send_json_error(array('message' => 'bad_nonce'), 403);
-        }
-
-        $raw_ids = isset($_POST['post_ids']) ? (array) wp_unslash($_POST['post_ids']) : array();
-        $post_ids = array_values(array_unique(array_filter(array_map('absint', $raw_ids))));
-        $post_ids = array_slice($post_ids, 0, 100);
-
-        if (empty($post_ids)) {
-            wp_send_json_success(array('counts' => array()));
-        }
-
-        $valid_ids = get_posts(array(
-            'post_type' => 'hs_deck',
-            'post_status' => 'publish',
-            'post__in' => $post_ids,
-            'posts_per_page' => count($post_ids),
-            'fields' => 'ids',
-            'orderby' => 'post__in',
-            'no_found_rows' => true,
-            'update_post_meta_cache' => true,
-            'update_post_term_cache' => false,
-            'ignore_sticky_posts' => true,
-        ));
-
-        // WP_Query с fields=ids не прогревает meta cache, даже если флаг выше
-        // установлен. Делаем это явно одним запросом, чтобы избежать N+1.
-        if (!empty($valid_ids)) {
-            update_meta_cache('post', $valid_ids);
-        }
-
-        $counts = array();
-        foreach ($valid_ids as $valid_id) {
-            $counts[(string) $valid_id] = array(
-                'likes' => (int) get_post_meta($valid_id, '_deck_likes', true),
-                'dislikes' => (int) get_post_meta($valid_id, '_deck_dislikes', true),
-            );
-        }
-
-        wp_send_json_success(array('counts' => $counts));
-    }
-
     public function track_copy() {
         check_ajax_referer('hs_decks_nonce', 'nonce');
 
@@ -6087,9 +6269,7 @@ class HS_Decks_Manager {
                     <?php if ($deck_image): ?>
                         <img src="<?php echo esc_url($deck_image); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy" decoding="async">
                     <?php endif; ?>
-                    <button class="copy-code-btn" data-code="<?php echo esc_attr($deck_code); ?>">
-                        Скопировать код
-                    </button>
+                    <?php echo $this->render_copy_code_button($deck_code); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -6261,15 +6441,11 @@ class HS_Decks_Manager {
         $top_block = $this->get_layout_block_html('hs_decks_single_top_content', 'top');
         $bottom_block = $this->get_layout_block_html('hs_decks_single_bottom_content', 'bottom');
         
-        $deck_html = $this->single_deck_shortcode(array('id' => $post->ID));
-        $deck_code = get_post_meta($post->ID, '_deck_code', true);
-        
-        $code_block = '';
-        if (!empty($deck_code)) {
-            $code_block = '<div class="hs-deck-code-block"><h4>Код колоды</h4><textarea readonly>' . esc_textarea($deck_code) . '</textarea><button class="copy-code-btn" data-code="' . esc_attr($deck_code) . '">Скопировать код</button></div>';
-        }
-        
-        return $top_block . $deck_html . $code_block . $bottom_block . $content;
+        // Заголовок, дату и картинку колоды выводит тема; панель добавляет только то,
+        // чего на странице ещё нет: режим, пыль, код с копированием, статистику и ссылки.
+        $deck_html = $this->render_deck_page_panel($post->ID);
+
+        return $top_block . $deck_html . $bottom_block . $content;
     }
     
 }

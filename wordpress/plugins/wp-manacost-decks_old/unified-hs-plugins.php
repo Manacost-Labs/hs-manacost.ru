@@ -16,6 +16,7 @@
  *   includes/class-deck-events.php   — анонимные события интереса к колодам
  *   includes/class-deckstring-helper.php — декодирование deckstring и автоназначение класса/режима
  *   includes/class-archetype-detector.php — автоархетипы по названиям колод
+ *   includes/class-hearthpulse-archetypes.php — ссылки «Об архетипе» на HearthPulse
  *   includes/class-ad-tracker.php     — показы и клики рекламного блока в [hs_decks]
  *   includes/class-rest-controller.php— REST endpoints (/manacost/v1/*)
  *   includes/class-installer.php      — активация, миграции, backfill, дефолтные термины
@@ -46,6 +47,7 @@ require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-deck-copy-events.php';
 require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-deck-events.php';
 require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-deckstring-helper.php';
 require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-archetype-detector.php';
+require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-hearthpulse-archetypes.php';
 require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-english-title-monitor.php';
 require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-ad-tracker.php';
 require_once UNIFIED_HS_PLUGINS_DIR . 'includes/class-installer.php';
@@ -59,6 +61,7 @@ Unified_HS_Capabilities::init();
 Unified_HS_Deck_Activity_Log::init();
 Unified_HS_Deckstring_Helper::init();
 Unified_HS_Archetype_Detector::init();
+Unified_HS_Hearthpulse_Archetypes::init();
 Unified_HS_English_Title_Monitor::init();
 Unified_HS_Ad_Tracker::init();
 
