@@ -237,17 +237,20 @@ final class HS_Card_Changes_Search {
 		if ( ! is_string( $url ) || strlen( $url ) > 300 || 1 === preg_match( '/[\x00-\x20\\\\]/', $url ) ) {
 			return '';
 		}
-		$parts  = wp_parse_url( $url );
+		// Validate the URL that is actually returned: esc_url_raw() may drop characters (e.g. encoded CR/LF).
+		$clean  = esc_url_raw( $url );
+		$parts  = wp_parse_url( $clean );
 		$host   = is_array( $parts ) ? strtolower( (string) ( $parts['host'] ?? '' ) ) : '';
 		$prefix = self::IMAGE_HOSTS[ $source ][ $host ] ?? null;
 		$path   = is_array( $parts ) ? (string) ( $parts['path'] ?? '' ) : '';
-		// Browsers decode %2e/%2f before resolving dot segments, so the prefix is checked on the decoded path.
+		// Browsers decode %2e/%2f before resolving dot segments, so the prefix is checked on the decoded path too;
+		// dot segments, a backslash or a '%' left after one decoding pass are refused.
 		$plain = rawurldecode( $path );
 		if ( null === $prefix || 'https' !== ( $parts['scheme'] ?? '' ) || isset( $parts['port'] ) || isset( $parts['user'] ) || isset( $parts['pass'] )
-			|| ! str_starts_with( $path, $prefix ) || ! str_starts_with( $plain, $prefix ) || 1 === preg_match( '#(?:^|/)\.{1,2}(?:/|$)|[\\%]#', $plain ) ) {
+			|| ! str_starts_with( $path, $prefix ) || ! str_starts_with( $plain, $prefix ) || 1 === preg_match( '#(?:^|/)\.{1,2}(?:/|$)|[\\\\%\x00-\x1f]#', $plain ) ) {
 			return '';
 		}
-		return esc_url_raw( $url );
+		return $clean;
 	}
 
 	/**

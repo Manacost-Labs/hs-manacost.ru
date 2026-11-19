@@ -187,7 +187,13 @@ try {
       }
       let cleaned = true;
       for (const post of found.filter(ours)) cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
-      if (!fixture?.id && cleaned) cleaned = !(await lookup()).some(ours);
+      if (!fixture?.id && cleaned) {
+        // One more delayed pass: a draft committed after the last lookup is deleted too, never reported clean.
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        const late = (await lookup()).filter(ours);
+        for (const post of late) cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
+        if (late.length) cleaned = cleaned && !(await lookup()).some(ours);
+      }
       report.cleaned = cleaned && (fixture?.id ? found.some(ours) : true);
     } catch { report.cleaned = false; }
   } else report.cleaned = !createSent;
