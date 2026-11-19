@@ -75,6 +75,11 @@ $run = static function (string $card) use ($date) {
     return [HS_Card_Changes_Source::lookup('constructed', $card, $date)['state'], round(microtime(true) - $started, 1), get_transient('hs_cc_cooldown')];
 };
 try {
+    delete_transient('hs_cc_cooldown');
+    $started = microtime(true);
+    HS_Card_Changes_Source::refresh(array_map(static fn($n) => ['constructed', "SCN_W$n", $date], [1, 2, 3, 4]));
+    $parallel = microtime(true) - $started;
+    cc_check($parallel < 3.2 && HS_Card_Changes_Source::lookup('constructed', 'SCN_W4', $date)['state'] === 'single', 'Real transport: four requests run in parallel: ' . round($parallel, 1) . 's');
     [$state, , $cool] = $run('SCN_OK');
     cc_check($state === 'single' && $cool === false, 'Real transport: a valid response resolves');
     [$state, , $cool] = $run('SCN_404');
@@ -88,11 +93,6 @@ try {
     cc_check($state === 'unavailable' && $cool !== false, 'Real transport: an oversized body is rejected');
     [$state, $seconds, $cool] = $run('SCN_SLOW');
     cc_check($state === 'unavailable' && $cool !== false && $seconds < 7.5, 'Real transport: a slow server times out at five seconds: ' . $seconds . 's');
-    delete_transient('hs_cc_cooldown');
-    $started = microtime(true);
-    HS_Card_Changes_Source::refresh(array_map(static fn($n) => ['constructed', "SCN_W$n", $date], [1, 2, 3, 4]));
-    $parallel = microtime(true) - $started;
-    cc_check($parallel < 3.8 && HS_Card_Changes_Source::lookup('constructed', 'SCN_W4', $date)['state'] === 'single', 'Real transport: four requests run in parallel: ' . round($parallel, 1) . 's');
 } finally {
     proc_terminate($server);
 }

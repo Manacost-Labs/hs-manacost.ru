@@ -244,7 +244,9 @@ try {
   const blockPage = await context.newPage();
   blockPage.on('pageerror', error => report.errors.push({ message: error.message, stack: error.stack?.slice(0, 600) }));
   await blockPage.goto(`${base}/wp-admin/post.php?post=${fixture.block_post}&action=edit`);
-  await blockPage.waitForFunction(() => window.wp?.data?.select('core/editor')?.getCurrentPostId());
+  // The block editor occasionally fails to bootstrap on a loaded runner (also seen in the article-cards suite): one reload.
+  const editorReady = () => blockPage.waitForFunction(() => window.wp?.data?.select('core/editor')?.getCurrentPostId(), null, { timeout: 45000 });
+  await editorReady().catch(async () => { await blockPage.reload(); await editorReady(); });
   // A fresh site shows the welcome guide a moment after the editor is ready.
   await blockPage.getByRole('button', { name: 'Close', exact: true }).click({ timeout: 8000 }).catch(() => {});
   await blockPage.locator('.hs-card-changes-open').first().click();
