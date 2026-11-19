@@ -198,6 +198,9 @@ try {
   const [left, right] = await page.locator('.hs-lightbox__pair-image').evaluateAll(list => list.map(image => { const r = image.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }));
   assert.ok(right.x >= left.x + left.w - 1 && Math.abs(left.y - right.y) < 4, `Side by side: ${JSON.stringify([left, right])}`);
   assert.ok(left.h > 300, 'Large render');
+  const captionBottoms = await page.locator('.hs-lightbox__pair-caption').evaluateAll(list => list.map(caption => caption.getBoundingClientRect().bottom));
+  assert.ok(left.y - captionBottoms[0] >= 0 && left.y - captionBottoms[0] <= 24 && right.y - captionBottoms[1] >= 0 && right.y - captionBottoms[1] <= 24, `Captions sit directly above their cards: ${left.y - captionBottoms[0]}`);
+  assert.ok(await box.evaluate(element => Number(getComputedStyle(element, '::backdrop').backgroundColor.match(/[\d.]+/g)[3]) >= 0.95), 'Pair mode backdrop is nearly opaque');
   assert.deepEqual(await page.locator('.hs-lightbox__pair-caption').allTextContents(), ['До', 'После']);
   assert.equal(await page.locator('.hs-lightbox__pair-image').first().getAttribute('alt'), 'МАТРИАРХ до изменения');
   assert.equal(await box.getAttribute('aria-modal'), 'true');
@@ -272,6 +275,15 @@ try {
     const refused = await ajax(author, bad);
     assert.ok([400].includes(refused.status), `${JSON.stringify(bad)} → ${refused.status}`);
   }
+  const providerCalls = () => author.evaluate(async () => (await (await fetch(`${window.hsCardChanges.url}?action=hs_cc_fixture_calls`)).json()).data);
+  const unpinned = JSON.stringify([{ card: 'BE_036', mode: 'constructed', date: '2026-11-04T09:17', name: 'Матриарх', before: '', after: '', plates: [{ key: 'mana', old: '9', new: '10', tone: 'auto' }] }]);
+  const callsBefore = await providerCalls();
+  const composed = await ajax(author, { mode: 'compose', items: unpinned });
+  assert.equal(composed.status, 200);
+  assert.equal(await providerCalls(), callsBefore, 'Compose never reaches the provider');
+  assert.doesNotMatch(JSON.parse(composed.body).data.html, /<img/, 'Unpinned preview shows plates only');
+  assert.equal((await ajax(author, { mode: 'resolve', card: 'BE_036', cardMode: 'constructed', date: '2026-11-04T09:18' })).status, 200);
+  assert.ok(await providerCalls() > callsBefore, 'Only resolve talks to the provider');
   let limited = 0;
   for (let index = 0; index < 70; index++) {
     const response = await ajax(author, { mode: 'resolve', card: 'BE_285', cardMode: 'constructed', date: `2026-11-03T15:${String(index % 60).padStart(2, '0')}` });
@@ -284,6 +296,9 @@ try {
   assert.ok(!clean.data.shortcode.includes('<') && !clean.data.html.includes('<img src=x') && !/name="[^"]*[<>=]/.test(clean.data.shortcode), 'Names lose markup');
   const noNonce = await author.evaluate(async () => (await fetch(window.hsCardChanges.url, { method: 'POST', body: new URLSearchParams({ action: 'hs_card_changes', nonce: '0000000000', postId: window.hsCardChanges.postId, mode: 'search', term: 'Матриарх', kind: 'all' }) })).status);
   assert.equal(noNonce, 403, 'Bad nonce is refused');
+  let composeLimited = 0;
+  for (let index = 0; index < 130; index++) if ((await ajax(author, { mode: 'compose', items: unpinned })).status === 429) composeLimited++;
+  assert.ok(composeLimited >= 1, 'Compose is throttled per editor too');
   await authorContext.close();
   const subscriberContext = await browser.newContext();
   const subscriber = await subscriberContext.newPage();

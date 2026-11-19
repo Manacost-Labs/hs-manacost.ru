@@ -297,8 +297,13 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   display: none;
 }
 
+/* Pair mode is a comparison: the page behind must not compete with the cards. Gallery mode keeps its lighter dimming. */
+.hs-lightbox.is-pair::backdrop {
+  background: rgba(8, 14, 18, 0.97);
+}
+
 .hs-lightbox.is-pair .hs-lightbox__surface {
-  background: rgba(12, 20, 26, 0.84);
+  background: rgba(8, 14, 18, 0.97);
 }
 
 .hs-lightbox.is-pair .hs-lightbox__figure,
@@ -329,12 +334,15 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   margin: 0;
 }
 
+/* The image box is sized to the card itself, so the caption sits right above the card. */
 .hs-lightbox__pair-image {
   display: block;
-  flex: 1 1 0;
-  width: 100%;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  height: min(72vh, 640px);
+  height: min(72dvh, 640px);
   min-height: 0;
-  max-height: 640px;
   border: 0;
   object-fit: contain;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
@@ -362,6 +370,11 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   .hs-lightbox__pair-item {
     flex: 1 1 0;
     gap: 6px;
+  }
+
+  .hs-lightbox__pair-image {
+    height: min(34vh, 640px);
+    height: min(34dvh, 640px);
   }
 }
 

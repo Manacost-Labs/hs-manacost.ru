@@ -291,6 +291,10 @@ try {
   assert.deepEqual(await pairDialog.locator('.hs-lightbox__pair-image').evaluateAll(list => list.map(image => image.alt)), ['Карта до изменения', 'Карта после изменения']);
   const [pairLeft, pairRight] = await pairDialog.locator('.hs-lightbox__pair-image').evaluateAll(list => list.map(image => image.getBoundingClientRect().toJSON()));
   assert.ok(pairRight.x >= pairLeft.x + pairLeft.width - 1 && Math.abs(pairLeft.y - pairRight.y) < 4, 'pair images sit side by side');
+  const captionBottom = await pairDialog.locator('.hs-lightbox__pair-caption').first().evaluate(element => element.getBoundingClientRect().bottom);
+  assert.ok(pairLeft.y - captionBottom >= 0 && pairLeft.y - captionBottom <= 24, 'captions sit directly above their images');
+  assert.ok(await pairDialog.evaluate(element => Number(getComputedStyle(element, '::backdrop').backgroundColor.match(/[\d.]+/g)[3]) >= 0.95), 'pair backdrop is nearly opaque');
+  assert.equal(await pairDialog.evaluate(element => getComputedStyle(element.querySelector('.hs-lightbox__surface')).backgroundColor.endsWith('0.97)')), true);
   assert.equal(await pairDialog.locator('.hs-lightbox__nav').evaluateAll(list => list.every(button => getComputedStyle(button).display === 'none')), true, 'no gallery navigation in pair mode');
   await page.keyboard.press('ArrowRight');
   assert.equal(await pairDialog.locator('.hs-lightbox__pair-image').count(), 2, 'arrow keys do nothing in pair mode');

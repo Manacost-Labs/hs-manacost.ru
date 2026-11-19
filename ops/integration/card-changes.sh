@@ -25,6 +25,7 @@ cp -a wordpress/plugins/hs-tooltip "$site/wp-content/plugins/hs-tooltip"
 cp tests/card-changes/transport.php "$site/wp-content/mu-plugins/zz-card-changes-fixture.php"
 cp tests/card-changes/setup.php "$site/.integration/card-changes-setup.php"
 cp tests/card-changes/integrity.php "$site/.integration/card-changes-integrity.php"
+cp tests/card-changes/server.php "$site/.integration/card-changes-server.php"
 mkdir -p "$site/.integration/card-changes"
 cp tests/fixtures/card-changes/*.json "$site/.integration/card-changes/"
 find "$site/.integration" "$site/wp-content/plugins/hs-tooltip" "$site/wp-content/mu-plugins" -type d -exec chmod 0755 {} +

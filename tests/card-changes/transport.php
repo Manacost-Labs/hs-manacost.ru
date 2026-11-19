@@ -11,3 +11,8 @@ add_filter('pre_http_request', static function ($pre, $args, $url) {
     if (!is_readable($file)) return ['response' => ['code' => 404], 'headers' => [], 'body' => ''];
     return ['response' => ['code' => 200], 'headers' => ['content-type' => 'application/json; charset=utf-8'], 'body' => file_get_contents($file)];
 }, 10, 3);
+// Lets the browser test prove which endpoints reach the provider: it reads the call counter before and after.
+add_action('wp_ajax_hs_cc_fixture_calls', static function () {
+    if (!current_user_can('edit_posts')) wp_send_json_error(null, 403);
+    wp_send_json_success((int) get_option('hs_cc_fixture_calls', 0));
+});

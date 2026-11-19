@@ -2,9 +2,10 @@
 /**
  * Bounded, cached transport to the public card-history API.
  *
- * Resolved pairs are immutable and cached for a long time; every failure
- * degrades to the last good copy or to plates without images. Nothing here
- * ever throws into a page render.
+ * Visitors read the cache only. Misses and stale short-lived results are refreshed
+ * in the background (one deduplicated job, per-key lock, shared time budget), resolved
+ * pairs are immutable. Every failure degrades to the stale copy or to plates without
+ * images and never throws into a page render.
  *
  * @package HSManacost
  */
@@ -21,11 +22,37 @@ final class HS_Card_Changes_Source {
 	private const MAX_BODY    = 524288;
 	private const CONCURRENCY = 4;
 	private const MAX_PAGES   = 3;
-	private const BUDGET      = 9;
-	private const PAIR_TTL    = 30 * DAY_IN_SECONDS;
+	private const BUDGET      = 20;
+	private const QUEUE_TTL   = 5 * MINUTE_IN_SECONDS;
+
+	/** Background hooks; page views and saves only schedule them. */
+	public static function register(): void {
+		add_action( 'hs_card_changes_refresh', array( self::class, 'cron_refresh' ), 10, 3 );
+	}
 
 	/**
-	 * Resolve one card for a patch date. Always returns a usable structure.
+	 * Visitor path: reads the cache only, never the network.
+	 *
+	 * A miss or a stale short-lived result is served as it is (or as plates without images) and one
+	 * deduplicated background refresh is scheduled when the caller names a queue target.
+	 *
+	 * @param string   $mode Card mode.
+	 * @param string   $card Card identifier.
+	 * @param string   $date Normalized UTC date.
+	 * @param int|null $queue_for Post ID to warm in the background, 0 for a single-card refresh, null to schedule nothing.
+	 * @phpstan-return Resolution
+	 * @return array<string,mixed>
+	 */
+	public static function lookup( string $mode, string $card, string $date, ?int $queue_for = null ): array {
+		$entry = HS_Card_Changes_Cache::entry( $mode, $card, $date );
+		if ( ( null === $entry || ! $entry['fresh'] ) && null !== $queue_for ) {
+			self::queue( array( $mode, $card, $date ), $queue_for );
+		}
+		return $entry['resolution'] ?? HS_Card_Changes_Cache::unavailable();
+	}
+
+	/**
+	 * Editor path (admin AJAX only): fetch now, then answer from the cache.
 	 *
 	 * @param string $mode Card mode.
 	 * @param string $card Card identifier.
@@ -33,65 +60,130 @@ final class HS_Card_Changes_Source {
 	 * @phpstan-return Resolution
 	 * @return array<string,mixed>
 	 */
-	public static function resolve( string $mode, string $card, string $date ): array {
-		$cached = self::cached( $mode, $card, $date );
-		if ( null !== $cached ) {
-			return $cached;
-		}
-		self::prefetch( array( array( $mode, $card, $date ) ) );
-		return self::cached( $mode, $card, $date ) ?? self::last_good( $mode, $card, $date ) ?? self::unavailable();
+	public static function resolve_live( string $mode, string $card, string $date ): array {
+		self::refresh( array( array( $mode, $card, $date ) ) );
+		return HS_Card_Changes_Cache::entry( $mode, $card, $date )['resolution'] ?? HS_Card_Changes_Cache::unavailable();
 	}
 
 	/**
-	 * Fill the cache for several cards with at most four parallel requests.
+	 * Background path: refresh missing and stale entries, at most four requests in parallel.
+	 *
+	 * One shared time budget covers every batch and every older page. A per-key lock keeps
+	 * concurrent workers from fetching the same card twice.
 	 *
 	 * @param list<array{0:string,1:string,2:string}> $requests Mode, card and date triples.
 	 */
-	public static function prefetch( array $requests ): void {
-		$missing = array();
-		foreach ( $requests as $request ) {
-			if ( null === self::cached( ...$request ) && HS_Card_Changes_Pairs::valid_card( $request[1] ) && in_array( $request[0], HS_Card_Changes_Pairs::modes(), true ) ) {
-				$missing[ self::key( ...$request ) ] = $request;
-			}
-		}
-		if ( ! $missing || self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
+	public static function refresh( array $requests ): void {
+		if ( self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
 			return;
 		}
-		$started = microtime( true );
-		foreach ( array_chunk( $missing, self::CONCURRENCY, true ) as $chunk ) {
-			if ( microtime( true ) - $started > self::BUDGET ) {
-				return;
+		$claimed = array();
+		foreach ( $requests as $request ) {
+			$key   = HS_Card_Changes_Cache::key( ...$request );
+			$entry = HS_Card_Changes_Cache::entry( ...$request );
+			if ( HS_Card_Changes_Pairs::valid_card( $request[1] ) && in_array( $request[0], HS_Card_Changes_Pairs::modes(), true ) && ( null === $entry || ! $entry['fresh'] ) && ! isset( $claimed[ $key ] ) && HS_Card_Changes_Cache::lock( $key ) ) {
+				$claimed[ $key ] = $request;
+			}
+		}
+		$deadline = microtime( true ) + self::BUDGET;
+		foreach ( array_chunk( $claimed, self::CONCURRENCY, true ) as $chunk ) {
+			if ( microtime( true ) > $deadline ) {
+				break;
 			}
 			do_action( 'hs_card_changes_batch', count( $chunk ) );
-			self::fetch_chunk( $chunk );
+			self::fetch_chunk( $chunk, $deadline );
 			if ( false !== get_transient( 'hs_cc_cooldown' ) ) {
-				return;
+				break;
 			}
+		}
+		foreach ( array_keys( $claimed ) as $key ) {
+			HS_Card_Changes_Cache::unlock( $key );
 		}
 	}
 
 	/**
-	 * Operator kill switch: cached data keeps rendering, no request leaves the server.
+	 * Cron callback for a single-card refresh.
+	 *
+	 * @param string $mode Card mode.
+	 * @param string $card Card identifier.
+	 * @param string $date Normalized UTC date.
+	 */
+	public static function cron_refresh( string $mode, string $card, string $date ): void {
+		self::refresh( array( array( $mode, $card, $date ) ) );
+		delete_transient( 'hs_cc_queued_' . HS_Card_Changes_Cache::key( $mode, $card, $date ) );
+	}
+
+	/**
+	 * Forget a queue marker once its background job has run.
+	 *
+	 * @param int $post_id Warmed post.
+	 */
+	public static function dequeue_post( int $post_id ): void {
+		delete_transient( 'hs_cc_queued_post_' . $post_id );
+	}
+
+	/**
+	 * Schedule one deduplicated refresh. Nothing is scheduled during an outage or when disabled.
+	 *
+	 * @param array{0:string,1:string,2:string} $request Mode, card and date.
+	 * @param int                               $post_id Post to warm as a whole, or 0 for the single card.
+	 */
+	public static function queue( array $request, int $post_id ): void {
+		if ( self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
+			return;
+		}
+		$marker = 'hs_cc_queued_' . ( $post_id > 0 ? 'post_' . $post_id : HS_Card_Changes_Cache::key( ...$request ) );
+		if ( false !== get_transient( $marker ) ) {
+			return;
+		}
+		set_transient( $marker, 1, self::QUEUE_TTL );
+		if ( $post_id > 0 ) {
+			wp_schedule_single_event( time(), 'hs_card_changes_warm', array( $post_id ) );
+		} else {
+			wp_schedule_single_event( time(), 'hs_card_changes_refresh', $request );
+		}
+	}
+
+	/**
+	 * Operator kill switch and WP_HTTP_BLOCK_EXTERNAL: cached data keeps rendering, no request leaves the server.
 	 */
 	private static function disabled(): bool {
-		return defined( 'HS_CARD_CHANGES_REMOTE_ENABLED' ) && ! HS_CARD_CHANGES_REMOTE_ENABLED;
+		if ( defined( 'HS_CARD_CHANGES_REMOTE_ENABLED' ) && ! HS_CARD_CHANGES_REMOTE_ENABLED ) {
+			return true;
+		}
+		return function_exists( '_wp_http_get_object' ) && _wp_http_get_object()->block_request( self::origin() . '/' );
+	}
+
+	/**
+	 * Provider origin. Only a disposable "local" environment may point it at a loopback test server.
+	 */
+	private static function origin(): string {
+		$origin = 'https://' . self::HOST;
+		if ( function_exists( 'wp_get_environment_type' ) && 'local' === wp_get_environment_type() ) {
+			$filtered = apply_filters( 'hs_card_changes_origin', $origin );
+			if ( is_string( $filtered ) && 1 === preg_match( '#^https?://(?:127\.0\.0\.1|localhost)(?::\d{1,5})?$#D', $filtered ) ) {
+				return $filtered;
+			}
+		}
+		return $origin;
 	}
 
 	/**
 	 * Fetch the first history page of each card in parallel and resolve them.
 	 *
 	 * @param array<string,array{0:string,1:string,2:string}> $chunk Requests keyed by cache key.
+	 * @param float                                           $deadline Shared time budget end (microtime).
 	 */
-	private static function fetch_chunk( array $chunk ): void {
+	private static function fetch_chunk( array $chunk, float $deadline ): void {
 		$urls = array();
 		foreach ( $chunk as $key => $request ) {
 			$urls[ $key ] = self::url( $request[0], $request[1], 1 );
 		}
 		$responses = self::http( $urls );
 		foreach ( $chunk as $key => $request ) {
-			$versions = self::versions( $responses[ $key ] ?? null, $request );
+			$versions = self::versions( $responses[ $key ] ?? null, $request, $deadline );
 			if ( null !== $versions ) {
-				self::store( $request, HS_Card_Changes_Pairs::pick( $versions, $request[0], $request[2] ) );
+				HS_Card_Changes_Cache::store( $request, HS_Card_Changes_Pairs::pick( $versions, $request[0], $request[2] ) );
 			}
 		}
 	}
@@ -101,9 +193,10 @@ final class HS_Card_Changes_Source {
 	 *
 	 * @param array{status:int,type:string,body:string,retry:int}|null $response First-page response.
 	 * @param array{0:string,1:string,2:string}                        $request Mode, card and date.
-	 * @return list<mixed>|null Null when the provider failed.
+	 * @param float                                                    $deadline Shared time budget end (microtime).
+	 * @return list<mixed>|null Null when the provider failed or the budget ended.
 	 */
-	private static function versions( ?array $response, array $request ): ?array {
+	private static function versions( ?array $response, array $request, float $deadline ): ?array {
 		$page = self::decode( $response );
 		if ( null === $page ) {
 			return null;
@@ -113,6 +206,9 @@ final class HS_Card_Changes_Source {
 		$last     = min( $total, self::MAX_PAGES );
 		$number   = 2;
 		while ( $number <= $last && self::needs_older( $versions, $request[2] ) ) {
+			if ( microtime( true ) > $deadline ) {
+				return null;
+			}
 			$older = self::decode( self::http( array( 'older' => self::url( $request[0], $request[1], $number ) ) )['older'] ?? null );
 			if ( null === $older ) {
 				return null;
@@ -124,14 +220,20 @@ final class HS_Card_Changes_Source {
 	}
 
 	/**
-	 * History is newest first: older pages matter while the oldest loaded row is not before the date.
+	 * Pages are newest first: older pages matter while even the oldest loaded observation is not before the date.
 	 *
 	 * @param array<int,mixed> $versions Loaded versions.
 	 * @param string           $date Patch date.
 	 */
 	private static function needs_older( array $versions, string $date ): bool {
-		$last = $versions ? end( $versions ) : null;
-		return is_array( $last ) && is_string( $last['observed_at'] ?? null ) && substr( $last['observed_at'], 0, 19 ) >= $date;
+		$oldest = '';
+		foreach ( $versions as $version ) {
+			$at = is_array( $version ) ? HS_Card_Changes_Pairs::observed( $version['observed_at'] ?? null ) : '';
+			if ( '' !== $at && ( '' === $oldest || $at < $oldest ) ) {
+				$oldest = $at;
+			}
+		}
+		return '' !== $oldest && $oldest >= $date;
 	}
 
 	/**
@@ -142,7 +244,7 @@ final class HS_Card_Changes_Source {
 	 * @param int    $page Page number.
 	 */
 	private static function url( string $mode, string $card, int $page ): string {
-		$url = 'https://' . self::HOST . '/api/v1/card-history/' . HS_Card_Changes_Pairs::mode( $mode )['entity'] . '/' . rawurlencode( $card );
+		$url = self::origin() . '/api/v1/card-history/' . HS_Card_Changes_Pairs::mode( $mode )['entity'] . '/' . rawurlencode( $card );
 		return $page > 1 ? $url . '?page=' . $page : $url;
 	}
 
@@ -183,8 +285,15 @@ final class HS_Card_Changes_Source {
 				'max_bytes'       => $args['limit_response_size'],
 				'verify'          => defined( 'ABSPATH' ) && defined( 'WPINC' ) ? ABSPATH . WPINC . '/certificates/ca-bundle.crt' : true,
 			);
-			foreach ( WpOrg\Requests\Requests::request_multiple( $pending, $options ) as $id => $response ) {
-				$results[ $id ] = self::normalize( $response );
+			try {
+				foreach ( WpOrg\Requests\Requests::request_multiple( $pending, $options ) as $id => $response ) {
+					$results[ $id ] = self::normalize( $response );
+				}
+			} catch ( Throwable $error ) {
+				// A transport failure is an outage, never a fatal error.
+				foreach ( array_keys( $pending ) as $id ) {
+					$results[ $id ] = null;
+				}
 			}
 		}
 		return $results;
@@ -282,136 +391,5 @@ final class HS_Card_Changes_Source {
 	private static function fail( int $seconds, string $code ): void {
 		set_transient( 'hs_cc_cooldown', $code, $seconds );
 		do_action( 'hs_card_changes_provider_result', $code );
-	}
-
-	/**
-	 * Cache key of one resolution.
-	 *
-	 * @param string $mode Card mode.
-	 * @param string $card Card identifier.
-	 * @param string $date Normalized UTC date.
-	 */
-	private static function key( string $mode, string $card, string $date ): string {
-		return hash( 'sha256', $mode . '|' . $card . '|' . $date );
-	}
-
-	/**
-	 * Valid cached resolution, if any.
-	 *
-	 * @param string $mode Card mode.
-	 * @param string $card Card identifier.
-	 * @param string $date Normalized UTC date.
-	 * @phpstan-return Resolution|null
-	 * @return array<string,mixed>|null
-	 */
-	private static function cached( string $mode, string $card, string $date ): ?array {
-		return self::valid( get_transient( 'hs_cc_pair_' . self::key( $mode, $card, $date ) ) );
-	}
-
-	/**
-	 * Last good copy kept longer than the short-lived negative results.
-	 *
-	 * @param string $mode Card mode.
-	 * @param string $card Card identifier.
-	 * @param string $date Normalized UTC date.
-	 * @phpstan-return Resolution|null
-	 * @return array<string,mixed>|null
-	 */
-	private static function last_good( string $mode, string $card, string $date ): ?array {
-		return self::valid( get_transient( 'hs_cc_good_' . self::key( $mode, $card, $date ) ) );
-	}
-
-	/**
-	 * Cached values cross a trust boundary too; re-check the shape.
-	 *
-	 * @param mixed $value Cached candidate.
-	 * @phpstan-return Resolution|null
-	 * @return array<string,mixed>|null
-	 */
-	private static function valid( $value ): ?array {
-		if ( ! is_array( $value ) || ! in_array( $value['state'] ?? '', array( 'pair', 'single', 'none' ), true ) || ! is_string( $value['name'] ?? null ) || ! is_array( $value['plates'] ?? null ) ) {
-			return null;
-		}
-		$sides = array();
-		foreach ( array( 'before', 'after' ) as $side ) {
-			$row = $value[ $side ] ?? null;
-			if ( null === $row ) {
-				$sides[ $side ] = null;
-				continue;
-			}
-			if ( ! is_array( $row ) || ! is_string( $row['hash'] ?? null ) || 1 !== preg_match( '/^[a-f0-9]{64}$/D', $row['hash'] ) || ! is_string( $row['at'] ?? null ) ) {
-				return null;
-			}
-			$sides[ $side ] = array(
-				'hash' => $row['hash'],
-				'at'   => $row['at'],
-			);
-		}
-		$plates = array();
-		foreach ( $value['plates'] as $plate ) {
-			$clean = is_array( $plate ) ? self::plate( $plate ) : null;
-			if ( null === $clean ) {
-				return null;
-			}
-			$plates[] = $clean;
-		}
-		return array(
-			'state'  => (string) $value['state'],
-			'name'   => $value['name'],
-			'before' => $sides['before'],
-			'after'  => $sides['after'],
-			'plates' => $plates,
-		);
-	}
-
-	/**
-	 * A cached plate with only string fields.
-	 *
-	 * @param array<mixed> $plate Cached plate.
-	 * @return array{key:string,label:string,old:string,new:string,tone:string}|null
-	 */
-	private static function plate( array $plate ): ?array {
-		foreach ( array( 'key', 'label', 'old', 'new', 'tone' ) as $field ) {
-			if ( ! is_string( $plate[ $field ] ?? null ) ) {
-				return null;
-			}
-		}
-		return array(
-			'key'   => $plate['key'],
-			'label' => $plate['label'],
-			'old'   => $plate['old'],
-			'new'   => $plate['new'],
-			'tone'  => $plate['tone'],
-		);
-	}
-
-	/**
-	 * Store a resolution. Only a complete pair is immutable; the rest may change as history grows.
-	 *
-	 * @param array{0:string,1:string,2:string} $request Mode, card and date.
-	 * @param array<string,mixed>               $resolution Resolution.
-	 */
-	private static function store( array $request, array $resolution ): void {
-		$ttl = 'pair' === $resolution['state'] ? self::PAIR_TTL : ( 'none' === $resolution['state'] ? HOUR_IN_SECONDS : 10 * MINUTE_IN_SECONDS );
-		set_transient( 'hs_cc_pair_' . self::key( ...$request ), $resolution, $ttl );
-		if ( 'none' !== $resolution['state'] ) {
-			set_transient( 'hs_cc_good_' . self::key( ...$request ), $resolution, self::PAIR_TTL );
-		}
-	}
-
-	/**
-	 * Result when the provider is down and nothing was cached: render plates without images.
-	 *
-	 * @phpstan-return Resolution
-	 * @return array<string,mixed>
-	 */
-	private static function unavailable(): array {
-		return array(
-			'state'  => 'unavailable',
-			'name'   => '',
-			'before' => null,
-			'after'  => null,
-			'plates' => array(),
-		);
 	}
 }

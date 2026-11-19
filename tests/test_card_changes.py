@@ -1,4 +1,5 @@
 """Exercise card changes against recorded provider responses and a controlled HTTP/cache boundary."""
+import hashlib
 import re
 import subprocess
 import unittest
@@ -38,6 +39,27 @@ class CardChangesTest(unittest.TestCase):
             with self.subTest(script=script):
                 result = subprocess.run(["node", "--check", str(PLUGIN / script)], capture_output=True, text=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_asset_versions_are_content_hashes(self):
+        render = (PLUGIN / "render.php").read_text(encoding="utf-8")
+        versions = dict(re.findall(r"'([\w.-]+)'\s*=>\s*'([a-f0-9]{12})'", render.split("ASSET_VERSIONS", 1)[1].split(");", 1)[0]))
+        self.assertEqual({"card-changes.css", "editor.css", "editor.js", "dialog-focus.js"}, set(versions))
+        for asset, version in versions.items():
+            expected = hashlib.sha256((PLUGIN / asset).read_bytes()).hexdigest()[:12]
+            self.assertEqual(expected, version, f"{asset} content hash is stale")
+        self.assertNotIn("VERSION", re.sub(r"public const VERSION.*", "", (PLUGIN / "admin.php").read_text(encoding="utf-8")).split("enqueue", 1)[1])
+
+    def test_visitor_and_compose_paths_never_reach_the_provider(self):
+        render = (PLUGIN / "render.php").read_text(encoding="utf-8")
+        self.assertNotIn("Source::resolve", render)
+        self.assertNotIn("Source::refresh", render)
+        self.assertNotIn("Source::prefetch", render)
+        admin = (PLUGIN / "admin.php").read_text(encoding="utf-8")
+        compose = admin.split("private static function compose", 1)[1]
+        self.assertNotIn("Source::", compose, "compose must render from posted pinned data only")
+        self.assertRegex(compose, r"HS_Card_Changes_Render::html\(.*\), true \)", "preview uses pinned-only rendering")
+        self.assertIn("resolve_live", admin)
+        self.assertNotIn("aria-live", re.search(r'<div id="hs-cc-preview"[^>]*>', (PLUGIN / "dialog.php").read_text(encoding="utf-8")).group(0))
 
     def test_ajax_boundary_requires_nonce_and_capability(self):
         admin = (PLUGIN / "admin.php").read_text(encoding="utf-8")

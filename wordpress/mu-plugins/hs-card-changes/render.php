@@ -19,11 +19,28 @@ final class HS_Card_Changes_Render {
 	private const IMAGE_BASE = 'https://api.kolodahearthstone.com/uploads/card-history-media/';
 	private const MAX_ITEMS  = 24;
 
+	/**
+	 * Content hashes (first 12 hex of SHA-256) of the shipped assets; a test keeps them in step with the files.
+	 */
+	private const ASSET_VERSIONS = array(
+		'card-changes.css' => 'ce890deb9a4a',
+		'editor.css'       => '6384378114f9',
+		'editor.js'        => 'edf785db7f23',
+		'dialog-focus.js'  => '7da5641f5c1a',
+	);
+
+	/**
+	 * Changes rendered in the current post; every shortcode, nested or not, counts against one cap.
+	 *
+	 * @var int
+	 */
+	private static int $count = 0;
+
 	/** Register the public shortcodes and the content-scoped assets. */
 	public static function register(): void {
 		add_shortcode( 'hs_card_changes', array( self::class, 'container' ) );
 		add_shortcode( 'hs_card_change', array( self::class, 'single' ) );
-		add_filter( 'the_content', array( self::class, 'prefetch_content' ), 9 );
+		add_filter( 'the_content', array( self::class, 'begin_content' ), 8 );
 		add_action( 'wp_enqueue_scripts', array( self::class, 'enqueue' ) );
 	}
 
@@ -37,27 +54,60 @@ final class HS_Card_Changes_Render {
 
 	/** Enqueue the public stylesheet; also used by the editor dialog preview. */
 	public static function assets(): void {
-		wp_enqueue_style( 'hs-card-changes', plugins_url( 'card-changes.css', __FILE__ ), array(), self::VERSION );
+		wp_enqueue_style( 'hs-card-changes', plugins_url( 'card-changes.css', __FILE__ ), array(), self::asset_version( 'card-changes.css' ) );
 	}
 
 	/**
-	 * Warm every card of the article in one bounded, parallel pass before shortcodes render.
+	 * Cache-busting version of a shipped asset: its content hash, not the plugin version.
+	 *
+	 * @param string $asset Asset basename.
+	 */
+	public static function asset_version( string $asset ): string {
+		return self::ASSET_VERSIONS[ $asset ] ?? 'missing';
+	}
+
+	/**
+	 * A new content pass starts counting changes from zero.
 	 *
 	 * @param string $content Post content.
 	 */
-	public static function prefetch_content( string $content ): string {
-		if ( ! str_contains( $content, '[hs_card_change' ) || ! has_shortcode( $content, 'hs_card_change' ) ) {
-			return $content;
-		}
+	public static function begin_content( string $content ): string {
+		self::$count = 0;
+		return $content;
+	}
+
+	/** One change may be rendered while the per-post cap has not been reached. */
+	private static function claim(): bool {
+		return ++self::$count <= self::MAX_ITEMS;
+	}
+
+	/**
+	 * Provider refresh requests of the unpinned changes of a post, for the background warm-up.
+	 *
+	 * @param string $content Post content.
+	 * @param int    $post_id Post ID, so default dates match the page render.
+	 * @return list<array{0:string,1:string,2:string}>
+	 */
+	public static function requests( string $content, int $post_id ): array {
 		$requests = array();
-		foreach ( self::children( $content ) as $atts ) {
-			$item = self::item( $atts );
+		foreach ( array_slice( self::children( $content ), 0, self::MAX_ITEMS ) as $atts ) {
+			$item = self::item( $atts, $post_id );
 			if ( null !== $item && ! self::pinned( $item ) ) {
 				$requests[] = array( $item['mode'], $item['card'], $item['date'] );
 			}
 		}
-		HS_Card_Changes_Source::prefetch( $requests );
-		return $content;
+		return $requests;
+	}
+
+	/**
+	 * Where a cache miss may schedule its background refresh: only the main query of a singular view.
+	 * Feeds, REST, archives, widgets and previews of other queries only read the cache.
+	 */
+	private static function queue_target(): ?int {
+		if ( is_main_query() && is_singular() && in_the_loop() && ! is_feed() && ! wp_is_json_request() ) {
+			return (int) get_the_ID();
+		}
+		return null;
 	}
 
 	/**
@@ -69,9 +119,9 @@ final class HS_Card_Changes_Render {
 	public static function container( $atts, $content = '' ): string {
 		$atts  = is_array( $atts ) ? $atts : array();
 		$items = array();
-		foreach ( array_slice( self::children( (string) $content ), 0, self::MAX_ITEMS ) as $child ) {
+		foreach ( self::children( (string) $content ) as $child ) {
 			$item = self::item( $child );
-			if ( null !== $item ) {
+			if ( null !== $item && self::claim() ) {
 				$items[] = $item;
 			}
 		}
@@ -88,7 +138,7 @@ final class HS_Card_Changes_Render {
 		$item            = self::item( $atts );
 		$opts            = self::options( $atts );
 		$opts['columns'] = '1';
-		return null === $item ? '' : self::html( array( $item ), $opts );
+		return null === $item || ! self::claim() ? '' : self::html( array( $item ), $opts );
 	}
 
 	/**
@@ -132,10 +182,11 @@ final class HS_Card_Changes_Render {
 	 * Validate one change. Returns null when the card identifier is unusable.
 	 *
 	 * @param array<string,string> $atts Raw attributes.
+	 * @param int|null             $post_id Post the default date comes from; the current post when null.
 	 * @phpstan-return Item|null
 	 * @return array<string,mixed>|null
 	 */
-	public static function item( array $atts ): ?array {
+	public static function item( array $atts, ?int $post_id = null ): ?array {
 		$card = trim( $atts['card'] ?? '' );
 		if ( ! HS_Card_Changes_Pairs::valid_card( $card ) ) {
 			return null;
@@ -146,7 +197,7 @@ final class HS_Card_Changes_Render {
 		return array(
 			'card'   => $card,
 			'mode'   => $mode,
-			'date'   => '' !== $date ? $date : self::default_date(),
+			'date'   => '' !== $date ? $date : self::default_date( $post_id ?? (int) get_the_ID() ),
 			'name'   => HS_Card_Changes_Pairs::clean_name( $atts['name'] ?? '' ),
 			'before' => self::hash( $atts['before'] ?? '' ),
 			'after'  => self::hash( $atts['after'] ?? '' ),
@@ -215,12 +266,16 @@ final class HS_Card_Changes_Render {
 		return '' !== $item['after'] && null !== $item['plates'];
 	}
 
-	/** UTC publication moment of the current article, or now. */
-	private static function default_date(): string {
-		$id   = get_the_ID();
-		$date = $id ? get_post_field( 'post_date_gmt', $id ) : '';
+	/**
+	 * UTC publication moment of the article. Drafts have none: the start of the current UTC day is a
+	 * stable fallback, so the cache key repeats instead of changing every second.
+	 *
+	 * @param int $post_id Post ID or 0.
+	 */
+	private static function default_date( int $post_id ): string {
+		$date = $post_id > 0 ? get_post_field( 'post_date_gmt', $post_id ) : '';
 		$norm = HS_Card_Changes_Pairs::normalize_date( is_string( $date ) ? $date : '' );
-		return '' !== $norm ? $norm : gmdate( 'Y-m-d H:i:s' );
+		return '' !== $norm ? $norm : gmdate( 'Y-m-d 00:00:00' );
 	}
 
 	/**
@@ -228,10 +283,11 @@ final class HS_Card_Changes_Render {
 	 *
 	 * @param list<array<string,mixed>> $items Validated items.
 	 * @param array<string,string>      $options Closed presentation options.
+	 * @param bool                      $pinned_only Never consult the provider cache: render only what the items carry.
 	 * @phpstan-param list<Item> $items
 	 * @phpstan-param Options $options
 	 */
-	public static function html( array $items, array $options ): string {
+	public static function html( array $items, array $options, bool $pinned_only = false ): string {
 		if ( ! $items ) {
 			return '';
 		}
@@ -239,7 +295,7 @@ final class HS_Card_Changes_Render {
 		$classes = 'hs-cc hs-cc--cols-' . $options['columns'] . ' hs-cc--size-' . $options['size'] . ( 'yes' === $options['captions'] ? ' hs-cc--captions' : '' );
 		$html    = '';
 		foreach ( $items as $item ) {
-			$html .= self::item_html( $item, $options['captions'] );
+			$html .= self::item_html( $item, $options['captions'], $pinned_only );
 		}
 		return '<div class="' . esc_attr( $classes ) . '">' . $html . '</div>';
 	}
@@ -249,10 +305,11 @@ final class HS_Card_Changes_Render {
 	 *
 	 * @param array<string,mixed> $item Validated item.
 	 * @param string              $captions "yes" to label the cards.
+	 * @param bool                $pinned_only Do not consult the provider cache.
 	 * @phpstan-param Item $item
 	 */
-	private static function item_html( array $item, string $captions ): string {
-		$resolved = self::resolved( $item );
+	private static function item_html( array $item, string $captions, bool $pinned_only ): string {
+		$resolved = self::resolved( $item, $pinned_only );
 		$name     = '' !== $resolved['name'] ? $resolved['name'] : $item['card'];
 		$plates   = '';
 		foreach ( $resolved['plates'] as $plate ) {
@@ -272,13 +329,14 @@ final class HS_Card_Changes_Render {
 	}
 
 	/**
-	 * Images from the shortcode when pinned, otherwise from the cached provider resolution.
+	 * Images from the shortcode when pinned, otherwise from the cached provider resolution (never the network).
 	 *
 	 * @param array<string,mixed> $item Validated item.
+	 * @param bool                $pinned_only Skip the cache and show plates only for unpinned items.
 	 * @phpstan-param Item $item
 	 * @return array{name:string,before:?string,after:?string,plates:list<array<string,string>>}
 	 */
-	private static function resolved( array $item ): array {
+	private static function resolved( array $item, bool $pinned_only ): array {
 		if ( self::pinned( $item ) ) {
 			return array(
 				'name'   => $item['name'],
@@ -287,7 +345,7 @@ final class HS_Card_Changes_Render {
 				'plates' => $item['plates'],
 			);
 		}
-		$found = HS_Card_Changes_Source::resolve( $item['mode'], $item['card'], $item['date'] );
+		$found = $pinned_only ? HS_Card_Changes_Cache::unavailable() : HS_Card_Changes_Source::lookup( $item['mode'], $item['card'], $item['date'], self::queue_target() );
 		return array(
 			'name'   => '' !== $item['name'] ? $item['name'] : $found['name'],
 			'before' => $found['before']['hash'] ?? null,

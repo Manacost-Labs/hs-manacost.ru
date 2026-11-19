@@ -28,6 +28,7 @@ if (is_array($existing)) {
     wp_update_post(['ID' => $existing['draft'], 'post_status' => 'draft', 'post_content' => '<p>Первый абзац.</p><p>Последний абзац.</p>']);
     wp_update_post(['ID' => $existing['block_post'], 'post_content' => '']);
     wp_update_post(['ID' => $existing['article'], 'post_content' => wp_slash($article_content)]);
+    do_action('hs_card_changes_warm', $existing['article']);
     echo wp_json_encode($existing) . "\n";
     return;
 }
@@ -37,6 +38,8 @@ $block_post = wp_insert_post(['post_title' => 'Изменения карт: бл
 update_post_meta($block_post, 'classic-editor-remember', 'block-editor');
 $article = wp_insert_post(['post_title' => 'Патч 37.0.2: изменения карт', 'post_status' => 'publish', 'post_date_gmt' => '2026-11-03 15:55:00', 'post_date' => '2026-11-03 15:55:00', 'post_content' => wp_slash($article_content)]);
 cc_check($article > 0, 'Article created');
+// Page views only read the cache; the background warm-up (cron in production) fills it.
+do_action('hs_card_changes_warm', $article);
 $author = wp_insert_user(['user_login' => 'cc-author', 'user_pass' => getenv('WP_CC_AUTHOR_PASSWORD'), 'user_email' => 'cc-author@example.invalid', 'role' => 'author']);
 $author_post = wp_insert_post(['post_author' => $author, 'post_status' => 'draft', 'post_title' => 'Проверка прав автора', 'post_content' => '<p>Текст автора.</p>']);
 $subscriber = wp_insert_user(['user_login' => 'cc-subscriber', 'user_pass' => getenv('WP_CC_SUBSCRIBER_PASSWORD'), 'user_email' => 'cc-subscriber@example.invalid', 'role' => 'subscriber']);

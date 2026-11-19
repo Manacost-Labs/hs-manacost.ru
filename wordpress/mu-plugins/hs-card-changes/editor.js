@@ -244,7 +244,7 @@
 		shortcode = '';
 		updateInsert();
 		clearTimeout(composeTimer);
-		composeTimer = setTimeout(compose, 250);
+		composeTimer = setTimeout(compose, 500);
 	}
 
 	async function compose() {

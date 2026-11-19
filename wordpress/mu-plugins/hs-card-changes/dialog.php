@@ -53,7 +53,7 @@ defined( 'ABSPATH' ) || exit;
 		</section>
 		<section class="hs-ccd-preview" aria-labelledby="hs-cc-preview-title">
 			<h3 id="hs-cc-preview-title"><?php esc_html_e( 'Предпросмотр', 'hs-card-changes' ); ?></h3>
-			<div id="hs-cc-fit"><div id="hs-cc-preview" aria-live="polite"></div></div>
+			<div id="hs-cc-fit"><div id="hs-cc-preview"></div></div>
 		</section>
 	</div>
 	<div class="hs-ccd-footer">

@@ -140,17 +140,7 @@ final class HS_Card_Changes_Pairs {
 	 * @return array<string,mixed>
 	 */
 	public static function pick( array $versions, string $mode, string $date ): array {
-		$usable = array();
-		foreach ( $versions as $version ) {
-			$hash = self::image_hash( $version, $mode );
-			if ( '' !== $hash && is_array( $version ) && is_string( $version['observed_at'] ?? null ) ) {
-				$usable[] = array(
-					'hash'     => $hash,
-					'at'       => substr( $version['observed_at'], 0, 19 ),
-					'snapshot' => is_array( $version['snapshot'] ?? null ) ? $version['snapshot'] : array(),
-				);
-			}
-		}
+		$usable = self::usable( $versions, $mode );
 		$before = null;
 		foreach ( $usable as $row ) {
 			if ( $row['at'] < $date ) {
@@ -183,6 +173,56 @@ final class HS_Card_Changes_Pairs {
 			'after'  => null === $newest ? null : self::side( $newest ),
 			'plates' => array(),
 		);
+	}
+
+	/**
+	 * Versions with an archived image and a readable observation time, newest first.
+	 *
+	 * The provider lists newest first, but the order is never assumed: rows are sorted explicitly,
+	 * keeping the provider's order for equal moments.
+	 *
+	 * @param array<int,mixed> $versions Provider versions.
+	 * @param string           $mode Card mode.
+	 * @return list<array{hash:string,at:string,index:int,snapshot:array<mixed>}>
+	 */
+	private static function usable( array $versions, string $mode ): array {
+		$usable = array();
+		foreach ( $versions as $index => $version ) {
+			$hash = self::image_hash( $version, $mode );
+			$at   = is_array( $version ) ? self::observed( $version['observed_at'] ?? null ) : '';
+			if ( '' !== $hash && '' !== $at && is_array( $version ) ) {
+				$usable[] = array(
+					'hash'     => $hash,
+					'at'       => $at,
+					'index'    => $index,
+					'snapshot' => is_array( $version['snapshot'] ?? null ) ? $version['snapshot'] : array(),
+				);
+			}
+		}
+		usort(
+			$usable,
+			static fn( array $a, array $b ): int => array( $b['at'], $a['index'] ) <=> array( $a['at'], $b['index'] )
+		);
+		return $usable;
+	}
+
+	/**
+	 * Normalize a provider timestamp to UTC "Y-m-d H:i:s", or an empty string.
+	 *
+	 * Accepts "YYYY-MM-DD HH:MM:SS(.ffffff)", the "T" form, "Z" and numeric offsets; values without a zone are UTC.
+	 *
+	 * @param mixed $value Provider observed_at.
+	 */
+	public static function observed( $value ): string {
+		if ( ! is_string( $value ) || 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})?$/D', $value ) ) {
+			return '';
+		}
+		try {
+			$utc = new DateTimeZone( 'UTC' );
+			return ( new DateTimeImmutable( $value, $utc ) )->setTimezone( $utc )->format( 'Y-m-d H:i:s' );
+		} catch ( Exception $error ) {
+			return '';
+		}
 	}
 
 	/**

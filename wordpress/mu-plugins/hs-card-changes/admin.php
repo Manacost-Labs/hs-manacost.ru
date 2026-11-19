@@ -11,6 +11,7 @@ defined( 'ABSPATH' ) || exit;
 final class HS_Card_Changes_Admin {
 	private const MAX_ITEMS           = 12;
 	private const RESOLVES_PER_MINUTE = 60;
+	private const COMPOSES_PER_MINUTE = 120;
 
 	/** Register the supported WordPress extension points. */
 	public static function register(): void {
@@ -67,12 +68,11 @@ final class HS_Card_Changes_Admin {
 		if ( ! $post ) {
 			return;
 		}
-		$block   = use_block_editor_for_post( $post );
-		$version = HS_Card_Changes_Render::VERSION;
+		$block = use_block_editor_for_post( $post );
 		HS_Card_Changes_Render::assets();
-		wp_enqueue_style( 'hs-card-changes-editor', plugins_url( 'editor.css', __FILE__ ), array( 'hs-card-changes' ), $version );
-		wp_enqueue_script( 'hs-card-changes-focus', plugins_url( 'dialog-focus.js', __FILE__ ), array(), $version, true );
-		wp_enqueue_script( 'hs-card-changes-editor', plugins_url( 'editor.js', __FILE__ ), $block ? array( 'wp-blocks', 'wp-data', 'wp-block-editor', 'hs-card-changes-focus' ) : array( 'hs-card-changes-focus' ), $version, true );
+		wp_enqueue_style( 'hs-card-changes-editor', plugins_url( 'editor.css', __FILE__ ), array( 'hs-card-changes' ), HS_Card_Changes_Render::asset_version( 'editor.css' ) );
+		wp_enqueue_script( 'hs-card-changes-focus', plugins_url( 'dialog-focus.js', __FILE__ ), array(), HS_Card_Changes_Render::asset_version( 'dialog-focus.js' ), true );
+		wp_enqueue_script( 'hs-card-changes-editor', plugins_url( 'editor.js', __FILE__ ), $block ? array( 'wp-blocks', 'wp-data', 'wp-block-editor', 'hs-card-changes-focus' ) : array( 'hs-card-changes-focus' ), HS_Card_Changes_Render::asset_version( 'editor.js' ), true );
 		wp_localize_script(
 			'hs-card-changes-editor',
 			'hsCardChanges',
@@ -102,7 +102,7 @@ final class HS_Card_Changes_Admin {
 	 */
 	private static function default_date( WP_Post $post ): string {
 		$gmt  = HS_Card_Changes_Pairs::normalize_date( $post->post_date_gmt );
-		$date = '' !== $gmt ? $gmt : gmdate( 'Y-m-d H:i:s' );
+		$date = '' !== $gmt ? $gmt : gmdate( 'Y-m-d 00:00:00' );
 		return substr( str_replace( ' ', 'T', $date ), 0, 16 );
 	}
 
@@ -143,7 +143,7 @@ final class HS_Card_Changes_Admin {
 			wp_send_json_error( array( 'message' => __( 'Нет прав на редактирование этой записи.', 'hs-card-changes' ) ), 403 );
 		}
 		$mode = self::field( 'mode' );
-		if ( 'resolve' === $mode && self::throttled() ) {
+		if ( in_array( $mode, array( 'resolve', 'compose' ), true ) && self::throttled( $mode ) ) {
 			wp_send_json_error( array( 'message' => __( 'Слишком много запросов истории карт. Подождите минуту.', 'hs-card-changes' ) ), 429 );
 		}
 		$result = match ( $mode ) {
@@ -162,13 +162,15 @@ final class HS_Card_Changes_Admin {
 	}
 
 	/**
-	 * Each resolve may reach the provider; one editor gets a bounded number per minute.
+	 * Per-editor, per-minute limits: resolve may reach the provider, compose is only CPU, so its limit is higher.
+	 *
+	 * @param string $mode "resolve" or "compose".
 	 */
-	private static function throttled(): bool {
-		$key   = 'hs_cc_rate_' . get_current_user_id() . '_' . (int) floor( time() / MINUTE_IN_SECONDS );
+	private static function throttled( string $mode ): bool {
+		$key   = 'hs_cc_rate_' . $mode . '_' . get_current_user_id() . '_' . (int) floor( time() / MINUTE_IN_SECONDS );
 		$count = (int) get_transient( $key );
 		set_transient( $key, $count + 1, 2 * MINUTE_IN_SECONDS );
-		return $count >= self::RESOLVES_PER_MINUTE;
+		return $count >= ( 'resolve' === $mode ? self::RESOLVES_PER_MINUTE : self::COMPOSES_PER_MINUTE );
 	}
 
 	/**
@@ -231,7 +233,7 @@ final class HS_Card_Changes_Admin {
 		if ( '' === $date || ! HS_Card_Changes_Pairs::valid_card( $card ) || ! in_array( $mode, HS_Card_Changes_Pairs::modes(), true ) ) {
 			return null;
 		}
-		$found = HS_Card_Changes_Source::resolve( $mode, $card, $date );
+		$found = HS_Card_Changes_Source::resolve_live( $mode, $card, $date );
 		$sides = array();
 		foreach ( array( 'before', 'after' ) as $side ) {
 			$row            = $found[ $side ] ?? null;
@@ -280,7 +282,8 @@ final class HS_Card_Changes_Admin {
 		);
 		return array(
 			'shortcode' => HS_Card_Changes_Render::build_shortcode( $items, $options ),
-			'html'      => HS_Card_Changes_Render::html( $items, array_merge( $options, array( 'columns' => 1 === count( $items ) ? '1' : $options['columns'] ) ) ),
+			// The preview comes from the posted, pinned data only; compose never reaches the provider.
+			'html'      => HS_Card_Changes_Render::html( $items, array_merge( $options, array( 'columns' => 1 === count( $items ) ? '1' : $options['columns'] ) ), true ),
 		);
 	}
 }

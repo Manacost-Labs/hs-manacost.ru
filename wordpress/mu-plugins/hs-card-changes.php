@@ -11,10 +11,14 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/hs-card-changes/pairs.php';
+require_once __DIR__ . '/hs-card-changes/cache.php';
 require_once __DIR__ . '/hs-card-changes/source.php';
 require_once __DIR__ . '/hs-card-changes/render.php';
+require_once __DIR__ . '/hs-card-changes/warm.php';
 
 HS_Card_Changes_Render::register();
+HS_Card_Changes_Source::register();
+HS_Card_Changes_Warm::register();
 
 if ( is_admin() ) {
 	require_once __DIR__ . '/hs-card-changes/admin.php';
