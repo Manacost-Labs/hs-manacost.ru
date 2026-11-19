@@ -168,9 +168,16 @@ final class HS_Card_Changes_Admin {
 	 * @param string $mode "resolve", "compose" or "search" (archive queries only).
 	 */
 	private static function throttled( string $mode ): bool {
-		$key   = 'hs_cc_rate_' . $mode . '_' . get_current_user_id() . '_' . (int) floor( time() / MINUTE_IN_SECONDS );
-		$count = (int) get_transient( $key );
-		set_transient( $key, $count + 1, 2 * MINUTE_IN_SECONDS );
+		$key = 'hs_cc_rate_' . $mode . '_' . get_current_user_id() . '_' . (int) floor( time() / MINUTE_IN_SECONDS );
+		if ( wp_using_ext_object_cache() ) {
+			// Atomic increment in the persistent object cache: parallel requests cannot overwrite each other's count.
+			wp_cache_add( $key, 0, 'hs_card_changes', 2 * MINUTE_IN_SECONDS );
+			$after = wp_cache_incr( $key, 1, 'hs_card_changes' );
+			$count = false === $after ? PHP_INT_MAX : (int) $after - 1;
+		} else {
+			$count = (int) get_transient( $key );
+			set_transient( $key, $count + 1, 2 * MINUTE_IN_SECONDS );
+		}
 		$limits = array(
 			'resolve' => self::RESOLVES_PER_MINUTE,
 			'compose' => self::COMPOSES_PER_MINUTE,

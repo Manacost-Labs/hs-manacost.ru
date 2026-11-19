@@ -218,6 +218,10 @@ final class HS_Card_Changes_Source {
 		$data = 200 === $response['status'] && strlen( $response['body'] ) <= self::MAX_BODY && 1 === preg_match( '#^application/json(?:\s*;|$)#i', $response['type'] )
 			? json_decode( $response['body'], true, 32 ) : null;
 		$rows = is_array( $data ) ? ( $data['data'] ?? null ) : null;
+		// json_decode() turns {"data":{}} into an empty array: an empty list must be a JSON array.
+		if ( array() === $rows && 1 !== preg_match( '#"data"\s*:\s*\[\s*\]#', $response['body'] ) ) {
+			$rows = null;
+		}
 		if ( ! is_array( $rows ) || ! array_is_list( $rows ) || count( $rows ) > 200 ) {
 			self::fail( 200 === $response['status'] ? 60 : $response['retry'], 'http_' . $response['status'], self::SEARCH_COOL );
 			return null;

@@ -241,7 +241,10 @@ final class HS_Card_Changes_Search {
 		$host   = is_array( $parts ) ? strtolower( (string) ( $parts['host'] ?? '' ) ) : '';
 		$prefix = self::IMAGE_HOSTS[ $source ][ $host ] ?? null;
 		$path   = is_array( $parts ) ? (string) ( $parts['path'] ?? '' ) : '';
-		if ( null === $prefix || 'https' !== ( $parts['scheme'] ?? '' ) || isset( $parts['port'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || ! str_starts_with( $path, $prefix ) || str_contains( $path, '/../' ) ) {
+		// Browsers decode %2e/%2f before resolving dot segments, so the prefix is checked on the decoded path.
+		$plain = rawurldecode( $path );
+		if ( null === $prefix || 'https' !== ( $parts['scheme'] ?? '' ) || isset( $parts['port'] ) || isset( $parts['user'] ) || isset( $parts['pass'] )
+			|| ! str_starts_with( $path, $prefix ) || ! str_starts_with( $plain, $prefix ) || 1 === preg_match( '#(?:^|/)\.{1,2}(?:/|$)|[\\%]#', $plain ) ) {
 			return '';
 		}
 		return esc_url_raw( $url );

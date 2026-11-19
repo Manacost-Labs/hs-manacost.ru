@@ -178,11 +178,16 @@ try {
     try {
       const owner = await api('users/me');
       const ours = post => post.author === owner.id && post.title.raw === marker && post.content.raw.includes(marker);
-      const found = fixture?.id
-        ? [await api(`posts/${fixture.id}?context=edit`)]
-        : await api(`posts?context=edit&author=${owner.id}&status=draft,private&per_page=10&search=${encodeURIComponent(marker)}`);
+      const lookup = () => api(`posts?context=edit&author=${owner.id}&status=draft,private&per_page=10&search=${encodeURIComponent(marker)}`);
+      let found = fixture?.id ? [await api(`posts/${fixture.id}?context=edit`)] : await lookup();
+      // A create whose response was lost may still be committing: look again before declaring nothing to clean.
+      for (let attempt = 0; !fixture?.id && !found.some(ours) && attempt < 3; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        found = await lookup();
+      }
       let cleaned = true;
       for (const post of found.filter(ours)) cleaned = (await api(`posts/${post.id}?force=true`, 'DELETE')).deleted === true && cleaned;
+      if (!fixture?.id && cleaned) cleaned = !(await lookup()).some(ours);
       report.cleaned = cleaned && (fixture?.id ? found.some(ours) : true);
     } catch { report.cleaned = false; }
   } else report.cleaned = !createSent;

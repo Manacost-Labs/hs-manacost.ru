@@ -85,18 +85,25 @@ $bad = ['data' => [
     ['card_id' => 'BG99_006', 'name' => ['ru' => 'Чужой путь'], 'images' => ['card' => 'https://api.kolodahearthstone.com/api/v1/me']],
     ['card_id' => 'BG99_007', 'name' => ['ru' => 'Похожий хост'], 'images' => ['card' => 'https://api.kolodahearthstone.com.evil.example/uploads/x.png']],
     ['card_id' => 'BG99_008', 'name' => ['ru' => 'Учётка в URL'], 'images' => ['card' => 'https://user@api.kolodahearthstone.com/uploads/x.png']],
+    ['card_id' => 'BG99_009', 'name' => ['ru' => 'Закодированный выход'], 'images' => ['card' => 'https://api.kolodahearthstone.com/uploads/%2e%2e/api/v1/me']],
+    ['card_id' => 'BG99_010', 'name' => ['ru' => 'Закодированный слеш'], 'images' => ['card' => 'https://api.kolodahearthstone.com/uploads/..%2fapi/v1/me']],
     'not-an-array',
 ]];
 $responses[archive_url('/api/v1/cards', 'Тест строк')] = json_ok(json_encode($bad, JSON_UNESCAPED_UNICODE) === false ? '' : json_encode($bad, JSON_UNESCAPED_UNICODE));
 $responses[archive_url('/api/v1/constructed-cards', 'Тест строк')] = json_ok('{"data":[]}');
 $r = $S::run('Тест строк', 'all', $allow);
-check($ids($r) === ['bg:BG99_001', 'bg:BG99_002', 'bg:BG99_005', 'bg:BG99_006', 'bg:BG99_007', 'bg:BG99_008'], 'Only valid rows survive: ' . json_encode($ids($r)));
+check($ids($r) === ['bg:BG99_001', 'bg:BG99_002', 'bg:BG99_005', 'bg:BG99_006', 'bg:BG99_007', 'bg:BG99_008', 'bg:BG99_009', 'bg:BG99_010'], 'Only valid rows survive: ' . json_encode($ids($r)));
 check(!str_contains(json_encode($r['items'], JSON_UNESCAPED_UNICODE), '<') && $r['items'][0]['img'] !== '' && $r['items'][1]['img'] === '', 'Names lose markup and insecure thumbnails are dropped');
-check(array_column(array_slice($r['items'], 2), 'img') === ['', '', '', ''], 'HTTPS thumbnails off the archive upload allowlist are dropped: ' . json_encode(array_column($r['items'], 'img')));
+check(array_column(array_slice($r['items'], 2), 'img') === ['', '', '', '', '', ''], 'HTTPS thumbnails off the archive upload allowlist are dropped: ' . json_encode(array_column($r['items'], 'img')));
 $responses[archive_url('/api/v1/cards', 'Форма')] = json_ok('{"data":{"a":1}}');
 $responses[archive_url('/api/v1/constructed-cards', 'Форма')] = json_ok('{"data":{"a":1}}');
 $r = $S::run('Форма', 'all', $allow);
 check($r['archive'] === 'unavailable' && isset($cache['hs_cc_search_cooldown']), 'A response of the wrong shape counts as an outage');
+unset($cache['hs_cc_search_cooldown']);
+$responses[archive_url('/api/v1/cards', 'Пустой объект')] = json_ok('{"data":{}}');
+$responses[archive_url('/api/v1/constructed-cards', 'Пустой объект')] = json_ok('{"data":{}}');
+$r = $S::run('Пустой объект', 'all', $allow);
+check($r['archive'] === 'unavailable' && isset($cache['hs_cc_search_cooldown']), 'An empty JSON object is not an empty result list');
 unset($cache['hs_cc_search_cooldown']);
 
 // Kill switch is covered by the main fixture; a missing dictionary plugin leaves the archive working.
