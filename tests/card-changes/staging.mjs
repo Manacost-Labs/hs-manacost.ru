@@ -60,26 +60,28 @@ async function editorReady() {
   await page.waitForFunction(() => window.tinymce?.get('content')?.initialized);
 }
 try {
-  report.stage = 'login-navigation';
   const nonceURL = `${base}/wp-admin/admin-ajax.php?action=rest-nonce`;
-  await navigate(page, `${base}/wp-login.php?redirect_to=${encodeURIComponent(nonceURL)}`);
-  await page.waitForFunction(() => document.activeElement?.id === 'user_login');
-  await page.locator('#user_login').fill(process.env.WP_TEST_ADMIN_USER);
-  await page.locator('#user_pass').fill(process.env.WP_TEST_ADMIN_PASSWORD);
-  report.stage = 'login-redirect';
-  try {
-    await page.locator('#wp-submit').click();
-    await finishAdminLogin(page, base);
-  } catch (error) {
-    // The login POST may already have redirected when the runner's network flaps; recover only the interrupted GET.
-    const interrupted = navigationFailures.some(failure => failure.code === 'net::ERR_NETWORK_CHANGED');
-    if (!interrupted) throw error;
-    report.navigation_retries++;
-    await navigate(page, nonceURL);
+  // The runner's network occasionally flaps (net::ERR_NETWORK_CHANGED) and can interrupt the login POST itself, so the
+  // whole sign-in is retried (at most three times) until the REST nonce proves a session; a wrong password still fails.
+  for (let attempt = 1; attempt <= 3 && !/^[a-z0-9]{10}$/i.test(nonce ?? ''); attempt++) {
+    report.stage = 'login-navigation';
+    report.login_attempts = attempt;
+    try {
+      await navigate(page, `${base}/wp-login.php?redirect_to=${encodeURIComponent(nonceURL)}`);
+      await page.waitForFunction(() => document.activeElement?.id === 'user_login');
+      await page.locator('#user_login').fill(process.env.WP_TEST_ADMIN_USER);
+      await page.locator('#user_pass').fill(process.env.WP_TEST_ADMIN_PASSWORD);
+      report.stage = 'login-redirect';
+      await page.locator('#wp-submit').click();
+      await finishAdminLogin(page, base);
+      report.stage = 'rest-nonce';
+      nonce = (await (await navigate(apiPage, nonceURL)).text()).trim();
+    } catch (error) {
+      if (!navigationFailures.some(failure => failure.code === 'net::ERR_NETWORK_CHANGED') || attempt === 3) throw error;
+    }
+    if (!/^[a-z0-9]{10}$/i.test(nonce ?? '')) report.navigation_retries++;
   }
-  report.stage = 'rest-nonce';
-  nonce = (await (await navigate(apiPage, nonceURL)).text()).trim();
-  assert.match(nonce, /^[a-z0-9]{10}$/i);
+  assert.match(nonce ?? '', /^[a-z0-9]{10}$/i, 'Signed in');
   report.stage = 'create-draft';
   fixture = await api('posts', 'POST', { title: marker, content: `<p>${marker}</p>`, status: 'draft' });
   assert.ok(Number.isSafeInteger(fixture.id) && fixture.id > 0);
