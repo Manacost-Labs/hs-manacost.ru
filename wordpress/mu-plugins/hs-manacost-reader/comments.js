@@ -22,6 +22,11 @@
   const more = document.createElement('button');
   more.type = 'button'; more.textContent = 'Показать ещё'; more.hidden = true;
   more.className = 'mc-comments__more mc-ui-button mc-ui-button--secondary'; list.after(more);
+  const reload = more.cloneNode(); reload.textContent = 'Загрузить снова'; status.after(reload);
+  // Reused formatters.
+  const [shortDate, yearDate] = [{}, { year: 'numeric' }].map(year => new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', ...year, hour: '2-digit', minute: '2-digit' }));
+  const fullDate = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
   const requests = new Set();
   const stale = new Error('stale');
   let generation = 0, visible = true, me = null, csrf = '', rows = [], cursor = null, threadLoaded = false, refreshBootstrap = false;
@@ -29,12 +34,14 @@
   let parentId = null, retryPayload = null, busy = false, commentingBlocked = false;
   let stagedAttachment = null, attachmentPreviewUrl = null, attachmentUploading = false;
   let reconcileTimer=0;const reconcileIds=new Set;
+  let animateRows = false;
   const rendered = new Map(), blockedText = 'Вам запрещено комментировать. Черновик сохранён.';
   let lastFocus = null; // Chrome blurs disabled row buttons to <body>.
   const forgetFocus = e => { if (!list.contains(e.target)) lastFocus = null; };
   for (const event of ['focusin', 'pointerdown']) document.addEventListener(event, forgetFocus);
-  const say = message => { status.removeAttribute('data-loading'); status.textContent = message; };
-  const showLoading = () => { status.dataset.loading = 'true'; status.textContent = 'Загружаем комментарии…'; };
+  // Quiet: announced only; the new row confirms visually.
+  const say = (message, quiet = false) => { status.removeAttribute('data-loading'); status.classList.toggle('mc-comments__status--quiet', quiet); status.textContent = message; };
+  const showLoading = () => { say('Загружаем комментарии…'); status.dataset.loading = 'true'; };
   const current = ticket => visible && ticket === generation;
   const release = (ticket, upload = false) => {
     if (!current(ticket)) return;
@@ -78,7 +85,13 @@
       refreshProfile.hidden = profileNotice.hidden = !hasOlderIdentity();
       refreshProfile.disabled = locked;
     }
-    if (count) count.textContent = `${Array.from(body.value).length} / 1000`;
+    updateCount();
+  }
+  function updateCount() {
+    if (!count) return;
+    const length = Array.from(body.value).length;
+    count.textContent = `${length} / 1000`;
+    count.dataset.state = length >= 1000 ? 'limit' : length >= 900 ? 'warn' : length ? 'typing' : 'empty';
   }
   function revokeAttachmentPreview() {
     if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
@@ -200,7 +213,7 @@
     placeholder.setAttribute('aria-hidden', 'true');
     if (!photo) return placeholder;
     const image = element('img', 'mc-comments__avatar'); image.src = photo; image.alt = ''; image.width = image.height = 40;
-    image.decoding = 'async';
+    image.decoding = 'async'; image.loading = 'lazy';
     image.addEventListener('error', () => image.replaceWith(placeholder), { once: true });
     return image;
   }
@@ -231,8 +244,9 @@
   function commentNode(item) {
     const node = element('article', `mc-comments__comment${item.parentId ? ' mc-comments__reply' : ''}`);
     node.dataset.pending = String(item.status === 'pending'); node.dataset.commentId = item.id;
-    const time = element('time', 'mc-comments__meta', new Date(item.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }));
-    time.dateTime = new Date(item.createdAt).toISOString();
+    const at = new Date(item.createdAt);
+    const time = element('time', 'mc-comments__meta', (at.getFullYear() === new Date().getFullYear() ? shortDate : yearDate).format(at));
+    time.dateTime = at.toISOString(); time.title = fullDate.format(at);
     if (item.status === 'pending') node.append(element('strong', 'mc-comments__pending', 'Ваш комментарий · На проверке'), time);
     else {
       const header = element('header', 'mc-comments__identity');
@@ -297,21 +311,30 @@
     if (!rendered.size) list.replaceChildren();
     for (const [id, entry] of rendered) if (!ids.has(id)) { entry.node.remove(); rendered.delete(id); }
     let anchor = list.firstElementChild;
+    const animate = animateRows && !calm.matches;
     for (const item of next) {
       const fields = rowFields(item), entry = rendered.get(item.id);
       let node = entry?.node;
       if (!entry || entry.fields.some((value, index) => value !== fields[index])) {
         const fresh = commentNode(item);
+        if (animate && !entry) enter(fresh);
         if (node) { if (node === anchor) anchor = fresh; node.replaceWith(fresh); }
         node = fresh; rendered.set(item.id, { node, fields });
       }
       if (node === anchor) anchor = node.nextElementSibling; else list.insertBefore(node, anchor);
     }
     while (anchor) { const extra = anchor; anchor = anchor.nextElementSibling; extra.remove(); }
-    more.hidden = !cursor; controls();
+    more.hidden = !cursor; controls(); animateRows = threadLoaded;
     community?.render();
     if (!activeRow || active.isConnected) return;
     (focusTarget(rendered.get(fallbackId)?.node, key) || (!form.hidden && !body.disabled ? body : login.querySelector('a')))?.focus({ preventScroll: true });
+  }
+  // Transform/opacity only.
+  function enter(node) {
+    node.classList.add('mc-comments__comment--enter');
+    node.addEventListener('animationend', event => {
+      if (event.target === node) node.classList.remove(event.pseudoElement ? 'mc-comments__comment--fresh' : 'mc-comments__comment--enter');
+    });
   }
   async function loadMe(initial = false, refresh = false) {
     const { response, data } = await window.hsManacostReaderBootstrap(refresh);
@@ -343,12 +366,12 @@
         rows = [...page, ...preserved].sort(byTime);
       } else rows = page;
       for (const id of received) reconcileIds.delete(id);
-      cursor = data.nextCursor; threadLoaded = true; render();
+      cursor = data.nextCursor; threadLoaded = true; reload.hidden = true; render();
       if (!(preserveIds instanceof Set)) showThreadStatus();
       return true;
     } catch (error) {
       if (error === stale || !current(ticket)) return;
-      if (!(preserveIds instanceof Set)) { rows = []; cursor = null; threadLoaded = false; render(); }
+      if (!(preserveIds instanceof Set)) { rows = []; cursor = null; threadLoaded = false; render(); reload.hidden = false; }
       say('Не удалось загрузить комментарии. Повторите попытку позже.');
       return false;
     } finally { if (current(ticket)) more.disabled = false; }
@@ -448,6 +471,9 @@
     try {
       const { response } = await sendJson(`/reader-api/v1/comments/${item.id}`, 'DELETE', { version: item.version });
       if (!response.ok) throw new Error('remove_failed');
+      const node = rendered.get(item.id)?.node;
+      if (node && !calm.matches) await node.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(-6px)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+      if (!current(ticket)) return;
       reconcileIds.delete(item.id); rows = rows.filter(row => row.id !== item.id); render();
       await loadComments();
     } catch (error) { if (error !== stale && current(ticket)) say('Не удалось удалить комментарий. Повторите попытку.'); }
@@ -455,7 +481,8 @@
   }
   async function send(payload) {
     if(!me || busy || commentingBlocked)return;
-    const ticket=generation; busy=true; controls();
+    const ticket=generation; busy=true; form.toggleAttribute('data-sending', true); controls();
+    let published = null;
     try {
       const { response, data } = await sendJson(endpoint, 'POST', payload);
       if (response.status === 403 && data?.error === 'commenting_blocked') {
@@ -476,14 +503,21 @@
       else rows = [...rows, data.comment].sort(byTime);
       render();
       if (current(ticket)) {
-        say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.');
+        say(data.comment.status === 'pending' ? 'Ваш комментарий · На проверке' : 'Комментарий опубликован.', true);
         reconcileLater(data.comment.id, ticket);
+        published = rendered.get(data.comment.id)?.node;
+        published?.classList.add('mc-comments__comment--fresh');
+        published?.scrollIntoView({ block: 'nearest', behavior: calm.matches ? 'auto' : 'smooth' });
       }
     } catch (error) {
       if (error === stale || !current(ticket)) return;
       retryPayload = Object.freeze({ ...payload });
       say('Результат отправки неизвестен. Повторите тот же комментарий — повторная попытка не создаст дубликат.');
-    } finally { release(ticket); }
+    } finally {
+      form.removeAttribute('data-sending'); release(ticket);
+      // Disabled submit dropped focus.
+      if (published?.isConnected && document.activeElement === document.body) body.focus({ preventScroll: true });
+    }
   }
   form.addEventListener('submit', event => {
     event.preventDefault(); if (!me || busy || retryPayload) return;
@@ -496,7 +530,7 @@
   });
   retry.addEventListener('click', () => { if (retryPayload) void send(retryPayload); });
   refreshProfile?.addEventListener('click', () => { void publishIdentity(); });
-  body.addEventListener('input', controls);
+  body.addEventListener('input', updateCount);
   body.addEventListener('paste', event => {
     const item = [...(event.clipboardData?.items || [])].find(candidate => attachmentTypes.has(candidate.type));
     const file = item?.getAsFile();
@@ -509,10 +543,11 @@
   attachmentRemove?.addEventListener('click', () => { void removeAttachment(); });
   cancel.addEventListener('click', () => { if (!busy && !retryPayload) { parentId = null; reply.hidden = cancel.hidden = true; body.focus(); } });
   more.addEventListener('click', () => { void loadComments(true); });
+  reload.addEventListener('click', () => { reload.hidden = true; showLoading(); void loadComments(); });
 
   async function start() {
     visible = true; invalidate(); resetPrivate();
-    threadLoaded = false;
+    threadLoaded = false; animateRows = false; reload.hidden = true;
     showLoading();
     const ticket = generation;
     // Render public rows immediately; pending rows require verified viewer identity.

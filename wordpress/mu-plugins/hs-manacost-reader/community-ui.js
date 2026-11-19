@@ -78,12 +78,18 @@
       if (response.status === 403) { clearAdmin(); binding.say('Права администратора больше недоступны.'); return true; }
       return false;
     }
-    function reactionButton(item, kind, label, path) {
-      const value = item.reactions.find(reaction => reaction.kind === kind);
-      const button = element('button', 'mc-comments__reaction');
-      button.type = 'button'; button.dataset.reaction = kind; button.disabled = reacting.has(item.id);
+    // Patch in place: transitions and keyboard focus survive count updates.
+    function paintReaction(button, item, label) {
+      const value = item.reactions.find(reaction => reaction.kind === button.dataset.reaction);
+      button.disabled = reacting.has(item.id);
       button.setAttribute('aria-pressed', String(value.selected)); button.setAttribute('aria-label', label + ': ' + value.count);
-      button.append(icon(path), element('span', '', label), element('span', 'mc-comments__reaction-count', String(value.count)));
+      button.lastChild.textContent = value.count ? String(value.count) : '';
+    }
+    function reactionButton(item, kind, label, path) {
+      const button = element('button', 'mc-comments__reaction');
+      button.type = 'button'; button.dataset.reaction = kind; button.title = label;
+      button.append(icon(path), element('span', 'mc-comments__reaction-label', label), element('span', 'mc-comments__reaction-count'));
+      paintReaction(button, item, label);
       button.addEventListener('click', () => { void react(item.id, kind); });
       return button;
     }
@@ -104,10 +110,14 @@
       if (item?.status !== 'published' || !validReactions(item.reactions)) { prior?.remove(); return; }
       const fields = [binding.sessionKey(), reacting.has(item.id), ...item.reactions.flatMap(value => [value.kind, value.count, value.selected])];
       if (unchanged(prior, fields)) return;
-      const next = reactionGroup(item), focused = prior?.contains(document.activeElement) && document.activeElement.dataset.reaction;
-      built.set(next, fields);
-      if (prior) prior.replaceWith(next); else node.insertBefore(next, node.querySelector(':scope > [data-community-admin]'));
-      if (focused) next.querySelector(`[data-reaction="${focused}"]`)?.focus({ preventScroll: true });
+      if (prior) {
+        prior.setAttribute('aria-busy', String(reacting.has(item.id)));
+        for (const [kind, label] of kinds) paintReaction(prior.querySelector(`[data-reaction="${kind}"]`), item, label);
+        built.set(prior, fields); return;
+      }
+      const next = reactionGroup(item); built.set(next, fields);
+      // Reactions lead the footer row, so DOM and visual order agree.
+      node.insertBefore(next, node.querySelector(':scope > .mc-comments__actions, :scope > [data-community-admin]'));
     }
     function patchReactions(id) {
       const node = rowNode(id);
@@ -166,6 +176,9 @@
       generations.set(id, (generations.get(id) ?? 0) + 1);
       let saved = false;
       reacting.add(id); binding.updateReactions(id, optimisticReactions(previous, reaction));
+      // Composite-only pop for the chosen icon.
+      if (reaction && !matchMedia('(prefers-reduced-motion: reduce)').matches) rowNode(id)?.querySelector(`[data-reaction="${kind}"] svg`)
+        ?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
       try {
         const { response, data } = await sendJson(commentPath(id) + '/reaction', 'PUT', { reaction });
         if (ticket !== binding.sessionKey()) return;
