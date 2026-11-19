@@ -31,7 +31,7 @@ $responses[archive_url('/api/v1/constructed-cards', 'Матриарх')] = json_
 // The owner's case: a new Battlegrounds card absent from the dictionary is found by its Russian name.
 $r = $S::run('Жертвенный страж гнева', 'all', $allow);
 check($ids($r) === ['bg:BG36_362'] && $r['archive'] === 'ok', 'BG36_362 is found through the archive: ' . json_encode($ids($r)));
-check($r['items'][0]['name'] === 'Жертвенный страж гнева' && $r['items'][0]['source'] === 'archive' && str_contains($r['items'][0]['img'], '/uploads/card-tiles/battleground_card/BG36_362'), 'Name, source and tile thumbnail come from the archive');
+check($r['items'][0]['name'] === 'Жертвенный страж гнева' && $r['items'][0]['source'] === 'archive' && str_contains($r['items'][0]['img'], '/uploads/card-history-media/c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png') && !str_contains($r['items'][0]['img'], 'card-tiles'), 'Name, source and a card-shaped thumbnail (not the wide tile) come from the archive');
 check(count($calls) === 2 && str_contains($calls[0], '/api/v1/constructed-cards?q=') && str_contains($calls[1], '/api/v1/cards?q=') && str_contains($calls[0], 'per_page=12'), 'Both modes are queried in one parallel batch: ' . json_encode($calls));
 $count = count($calls);
 $again = $S::run('Жертвенный страж гнева', 'all', $allow);
@@ -65,9 +65,9 @@ unset($cache['hs_cc_cooldown']);
 
 // Invalid rows are dropped; thumbnails must be HTTPS.
 $bad = ['data' => [
-    ['card_id' => 'BG99_001', 'name' => ['ru' => 'Хорошая'], 'images' => ['tile' => 'https://api.kolodahearthstone.com/uploads/card-tiles/x.png']],
+    ['card_id' => 'BG99_001', 'name' => ['ru' => 'Хорошая'], 'images' => ['card' => 'https://api.kolodahearthstone.com/uploads/card-history-media/x.png', 'tile' => 'https://api.kolodahearthstone.com/uploads/card-tiles/x.png']],
     ['card_id' => '../x', 'name' => ['ru' => 'Плохой идентификатор']],
-    ['card_id' => 'BG99_002', 'name' => ['ru' => '<script>alert(1)</script>Имя'], 'images' => ['tile' => 'http://insecure.example/x.png']],
+    ['card_id' => 'BG99_002', 'name' => ['ru' => '<script>alert(1)</script>Имя'], 'images' => ['card' => 'http://insecure.example/x.png']],
     ['card_id' => 'BG99_003', 'name' => 'строка вместо объекта'],
     ['card_id' => 'BG99_004', 'name' => ['ru' => '']],
     'not-an-array',

@@ -291,7 +291,9 @@ try {
   assert.equal(composed.status, 200);
   assert.equal(await providerCalls(), callsBefore, 'Compose never reaches the provider');
   assert.doesNotMatch(JSON.parse(composed.body).data.html, /<img/, 'Unpinned preview shows plates only');
-  assert.equal((await ajax(author, { mode: 'resolve', card: 'BE_036', cardMode: 'constructed', date: '2026-11-04T09:18' })).status, 200);
+  // A moment no earlier run cached, so a reused site cannot hide the provider call.
+  const unseen = `2026-11-05T${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`;
+  assert.equal((await ajax(author, { mode: 'resolve', card: 'BE_036', cardMode: 'constructed', date: unseen })).status, 200);
   assert.ok(await providerCalls() > callsBefore, 'Only resolve talks to the provider');
   let archiveLimited = false;
   for (let index = 0; index < 95 && !archiveLimited; index++) {

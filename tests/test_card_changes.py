@@ -78,6 +78,19 @@ class CardChangesTest(unittest.TestCase):
         self.assertIn("resolve_live", admin)
         self.assertNotIn("aria-live", re.search(r'<div id="hs-cc-preview"[^>]*>', (PLUGIN / "dialog.php").read_text(encoding="utf-8")).group(0))
 
+    def test_staging_probe_is_staging_only_and_cleans_up(self):
+        probe = (ROOT / "tests/card-changes/staging.mjs").read_text(encoding="utf-8")
+        self.assertIn("base !== 'https://test.hs-manacost.ru'", probe)
+        # The disposable post is removed in `finally`, only when it carries this run's unique marker.
+        final = probe.split("} finally {", 1)[1]
+        self.assertIn("stored.title.raw === marker", final)
+        self.assertIn("?force=true", final)
+        self.assertIn("'private'", probe)
+        self.assertNotIn("'publish'", probe)
+        workflow = (ROOT / ".github/workflows/admin-performance-staging.yml").read_text(encoding="utf-8")
+        self.assertIn("node tests/card-changes/staging.mjs", workflow)
+        self.assertIn("CARD_CHANGES_NAME_SEARCH: ${{ github.ref == 'refs/heads/main' && 'required' || 'optional' }}", workflow)
+
     def test_ajax_boundary_requires_nonce_and_capability(self):
         admin = (PLUGIN / "admin.php").read_text(encoding="utf-8")
         self.assertIn("check_ajax_referer( 'hs_card_changes', 'nonce' )", admin)

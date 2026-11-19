@@ -175,14 +175,15 @@ final class HS_Card_Changes_Search {
 	}
 
 	/**
-	 * Best small image of an archive card: the tile, else the card render.
+	 * Card-shaped thumbnail straight from the search response (no extra request): the card render, else the framed art.
+	 * The wide list "tile" is not used; it renders as a thin bar next to the portrait dictionary thumbnails.
 	 *
 	 * @param array<mixed> $entry Archive row.
 	 * @return mixed
 	 */
 	private static function thumbnail_of( array $entry ) {
 		$images = is_array( $entry['images'] ?? null ) ? $entry['images'] : array();
-		return $images['tile'] ?? $images['card'] ?? null;
+		return $images['card'] ?? $images['framed'] ?? null;
 	}
 
 	/**

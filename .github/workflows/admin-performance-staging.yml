@@ -75,6 +75,27 @@ jobs:
             .artifacts/article-cards/staging-failure.png
           if-no-files-found: ignore
           retention-days: 14
+      - name: Verify card changes on protected staging
+        if: always() && steps.credentials.outputs.enabled == 'true'
+        env:
+          PLAYWRIGHT_EXECUTABLE_PATH: ''
+          # A branch run against staging does not deploy the branch: name search may then fall back to the identifier.
+          CARD_CHANGES_NAME_SEARCH: ${{ github.ref == 'refs/heads/main' && 'required' || 'optional' }}
+          WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
+          WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+        run: node tests/card-changes/staging.mjs
+      - name: Upload card changes staging evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-changes-staging
+          path: |
+            .artifacts/card-changes/staging-report.json
+            .artifacts/card-changes/staging-failure.png
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Collect five comparable warm staging samples
         if: always() && steps.credentials.outputs.enabled == 'true'
         env:
