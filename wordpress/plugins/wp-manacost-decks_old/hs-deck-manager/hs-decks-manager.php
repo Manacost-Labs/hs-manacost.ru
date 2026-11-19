@@ -5236,7 +5236,10 @@ class HS_Decks_Manager {
      * Источник «Других колод»: тот же архетип и режим, а для колод без настоящего
      * архетипа — тот же класс и режим. Видимость — как в ленте.
      *
-     * @return array{filters: array, title: string, all_url: string, all_label: string}|null
+     * «Все колоды архетипа» ведёт на HearthPulse (страница архетипа или список формата);
+     * на сайте остаются только Потасовка и запасной вариант по классу.
+     *
+     * @return array{filters: array, title: string, all_url: string, all_label: string, all_external: bool}|null
      */
     private function get_related_decks_source($post_id) {
         $mode = $this->get_deck_code_mode_data(get_post_meta($post_id, '_deck_code', true), $post_id);
@@ -5252,14 +5255,31 @@ class HS_Decks_Manager {
                 if (in_array($archetype->slug, self::PLACEHOLDER_ARCHETYPE_SLUGS, true)) {
                     continue;
                 }
-                $archetype_url = get_term_link($archetype, 'deck_archetype');
+                $hearthpulse = null;
+                if (class_exists('Unified_HS_Hearthpulse_Archetypes')) {
+                    $hearthpulse_format = Unified_HS_Hearthpulse_Archetypes::format_for_mode_slugs(array($mode_slug));
+                    if ($hearthpulse_format !== '') {
+                        $hearthpulse = Unified_HS_Hearthpulse_Archetypes::link_for_deck(
+                            array($archetype->name, get_the_title($post_id)),
+                            $hearthpulse_format
+                        );
+                    }
+                }
+                if (!empty($hearthpulse['url'])) {
+                    $all_url = $hearthpulse['url'];
+                } else {
+                    $archetype_url = get_term_link($archetype, 'deck_archetype');
+                    $all_url = is_wp_error($archetype_url)
+                        ? $this->get_decks_feed_url(array('hs_archetype' => $archetype->slug, 'hs_mode' => $mode_slug))
+                        : $this->get_archetype_mode_url($archetype_url, $mode_slug);
+                }
+
                 return array(
                     'filters' => array('hs_archetype' => $archetype->slug, 'hs_mode' => $mode_slug),
                     'title' => sprintf('Другие колоды архетипа «%s»', $archetype->name),
-                    'all_url' => is_wp_error($archetype_url)
-                        ? $this->get_decks_feed_url(array('hs_archetype' => $archetype->slug, 'hs_mode' => $mode_slug))
-                        : $this->get_archetype_mode_url($archetype_url, $mode_slug),
+                    'all_url' => $all_url,
                     'all_label' => 'Все колоды архетипа',
+                    'all_external' => !empty($hearthpulse['url']),
                 );
             }
         }
@@ -5275,6 +5295,7 @@ class HS_Decks_Manager {
             'title' => sprintf('Другие колоды: %s, %s', $class->name, hs_mb_lower($mode_name)),
             'all_url' => $this->get_decks_feed_url(array('hs_class' => $class->slug, 'hs_mode' => $mode_slug)),
             'all_label' => 'Все такие колоды',
+            'all_external' => false,
         );
     }
 
@@ -5369,7 +5390,11 @@ class HS_Decks_Manager {
         return '<section class="hs-deck-related" aria-labelledby="' . esc_attr($heading_id) . '">'
             . '<div class="hs-deck-related-head">'
             . '<h2 class="hs-deck-related-heading" id="' . esc_attr($heading_id) . '">' . esc_html($source['title']) . '</h2>'
-            . '<a class="hs-deck-related-all" href="' . esc_url($source['all_url']) . '">' . esc_html($source['all_label']) . '<span aria-hidden="true"> →</span></a>'
+            . '<a class="hs-deck-related-all" href="' . esc_url($source['all_url']) . '"'
+            . (!empty($source['all_external']) ? ' target="_blank" rel="noopener"' : '') . '>'
+            . esc_html($source['all_label']) . '<span aria-hidden="true"> →</span>'
+            . (!empty($source['all_external']) ? '<span class="screen-reader-text"> на HearthPulse (откроется в новой вкладке)</span>' : '')
+            . '</a>'
             . '</div>'
             . '<ul class="hs-deck-related-list">' . $items . '</ul>'
             . '</section>';

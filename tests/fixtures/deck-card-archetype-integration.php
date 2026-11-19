@@ -233,8 +233,8 @@ foreach (array(array('chistyj-paladin', 'standart', '0'), array('chistyj-paladin
 $card_page_html = $card_page_panel->invoke($card_manager, $card_deck_ids[0]);
 hs_integration_assert(
     strpos($card_page_html, '>Другие колоды архетипа «Чистый Паладин»</h2>') !== false
-        && (bool) preg_match('#class="hs-deck-related-all" href="[^"]*/deck-archetype/chistyj-paladin/\?hs_mode=standart"#', $card_page_html),
-    'related block must name the archetype and link to its page'
+        && strpos($card_page_html, 'class="hs-deck-related-all" href="https://hearthpulse.net/standard/archetypes/standard/pure-paladin/" target="_blank" rel="noopener"') !== false,
+    'related block must name the archetype and link to its HearthPulse page'
 );
 hs_integration_assert(substr_count($card_page_html, 'class="hs-deck-related-item"') === 2, 'related block must list only visible decks of the same archetype and format');
 hs_integration_assert(strpos($card_page_html, 'href="' . esc_url(get_permalink($card_deck_ids[0])) . '"') === false, 'related block must not link to the deck itself');
