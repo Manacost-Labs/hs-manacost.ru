@@ -218,8 +218,9 @@ echo json_encode($GLOBALS['assets']);'''
             )
         )
         # Privacy controls now live only in the account bundle instead of every
-        # article; keep the aggregate source guard below 156 KiB.
-        self.assertLessEqual(sum(path.stat().st_size for path in assets), 156_000)
+        # article. The guard grew by 8 KB for the comment send/reaction motion
+        # and in-place reaction updates; keep it tight.
+        self.assertLessEqual(sum(path.stat().st_size for path in assets), 164_000)
         self.assertLessEqual((PHP.parent / 'bootstrap.js').stat().st_size, 2_500)
         # Loaded on every public page, so it keeps its own small guard.
         self.assertLessEqual((PHP.parent / 'header-session.js').stat().st_size, 2_700)

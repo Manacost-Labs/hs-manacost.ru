@@ -52,13 +52,17 @@ test('loopback editorial endpoints expose only signed WordPress predicates', () 
   const source = readFileSync(new URL('../../../ops/reader/internal-editorial.conf', import.meta.url), 'utf8');
   for (const contract of ['listen 127.0.0.1:18184;', 'listen 127.0.0.1:18185;',
     'location ~ ^/wp-json/manacost-reader/v1/(?:threads|favorites)$',
-    'limit_except POST { deny all; }', 'fastcgi_param HTTP_AUTHORIZATION $http_authorization;',
+    'limit_except POST { deny all; }', 'fastcgi_param HTTP_AUTHORIZATION "";',
     'fastcgi_param HTTP_HOST hs-manacost.ru;', 'fastcgi_param HTTP_HOST test.hs-manacost.ru;',
     'fastcgi_param HTTP_ORIGIN "";', 'fastcgi_param HTTP_COOKIE "";',
     'fastcgi_pass unix:/var/www/php-fpm/hs-manacost-php84.sock;', 'fastcgi_cache off;',
     'access_log off;', 'return 404;']) assert.ok(source.includes(contract), contract);
   assert.equal(source.includes('proxy_pass'), false);
   assert.equal(source.includes('auth_basic'), false);
+  // WordPress treats a forwarded Basic header (or any PHP_AUTH_USER) as an application-password login.
+  assert.equal(source.includes('$http_authorization'), false);
+  assert.equal(/PHP_AUTH_(USER|PW)/.test(source), false);
+  assert.equal(source.match(/fastcgi_param HTTP_AUTHORIZATION "";/g)?.length, 2);
 });
 
 test('production edge reader location uses a dedicated verified origin pool', () => {

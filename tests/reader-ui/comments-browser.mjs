@@ -123,8 +123,10 @@ try {
     assert.ok(gap >= 0 && gap <= 12, `header/body gap at ${width}px: ${gap}`);
     const textLeft = width <= 560 ? layout.avatar.left : layout.name.left;
     assert.ok(Math.abs(layout.body.left - textLeft) < 1, 'body follows the responsive identity alignment');
-    assert.ok(Math.abs(layout.actions.left - textLeft) < 1, 'comment actions share the text alignment');
-    assert.ok(Math.abs(layout.reactions.left - textLeft) < 1, 'comment reactions share the text alignment');
+    assert.ok(Math.abs(layout.reactions.left - textLeft) < 1, 'comment reactions lead the footer at the text alignment');
+    assert.ok(layout.actions.left >= layout.reactions.right, 'comment actions follow the reactions');
+    assert.ok(Math.abs((layout.actions.top + layout.actions.height / 2) - (layout.reactions.top + layout.reactions.height / 2)) <= 1,
+      `reactions and actions share one footer row at ${width}px`);
     assert.ok(layout.paddingTop <= 20, `comment top padding stays compact at ${width}px: ${layout.paddingTop}`);
     for (const key of ['name', 'time', 'paid']) {
       assert.ok(layout[key].left >= layout.header.left && layout[key].right <= layout.header.right,
