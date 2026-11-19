@@ -75,18 +75,25 @@ try {
   await page.locator('#hs-cc-date').fill(PATCH);
   await page.locator('#hs-cc-search').fill('М');
   await page.getByText('Введите хотя бы две буквы названия.').first().waitFor();
-  for (const [query, id] of [['Матриарх', 'BE_036'], ['Костоправ', 'JAIL_444'], ['Рыцарь-гибрид', 'BE_285']]) {
+  const addByName = async (query, id) => {
     await page.locator('#hs-cc-search').fill(query);
     const choice = page.locator('.hs-ccd-result', { hasText: id });
     await choice.first().waitFor();
     await choice.first().click();
-  }
-  // Battlegrounds names resolve through the same catalog; cards newer than the bundled dictionary are added by identifier.
-  await page.locator('#hs-cc-search').fill('Злобный страж гнева');
-  await page.locator('.hs-ccd-result', { hasText: 'BG35_155' }).first().waitFor();
-  assert.match(await page.locator('.hs-ccd-result', { hasText: 'BG35_155' }).first().innerText(), /Поля сражений/);
-  await page.locator('#hs-cc-id').fill('BG36_362');
+  };
+  await addByName('Матриарх', 'BE_036');
+  assert.ok(await page.locator('.hs-ccd-result').count() > 3, 'The archive adds cards the dictionary does not list (Matriarch has ten matches)');
+  // The identifier field stays as the last fallback.
+  await page.locator('#hs-cc-id').fill('JAIL_444');
   await page.getByRole('button', { name: 'Добавить по идентификатору', exact: true }).click();
+  await addByName('Рыцарь-гибрид', 'BE_285');
+  // A new Battlegrounds season is absent from the bundled dictionary but found by its Russian name through the archive.
+  await page.locator('#hs-cc-search').fill('Жертвенный страж гнева');
+  const wrathguard = page.locator('.hs-ccd-result', { hasText: 'BG36_362' });
+  await wrathguard.first().waitFor();
+  assert.match(await wrathguard.first().innerText(), /Поля сражений/);
+  await page.screenshot({ path: `${shots}/editor-search-archive-1440.png` });
+  await wrathguard.first().click();
   await rowsReady(page, 4);
   const states = await page.locator('.hs-ccd-state').allInnerTexts();
   assert.ok(states.every(text => text.startsWith('До — 2026-10-')), `Every card resolved a before/after pair: ${states.join(' | ')}`);
@@ -286,6 +293,12 @@ try {
   assert.doesNotMatch(JSON.parse(composed.body).data.html, /<img/, 'Unpinned preview shows plates only');
   assert.equal((await ajax(author, { mode: 'resolve', card: 'BE_036', cardMode: 'constructed', date: '2026-11-04T09:18' })).status, 200);
   assert.ok(await providerCalls() > callsBefore, 'Only resolve talks to the provider');
+  let archiveLimited = false;
+  for (let index = 0; index < 95 && !archiveLimited; index++) {
+    const found = JSON.parse((await ajax(author, { mode: 'search', term: `Поиск ${index} нет такой`, kind: 'all' })).body);
+    archiveLimited = found.data.archive === 'limited';
+  }
+  assert.ok(archiveLimited, 'Archive queries are rate limited per editor and fall back to the dictionary');
   let limited = 0;
   // The limit is per minute bucket: allow two buckets so a minute boundary cannot hide the limiter.
   for (let index = 0; index < 125 && !limited; index++) {

@@ -169,6 +169,54 @@ final class HS_Card_Changes_Source {
 	}
 
 	/**
+	 * Editor search (admin AJAX only): GET provider list endpoints in parallel through the same bounded transport.
+	 *
+	 * Honours the kill switch, WP_HTTP_BLOCK_EXTERNAL and the provider cooldown; a failure starts the cooldown.
+	 *
+	 * @param array<string,string> $paths Provider paths with query strings, keyed by caller identifier.
+	 * @return array<string,list<mixed>|null> Rows per identifier; null when the provider failed or is unavailable.
+	 */
+	public static function get_lists( array $paths ): array {
+		$out = array_fill_keys( array_keys( $paths ), null );
+		if ( ! $paths || self::disabled() || false !== get_transient( 'hs_cc_cooldown' ) ) {
+			return $out;
+		}
+		$urls = array();
+		foreach ( $paths as $id => $path ) {
+			$urls[ $id ] = self::origin() . $path;
+		}
+		foreach ( self::http( $urls ) as $id => $response ) {
+			$out[ $id ] = self::decode_list( $response );
+		}
+		return $out;
+	}
+
+	/**
+	 * Validate a list response. A missing list (404) is an empty result, never an outage.
+	 *
+	 * @param array{status:int,type:string,body:string,retry:int}|null $response Normalized response.
+	 * @return list<mixed>|null
+	 */
+	private static function decode_list( ?array $response ): ?array {
+		if ( null === $response ) {
+			self::fail( 60, 'unavailable' );
+			return null;
+		}
+		if ( 404 === $response['status'] ) {
+			return array();
+		}
+		$data = 200 === $response['status'] && strlen( $response['body'] ) <= self::MAX_BODY && 1 === preg_match( '#^application/json(?:\s*;|$)#i', $response['type'] )
+			? json_decode( $response['body'], true, 32 ) : null;
+		$rows = is_array( $data ) ? ( $data['data'] ?? null ) : null;
+		if ( ! is_array( $rows ) || ! array_is_list( $rows ) || count( $rows ) > 200 ) {
+			self::fail( 200 === $response['status'] ? 60 : $response['retry'], 'http_' . $response['status'] );
+			return null;
+		}
+		do_action( 'hs_card_changes_provider_result', 'success' );
+		return $rows;
+	}
+
+	/**
 	 * Fetch the first history page of each card in parallel and resolve them.
 	 *
 	 * @param array<string,array{0:string,1:string,2:string}> $chunk Requests keyed by cache key.

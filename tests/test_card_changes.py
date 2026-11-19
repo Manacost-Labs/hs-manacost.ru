@@ -20,6 +20,23 @@ class CardChangesTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(result.stdout.strip(), "PASS")
 
+    def test_archive_search_merges_dictionary_and_archive(self):
+        result = subprocess.run(
+            ["php", "tests/fixtures/card-changes-search.php"], cwd=ROOT,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "PASS")
+
+    def test_search_uses_the_bounded_transport_and_throttle(self):
+        search = (PLUGIN / "search.php").read_text(encoding="utf-8")
+        self.assertIn("HS_Card_Changes_Source::get_lists", search)
+        self.assertNotIn("wp_remote_get", search)
+        self.assertNotIn("wp_safe_remote_get", search)
+        admin = (PLUGIN / "admin.php").read_text(encoding="utf-8")
+        self.assertIn("throttled( 'search' )", admin)
+        self.assertIn("HS_Card_Changes_Search::run", admin)
+
     def test_public_stylesheet_is_transparent_and_mobile_single_column(self):
         css = (PLUGIN / "card-changes.css").read_text(encoding="utf-8")
         self.assertRegex(css, r"\.hs-cc \{[^}]*background: transparent;[^}]*\}")

@@ -12,6 +12,7 @@ final class HS_Card_Changes_Admin {
 	private const MAX_ITEMS           = 12;
 	private const RESOLVES_PER_MINUTE = 60;
 	private const COMPOSES_PER_MINUTE = 120;
+	private const SEARCHES_PER_MINUTE = 40;
 
 	/** Register the supported WordPress extension points. */
 	public static function register(): void {
@@ -164,60 +165,36 @@ final class HS_Card_Changes_Admin {
 	/**
 	 * Per-editor, per-minute limits: resolve may reach the provider, compose is only CPU, so its limit is higher.
 	 *
-	 * @param string $mode "resolve" or "compose".
+	 * @param string $mode "resolve", "compose" or "search" (archive queries only).
 	 */
 	private static function throttled( string $mode ): bool {
 		$key   = 'hs_cc_rate_' . $mode . '_' . get_current_user_id() . '_' . (int) floor( time() / MINUTE_IN_SECONDS );
 		$count = (int) get_transient( $key );
 		set_transient( $key, $count + 1, 2 * MINUTE_IN_SECONDS );
-		return $count >= ( 'resolve' === $mode ? self::RESOLVES_PER_MINUTE : self::COMPOSES_PER_MINUTE );
+		$limits = array(
+			'resolve' => self::RESOLVES_PER_MINUTE,
+			'compose' => self::COMPOSES_PER_MINUTE,
+			'search'  => self::SEARCHES_PER_MINUTE,
+		);
+		return $count >= $limits[ $mode ];
 	}
 
 	/**
-	 * Search Russian names in the hs-tooltip catalogs (Constructed and Battlegrounds).
+	 * Search Russian names: the hs-tooltip dictionary first, the card archive as the second source.
 	 *
 	 * @param string $term Search text.
 	 * @param string $kind "all", "constructed" or "bg".
-	 * @return array{items:list<array<string,string>>}|WP_Error|null
+	 * @return array{items:list<array<string,string>>,archive:string,dictionary:bool}|WP_Error|null
 	 */
 	private static function search( string $term, string $kind ) {
 		if ( ! in_array( $kind, array( 'all', 'constructed', 'bg' ), true ) ) {
 			return null;
 		}
-		if ( ! function_exists( 'hs_smart_tooltip_get_search_catalog' ) || ! function_exists( 'hs_smart_tooltip_get_bgs_search_catalog' ) || ! function_exists( 'hs_smart_tooltip_run_search' ) ) {
-			return new WP_Error( 'card_changes_catalog', __( 'Каталог карт недоступен: плагин HS Smart Tooltip не активен.', 'hs-card-changes' ) );
+		$result = HS_Card_Changes_Search::run( $term, $kind, static fn(): bool => ! self::throttled( 'search' ) );
+		if ( ! $result['items'] && ! $result['dictionary'] && in_array( $result['archive'], array( 'unavailable', 'limited' ), true ) ) {
+			return new WP_Error( 'card_changes_catalog', __( 'Каталог карт сейчас недоступен. Добавьте карту по идентификатору или повторите поиск через минуту.', 'hs-card-changes' ) );
 		}
-		if ( mb_strlen( trim( $term ) ) < 2 ) {
-			return array( 'items' => array() );
-		}
-		$items = array();
-		foreach ( array( 'constructed', 'bg' ) as $mode ) {
-			if ( 'all' !== $kind && $kind !== $mode ) {
-				continue;
-			}
-			$catalog = 'bg' === $mode ? hs_smart_tooltip_get_bgs_search_catalog() : hs_smart_tooltip_get_search_catalog();
-			foreach ( hs_smart_tooltip_run_search( $catalog, $term, 12 ) as $entry ) {
-				$id = is_string( $entry['id'] ?? null ) ? $entry['id'] : '';
-				if ( HS_Card_Changes_Pairs::valid_card( $id ) ) {
-					$items[] = array(
-						'id'   => $id,
-						'mode' => $mode,
-						'name' => HS_Card_Changes_Pairs::clean_name( (string) ( $entry['name'] ?? '' ) ),
-						'img'  => self::thumbnail( (string) ( $entry['img'] ?? '' ) ),
-					);
-				}
-			}
-		}
-		return array( 'items' => $items );
-	}
-
-	/**
-	 * Catalog thumbnails are shown only from HTTPS URLs.
-	 *
-	 * @param string $url Catalog image URL.
-	 */
-	private static function thumbnail( string $url ): string {
-		return str_starts_with( $url, 'https://' ) ? esc_url_raw( $url ) : '';
+		return $result;
 	}
 
 	/**

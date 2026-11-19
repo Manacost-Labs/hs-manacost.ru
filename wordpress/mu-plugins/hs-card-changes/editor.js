@@ -9,7 +9,7 @@
 	const results = byId('results'), list = byId('items'), preview = byId('preview'), insert = byId('insert');
 	const columns = byId('columns'), size = byId('size'), captions = byId('captions'), itemsStatus = byId('items-status');
 	const text = {
-		short: 'Введите хотя бы две буквы названия.', loading: 'Загружаем…', empty: 'Ничего не найдено. Проверьте написание.',
+		short: 'Введите хотя бы две буквы названия.', loading: 'Загружаем…', empty: 'Ничего не найдено. Проверьте написание или добавьте карту по идентификатору.',
 		error: 'Не удалось выполнить запрос. Повторите. Если сессия истекла, сохраните текст и войдите снова.',
 		limit: `В статью можно добавить до ${config.maxItems} изменений за раз.`, editorError: 'Редактор ещё не готов. Закройте окно и повторите вставку.',
 		pair: (item) => `До — ${item.before.at} UTC · После — ${item.after.at} UTC`,
@@ -69,7 +69,8 @@
 			const data = await request('search', { mode: 'search', term, kind: kind.value });
 			if (ticket !== searchTicket || !dialog.open) return;
 			for (const found of data.items) results.append(resultRow(found));
-			status.textContent = data.items.length ? `Найдено: ${data.items.length}. Нажмите на карту, чтобы добавить.` : text.empty;
+			const note = { unavailable: ' Архив карт сейчас недоступен — показан только словарь.', limited: ' Архив карт временно не опрашивается (слишком много запросов) — показан только словарь.' }[data.archive] || '';
+			status.textContent = (data.items.length ? `Найдено: ${data.items.length}. Нажмите на карту, чтобы добавить.` : text.empty) + note;
 		} catch (error) {
 			if (ticket === searchTicket && error.name !== 'AbortError') status.textContent = error.message;
 		}
