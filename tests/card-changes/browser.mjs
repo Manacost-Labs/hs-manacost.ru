@@ -287,7 +287,8 @@ try {
   assert.equal((await ajax(author, { mode: 'resolve', card: 'BE_036', cardMode: 'constructed', date: '2026-11-04T09:18' })).status, 200);
   assert.ok(await providerCalls() > callsBefore, 'Only resolve talks to the provider');
   let limited = 0;
-  for (let index = 0; index < 70; index++) {
+  // The limit is per minute bucket: allow two buckets so a minute boundary cannot hide the limiter.
+  for (let index = 0; index < 125 && !limited; index++) {
     const response = await ajax(author, { mode: 'resolve', card: 'BE_285', cardMode: 'constructed', date: `2026-11-03T15:${String(index % 60).padStart(2, '0')}` });
     if (response.status === 429) limited++;
   }
@@ -299,7 +300,7 @@ try {
   const noNonce = await author.evaluate(async () => (await fetch(window.hsCardChanges.url, { method: 'POST', body: new URLSearchParams({ action: 'hs_card_changes', nonce: '0000000000', postId: window.hsCardChanges.postId, mode: 'search', term: 'Матриарх', kind: 'all' }) })).status);
   assert.equal(noNonce, 403, 'Bad nonce is refused');
   let composeLimited = 0;
-  for (let index = 0; index < 130; index++) if ((await ajax(author, { mode: 'compose', items: unpinned })).status === 429) composeLimited++;
+  for (let index = 0; index < 245 && !composeLimited; index++) if ((await ajax(author, { mode: 'compose', items: unpinned })).status === 429) composeLimited++;
   assert.ok(composeLimited >= 1, 'Compose is throttled per editor too');
   await authorContext.close();
   const subscriberContext = await browser.newContext();
