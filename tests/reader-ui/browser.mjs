@@ -44,7 +44,7 @@ const server = createServer((request, response) => {
 	if (request.url === '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=a1b2c3d4e5f6') {
 		response.writeHead(200, { 'Content-Type': 'image/webp' }); response.end(readFileSync(`${plugin}default-avatar.webp`)); return;
 	}
-	if (/^\/wp-content\/mu-plugins\/hs-manacost-reader\/art\/(emblem-(88|176)|(saved|discuss|profile|login)-(56|112))\.webp$/.test(request.url || '')) {
+	if (/^\/wp-content\/mu-plugins\/hs-manacost-reader\/art\/(emblem-(88|176)|(saved|discuss|profile|login)-(56|112)|hp-flame-72)\.webp$/.test(request.url || '')) {
 		response.writeHead(200, { 'Content-Type': 'image/webp' }); response.end(readFileSync(`${plugin}art/${request.url.split('/').at(-1)}`)); return;
 	}
 	if (request.url?.startsWith('/wp-content/mu-plugins/hs-manacost-reader/class-icons/')) {
