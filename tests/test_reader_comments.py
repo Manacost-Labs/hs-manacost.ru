@@ -64,6 +64,18 @@ require ADAPTER;
         self.assertTrue(self.evaluate("$post->post_content='[private]Скрытый фрагмент[/private]'; echo json_encode(hs_reader_comment_article(17));")['allowed'])
         self.assertEqual(self.evaluate("$post->post_content='[private]Скрытый фрагмент[/private]'; echo json_encode(hs_reader_favorite_article(17));"), {'postId': 17, 'allowed': False})
 
+    def test_favorites_accept_reviewed_presentation_shortcodes_only(self):
+        favorite = "$post->post_content={}; echo json_encode(hs_reader_favorite_article(17));"
+        for content in ('[su_note note_color="#f5f5f5"]Совет[/su_note][hs_bg id="1"]Юнит[/hs_bg]',
+                        '[gallery ids="1,2"][su_spoiler title="Колода"][hs_deck code="AAE"][/su_spoiler]',
+                        '[caption id="a"]<img alt="">Подпись[/caption][su_tabs][su_tab title="1"]Текст[/su_tab][/su_tabs]'):
+            self.assertTrue(self.evaluate(favorite.format(repr(content)))['allowed'], content)
+        for content in ('[su_note]Совет[/su_note][su_member]Только для своих[/su_member]',
+                        '[members_access role="vip"]Платный разбор[/members_access]', '[vip]Платный разбор[/vip]',
+                        '[panelvip]Скрыто[/panelvip]', '[vc_raw_html]PHNjcmlwdD4=[/vc_raw_html]',
+                        '[SU_NOTE]Регистр не совпадает[/SU_NOTE]', 'Текст [Hearthstone] в скобках', '[su_note]Незакрытая [скобка[/su_note]'):
+            self.assertEqual(self.evaluate(favorite.format(repr(content))), {'postId': 17, 'allowed': False}, content)
+
     def test_editorial_disable_flag_overrides_the_default_for_one_article(self):
         result = self.evaluate("$comment_meta[17]['_hs_reader_comments_disabled']='1'; echo json_encode(array(hs_reader_comment_article(17), hs_reader_comment_article(18))); ")
         self.assertEqual(result, [{'postId': 17, 'allowed': False}, {'postId': 18, 'allowed': True, 'title': 'Вторая статья', 'path': '/test-article/'}])

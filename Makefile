@@ -95,6 +95,7 @@ reader-browser-test: lightbox-browser-test
 	@node tests/reader-ui/mcp-oauth-browser.mjs
 	@node tests/reader-ui/browser.mjs
 	@node tests/reader-ui/comments-browser.mjs
+	@node tests/reader-ui/favorite-cover-browser.mjs
 	@node tests/reader-ui/comments-flows.mjs
 	@node tests/reader-ui/community-browser.mjs
 	@node tests/reader-ui/header-session-browser.mjs

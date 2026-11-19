@@ -40,3 +40,15 @@
 @media (max-width: 430px) {
   .mc-article-favorite .mc-ui-button { width: 100%; }
 }
+/* Cover variant: a quiet chip after the view counter, in the meta row's own type. */
+body:has(.td-post-title > .td-module-meta-info) .mc-article-favorite:not(.mc-article-favorite--meta) { display: none; }
+.mc-reader-ui.mc-article-favorite--meta { position: relative; display: inline-flex; vertical-align: top; width: auto; margin: -7px 0 -7px 18px; color: inherit; font: inherit; }
+.mc-article-favorite--meta .mc-ui-button.mc-article-favorite__button { position: relative; gap: 6px; min-width: 0; min-height: 30px; padding: 0 12px 0 10px; border: 1px solid #fff5; border-radius: 99px; background: #0e161f66; color: #fff; font-size: 12px; font-weight: 600; line-height: 1; font-family: inherit; white-space: nowrap; backdrop-filter: blur(6px); }
+.mc-article-favorite--meta .mc-ui-button.mc-article-favorite__button::before { content: ""; position: absolute; inset: -8px -4px; }
+.mc-article-favorite--meta .mc-ui-button.mc-article-favorite__button:hover:not(:disabled) { border-color: #f2c766; background: #0e161f99; color: #fff; }
+.mc-article-favorite--meta .mc-ui-button.mc-article-favorite__button:focus-visible { outline: 2px solid #f2c766; outline-offset: 2px; }
+.mc-article-favorite--meta .mc-ui-button.mc-article-favorite__button[aria-pressed="true"], .mc-article-favorite--meta .mc-ui-button.mc-article-favorite__button[aria-pressed="true"]:hover:not(:disabled) { border-color: #f2c766cc; background: #0e161f88; color: #ffe6a8; }
+.mc-article-favorite--meta .mc-article-favorite__icon { width: 15px; height: 15px; }
+.mc-article-favorite--meta [aria-pressed="true"] .mc-article-favorite__icon { fill: #f2c766; stroke: #f2c766; }
+.mc-article-favorite--meta .mc-article-favorite__status { position: absolute; z-index: 3; right: 0; bottom: calc(100% + 8px); width: max-content; max-width: min(280px, 100vw - 32px); padding: 6px 10px; border-radius: 6px; background: #0c121aeb; color: #fff; font: 500 12px/1.4 var(--mc-ui-body); }
+@media (max-width: 430px) { .mc-article-favorite.mc-article-favorite--meta .mc-ui-button { width: auto; } .mc-reader-ui.mc-article-favorite--meta { margin-left: 14px; } }

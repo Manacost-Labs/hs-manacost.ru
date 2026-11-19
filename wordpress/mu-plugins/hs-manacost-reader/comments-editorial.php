@@ -22,16 +22,29 @@ function hs_reader_comments_enabled(): bool {
 /**
  * Keep favorite eligibility conservative without limiting the separate discussion shell.
  *
+ * Only reviewed presentation shortcodes pass; membership/VIP gates, raw HTML and
+ * any unknown bracket text keep the article out of favorites.
+ *
  * @param string $content Stored article content.
  */
 function hs_reader_comment_content_is_safe( string $content ): bool {
 	if ( ! str_contains( $content, '[' ) ) {
 		return true;
 	}
-	$remaining = preg_replace_callback(
+	$presentation = array_flip(
+		array(
+			'su_note', 'su_spoiler', 'su_panel', 'su_quote', 'su_pullquote', 'su_box', 'su_tabs', 'su_tab', 'su_accordion',
+			'su_divider', 'su_row', 'su_column', 'su_table', 'su_list', 'su_heading', 'su_highlight', 'su_button',
+			'su_icon', 'su_icon_panel', 'su_icon_text', 'su_progress_bar', 'su_frame', 'su_youtube', 'su_youtube_advanced',
+			'su_custom_gallery', 'su_slider', 'su_carousel', 'su_content_slider', 'su_content_slide',
+			'gallery', 'caption', 'embed', 'video', 'vc_row', 'vc_column', 'vc_column_text', 'vc_empty_space',
+			'hs_bg', 'hs_card', 'hs_deck', 'hs_deck_group', 'spoiler',
+		)
+	);
+	$remaining    = preg_replace_callback(
 		'/\[(\/)?([A-Za-z][A-Za-z0-9_-]*)(?:\s+[^\[\]]*)?\]/',
-		static function ( array $shortcode ): string {
-			return 'su_quote' === $shortcode[2] ? '' : $shortcode[0];
+		static function ( array $shortcode ) use ( $presentation ): string {
+			return isset( $presentation[ $shortcode[2] ] ) ? '' : $shortcode[0];
 		},
 		$content
 	);

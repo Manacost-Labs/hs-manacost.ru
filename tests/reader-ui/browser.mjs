@@ -44,6 +44,9 @@ const server = createServer((request, response) => {
 	if (request.url === '/wp-content/mu-plugins/hs-manacost-reader/default-avatar.webp?ver=a1b2c3d4e5f6') {
 		response.writeHead(200, { 'Content-Type': 'image/webp' }); response.end(readFileSync(`${plugin}default-avatar.webp`)); return;
 	}
+	if (/^\/wp-content\/mu-plugins\/hs-manacost-reader\/art\/(emblem-(88|176)|(saved|discuss|profile|login)-(56|112))\.webp$/.test(request.url || '')) {
+		response.writeHead(200, { 'Content-Type': 'image/webp' }); response.end(readFileSync(`${plugin}art/${request.url.split('/').at(-1)}`)); return;
+	}
 	if (request.url?.startsWith('/wp-content/mu-plugins/hs-manacost-reader/class-icons/')) {
 		const name = request.url.split('/').at(-1);
 		if (/^(deathknight|demonhunter|druid|hunter|mage|paladin|priest|rogue|shaman|warlock|warrior)\.png$/.test(name || '')) {
@@ -250,13 +253,20 @@ try {
     if ([390, 1440].includes(width)) await capture(`guest-${width}`);
   }
   await capture('guest');
-  assert.equal(await page.getByRole('heading', { name: 'Ваш профиль на Манакосте', level: 2 }).isVisible(), true, 'guests see what the cabinet offers');
+  assert.equal(await page.getByRole('heading', { name: 'Сохраняйте гайды и обсуждайте колоды', level: 2 }).isVisible(), true, 'guests see what the cabinet offers');
+  assert.equal(await page.locator('.mc-reader__benefit:visible').count(), 4, 'guests see every profile benefit');
+  assert.equal(await page.locator('.mc-reader__gate img').evaluateAll(images => images.length === 5 && images.every(image => image.complete && image.naturalWidth > 0 && image.alt === '')), true,
+    'decorative gold art loads and stays out of the accessible name');
+  assert.equal(await page.evaluate(() => {
+    const top = selector => document.querySelector(selector).getBoundingClientRect().top;
+    return top('.mc-reader__guest-hero') < top('.mc-reader__actions') && top('.mc-reader__actions') < top('.mc-reader__benefits');
+  }), true, 'the login action sits between the invitation and the benefits');
   await page.goto(`${origin}/?login=failed`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.querySelector('[data-reader-status]').textContent !== 'Проверяем вход…');
   assert.match(await status.textContent(), /Не получилось завершить вход через HearthPulse/);
   assert.equal(new URL(page.url()).search, '', 'the failure marker is removed so a reload shows the normal prompt');
   await ready();
-  assert.equal(await status.textContent(), 'Войдите через HearthPulse, чтобы открыть свой профиль.');
+  assert.equal(await status.textContent(), 'После входа вы сразу вернётесь в кабинет.');
   assert.equal(await page.getByRole('heading', { name: 'Личный кабинет', level: 1 }).count(), 1);
   assert.equal(await page.getByText('Профиль Манакоста', { exact: true }).count(), 0);
   assert.equal(await page.getByRole('heading', { name: 'Сохранённые статьи', level: 2 }).count(), 0, 'unavailable future navigation must not be rendered');
