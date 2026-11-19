@@ -408,6 +408,16 @@
       "checks": ["make code-quality", "make contracts", "make visual", "./ops/smoke-check.sh staging"]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-google-preferred-source.php", "wordpress/mu-plugins/hs-google-preferred-source/**", "tests/test_google_preferred_source.py"],
+      "owner": "public-google-preferred-source",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "responsive-ui", "accessibility"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-responsive-experience", "wordpress-accessibility", "wordpress-ads-analytics", "wp-plugin-development", "playwright"],
+      "checks": ["make code-quality", "make contracts", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/hs-manacost-pwa.php", "public/manifest.webmanifest", "public/service-worker.js", "public/offline.html", "public/favicon.ico", "public/pwa-icons/**", "tests/test_pwa.py"],
       "owner": "public-pwa",
       "classified": true,
