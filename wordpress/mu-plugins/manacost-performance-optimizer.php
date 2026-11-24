@@ -413,7 +413,8 @@ final class Manacost_Performance_Optimizer {
 	 * @return string
 	 */
 	private static function mobile_size_url( string $url ): string {
-		$result = preg_replace( '/-1068x542(?=\.(?:jpe?g|png|webp)(?:[?#]|$))/i', '-696x353', $url, 1 );
+		// Request the native small image so Nginx can negotiate an available format for this size.
+		$result = preg_replace( '/^([^?#]*)-1068x542\.(jpe?g|png|webp)(?:\.(?:webp|avif))?(?=[?#]|$)/i', '$1-696x353.$2', $url, 1 );
 		return $result && $result !== $url ? $result : $url;
 	}
 

@@ -77,7 +77,8 @@ class PerformanceOptimizerTest(unittest.TestCase):
         $style = '<style>@font-face{font-family:Test;src:url(font.woff2)}h1{font-family:Test}</style>';
         $html = '<html><head>' . $style . '</head><body><div class="td-big-grid-flex">';
         for ($index = 1; $index <= 3; ++$index) {
-          $html .= '<a class="td-image-wrap" title="Статья &amp; ' . $index . '"><span class="entry-thumb td-thumb-css" data-bg="https://hs-manacost.ru/wp-content/uploads/grid-' . $index . '-1068x542.jpg"></span></a>';
+          $extension = 1 === $index ? 'png.webp?ver=fixture' : 'jpg';
+          $html .= '<a class="td-image-wrap" title="Статья &amp; ' . $index . '"><span class="entry-thumb td-thumb-css" data-bg="https://hs-manacost.ru/wp-content/uploads/grid-' . $index . '-1068x542.' . $extension . '"></span></a>';
         }
         $html .= '</div></body></html>';
         $outputs = [];
@@ -105,14 +106,15 @@ class PerformanceOptimizerTest(unittest.TestCase):
             self.assertEqual(2, len(images))
             self.assertEqual(["high", "high"], [image.get("fetchpriority") for image in images])
             for index, image in enumerate(images, 1):
-                self.assertEqual(f"https://hs-manacost.ru/wp-content/uploads/grid-{index}-1068x542.jpg", image["src"])
+                extension = "png.webp?ver=fixture" if index == 1 else "jpg"
+                self.assertEqual(f"https://hs-manacost.ru/wp-content/uploads/grid-{index}-1068x542.{extension}", image["src"])
                 self.assertEqual("1068", image["width"])
                 self.assertEqual("542", image["height"])
                 self.assertEqual("eager", image["loading"])
                 self.assertEqual("Статья & " + str(index), image["alt"])
                 self.assertEqual("(max-width: 767px) 100vw, 50vw", image["sizes"])
             sources = [attributes for tag, attributes in tags.rows if tag == "source"]
-            self.assertEqual([f"https://hs-manacost.ru/wp-content/uploads/grid-{index}-696x353.jpg" for index in [1, 2]], [source["srcset"] for source in sources])
+            self.assertEqual(["https://hs-manacost.ru/wp-content/uploads/grid-1-696x353.png?ver=fixture", "https://hs-manacost.ru/wp-content/uploads/grid-2-696x353.jpg"], [source["srcset"] for source in sources])
             preloads = [attrs for tag, attrs in tags.rows if tag == "link" and attrs.get("as") == "image"]
             self.assertEqual(2, len(preloads))
             by_media = {attrs["media"]: attrs["href"] for attrs in preloads}
