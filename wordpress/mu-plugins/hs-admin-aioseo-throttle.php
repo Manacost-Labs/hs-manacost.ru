@@ -47,12 +47,12 @@ function hs_admin_aioseo_reuse_maintenance_pass(): void {
 	}
 
 	$key = get_current_user_id() . ':' . determine_locale();
-	if ( true !== wp_cache_get( $key, 'hs_aioseo_maintenance' ) ) {
+	if ( 'completed' !== wp_cache_get( $key, 'hs_aioseo_maintenance' ) ) {
 		// Record completion after the native callbacks. A failed request can retry immediately.
 		add_action(
 			'admin_init',
 			static function () use ( $key ) {
-				wp_cache_set( $key, true, 'hs_aioseo_maintenance', MINUTE_IN_SECONDS );
+				wp_cache_set( $key, 'completed', 'hs_aioseo_maintenance', MINUTE_IN_SECONDS );
 			},
 			PHP_INT_MAX
 		);
