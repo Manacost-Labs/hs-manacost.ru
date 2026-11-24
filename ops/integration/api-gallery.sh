@@ -37,7 +37,7 @@ export WP_TEST_AUTHOR_PASSWORD
 printf 'WP_TEST_AUTHOR_USER=gallery-author\nWP_TEST_AUTHOR_PASSWORD=%s\n' "$WP_TEST_AUTHOR_PASSWORD" >> .artifacts/integration/runtime.env
 "${compose[@]}" run --rm --env WP_TEST_AUTHOR_PASSWORD cli eval-file /var/www/html/.integration/api-gallery.php > .artifacts/api-gallery/integration-report.json
 cp tests/api-gallery/bootstrap.php "$site/wp-content/mu-plugins/zz-api-gallery-fixture.php"
-"${docker_command[@]}" run --rm --network host --ipc=host --cpus=1 --memory=1g --pids-limit=256 \
+"${docker_command[@]}" run --rm --network host --ipc=host --cpus=1 --memory=2g --pids-limit=256 \
     --env HS_GALLERY_PERF_PHASE="${HS_GALLERY_PERF_PHASE:-after}" \
     --env HS_GALLERY_PERF_SAMPLES="${HS_GALLERY_PERF_SAMPLES:-5}" \
     -v "$ROOT_DIR:/work" -w /work \
