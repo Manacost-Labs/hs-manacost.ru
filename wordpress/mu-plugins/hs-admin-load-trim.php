@@ -94,6 +94,69 @@ function hs_admin_load_trim_dedupe_aioseo_data( $handles ) {
 }
 add_filter( 'print_scripts_array', 'hs_admin_load_trim_dedupe_aioseo_data', 99 );
 
+/**
+ * Reuse the public AIOSEO language dictionary across post-editor navigations.
+ * Only the exact dictionary produced by AIOSEO's gettext helper can create a file.
+ * Post settings, SEO data and every other inline assignment remain on the page.
+ *
+ * @param string $hook Current admin screen.
+ */
+function hs_admin_load_trim_editor_dictionary( $hook ): void {
+	if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) || ! function_exists( 'aioseo' ) ) {
+		return;
+	}
+	$handle  = 'aioseo/js/src/vue/standalone/app/main.js';
+	$scripts = wp_scripts();
+	$data    = $scripts->get_data( $handle, 'data' );
+	if ( ! is_string( $data ) || strlen( $data ) < 131072 || ! str_starts_with( $data, 'var aioseoTranslations = ' ) ) {
+		return;
+	}
+
+	$hash      = hash( 'sha256', $data );
+	$directory = WP_CONTENT_DIR . '/hs-editor-assets';
+	$filename  = 'aioseo-' . $hash . '.js';
+	$path      = $directory . '/' . $filename;
+	if ( is_link( $directory ) || is_link( $path ) ) {
+		return;
+	}
+	if ( ! is_file( $path ) ) {
+		$helpers = aioseo()->helpers;
+		if ( ! is_object( $helpers ) || ! is_callable( array( $helpers, 'getJedLocaleData' ) ) ) {
+			return;
+		}
+		$dictionary = array( 'translations' => $helpers->getJedLocaleData( 'all-in-one-seo-pack' ) );
+		$canonical  = 'var aioseoTranslations = ' . wp_json_encode( $dictionary, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES ) . ';';
+		if ( $canonical !== $data || ! wp_mkdir_p( $directory ) || ! wp_is_writable( $directory ) ) {
+			return;
+		}
+		$temporary = wp_tempnam( $filename, trailingslashit( $directory ) );
+		if ( ! $temporary ) {
+			return;
+		}
+		if ( ! class_exists( 'WP_Filesystem_Direct' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+			require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+		}
+		$filesystem = new WP_Filesystem_Direct( null );
+		// WP_Filesystem::move may fall back to a partial copy. Publish the complete local file atomically.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+		$ready = $filesystem->put_contents( $temporary, $canonical, 0644 ) && rename( $temporary, $path );
+		if ( ! $ready ) {
+			wp_delete_file( $temporary );
+			return;
+		}
+	}
+	$asset     = 'hs-aioseo-editor-dictionary';
+	$in_footer = (bool) $scripts->get_data( $handle, 'group' );
+	if ( ! wp_register_script( $asset, content_url( 'hs-editor-assets/' . $filename ), array(), substr( $hash, 0, 12 ), $in_footer ) ) {
+		return;
+	}
+	array_unshift( $scripts->registered[ $handle ]->deps, $asset );
+	$scripts->add_data( $handle, 'data', '' );
+}
+add_action( 'admin_enqueue_scripts', 'hs_admin_load_trim_editor_dictionary', PHP_INT_MAX );
+
+
 add_filter(
 	'heartbeat_settings',
 	static function ( $settings ) {

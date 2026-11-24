@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import unittest
+import tempfile
 from pathlib import Path
 
 
@@ -12,6 +13,15 @@ PLUGIN = ROOT / "wordpress/mu-plugins/hs-admin-load-trim.php"
 
 
 class AdminLoadTrimTest(unittest.TestCase):
+    def test_editor_caches_only_the_exact_public_translation_dictionary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [shutil.which("php") or "/usr/bin/php", str(FIXTURE.with_name("admin-editor-dictionary.php")), str(PLUGIN), directory],
+                text=True, capture_output=True, timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "PASS")
+
     def test_expensive_optional_post_list_columns_are_disabled(self):
         result = subprocess.run(
             [shutil.which("php") or "/usr/bin/php", str(FIXTURE), str(PLUGIN)],
