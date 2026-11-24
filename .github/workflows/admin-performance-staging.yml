@@ -6,6 +6,10 @@ on:
     types: [completed]
   workflow_dispatch:
     inputs:
+      restored_media_only:
+        description: "Verify the archived media recovery fixtures on protected staging"
+        type: boolean
+        default: false
       editor_media_series:
         description: "Measure 1 MB, 5 MB and 20-file uploads in the staging editor (five samples each)"
         type: boolean
@@ -21,7 +25,7 @@ concurrency:
 jobs:
   measure:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && !inputs.restored_media_only) ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, linux, x64, hs-manacost-production]
     timeout-minutes: 30
@@ -156,3 +160,22 @@ jobs:
           path: .artifacts/admin-performance/reports/
           if-no-files-found: error
           retention-days: 30
+
+  restored-media:
+    if: github.event_name == 'workflow_dispatch' && inputs.restored_media_only
+    runs-on: [self-hosted, linux, x64, hs-manacost-production]
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check media bytes and decode dimensions on staging
+        env:
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+          PLAYWRIGHT_EXECUTABLE_PATH: /usr/bin/chromium
+        run: node ops/performance/verify-restored-media.mjs
