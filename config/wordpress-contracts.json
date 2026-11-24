@@ -3168,6 +3168,13 @@
         "name": "manage_options",
         "resolved": true,
         "api": "current_user_can",
+        "file": "wordpress/mu-plugins/hs-lcp-background-preload.php",
+        "line": 182
+      },
+      {
+        "name": "manage_options",
+        "resolved": true,
+        "api": "current_user_can",
         "file": "wordpress/mu-plugins/manacost-cache-purge.php",
         "line": 640
       },

@@ -290,6 +290,8 @@ hs_integration_assert(str_contains($wallpaper_css, 'neverest_manacost_wallpaper_
 hs_integration_assert(hs_manacost_partner_wallpaper_css('<head>' . $wallpaper_css . $body_rule . '</head>') === '', 'duplicate wallpaper style');
 $wallpaper_decoys = '<!-- <div id="td-outer-wrap"> --><script>const wrapper = \'<div id="td-outer-wrap">\';</script>';
 $wallpaper_page = '<html><head>' . $body_rule . '</head><body>' . $wallpaper_decoys . '<div class="td-theme-wrap" id="td-outer-wrap"><main>News</main></div></body></html>';
+$wallpaperAdminId = get_current_user_id();
+wp_set_current_user(0);
 $linked_wallpaper = hs_manacost_apply_partner_wallpaper($wallpaper_page);
 hs_integration_assert(str_contains($linked_wallpaper, $wallpaper_decoys . '<div class="td-theme-wrap" id="td-outer-wrap"><a '), 'link was inserted outside the theme wrapper');
 $header_page = str_replace('<main>News', '<div class="td-header-wrap td-header-style-1"></div><main>News', $wallpaper_page);
@@ -304,6 +306,12 @@ hs_integration_assert(hs_manacost_apply_partner_wallpaper($unbranded_page) === $
 hs_integration_assert(hs_manacost_partner_wallpaper_css('<head></head><body>' . $body_rule . '</body>') === '', 'article content activated the wallpaper');
 hs_integration_assert(hs_manacost_partner_wallpaper_css('<head>' . str_replace('body {', '.entry-thumb {', $body_rule) . '</head>') === '', 'thumbnail activated the wallpaper');
 hs_integration_assert(hs_manacost_partner_wallpaper_css('<head>' . str_replace('neverest_manacost_wallpaper', 'another_campaign', $body_rule) . '</head>') === '', 'unrelated campaign was changed');
+wp_set_current_user($wallpaperAdminId);
+hs_integration_assert(current_user_can('manage_options'), 'wallpaper admin fixture lost manage_options');
+$admin_wallpaper = hs_manacost_apply_partner_wallpaper($header_page);
+hs_integration_assert(!str_contains($admin_wallpaper, 'sirus.one') && !str_contains($admin_wallpaper, '<a class="mc-wallpaper-link"'), 'signed-in administrator got the registration link');
+hs_integration_assert(str_contains($admin_wallpaper, '<div class="td-header-wrap td-header-style-1"><span class="mc-wallpaper-link" aria-hidden="true">'), 'administrator lost the wallpaper artwork');
+hs_integration_assert(hs_manacost_apply_partner_wallpaper($admin_wallpaper) === $admin_wallpaper, 'duplicate administrator wallpaper');
 
 require __DIR__ . '/article-cover.php';
 require __DIR__ . '/deck-image.php';
