@@ -5,6 +5,8 @@ export async function verifyResizeFocus(page, selector) {
   const retained = await page.evaluate(async () => {
     if (!window.tinymce?.get('content')) return true;
     const focused = document.activeElement;
+    window.tinymce.get('content').execCommand('wpAutoResize');
+    if (document.activeElement !== focused) return false;
     window.jQuery(document).trigger('wp-window-resized');
     await new Promise(resolve => setTimeout(resolve, 0));
     return document.activeElement === focused;

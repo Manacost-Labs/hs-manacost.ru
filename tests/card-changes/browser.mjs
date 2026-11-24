@@ -207,7 +207,14 @@ try {
   assert.ok(left.h > 300, 'Large render');
   const captionBottoms = await page.locator('.hs-lightbox__pair-caption').evaluateAll(list => list.map(caption => caption.getBoundingClientRect().bottom));
   assert.ok(left.y - captionBottoms[0] >= 0 && left.y - captionBottoms[0] <= 24 && right.y - captionBottoms[1] >= 0 && right.y - captionBottoms[1] <= 24, `Captions sit directly above their cards: ${left.y - captionBottoms[0]}`);
-  assert.ok(await box.evaluate(element => Number(getComputedStyle(element, '::backdrop').backgroundColor.match(/[\d.]+/g)[3]) >= 0.95), 'Pair mode backdrop is nearly opaque');
+  const backdrop = await box.evaluate(element => {
+    const style = getComputedStyle(element, '::backdrop');
+    return {filter: style.backdropFilter, color: style.backgroundColor};
+  });
+  assert.match(backdrop.filter, /blur\(/, 'Pair mode blurs the article behind the cards');
+  const opacity = Number(backdrop.color.match(/[\d.]+/g)[3]);
+  assert.ok(opacity > 0 && opacity < 1, 'The article remains visible through the dimmed backdrop');
+  assert.equal(await box.locator('.hs-lightbox__pair-arrow[aria-hidden="true"]').count(), 1);
   assert.deepEqual(await page.locator('.hs-lightbox__pair-caption').allTextContents(), ['До', 'После']);
   assert.equal(await page.locator('.hs-lightbox__pair-image').first().getAttribute('alt'), 'МАТРИАРХ до изменения');
   assert.equal(await box.getAttribute('aria-modal'), 'true');

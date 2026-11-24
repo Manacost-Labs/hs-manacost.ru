@@ -135,7 +135,7 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         self.assertNotIn('stale.jpg', result)
         self.assertNotIn('budget-decks-', result)
         self.assertIn(
-            '<link id="manacost-lcp-preload" rel="preload" as="image" '
+            '<link id="manacost-lcp-preload-mobile" rel="preload" as="image" media="(max-width: 767px)" '
             'href="https://hs-manacost.ru/wp-content/uploads/2026/09/first-696x353.jpg" '
             'fetchpriority="high">',
             result,
@@ -255,7 +255,7 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         )
         self.assertEqual(self.render_page(request_uri="/account/", front_page=False), PAGE)
 
-    def test_sanitized_user_agent_retains_mobile_fallback(self) -> None:
+    def test_grid_preloads_are_independent_of_the_request_user_agent(self) -> None:
         card = (
             '<div class="td-big-grid-flex"><a href="/current/" class="td-image-wrap" title="Статья">'
             '<span data-bg="https://hs-manacost.ru/wp-content/uploads/2026/09/current-1068x542.jpg" '
@@ -267,6 +267,7 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         self.assertIn('href="https://hs-manacost.ru/wp-content/uploads/2026/09/current-1068x542.jpg"', desktop)
         self.assertIn('href="https://hs-manacost.ru/wp-content/uploads/2026/09/current-696x353.jpg"', mobile)
         self.assertIn('<picture class="manacost-lcp-picture">', mobile)
+        self.assertEqual(desktop, mobile)
         self.assertEqual(mobile, self.render_page(page=page, mobile=True))
 
 

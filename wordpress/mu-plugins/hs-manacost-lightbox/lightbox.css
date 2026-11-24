@@ -297,13 +297,11 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   display: none;
 }
 
-/* Pair mode is a comparison: the page behind must not compete with the cards. Gallery mode keeps its lighter dimming. */
+/* Pair mode is a comparison: the page behind is dimmed and blurred so it does not compete with the cards. Gallery mode keeps its lighter dimming. */
 .hs-lightbox.is-pair::backdrop {
-  background: rgba(8, 14, 18, 0.97);
-}
-
-.hs-lightbox.is-pair .hs-lightbox__surface {
-  background: rgba(8, 14, 18, 0.97);
+  background: rgba(8, 14, 18, 0.55);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .hs-lightbox.is-pair .hs-lightbox__figure,
@@ -361,7 +359,47 @@ img[data-hs-lightbox-trigger="true"]:focus-visible {
   text-transform: uppercase;
 }
 
+.hs-lightbox__pair-arrow {
+  display: block;
+  flex: 0 0 auto;
+  align-self: center;
+  width: clamp(48px, 6.5vw, 92px);
+  pointer-events: none;
+}
+
+/* Captions sit above the cards; shifting by the caption block keeps the arrow at the cards' middle. */
+.hs-lightbox__pair:has(.hs-lightbox__pair-caption) .hs-lightbox__pair-arrow {
+  margin-block-start: 38px;
+}
+
+.hs-lightbox__pair-arrow svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
+}
+
+.hs-lightbox__pair-arrow path {
+  fill: #e3a73c;
+  stroke: #5b3a10;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.hs-lightbox__pair-arrow .hs-lightbox__pair-arrow-shine {
+  fill: none;
+  stroke: rgba(255, 240, 200, 0.6);
+  stroke-linecap: round;
+}
+
 @media (max-width: 600px) {
+  .hs-lightbox.is-pair .hs-lightbox__pair .hs-lightbox__pair-arrow {
+    width: 36px;
+    margin-block: 6px;
+    transform: rotate(90deg);
+  }
+
   .hs-lightbox.is-pair .hs-lightbox__pair {
     flex-direction: column;
     gap: 8px;
