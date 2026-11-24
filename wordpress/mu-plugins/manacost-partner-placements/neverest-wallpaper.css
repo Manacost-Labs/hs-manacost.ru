@@ -1,0 +1,176 @@
+@media screen {
+    body.td-boxed-layout {
+        --mc-column: 1164px;
+        background: #010101 radial-gradient(ellipse at top, #0b3028, #031510 60%, #010101) center top / 100% 280px no-repeat;
+    }
+}
+@media screen and (min-width: 1165px) {
+    body.td-boxed-layout { isolation: isolate; }
+    body.td-boxed-layout::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        inset-inline: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
+}
+@media screen and (min-width: 1165px) and (max-width: 1599.98px) {
+    /* Continue the masthead landscape behind narrow article gutters. */
+    body.td-boxed-layout::before {
+        bottom: 0;
+        background-image: linear-gradient(to bottom, #00120c66, #01070580), var(--mc-compact-art);
+        background-size: cover, 275% auto;
+        background-position: center, center 42%;
+        background-repeat: no-repeat;
+    }
+}
+@media screen and (min-width: 1600px) {
+    body.td-boxed-layout::before {
+        /* Scale the 720px wings uniformly. Only the empty sky and center can stretch. */
+        --wallpaper-gutter: min(720px, calc(50vw - 582px));
+        --wallpaper-sky: max(112px, calc(var(--wallpaper-gutter) * 168 / 720));
+        max-width: 2604px;
+        height: calc(var(--wallpaper-sky) + var(--wallpaper-gutter) * 1332 / 720);
+        margin-inline: auto;
+        border-image: var(--mc-full-art) 168 720 0 fill / var(--wallpaper-sky) var(--wallpaper-gutter) 0 stretch;
+    }
+}
+
+.mc-wallpaper-link, .mc-wallpaper-wing { display: none; }
+@media screen and (min-width: 768px) {
+    body.td-boxed-layout .mc-wallpaper-link {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 0;
+        pointer-events: none;
+    }
+    .mc-wallpaper-link:focus-visible { outline: none; }
+    .mc-wallpaper-link:focus-visible > span {
+        outline: 3px solid #fff;
+        outline-offset: -4px;
+        box-shadow: inset 0 0 0 6px #123b34;
+    }
+}
+@media screen and (min-width: 768px) and (max-width: 1599.98px) {
+    .mc-wallpaper-link > .mc-wallpaper-wing::before {
+        content: "";
+        display: block;
+        width: 100%;
+        height: 100%;
+        background-image: var(--mc-compact-art);
+        background-repeat: no-repeat;
+        /* Feather the scenery around the logo and portrait into the site wallpaper. */
+        mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent),
+            linear-gradient(to bottom, transparent, black 8%, black 91%, transparent);
+        mask-composite: intersect;
+    }
+    .mc-wallpaper-wing-left::before { background-size: 545.45% auto; }
+    .mc-wallpaper-wing-right::before { background-size: 375% auto; }
+}
+@media screen and (min-width: 768px) and (max-width: 1319.98px) {
+    /* The news column occupies almost the entire window. Use the existing masthead space. */
+    body.td-boxed-layout {
+        --mc-banner-width: min(650px, calc(100vw - 495px));
+        --mc-logo-width: clamp(78px, 7.4vw, 96px);
+        --mc-logo-gap: 24px;
+        --mc-wing-space: calc((100% - var(--mc-banner-width) - var(--mc-logo-width) - var(--mc-logo-gap)) / 2);
+        --mc-wing-height: 128px;
+        --mc-masthead-center: 99px;
+    }
+    body.td-boxed-layout:has(> .site-partnership, #td-outer-wrap > .site-partnership):has(.td-header-style-1) {
+        --mc-masthead-art: block;
+    }
+    body.td-boxed-layout:has(.td-header-style-1) :is(#td-outer-wrap > .site-partnership, body > .site-partnership) {
+        width: var(--mc-banner-width);
+        inset-inline-end: var(--mc-wing-space);
+        inset-block-start: calc(var(--mc-masthead-center) - var(--mc-banner-width) * 45 / 729);
+    }
+    body.td-boxed-layout:has(.td-header-style-1) :is(#td-outer-wrap > .site-partnership, body > .site-partnership) .site-masthead-mark {
+        width: var(--mc-logo-width);
+        height: auto;
+        aspect-ratio: 321 / 234;
+        inset-inline-end: calc(100% + var(--mc-logo-gap));
+        inset-block-start: 50%;
+        transform: translateY(-50%);
+    }
+    body.td-boxed-layout #td-outer-wrap .mc-wallpaper-link {
+        display: var(--mc-masthead-art, none);
+    }
+    .mc-wallpaper-link > .mc-wallpaper-wing {
+        display: var(--mc-masthead-art, none);
+        position: absolute;
+        z-index: 2;
+        top: calc(var(--mc-masthead-center) - var(--mc-wing-height) / 2);
+        height: var(--mc-wing-height);
+        pointer-events: auto;
+    }
+    .mc-wallpaper-wing-left {
+        left: calc(var(--mc-wing-space) / 2);
+        width: calc(var(--mc-wing-height) * 440 / 364);
+        transform: translateX(-50%);
+    }
+    .mc-wallpaper-wing-left::before { background-position: 8.9% 27%; }
+    .mc-wallpaper-wing-right {
+        right: calc(var(--mc-wing-space) / 2);
+        width: calc(var(--mc-wing-height) * 640 / 510);
+        transform: translateX(50%);
+    }
+    .mc-wallpaper-wing-right::before { background-position: 96.2% 16.8%; }
+}
+@media screen and (min-width: 768px) and (max-width: 1164.98px) {
+    /* The menu may wrap to two lines under the shorter masthead at this zoom level. */
+    body.td-boxed-layout {
+        --mc-banner-width: clamp(360px, 51vw, 585px);
+        --mc-logo-width: clamp(62px, 8vw, 88px);
+        --mc-logo-gap: 16px;
+        --mc-wing-height: clamp(76px, 7.8vw, 82px);
+        --mc-masthead-center: 74px;
+    }
+}
+@media screen and (min-width: 1165px) {
+    body.td-boxed-layout #td-outer-wrap .mc-wallpaper-link { display: block; }
+    .mc-wallpaper-gutter {
+        position: fixed;
+        z-index: 1;
+        top: calc(var(--wp-admin--admin-bar--height, 0px) + 32px);
+        bottom: 0;
+        width: min(720px, calc((100% - var(--mc-column)) / 2));
+        pointer-events: auto;
+    }
+    .mc-wallpaper-gutter-left { right: calc(50% + var(--mc-column) / 2); }
+    .mc-wallpaper-gutter-right { left: calc(50% + var(--mc-column) / 2); }
+}
+@media screen and (min-width: 1320px) and (max-width: 1599.98px) {
+    /* The homepage grid fits Newspaper's native 1068px desktop container. */
+    body.home.td-boxed-layout { --mc-column: clamp(1068px, calc(100vw - 336px), 1164px); }
+    body.home.td-boxed-layout .td-container-wrap,
+    body.home.td-boxed-layout .td-header-menu-wrap.td-affix { width: var(--mc-column); }
+    body.home.td-boxed-layout .td-container-wrap { margin-inline: auto; }
+    /* Frame each subject, instead of shrinking the empty margins of the full poster. */
+    .mc-wallpaper-link > .mc-wallpaper-wing {
+        display: block;
+        position: fixed;
+        z-index: 2;
+        top: calc(var(--wp-admin--admin-bar--height, 0px) + clamp(150px, 22vh, 222px));
+        width: min(180px, calc((100% - var(--mc-column)) / 2 - 6px));
+        pointer-events: auto;
+    }
+    .mc-wallpaper-wing-left {
+        left: calc((100% - var(--mc-column)) / 4);
+        transform: translateX(-50%);
+        aspect-ratio: 440 / 650;
+    }
+    .mc-wallpaper-wing-left::before { background-position: 8.9% 34%; }
+    .mc-wallpaper-wing-right {
+        right: calc((100% - var(--mc-column)) / 4);
+        transform: translateX(50%);
+        aspect-ratio: 640 / 864;
+    }
+    .mc-wallpaper-wing-right::before { background-position: 96.2% 23%; }
+}
+@media screen and (min-width: 2605px) {
+    body.td-boxed-layout::before {
+        mask-image: linear-gradient(to right, transparent, black 100px, black calc(100% - 100px), transparent);
+    }
+}
