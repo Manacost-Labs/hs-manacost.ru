@@ -120,56 +120,56 @@ function hs_manacost_partner_wallpaper_css($html) {
             continue;
         }
         $image = $match[2];
-        // WordPress's 768×480 WebP of this campaign supplies the atmospheric crop.
+        // Use the smaller derivative for the landscape and portraits on standard-density laptops.
         $compact = preg_replace('~' . $asset . '\.(?:png(?:\.webp)?|webp)(?=\?|$)~', $asset . '-768x480.png.webp', $image, 1);
-        return <<<CSS
-<style id="manacost-partner-wallpaper">
-@media screen {
-    body.td-boxed-layout {
-        background: #010101 radial-gradient(ellipse at top, #0b3028, #031510 60%, #010101) center top / 100% 280px no-repeat;
-    }
-}
-@media screen and (min-width: 1165px) {
-    body.td-boxed-layout { isolation: isolate; }
-    body.td-boxed-layout::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        inset-inline: 0;
-        z-index: -1;
-        pointer-events: none;
-    }
-}
-@media screen and (min-width: 1165px) and (max-width: 1599.98px) {
-    /* Only the landscape between the two printed panels fits these narrow gutters. */
-    body.td-boxed-layout::before {
-        bottom: 0;
-        background-image: linear-gradient(to bottom, #00120c66, #01070580), url("$compact");
-        background-size: cover, 275% auto;
-        background-position: center, center 42%;
-        background-repeat: no-repeat;
-    }
-}
-@media screen and (min-width: 1600px) {
-    body.td-boxed-layout::before {
-        /* Scale the 720px wings uniformly. Only the empty sky and center can stretch. */
-        --wallpaper-gutter: min(720px, calc(50vw - 582px));
-        --wallpaper-sky: max(112px, calc(var(--wallpaper-gutter) * 168 / 720));
-        max-width: 2604px;
-        height: calc(var(--wallpaper-sky) + var(--wallpaper-gutter) * 1332 / 720);
-        margin-inline: auto;
-        border-image: url("$image") 168 720 0 fill / var(--wallpaper-sky) var(--wallpaper-gutter) 0 stretch;
-    }
-}
-@media screen and (min-width: 2605px) {
-    body.td-boxed-layout::before {
-        mask-image: linear-gradient(to right, transparent, black 100px, black calc(100% - 100px), transparent);
-    }
-}
-</style>
-CSS;
+        $layout = file_get_contents(__DIR__ . '/manacost-partner-placements/neverest-wallpaper.css');
+        if ($layout === false) {
+            return '';
+        }
+        return '<style id="manacost-partner-wallpaper">body.td-boxed-layout{--mc-full-art:url("' . $image
+            . '");--mc-compact-art:image-set(url("' . $compact . '") 1x,var(--mc-full-art) 2x)}'
+            . $layout . '</style>';
     }
     return '';
+}
+
+/** Attach one native sponsored link to the active Newspaper wallpaper. */
+function hs_manacost_apply_partner_wallpaper($html) {
+    $css = hs_manacost_partner_wallpaper_css($html);
+    if ($css === '') {
+        return $html;
+    }
+    $link = '<a class="mc-wallpaper-link" href="https://sirus.one/registration?ref=3586993&amp;utm_source=hsmanacost&amp;utm_medium=twitch"'
+        . ' target="_blank" rel="sponsored noopener noreferrer" aria-label="Регистрация на Sirus — откроется в новой вкладке">'
+        . '<span class="mc-wallpaper-gutter mc-wallpaper-gutter-left"></span><span class="mc-wallpaper-gutter mc-wallpaper-gutter-right"></span>'
+        . '<span class="mc-wallpaper-wing mc-wallpaper-wing-left"></span><span class="mc-wallpaper-wing mc-wallpaper-wing-right"></span></a>';
+    $head_end = stripos($html, '</head>');
+    $body = substr($html, $head_end);
+    $tags = new WP_HTML_Tag_Processor($body);
+    while ($tags->next_tag('DIV')) {
+        if ($tags->get_attribute('id') === 'td-outer-wrap') {
+            $tags->set_bookmark('boxed-layout');
+            break;
+        }
+    }
+    if (!$tags->has_bookmark('boxed-layout')) {
+        return $html;
+    }
+    // Keep the portraits in the header's own stacking context, below its menu.
+    if (!$tags->next_tag(array('tag_name' => 'DIV', 'class_name' => 'td-header-wrap'))) {
+        $tags->seek('boxed-layout');
+    }
+    // The HTML API can mark the actual tag but cannot append a child element.
+    $marker = 'data-mc-wallpaper-mount';
+    if (stripos($body, $marker) !== false || !$tags->set_attribute($marker, true)) {
+        return $html;
+    }
+    $attributes = '(?:[^"\'<>]|"[^"]*"|\'[^\']*\')*';
+    $updated = preg_replace_callback('~ ' . $marker . '(' . $attributes . '>)~', static fn($m) => $m[1] . $link, $tags->get_updated_html(), 1, $count);
+    if ($count !== 1 || $updated === null) {
+        return $html;
+    }
+    return substr($html, 0, $head_end) . $css . $updated;
 }
 
 function hs_manacost_remove_rocket_image_preloads($html) {
@@ -196,7 +196,8 @@ add_action('template_redirect', function () {
         }
         $html = preg_replace('/<link(?=[^>]+rel=["\'](?:preconnect|dns-prefetch)["\'])(?=[^>]+href=["\'](?:https?:)?\/\/fonts\.(?:gstatic|googleapis)\.com["\'])[^>]*>\s*/i', '', $html);
 
-        $head = hs_manacost_partner_wallpaper_css($html);
+        $html = hs_manacost_apply_partner_wallpaper($html);
+        $head = '';
 
         if (stripos($html, 'id="hs-early-paint"') === false && stripos($html, "id='hs-early-paint'") === false) {
             $head .= '<style id="hs-early-paint">html{background:#010101;}body{background-color:#010101;}</style>' . "\n";

@@ -84,6 +84,7 @@ set +a
     --admin_email="integration@example.invalid" \
     --skip-email --quiet
 cp -a "$ROOT_DIR/wordpress/mu-plugins/." "$SITE_DIR/wp-content/mu-plugins/"
+cp "$ROOT_DIR/tests/fixtures/partner-wallpaper-theme.php" "$SITE_DIR/wp-content/mu-plugins/integration-partner-wallpaper.php"
 find "$SITE_DIR/wp-content/mu-plugins" -type d -exec chmod 0755 {} +
 find "$SITE_DIR/wp-content/mu-plugins" -type f -exec chmod 0644 {} +
 "${compose[@]}" run --rm cli theme activate Newspaper_new --quiet

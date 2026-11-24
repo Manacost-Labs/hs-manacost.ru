@@ -19,6 +19,44 @@ async function isolate(context: BrowserContext, failed: string[] = []) {
 
 const rootSelector = '.site-partnership';
 
+test('Neverest artwork and its registration link fit both notebook layouts', async ({ page, context }) => {
+  test.skip(test.info().project.name !== 'desktop-1440', 'This case resizes the same desktop window.');
+  await isolate(context);
+  await page.route('**/neverest_manacost_wallpaper_*', route => route.fulfill({ contentType: 'image/svg+xml', body: creative }));
+  await page.goto('/?integration-neverest=1', { waitUntil: 'load' });
+  const link = page.locator('.mc-wallpaper-link');
+  await expect(link).toHaveAttribute('href', 'https://sirus.one/registration?ref=3586993&utm_source=hsmanacost&utm_medium=twitch');
+  for (const width of [768, 900, 1024, 1280, 1320, 1366, 1440, 1536]) {
+    await page.setViewportSize({ width, height: 800 });
+    const left = link.locator('.mc-wallpaper-wing-left');
+    const right = link.locator('.mc-wallpaper-wing-right');
+    await expect(left).toBeVisible();
+    await expect(right).toBeVisible();
+    const menu = await page.locator('.td-header-menu-wrap').first().boundingBox();
+    const l = await left.boundingBox();
+    const r = await right.boundingBox();
+    if (!l || !r || !menu) throw new Error(`Missing campaign or menu at ${width}px`);
+    if (width < 1320) {
+      expect(l.y + l.height).toBeLessThanOrEqual(menu.y + 1);
+      expect(r.y + r.height).toBeLessThanOrEqual(menu.y + 1);
+    } else {
+      const column = await page.locator('.td-header-menu-wrap .td-container').first().boundingBox();
+      if (!column) throw new Error('Missing menu column');
+      expect(l.x + l.width).toBeLessThanOrEqual(column.x);
+      expect(r.x).toBeGreaterThanOrEqual(column.x + column.width);
+    }
+    for (const wing of [left, right]) {
+      await expect(wing).toHaveCSS('pointer-events', 'auto');
+      expect(await wing.evaluate(node => getComputedStyle(node, '::before').backgroundImage)).toContain('neverest_manacost_wallpaper');
+      await wing.click({ trial: true });
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.locator('.site-masthead-mark').click({ trial: true });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(link).toBeHidden();
+});
+
 test('loaded creatives crossfade automatically without buttons and pause on focus/hover', async ({ page, context }) => {
   await isolate(context);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
