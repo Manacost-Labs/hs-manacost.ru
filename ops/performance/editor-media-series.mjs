@@ -1,3 +1,4 @@
+import { fixtureRequest } from './browser-fixture-request.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { crc32, deflateSync } from 'node:zlib';
@@ -97,11 +98,11 @@ export async function measureEditorMedia(page, postId, scenario) {
   page.on('response', onResponse);
   const diagnose = error => Object.assign(error, {mediaDiagnostic: {scenario, progress, network}});
   let nonce;
-  const rest = (route, method = 'GET') => admin.evaluate(async ({route, method, nonce}) => {
+  const rest = (route, method = 'GET') => fixtureRequest(method, () => admin.evaluate(async ({route, method, nonce}) => {
     const response = await fetch('/wp-json/wp/v2/' + route, { method, headers: {'X-WP-Nonce': nonce},
       signal: AbortSignal.timeout(method === 'DELETE' ? 60000 : 30000) });
     return { status: response.status, data: await response.json() };
-  }, { route, method, nonce });
+  }, { route, method, nonce }), admin);
 
   try {
     await admin.goto(origin + '/wp-admin/admin-ajax.php?action=rest-nonce');
@@ -159,6 +160,7 @@ export async function measureEditorMedia(page, postId, scenario) {
       assert.ok(fixture && item.author === owner && item.post === postId);
       await verifyImage(admin, origin, item, fixture);
     }
+    progress = 'cleanup';
     return { originals_and_thumbnails_verified: count, scenario, count, bytes: files.reduce((sum, item) => sum + item.buffer.length, 0),
       first_selectable_ms: firstSelectableMs, all_ready_ms: allReadyMs, unique_attachments: ids.length };
   } catch (error) {
@@ -178,6 +180,8 @@ export async function measureEditorMedia(page, postId, scenario) {
             unconfirmed.push(item.id);
           }
         }
+        // A lost response can precede the database commit for the same deletion.
+        if (unconfirmed.length) await admin.waitForTimeout(1500);
         for (const id of unconfirmed) {
           const remaining = await rest('media/' + id + '?context=edit&_fields=id,author,post,title');
           if (remaining.status === 404) continue;
