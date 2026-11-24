@@ -93,6 +93,85 @@ function hs_manacost_rewrite_retina_uploads_to_webp($html) {
     );
 }
 
+/**
+ * Fit the Neverest artwork to the gutters of Newspaper's 1164px boxed layout.
+ * Use the theme's rendered body rule so category backgrounds and later campaigns
+ * retain their own styling, including when a signed-in visitor opens the page.
+ */
+function hs_manacost_partner_wallpaper_css($html) {
+    $head_end = stripos($html, '</head>');
+    $asset = 'neverest_manacost_wallpaper_2400x1500';
+    $offset = strpos($html, $asset);
+    if ($head_end === false || $offset === false || $offset >= $head_end || strpos($html, 'id="manacost-partner-wallpaper"') !== false) {
+        return '';
+    }
+
+    $head = new WP_HTML_Tag_Processor(substr($html, 0, $head_end));
+    while ($head->next_tag('STYLE')) {
+        $css = $head->get_modifiable_text();
+        if (strpos($css, $asset) === false) {
+            continue;
+        }
+        // Match only a body background declaration, never a thumbnail or preload.
+        $pattern = '~(?:^|\}|\*/)\s*body\s*\{[^{}]*?\bbackground-image\s*:\s*url\(\s*(["\']?)'
+            . '((?:https?://[^"\'()<>\s\\\\]+)?/wp-content/uploads/\d{4}/\d{2}/'
+            . $asset . '\.(?:png(?:\.webp)?|webp)(?:\?[^"\'()<>\s\\\\]*)?)\1\s*\)~i';
+        if (!preg_match($pattern, $css, $match)) {
+            continue;
+        }
+        $image = $match[2];
+        // WordPress's 768×480 WebP of this campaign supplies the atmospheric crop.
+        $compact = preg_replace('~' . $asset . '\.(?:png(?:\.webp)?|webp)(?=\?|$)~', $asset . '-768x480.png.webp', $image, 1);
+        return <<<CSS
+<style id="manacost-partner-wallpaper">
+@media screen {
+    body.td-boxed-layout {
+        background: #010101 radial-gradient(ellipse at top, #0b3028, #031510 60%, #010101) center top / 100% 280px no-repeat;
+    }
+}
+@media screen and (min-width: 1165px) {
+    body.td-boxed-layout { isolation: isolate; }
+    body.td-boxed-layout::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        inset-inline: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
+}
+@media screen and (min-width: 1165px) and (max-width: 1599.98px) {
+    /* Only the landscape between the two printed panels fits these narrow gutters. */
+    body.td-boxed-layout::before {
+        bottom: 0;
+        background-image: linear-gradient(to bottom, #00120c66, #01070580), url("$compact");
+        background-size: cover, 275% auto;
+        background-position: center, center 42%;
+        background-repeat: no-repeat;
+    }
+}
+@media screen and (min-width: 1600px) {
+    body.td-boxed-layout::before {
+        /* Scale the 720px wings uniformly. Only the empty sky and center can stretch. */
+        --wallpaper-gutter: min(720px, calc(50vw - 582px));
+        --wallpaper-sky: max(112px, calc(var(--wallpaper-gutter) * 168 / 720));
+        max-width: 2604px;
+        height: calc(var(--wallpaper-sky) + var(--wallpaper-gutter) * 1332 / 720);
+        margin-inline: auto;
+        border-image: url("$image") 168 720 0 fill / var(--wallpaper-sky) var(--wallpaper-gutter) 0 stretch;
+    }
+}
+@media screen and (min-width: 2605px) {
+    body.td-boxed-layout::before {
+        mask-image: linear-gradient(to right, transparent, black 100px, black calc(100% - 100px), transparent);
+    }
+}
+</style>
+CSS;
+    }
+    return '';
+}
+
 function hs_manacost_remove_rocket_image_preloads($html) {
     return preg_replace('/<link(?=[^>]+\bdata-rocket-preload\b)(?=[^>]+\bas=["\']image["\'])[^>]*>\s*/i', '', $html);
 }
@@ -117,7 +196,7 @@ add_action('template_redirect', function () {
         }
         $html = preg_replace('/<link(?=[^>]+rel=["\'](?:preconnect|dns-prefetch)["\'])(?=[^>]+href=["\'](?:https?:)?\/\/fonts\.(?:gstatic|googleapis)\.com["\'])[^>]*>\s*/i', '', $html);
 
-        $head = '';
+        $head = hs_manacost_partner_wallpaper_css($html);
 
         if (stripos($html, 'id="hs-early-paint"') === false && stripos($html, "id='hs-early-paint'") === false) {
             $head .= '<style id="hs-early-paint">html{background:#010101;}body{background-color:#010101;}</style>' . "\n";
@@ -149,6 +228,6 @@ add_action('template_redirect', function () {
             return $html;
         }
 
-        return preg_replace('/<head([^>]*)>/i', '<head$1>' . $head, $html, 1);
+        return preg_replace_callback('/<head(?:\s[^>]*)?>/i', static fn($match) => $match[0] . $head, $html, 1);
     });
 }, 0);

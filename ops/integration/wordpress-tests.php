@@ -281,6 +281,17 @@ hs_reader_editorial_routes();
 hs_integration_assert(!isset(rest_get_server()->get_routes()['/manacost-reader/v1/threads']), 'disabled editorial route was registered');
 hs_integration_assert(!comments_open($postId), 'reader bridge enabled native comments');
 
+// Only the active boxed wallpaper gets responsive artwork. Keep other campaigns and page content intact.
+$wallpaper = '/wp-content/uploads/2026/11/neverest_manacost_wallpaper_2400x1500.png.webp?rev=4';
+$body_rule = '<style>/* custom css */ body {background-color:#010101;background-image:url("' . $wallpaper . '");}</style>';
+$wallpaper_css = hs_manacost_partner_wallpaper_css('<html><head>' . $body_rule . '</head><body></body></html>');
+hs_integration_assert(str_contains($wallpaper_css, 'border-image: url("' . $wallpaper . '")'), 'wallpaper lost the configured media URL');
+hs_integration_assert(str_contains($wallpaper_css, 'neverest_manacost_wallpaper_2400x1500-768x480.png.webp?rev=4'), 'compact wallpaper lost the preview URL or revision');
+hs_integration_assert(hs_manacost_partner_wallpaper_css('<head>' . $wallpaper_css . $body_rule . '</head>') === '', 'duplicate wallpaper style');
+hs_integration_assert(hs_manacost_partner_wallpaper_css('<head></head><body>' . $body_rule . '</body>') === '', 'article content activated the wallpaper');
+hs_integration_assert(hs_manacost_partner_wallpaper_css('<head>' . str_replace('body {', '.entry-thumb {', $body_rule) . '</head>') === '', 'thumbnail activated the wallpaper');
+hs_integration_assert(hs_manacost_partner_wallpaper_css('<head>' . str_replace('neverest_manacost_wallpaper', 'another_campaign', $body_rule) . '</head>') === '', 'unrelated campaign was changed');
+
 require __DIR__ . '/article-cover.php';
 require __DIR__ . '/deck-image.php';
 require __DIR__ . '/deck-events-schema.php';
