@@ -112,26 +112,28 @@ check(in_array(['hs_card_changes_provider_result', ['success']], $events, true),
 check($S::lookup('constructed', 'bad id!', $D, 77)['state'] === 'unavailable' && count($calls) === $before, 'Invalid identifiers cause no request');
 
 // Stale while revalidate and the per-key lock.
-$S::refresh([['constructed', 'BE_036', '2026-11-20 00:00:00']]);
-$single_key = $K('constructed', 'BE_036', '2026-11-20 00:00:00');
+// A patch date inside the two-day window, relative to now: a fixed date would expire.
+$recent = gmdate('Y-m-d 00:00:00');
+$S::refresh([['constructed', 'BE_036', $recent]]);
+$single_key = $K('constructed', 'BE_036', $recent);
 check($cache[$single_key]['value']['state'] === 'single' && $cache[$single_key]['until'] <= time() + 600 && $ttl[$single_key] >= 30 * DAY_IN_SECONDS, 'A pair-less result is fresh for minutes but kept for weeks');
 $cache[$single_key]['until'] = time() - 1;
 $count = count($calls); $scheduled = []; unset($cache['hs_cc_queued_post_77']);
-$stale = $S::lookup('constructed', 'BE_036', '2026-11-20 00:00:00', 77);
+$stale = $S::lookup('constructed', 'BE_036', $recent, 77);
 check($stale['state'] === 'single' && count($calls) === $count && $scheduled !== [], 'A stale result is served as is while one refresh is queued');
-$cache['hs_cc_lock_' . HS_Card_Changes_Cache::key('constructed', 'BE_036', '2026-11-20 00:00:00')] = 1;
-$S::refresh([['constructed', 'BE_036', '2026-11-20 00:00:00']]);
+$cache['hs_cc_lock_' . HS_Card_Changes_Cache::key('constructed', 'BE_036', $recent)] = 1;
+$S::refresh([['constructed', 'BE_036', $recent]]);
 check(count($calls) === $count, 'A held lock keeps concurrent workers from refetching the same card');
-unset($cache['hs_cc_lock_' . HS_Card_Changes_Cache::key('constructed', 'BE_036', '2026-11-20 00:00:00')]);
-$S::refresh([['constructed', 'BE_036', '2026-11-20 00:00:00']]);
-check(count($calls) === $count + 1 && $cache[$single_key]['until'] > time() && !isset($cache['hs_cc_lock_' . HS_Card_Changes_Cache::key('constructed', 'BE_036', '2026-11-20 00:00:00')]), 'Refresh renews the entry and releases the lock');
+unset($cache['hs_cc_lock_' . HS_Card_Changes_Cache::key('constructed', 'BE_036', $recent)]);
+$S::refresh([['constructed', 'BE_036', $recent]]);
+check(count($calls) === $count + 1 && $cache[$single_key]['until'] > time() && !isset($cache['hs_cc_lock_' . HS_Card_Changes_Cache::key('constructed', 'BE_036', $recent)]), 'Refresh renews the entry and releases the lock');
 
 // Provider failure: stale copy keeps serving, cooldown stops retry storms, nothing cached gives plates only.
 $cache[$single_key]['until'] = time() - 1;
 $responses[url('constructed_card', 'BE_036')] = status(500, ['retry-after' => '120']);
 $count = count($calls);
-$S::refresh([['constructed', 'BE_036', '2026-11-20 00:00:00']]);
-check(count($calls) === $count + 1 && $S::lookup('constructed', 'BE_036', '2026-11-20 00:00:00')['state'] === 'single', 'API failure serves the stale copy');
+$S::refresh([['constructed', 'BE_036', $recent]]);
+check(count($calls) === $count + 1 && $S::lookup('constructed', 'BE_036', $recent)['state'] === 'single', 'API failure serves the stale copy');
 check($cache['hs_cc_cooldown'] === 'http_500' && $ttl['hs_cc_cooldown'] === 120, 'Retry-After is honored');
 $S::refresh([['constructed', 'JAIL_444', '2026-11-12 00:00:00']]);
 $scheduled = []; $S::queue(['constructed', 'JAIL_444', '2026-11-12 00:00:00'], 77);
