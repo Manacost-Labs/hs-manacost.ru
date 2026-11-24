@@ -198,6 +198,16 @@
       ]
     },
     {
+      "patterns": ["wordpress/mu-plugins/hs-lcp-background-preload.php", "tests/fixtures/partner-wallpaper-theme.php"],
+      "owner": "public-background-loading",
+      "classified": true,
+      "risk": "high",
+      "surfaces": ["frontend", "newspaper", "media", "ads", "performance"],
+      "domains": ["test.hs-manacost.ru", "hs-manacost.ru", "hs-manacost.com", "origin", "ru-moscow", "ru-novosibirsk"],
+      "skills": ["newspaper-tagdiv", "wordpress-media-integrity", "wordpress-ads-analytics", "wp-performance", "playwright"],
+      "checks": ["make code-quality", "make integration", "make visual", "./ops/smoke-check.sh staging"]
+    },
+    {
       "patterns": ["wordpress/mu-plugins/manacost-listing-thumbnails.php", "tests/fixtures/listing-thumbnails-integration.php"],
       "owner": "homepage-newspaper-thumbnail-fallback",
       "classified": true,
