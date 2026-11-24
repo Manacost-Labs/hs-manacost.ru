@@ -81,7 +81,19 @@ try {
     await choice.first().waitFor();
     await choice.first().click();
   };
+  let searchRequests = 0;
+  const dropFirstSearch = async route => {
+    const data = new URLSearchParams(route.request().postData() || '');
+    if (data.get('action') === 'hs_card_changes' && data.get('mode') === 'search' && data.get('term') === 'Матриарх') {
+      searchRequests++;
+      if (searchRequests === 1) return route.abort('connectionreset');
+    }
+    return route.continue();
+  };
+  await page.route('**/wp-admin/admin-ajax.php', dropFirstSearch);
   await addByName('Матриарх', 'BE_036');
+  await page.unroute('**/wp-admin/admin-ajax.php', dropFirstSearch);
+  assert.equal(searchRequests, 2, 'A dropped catalog read is recovered once');
   assert.ok(await page.locator('.hs-ccd-result').count() > 3, 'The archive adds cards the dictionary does not list (Matriarch has ten matches)');
   // The identifier field stays as the last fallback.
   await page.locator('#hs-cc-id').fill('JAIL_444');

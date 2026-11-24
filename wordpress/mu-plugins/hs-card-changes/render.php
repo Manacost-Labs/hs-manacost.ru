@@ -25,7 +25,7 @@ final class HS_Card_Changes_Render {
 	private const ASSET_VERSIONS = array(
 		'card-changes.css' => 'ce890deb9a4a',
 		'editor.css'       => '6384378114f9',
-		'editor.js'        => 'df9a063c4802',
+		'editor.js'        => '098bc16da27d',
 		'dialog-focus.js'  => '5785aaa87b14',
 	);
 

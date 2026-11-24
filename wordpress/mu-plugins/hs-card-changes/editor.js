@@ -47,15 +47,25 @@
 		let timedOut = false;
 		const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
 		try {
-			const response = await fetch(config.url, {
+			const send = () => fetch(config.url, {
 				method: 'POST', credentials: 'same-origin', signal: controller.signal,
 				body: new URLSearchParams({ action: 'hs_card_changes', nonce: config.nonce, postId: config.postId, ...fields }),
 			});
+			let response;
+			try {
+				response = await send();
+			} catch (error) {
+				// Search, resolution and composition only read card data. Keep the original deadline and cancellation signal.
+				if (!(error instanceof TypeError) || controller.signal.aborted) throw error;
+				await new Promise(resolve => setTimeout(resolve, 300));
+				response = await send();
+			}
 			const payload = await response.json();
 			if (!response.ok || !payload.success) throw new Error(payload.data?.message || text.error);
 			return payload.data;
 		} catch (error) {
 			// Only a superseded or closed request stays silent; the current request's timeout is shown with a retry hint.
+			if (error instanceof TypeError) throw new Error(text.error);
 			if (error.name !== 'AbortError') throw error;
 			throw timedOut ? new Error(text.timeout) : Object.assign(new Error(text.error), { name: 'AbortError' });
 		} finally {
