@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Article Cover Loading
  * Description: Prioritizes the Newspaper article cover while keeping deferred content images out of its network priority.
- * Version: 1.4.0
+ * Version: 1.4.1
  *
  * @package Manacost
  */
@@ -18,6 +18,27 @@ final class Manacost_Article_Cover {
 	public static function boot(): void {
 		add_action( 'template_redirect', array( __CLASS__, 'start' ), -201 );
 		add_filter( 'rocket_buffer', array( __CLASS__, 'filter_html' ), PHP_INT_MAX );
+		add_filter( 'wp_lazy_loading_enabled', array( __CLASS__, 'preview_image_loading' ), PHP_INT_MAX, 3 );
+	}
+
+	/**
+	 * Let core choose eager and lazy images in a preview where Rocket skips its loader.
+	 *
+	 * @param bool   $enabled Existing loading policy.
+	 * @param string $tag     Element name.
+	 * @param string $context WordPress rendering context.
+	 * @return bool
+	 */
+	public static function preview_image_loading( bool $enabled, string $tag, string $context ): bool {
+		if ( $enabled || 'img' !== $tag || 'the_content' !== $context || ! is_preview() ) {
+			return $enabled;
+		}
+
+		return ( ! defined( 'MANACOST_ARTICLE_COVER_ENABLED' ) || MANACOST_ARTICLE_COVER_ENABLED )
+			&& is_singular( 'post' ) && is_user_logged_in() && ! is_admin()
+			&& ! is_feed() && ! is_embed() && ! wp_doing_ajax()
+			&& ! ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+			&& get_the_ID() === get_queried_object_id();
 	}
 
 	/** Starts the public article buffer before the other first-view optimizers. */
