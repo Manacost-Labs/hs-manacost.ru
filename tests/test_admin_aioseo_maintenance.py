@@ -24,7 +24,11 @@ function aioseo() { return (object) ['version' => $GLOBALS['version']]; }
 function get_current_user_id() { return 5; }
 function determine_locale() { return 'ru_RU'; }
 function wp_cache_get($key, $group) { return $GLOBALS['warm'] ?? false; }
-function wp_cache_set($key, $value, $group, $ttl) { $GLOBALS['warm'] = ($ttl === 60 && $value); }
+// The staging cache returns scalar values as strings across PHP requests.
+function wp_cache_set($key, $value, $group, $ttl) {
+    if ($ttl !== 60) exit(5);
+    $GLOBALS['warm'] = (string) $value;
+}
 function hs_admin_load_trim_remove_object_callback($hook, $class, $method) {
     $GLOBALS['removed'][] = [$hook, $class, $method];
 }
@@ -37,6 +41,7 @@ hs_admin_aioseo_reuse_maintenance_pass();
 if (isset($warm) || !isset($completed) || isset($removed)) exit(1);
 $completed();
 hs_admin_aioseo_reuse_maintenance_pass();
+if (empty($removed)) exit(6);
 $normal = $removed;
 foreach ([['POST', 'post.php', []], ['GET', 'admin.php', []],
           ['GET', 'post.php', ['action' => 'trash']], ['GET', 'index.php', ['page' => 'aioseo']]] as [$verb, $pagenow, $_GET]) {
