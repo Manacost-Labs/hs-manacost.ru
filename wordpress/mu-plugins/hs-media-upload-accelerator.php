@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HS Media Upload Accelerator
  * Description: Keeps editor preview sizes synchronous and creates layout sizes after the upload response.
- * Version: 2.0.0
+ * Version: 2.1.0
  * Author: Manacost
  *
  * @package Manacost
@@ -52,6 +52,7 @@ final class HS_Media_Upload_Accelerator {
 	 * Register upload acceleration hooks.
 	 */
 	public static function boot(): void {
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_ready_selection' ) );
 		add_filter( 'intermediate_image_sizes_advanced', array( __CLASS__, 'filter_sizes' ), 20, 3 );
 		add_filter( 'big_image_size_threshold', '__return_false', 20 );
 		add_filter( 'wp_generate_attachment_metadata', array( __CLASS__, 'queue_after_metadata' ), 100, 3 );
@@ -59,6 +60,19 @@ final class HS_Media_Upload_Accelerator {
 		add_action( 'shutdown', array( __CLASS__, 'flush_pending_queue' ), 10 );
 		add_action( self::HOOK, array( __CLASS__, 'generate_deferred_subsizes' ), 10, 2 );
 		add_action( 'plugins_loaded', array( __CLASS__, 'prune_upload_hooks' ), PHP_INT_MAX );
+	}
+
+	/**
+	 * Offer partial selection in the native media modal on post editing screens.
+	 *
+	 * @param string $hook Admin screen hook suffix.
+	 */
+	public static function enqueue_ready_selection( string $hook ): void {
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) || ! wp_script_is( 'media-editor', 'enqueued' ) ) {
+			return;
+		}
+		wp_enqueue_script( 'hs-editor-library-page', plugins_url( 'hs-media-upload-accelerator/editor-library.js', __FILE__ ), array( 'media-editor' ), '2.1.0', true );
+		wp_enqueue_script( 'hs-media-ready-selection', plugins_url( 'hs-media-upload-accelerator/ready-selection.js', __FILE__ ), array( 'media-editor', 'wp-i18n' ), '2.1.0', true );
 	}
 
 	/**
