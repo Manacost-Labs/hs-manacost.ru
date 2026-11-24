@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -60,6 +60,7 @@ try {
     // Playwright's in-memory transport is capped at 50MiB: use its file path API.
     await writeFile(fixturePath, buffer);
     await page.locator('#insert-media-button').click();
+    assert.equal(await page.evaluate(() => wp.media.frame.state('insert').get('library').props.get('perPage')), 16);
     await page.getByRole('tab', { name: 'Upload files', exact: true }).click();
     const [chooser] = await Promise.all([
       page.waitForEvent('filechooser'),
@@ -122,6 +123,96 @@ try {
   report.draft_id = Number(new URL(page.url()).searchParams.get('post'));
   assert.ok(Number.isInteger(report.draft_id) && report.draft_id > 0);
   report.draft_reopened = true;
+  // Hold the second upload so the first attachment can be inserted before the queue drains.
+  await page.goto(`${baseURL}/wp-admin/post-new.php`);
+  await page.locator('#insert-media-button').click();
+  await page.getByRole('tab', { name: 'Upload files', exact: true }).click();
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'),
+    page.getByRole('button', { name: /select files/i }).click()]);
+  const holdSecond = Promise.withResolvers();
+  let uploadCount = 0;
+  await page.route('**/wp-admin/async-upload.php', async route => {
+    if (++uploadCount === 2) await holdSecond.promise;
+    await route.continue();
+  });
+  const attachments = [];
+  const capture = response => {
+    if (new URL(response.url()).pathname === '/wp-admin/async-upload.php') attachments.push(response.json());
+  };
+  page.on('response', capture);
+  try {
+    await chooser.setFiles(['first', 'second', 'third'].map(label => ({
+      name: `ready-selection-${label}.png`, mimeType: 'image/png', buffer: uploadFixture(false),
+    })));
+    const partial = page.getByRole('button', { name: 'Выбрать загруженные', exact: true });
+    await expect(partial).toBeVisible();
+    const insert = page.locator('.media-modal .media-button-insert');
+    await expect(insert).toBeDisabled();
+    await partial.click();
+    await expect(insert).toBeEnabled();
+    await insert.click();
+    const first = (await attachments[0]).data.id;
+    await page.waitForFunction(id => {
+      const html = window.tinymce?.get('content')?.getContent() || document.querySelector('#content').value;
+      return html.includes('wp-image-' + id);
+    }, first);
+  } finally {
+    holdSecond.resolve();
+  }
+  await expect.poll(() => attachments.length).toBe(3);
+  const completed = await Promise.all(attachments);
+  assert.ok(completed.every(row => row.success && row.data.sizes.thumbnail));
+  assert.equal(new Set(completed.map(row => row.data.id)).size, 3);
+  await page.unroute('**/wp-admin/async-upload.php');
+  page.off('response', capture);
+  await page.locator('#title').fill('Disposable partial media selection');
+  await Promise.all([page.waitForURL('**/wp-admin/post.php?**'), page.locator('#save-post').click()]);
+  await page.reload();
+  const savedImages = page.frameLocator('#content_ifr').locator('img');
+  await expect(savedImages).toHaveCount(1);
+  await expect(savedImages).toHaveClass(new RegExp(`\\bwp-image-${completed[0].data.id}\\b`));
+  report.partial_selection_verified = true;
+  await page.locator('#insert-media-button').click();
+  const retryPrefix = 'retry-' + randomUUID();
+  const retryFiles = ['kept', 'interrupted'].map(label => ({
+    name: `${retryPrefix}-${label}.png`, mimeType: 'image/png', buffer: uploadFixture(false),
+  }));
+  async function chooseFiles(files) {
+    await page.getByRole('tab', { name: 'Upload files', exact: true }).click();
+    const [picker] = await Promise.all([page.waitForEvent('filechooser'),
+      page.getByRole('button', { name: /select files/i }).click()]);
+    await picker.setFiles(files);
+  }
+  let attempt = 0;
+  await page.route('**/wp-admin/async-upload.php', route =>
+    ++attempt === 2 ? route.abort('failed') : route.continue());
+  const received = [];
+  const recordUpload = response => {
+    if (new URL(response.url()).pathname === '/wp-admin/async-upload.php') received.push(response.json());
+  };
+  page.on('response', recordUpload);
+  await chooseFiles(retryFiles);
+  await expect(page.locator('.upload-error-filename').filter({ hasText: retryFiles[1].name }).first()).toBeVisible();
+  assert.equal(received.length, 1);
+  await chooseFiles([retryFiles[1]]);
+  await expect.poll(() => received.length).toBe(2);
+  const accepted = await Promise.all(received);
+  assert.ok(accepted.every(row => row.success && row.data.sizes.thumbnail));
+  assert.equal(new Set(accepted.map(row => row.data.id)).size, 2);
+  for (const row of accepted) {
+    const thumbnail = await context.request.get(row.data.sizes.thumbnail.url);
+    assert.equal(thumbnail.status(), 200);
+    await thumbnail.dispose();
+  }
+  const found = await page.evaluate(async prefix => {
+    const nonce = await (await fetch('/wp-admin/admin-ajax.php?action=rest-nonce')).text();
+    const response = await fetch('/wp-json/wp/v2/media?context=edit&_fields=id&search=' + prefix,
+      { headers: { 'X-WP-Nonce': nonce } });
+    if (!response.ok) throw Error('Media verification failed');
+    return (await response.json()).map(media => media.id);
+  }, retryPrefix);
+  assert.deepEqual(found.sort(), accepted.map(row => row.data.id).sort());
+  report.interrupted_upload_retried = true;
   // No cookies, nonce values, credentials, HAR or raw page content are saved.
   await writeFile('.artifacts/integration/media-upload-report.json', `${JSON.stringify(report, null, 2)}\n`);
   process.stdout.write('Native HTTP media: 50MiB, duplicate filename, preview, draft reopen: OK\n');
