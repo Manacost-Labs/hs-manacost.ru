@@ -36,6 +36,30 @@ await assert.rejects(deleteUploadFixture(async (_route, method) => method === 'D
         )
         self.assertEqual(0, result.returncode, result.stderr)
 
+    def test_network_loss_retries_only_fixture_reads(self):
+        script = """
+import assert from 'node:assert/strict';
+import { fixtureRequest } from './ops/performance/browser-fixture-request.mjs';
+const delays = [];
+const page = { waitForTimeout: async ms => delays.push(ms) };
+for (const method of ['GET', 'POST', 'DELETE']) {
+  let sent = 0;
+  const send = async () => {
+    if (++sent === 1) throw new Error('TypeError: Failed to fetch');
+    return 200;
+  };
+  if (method === 'GET') {
+    assert.equal(await fixtureRequest(method, send, page), 200);
+    assert.equal(sent, 2);
+  } else {
+    await assert.rejects(fixtureRequest(method, send, page), /Failed to fetch/);
+    assert.equal(sent, 1);
+  }
+}
+assert.deepEqual(delays, [500]);
+"""
+        subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, check=True)
+
     def test_email_prompt_is_postponed_only_on_staging(self):
         result = subprocess.run(
             ["node", "--input-type=module", "-e", r'''

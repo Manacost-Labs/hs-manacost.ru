@@ -5,6 +5,20 @@ on:
     workflows: [Deploy staging]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      restored_media_only:
+        description: "Verify the archived media recovery fixtures on protected staging"
+        type: boolean
+        default: false
+      editor_media_series:
+        description: "Measure 1 MB, 5 MB and 20-file uploads in the staging editor (five samples each)"
+        type: boolean
+        default: false
+
+      editor_media_batch_only:
+        description: "With editor_media_series, run one 20-file batch"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,7 +30,7 @@ concurrency:
 jobs:
   measure:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && !inputs.restored_media_only) ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, linux, x64, hs-manacost-production]
     timeout-minutes: 30
@@ -56,6 +70,7 @@ jobs:
       - name: Install locked browser package
         run: npm ci --ignore-scripts
       - name: Verify article cards against live staging catalogs
+        if: inputs.editor_media_series != true
         env:
           PLAYWRIGHT_EXECUTABLE_PATH: ''
           WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
@@ -66,7 +81,7 @@ jobs:
           npx playwright install chromium
           node tests/article-cards/staging.mjs
       - name: Upload article cards staging evidence
-        if: always()
+        if: always() && !inputs.editor_media_series
         uses: actions/upload-artifact@v4
         with:
           name: article-cards-staging
@@ -76,7 +91,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Verify card changes on protected staging
-        if: always() && steps.credentials.outputs.enabled == 'true'
+        if: always() && steps.credentials.outputs.enabled == 'true' && !inputs.editor_media_series
         env:
           PLAYWRIGHT_EXECUTABLE_PATH: ''
           # A branch run against staging does not deploy the branch: name search may then fall back to the identifier.
@@ -87,7 +102,7 @@ jobs:
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
         run: node tests/card-changes/staging.mjs
       - name: Upload card changes staging evidence
-        if: always()
+        if: always() && !inputs.editor_media_series
         uses: actions/upload-artifact@v4
         with:
           name: card-changes-staging
@@ -97,7 +112,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Collect five comparable warm staging samples
-        if: always() && steps.credentials.outputs.enabled == 'true'
+        if: always() && steps.credentials.outputs.enabled == 'true' && !inputs.editor_media_series
         env:
           WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
           WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
@@ -121,7 +136,7 @@ jobs:
           done
           exit "$evaluation_failed"
       - name: Verify five cold slow-mobile frontend samples per route
-        if: always() && steps.credentials.outputs.enabled == 'true'
+        if: always() && steps.credentials.outputs.enabled == 'true' && !inputs.editor_media_series
         env:
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
@@ -133,9 +148,11 @@ jobs:
           WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+          HS_STAGING_EDITOR_BATCH_ONLY: ${{ inputs.editor_media_batch_only && 'true' || 'false' }}
+          HS_STAGING_EDITOR_MEDIA: ${{ inputs.editor_media_series && 'true' || 'false' }}
         run: node ops/performance/diagnose-article-save.mjs .artifacts/admin-performance/reports
       - name: Diagnose authenticated image uploads
-        if: always() && steps.credentials.outputs.enabled == 'true'
+        if: always() && steps.credentials.outputs.enabled == 'true' && !inputs.editor_media_series
         env:
           WP_TEST_ADMIN_USER: ${{ secrets.STAGING_DIAGNOSTIC_USER }}
           WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
@@ -150,3 +167,22 @@ jobs:
           path: .artifacts/admin-performance/reports/
           if-no-files-found: error
           retention-days: 30
+
+  restored-media:
+    if: github.event_name == 'workflow_dispatch' && inputs.restored_media_only
+    runs-on: [self-hosted, linux, x64, hs-manacost-production]
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check media bytes and decode dimensions on staging
+        env:
+          STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
+          STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+          PLAYWRIGHT_EXECUTABLE_PATH: /usr/bin/chromium
+        run: node ops/performance/verify-restored-media.mjs

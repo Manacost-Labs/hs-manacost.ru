@@ -1,0 +1,37 @@
+[
+  {
+    "path": "2016/02/rexxar-300x111.png",
+    "width": 300,
+    "height": 111,
+    "mime": "image/png",
+    "sha256": "d3fd3bcd15d1209090341f4c638c90b3d6729286d64d3bec63e78b034400378f"
+  },
+  {
+    "path": "2019/01/rexxar-hearthstone-art-300x96.jpg",
+    "width": 300,
+    "height": 96,
+    "mime": "image/jpeg",
+    "sha256": "59fd9946b416176f530f8815c7b552351df882dc5d1559f7de75072c55c0cff1"
+  },
+  {
+    "path": "2019/01/rexxsar_istoria-300x152.jpg",
+    "width": 300,
+    "height": 152,
+    "mime": "image/jpeg",
+    "sha256": "4bfaaa233354740ca7511ee1f5862de92d282617e74097ad6d37638212980707"
+  },
+  {
+    "path": "2018/07/855159_circle_512x512-198x198.png",
+    "width": 198,
+    "height": 198,
+    "mime": "image/png",
+    "sha256": "88cb8207145d0cb70de1a2f0c3e87c7d9ee476257aebefbf099077677407bdc3"
+  },
+  {
+    "path": "2017/03/up-300x48.png",
+    "width": 300,
+    "height": 48,
+    "mime": "image/png",
+    "sha256": "1e8b61a9c16e5555fdba1df3c60a7763e2b337587c709bda4f75d701b5629a51"
+  }
+]

@@ -11,6 +11,18 @@ export async function navigateWithNetworkRecovery(page, url, options) {
   }
 }
 
+// A lost read can be repeated on the same authenticated document. A mutation is sent once.
+export async function fixtureRequest(method, send, page) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await send();
+    } catch (error) {
+      if (method !== 'GET' || attempt >= 2 || !/Failed to fetch|ERR_NETWORK_CHANGED|ERR_CONNECTION_RESET/.test(error.message)) throw error;
+      await page.waitForTimeout(500 * (attempt + 1));
+    }
+  }
+}
+
 // Keep Chromium's host resolver, user agent and authenticated cookies for cleanup.
 // The caller owns this separate, static nonce document and closes it afterwards.
 export async function createBrowserFixtureRequest(page, baseURL) {
@@ -20,12 +32,12 @@ export async function createBrowserFixtureRequest(page, baseURL) {
   return {
     async fetch(url, options) {
       if (url === nonceURL && options.method === 'GET') return initial;
-      const result = await page.evaluate(async ({ url, method, headers, timeout }) => {
+      const result = await fixtureRequest(options.method, () => page.evaluate(async ({ url, method, headers, timeout }) => {
         const response = await fetch(url, {
           method, headers, redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(timeout),
         });
         return { status: response.status, body: await response.text() };
-      }, { url, method: options.method, headers: options.headers, timeout: options.timeout });
+      }, { url, method: options.method, headers: options.headers, timeout: options.timeout }), page);
       return {
         status: () => result.status,
         ok: () => result.status >= 200 && result.status < 300,

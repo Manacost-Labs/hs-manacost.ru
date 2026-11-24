@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { finishAdminLogin } from '../../ops/performance/browser-admin-login.mjs';
-import { navigateWithNetworkRecovery } from '../../ops/performance/browser-fixture-request.mjs';
+import { fixtureRequest, navigateWithNetworkRecovery } from '../../ops/performance/browser-fixture-request.mjs';
 
 const base = process.env.WP_TEST_BASE_URL;
 if (base !== 'https://test.hs-manacost.ru') throw new Error('Article cards smoke is restricted to protected staging');
@@ -43,7 +43,7 @@ async function navigate(target, url) {
   return response;
 }
 async function api(route, method = 'GET', body) {
-  return apiPage.evaluate(async ({ route, method, body, nonce }) => {
+  return fixtureRequest(method, () => apiPage.evaluate(async ({ route, method, body, nonce }) => {
     const response = await fetch(`/wp-json/wp/v2/${route}`, {
       method, headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' },
       ...(body ? { body: JSON.stringify(body) } : {}),
@@ -51,7 +51,7 @@ async function api(route, method = 'GET', body) {
     });
     if (!response.ok) throw new Error('Staging fixture request failed');
     return response.json();
-  }, { route, method, body, nonce });
+  }, { route, method, body, nonce }), apiPage);
 }
 async function editorReady() {
   await page.locator('#content-tmce').click();

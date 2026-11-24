@@ -379,6 +379,7 @@ console.log('PASS');
             collect.split("      - ", 1)[0],
         )
         self.assertIn("run: npm ci --ignore-scripts", steps)
+        measurement_steps, restore_job = steps.split("\n  restored-media:\n", 1)
         frontend_name = "Verify five cold slow-mobile frontend samples per route"
         if f"      - name: {frontend_name}\n" in steps:
             frontend = steps.split(f"      - name: {frontend_name}\n", 1)[1].split("      - ", 1)[0]
@@ -386,9 +387,17 @@ console.log('PASS');
                 self.assertIn(f"secrets.{secret_name}", frontend)
             self.assertNotIn("STAGING_DIAGNOSTIC", frontend)
             # +4 for the card changes staging probe, which needs the same four protected staging secrets.
-            self.assertEqual(26, steps.count("secrets."))
+            self.assertEqual(26, measurement_steps.count("secrets."))
         else:
-            self.assertEqual(24, steps.count("secrets."))
+            self.assertEqual(24, measurement_steps.count("secrets."))
+        restore_setup, restore_step = restore_job.split(
+            "      - name: Check media bytes and decode dimensions on staging\n", 1
+        )
+        self.assertNotIn("secrets.", restore_setup)
+        self.assertEqual(2, restore_step.count("secrets."))
+        for name in ("STAGING_HTTP_USER", "STAGING_HTTP_PASSWORD"):
+            self.assertIn(f"secrets.{name}", restore_step)
+        self.assertNotIn("STAGING_DIAGNOSTIC", restore_job)
 
     def test_report_builder_uses_medians_and_approved_budgets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
