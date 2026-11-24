@@ -145,6 +145,20 @@ class PerformanceOptimizerFontsTest(unittest.TestCase):
         self.assertIn('loading="eager" fetchpriority="high"', result)
         self.assertNotIn('data-bg="https://hs-manacost.ru/wp-content/uploads/2026/09/first-', result)
 
+    def test_paged_grid_uses_mobile_crop_for_webp_in_escaped_inline_style(self) -> None:
+        base = 'https://hs-manacost.ru/wp-content/uploads/2026/11/shpipn'
+        desktop = base + '-1068x542.png.webp'
+        mobile = base + '-696x353.png'
+        grid = (
+            '<div class="td-big-grid-flex"><a class="td-image-wrap" href="/article/">'
+            f'<span class="entry-thumb" style="background-image: url(&quot;{desktop}&quot;)">'
+            '</span></a></div>'
+        )
+        result = self.render_page(mobile=True, request_uri="/page/2/", page=PAGE.replace('</body>', grid + '</body>'))
+        self.assertIn(f'srcset="{mobile}"', result)
+        self.assertIn(f'href="{mobile}"', result)
+        self.assertIn(f'src="{desktop}"', result)
+
     def test_public_archive_promotes_first_lazy_thumbnail(self) -> None:
         card = (
             '<div class="td-module-thumb"><a href="/guide/" class="td-image-wrap">'
