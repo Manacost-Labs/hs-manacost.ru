@@ -138,11 +138,18 @@ class ContentLightboxContractTest(unittest.TestCase):
                 hook,
             )
 
+    def test_post_preview_loads_the_same_viewer_as_the_published_article(self) -> None:
+        # Editors check drafts before publishing; WordPress treats every draft view as a preview.
+        result = self.run_plugin(preview=True)
+
+        self.assertEqual(["tdModalPostImages"], result["dequeued"])
+        self.assertIn("lightbox.js", result["scripts"]["hs-manacost-lightbox"]["src"])
+        self.assertIn("lightbox.css", result["styles"]["hs-manacost-lightbox"]["src"])
+
     def test_non_content_requests_do_not_load_or_modify_frontend_assets(self) -> None:
         for kwargs in (
             {"admin": True},
             {"feed": True},
-            {"preview": True},
             {"singular": False},
             {"live_editor_iframe": True},
             {"live_editor_ajax": True},

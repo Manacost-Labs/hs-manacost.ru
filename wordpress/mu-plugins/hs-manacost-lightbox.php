@@ -12,11 +12,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Decide whether the public content viewer belongs on the current request.
+ *
+ * Post previews keep the viewer so editors see drafts as readers will.
  */
 function hs_manacost_lightbox_should_enqueue(): bool {
 	return ! is_admin()
 		&& ! is_feed()
-		&& ! is_preview()
 		&& is_singular()
 		&& ! hs_manacost_lightbox_is_live_editor();
 }
