@@ -5,6 +5,11 @@ on:
     workflows: [Deploy staging]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      editor_media_series:
+        description: "Measure 1 MB, 5 MB and 20-file uploads in the staging editor (five samples each)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -133,6 +138,7 @@ jobs:
           WP_TEST_ADMIN_PASSWORD: ${{ secrets.STAGING_DIAGNOSTIC_PASSWORD }}
           STAGING_HTTP_USER: ${{ secrets.STAGING_HTTP_USER }}
           STAGING_HTTP_PASSWORD: ${{ secrets.STAGING_HTTP_PASSWORD }}
+          HS_STAGING_EDITOR_MEDIA: ${{ inputs.editor_media_series && 'true' || 'false' }}
         run: node ops/performance/diagnose-article-save.mjs .artifacts/admin-performance/reports
       - name: Diagnose authenticated image uploads
         if: always() && steps.credentials.outputs.enabled == 'true'

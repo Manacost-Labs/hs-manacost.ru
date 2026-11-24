@@ -6,6 +6,8 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { collectSqlProfile } from './browser-sql-profile.mjs';
 import { finishAdminLogin } from './browser-admin-login.mjs';
+import { profileEditorHtml } from './editor-html-profile.mjs';
+import { measureEditorMedia } from './editor-media-series.mjs';
 import { deleteArticleFixture } from './delete-article-fixture.mjs';
 import { createBrowserFixtureRequest, classifyDiagnosticFailure } from './browser-fixture-request.mjs';
 
@@ -60,6 +62,8 @@ page.on('requestfinished', request => pendingRequests.delete(request));
 page.on('requestfailed', request => pendingRequests.delete(request));
 const samples = [];
 const openSamples = [];
+const mediaSamples = [];
+const includeMedia = process.env.HS_STAGING_EDITOR_MEDIA === 'true';
 const fixtureTitle = `Admin performance probe ${Date.now()}`;
 let postId;
 let cleaned = false;
@@ -146,6 +150,9 @@ async function measureEditorOpen(id) {
       assetGroups.set(owner, group);
     }
     return {
+      html_encoded_bytes: navigation.encodedBodySize,
+      html_decoded_bytes: navigation.decodedBodySize,
+      html_transfer_bytes: navigation.transferSize,
       ttfb_ms: Math.round(navigation.responseStart - navigation.requestStart),
       dom_interactive_ms: Math.round(navigation.domInteractive - navigation.startTime),
       sql_queries: Number(server.sql_queries),
@@ -160,7 +167,9 @@ async function measureEditorOpen(id) {
     };
   });
   const sqlProfile = await page.evaluate(collectSqlProfile);
-  return { ...timings, sql_profile: sqlProfile, editor_ready_ms: editorReadyMs };
+  const html = await page.evaluate(profileEditorHtml);
+  return { ...timings, html, content_encoding: (await response.headerValue('content-encoding')) || 'identity',
+    sql_profile: sqlProfile, editor_ready_ms: editorReadyMs };
 }
 
 async function removeFixture() {
@@ -218,10 +227,20 @@ try {
       throw new Error('Unchanged article content was modified during save');
     }
   }
+  if (includeMedia) {
+    stage = 'editor-media';
+    for (let sample = 0; sample < 5; sample++) {
+      for (const scenario of ['single1', 'single5', 'batch']) {
+        mediaSamples.push(await measureEditorMedia(page, postId, scenario));
+      }
+    }
+  }
 } catch (error) {
   failure = {
     stage,
     failure_code: classifyDiagnosticFailure(error),
+    ...(stage === 'editor-media' && /^hs-media-probe-[a-f0-9-]{36}$/.test(error.fixturePrefix || '')
+      ? { fixture_prefix: error.fixturePrefix } : {}),
     error_type: ['TimeoutError', 'AbortError', 'TypeError', 'Error'].includes(error.name)
       ? error.name : 'Error',
     main_response_status: mainResponseStatus,
@@ -245,6 +264,12 @@ try {
       fixture_cleaned: cleaned,
       failure,
     }, null, 2)}\n`);
+    if (includeMedia) {
+      await writeFile(path.join(outputDirectory, 'editor-media-series.json'), JSON.stringify({
+        environment: 'staging', role: 'administrator', mbps: 10, latency_ms: 100,
+        samples: mediaSamples, fixture_cleaned: cleaned, failure,
+      }, null, 2) + '\n');
+    }
     await writeFile(path.join(outputDirectory, 'open-article-diagnostic.json'), `${JSON.stringify({
       environment: 'staging',
       screen: 'published-article-open',
@@ -261,7 +286,7 @@ try {
   }
 }
 
-if (!cleaned || samples.length !== 5 || openSamples.length !== 5) {
+if (failure || (includeMedia && mediaSamples.length !== 15) || !cleaned || samples.length !== 5 || openSamples.length !== 5) {
   throw new Error('Article save diagnosis was incomplete or fixture cleanup failed');
 }
 const responses = samples.map(sample => sample.response_ms).sort((a, b) => a - b);
