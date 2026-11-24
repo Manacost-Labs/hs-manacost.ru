@@ -85,7 +85,7 @@ export async function measureEditorMedia(page, postId, scenario) {
   let nonce;
   const rest = (route, method = 'GET') => admin.evaluate(async ({route, method, nonce}) => {
     const response = await fetch('/wp-json/wp/v2/' + route, { method, headers: {'X-WP-Nonce': nonce},
-      signal: AbortSignal.timeout(30000) });
+      signal: AbortSignal.timeout(method === 'DELETE' ? 60000 : 30000) });
     return { status: response.status, data: await response.json() };
   }, { route, method, nonce });
 
@@ -149,9 +149,21 @@ export async function measureEditorMedia(page, postId, scenario) {
       if (started) {
         const lookup = await rest('media?context=edit&per_page=100&search=' + prefix + '&_fields=id,author,post,title');
         assert.equal(lookup.status, 200);
+        const isOwned = item => item.author === owner && item.post === postId && names.has(item.title.raw);
+        assert.ok(lookup.data.every(isOwned));
+        const unconfirmed = [];
         for (const item of lookup.data) {
-          assert.ok(item.author === owner && item.post === postId && names.has(item.title.raw));
-          await deleteUploadFixture(rest, item.id);
+          try {
+            await deleteUploadFixture(rest, item.id);
+          } catch {
+            unconfirmed.push(item.id);
+          }
+        }
+        for (const id of unconfirmed) {
+          const remaining = await rest('media/' + id + '?context=edit&_fields=id,author,post,title');
+          if (remaining.status === 404) continue;
+          assert.ok(remaining.status === 200 && remaining.data.id === id && isOwned(remaining.data));
+          await deleteUploadFixture(rest, id);
         }
         assert.ok(completed && lookup.data.length === files.length, 'Unconfirmed cleanup of in-flight attachments');
       }
