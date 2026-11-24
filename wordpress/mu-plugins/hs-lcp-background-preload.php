@@ -176,10 +176,13 @@ function hs_manacost_apply_partner_wallpaper( string $html ): string {
 	if ( '' === $css ) {
 		return $html;
 	}
-	$link     = '<a class="mc-wallpaper-link" href="https://sirus.one/registration?ref=3586993&amp;utm_source=hsmanacost&amp;utm_medium=twitch"'
-		. ' target="_blank" rel="sponsored noopener noreferrer" aria-label="Регистрация на Sirus — откроется в новой вкладке">'
-		. '<span class="mc-wallpaper-gutter mc-wallpaper-gutter-left"></span><span class="mc-wallpaper-gutter mc-wallpaper-gutter-right"></span>'
-		. '<span class="mc-wallpaper-wing mc-wallpaper-wing-left"></span><span class="mc-wallpaper-wing mc-wallpaper-wing-right"></span></a>';
+	$parts = '<span class="mc-wallpaper-gutter mc-wallpaper-gutter-left"></span><span class="mc-wallpaper-gutter mc-wallpaper-gutter-right"></span>'
+		. '<span class="mc-wallpaper-wing mc-wallpaper-wing-left"></span><span class="mc-wallpaper-wing mc-wallpaper-wing-right"></span>';
+	// Administrators see the artwork without the sponsored link. WP Rocket does not cache signed-in pages.
+	$link     = current_user_can( 'manage_options' )
+		? '<span class="mc-wallpaper-link" aria-hidden="true">' . $parts . '</span>'
+		: '<a class="mc-wallpaper-link" href="https://sirus.one/registration?ref=3586993&amp;utm_source=hsmanacost&amp;utm_medium=twitch"'
+			. ' target="_blank" rel="sponsored noopener noreferrer" aria-label="Регистрация на Sirus — откроется в новой вкладке">' . $parts . '</a>';
 	$head_end = stripos( $html, '</head>' );
 	if ( false === $head_end ) {
 		return $html;
