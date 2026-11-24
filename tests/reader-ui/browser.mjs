@@ -219,6 +219,30 @@ try {
     assert.equal(outerAlignment.mainBackground, 'rgb(243, 239, 230)', 'the cabinet must use the warm paper background from the Reader design contract');
   };
 
+  // Hold identity until the compact shell has painted, as on the slow staging route.
+  await page.setViewportSize({ width: 390, height: 844 });
+  let resumeIdentity;
+  const identityHeld = new Promise(resolve => { resumeIdentity = resolve; });
+  const delayedGuest = async route => { await identityHeld; await fulfillMe(route); };
+  await page.route('**/reader-api/v1/bootstrap', delayedGuest);
+  await page.goto(origin, { waitUntil: 'domcontentloaded' });
+  // The real Newspaper footer occupies 308px in the 390px staging capture.
+  await page.addStyleTag({ content: '[data-theme-footer-outer]{min-height:308px;background:#333}' });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    window.guestShift = 0;
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.guestShift += entry.value;
+    }).observe({ type: 'layout-shift' });
+  });
+  resumeIdentity();
+  await page.getByRole('link', { name: 'Войти через HearthPulse' }).waitFor();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const guestShift = await page.evaluate(() => window.guestShift);
+  assert.ok(guestShift <= 0.1, `resolving a guest session shifted the layout by ${guestShift}`);
+  await page.unroute('**/reader-api/v1/bootstrap', delayedGuest);
+
   parserDelay = 900; footerDelay = 1400;
   const earlyCalls = meCalls;
   await ready();

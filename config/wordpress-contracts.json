@@ -3155,7 +3155,7 @@
         "resolved": true,
         "api": "current_user_can",
         "file": "wordpress/mu-plugins/hs-admin-performance-probe.php",
-        "line": 187
+        "line": 193
       },
       {
         "name": "manage_options",

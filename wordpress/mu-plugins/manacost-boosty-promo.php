@@ -208,7 +208,7 @@ final class Manacost_Boosty_Promo {
 	 * @return string
 	 */
 	private static function render_homepage_banner(): string {
-		return self::render_banner( 'manacost-boosty-promo/homepage-banner.webp?ver=44d5f1f12b09', 1172, 1342 );
+		return self::render_banner( 'manacost-boosty-promo/homepage-banner.webp?ver=44d5f1f12b09', 1172, 1342, max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) ) > 1 );
 	}
 
 	/**
@@ -226,9 +226,10 @@ final class Manacost_Boosty_Promo {
 	 * @param string $asset_path Banner path relative to the MU-plugin directory.
 	 * @param int    $width      Intrinsic image width.
 	 * @param int    $height     Intrinsic image height.
+	 * @param bool   $paged_home Whether the homepage creative is visible on the paginated listing.
 	 * @return string
 	 */
-	private static function render_banner( string $asset_path, int $width, int $height ): string {
+	private static function render_banner( string $asset_path, int $width, int $height, bool $paged_home = false ): string {
 		$banner_url = plugin_dir_url( __FILE__ ) . $asset_path;
 		$srcset     = sprintf(
 			'%1$s 400w, %2$s 800w, %3$s %4$dw',
@@ -238,14 +239,32 @@ final class Manacost_Boosty_Promo {
 			$width
 		);
 
-		return sprintf(
-			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s"><img src="%3$s" width="%4$d" height="%5$d" srcset="%6$s" sizes="(max-width: 767px) calc(100vw - 40px), 350px" alt="" decoding="async" loading="lazy"></a>',
-			esc_url( self::BOOSTY_URL ),
-			esc_attr( 'Поддержать Manacost на Boosty' ),
+		$sizes = '(max-width: 767px) calc(100vw - 40px), 350px';
+		$image = sprintf(
+			'<img src="%1$s" width="%2$d" height="%3$d" srcset="%4$s" sizes="%5$s" alt="" decoding="async" %6$s>',
 			esc_url( $banner_url ),
 			$width,
 			$height,
-			esc_attr( $srcset )
+			esc_attr( $srcset ),
+			esc_attr( $sizes ),
+			$paged_home ? 'loading="eager" data-no-lazy="1" fetchpriority="high"' : 'loading="lazy"'
+		);
+		if ( $paged_home ) {
+			$base  = plugin_dir_url( __FILE__ ) . 'manacost-boosty-promo/homepage-banner-';
+			$image = sprintf(
+				'<picture><source type="image/avif" srcset="%1$s 400w, %2$s 800w" sizes="%3$s">%4$s</picture>',
+				esc_url( $base . '400.avif?ver=e5f5640da615' ),
+				esc_url( $base . '800.avif?ver=1dab4a6943a8' ),
+				esc_attr( $sizes ),
+				$image
+			);
+		}
+
+		return sprintf(
+			'<a class="manacost-boosty-promo" href="%1$s" aria-label="%2$s">%3$s</a>',
+			esc_url( self::BOOSTY_URL ),
+			esc_attr( 'Поддержать Manacost на Boosty' ),
+			$image
 		);
 	}
 }
