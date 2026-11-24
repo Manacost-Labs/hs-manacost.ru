@@ -152,6 +152,12 @@ function hs_admin_performance_probe_collect_query( array $data, string $query, f
 		if ( 'other' === $caller ) {
 			$caller = $name;
 		}
+		// Report the feature that asked for a setting or job, retaining the leaf as fallback.
+		if ( str_starts_with( $name, 'wfConfig::' )
+			|| str_starts_with( $name, 'AIOSEO\\Plugin\\Common\\Utils\\Database->' )
+			|| str_starts_with( $name, 'AIOSEO\\Plugin\\Common\\Utils\\ActionScheduler->' ) ) {
+			continue;
+		}
 		if ( preg_match( '/^(hs_|Manacost|wf|td_|AIOSEO|WPRocket)/i', $name ) ) {
 			$caller = $name;
 			break;

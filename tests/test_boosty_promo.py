@@ -87,7 +87,7 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn(":focus-visible", navigation_css)
         self.assertIn("prefers-reduced-motion", navigation_css)
 
-    def run_plugin(self, is_front_page: bool) -> dict[str, object]:
+    def run_plugin(self, is_front_page: bool, paged: int = 0, page: int = 0) -> dict[str, object]:
         script = f"""
         define('ABSPATH', '/');
         $filters = [];
@@ -109,6 +109,7 @@ class BoostyPromoTest(unittest.TestCase):
         function is_preview() {{ return false; }}
         function wp_doing_ajax() {{ return false; }}
         function wp_enqueue_script(...$args) {{}}
+        function get_query_var($key) {{ return $key === 'paged' ? {paged} : {page}; }}
         function is_front_page() {{ return $GLOBALS['front_page']; }}
         function esc_url($value) {{ return $value; }}
         function esc_attr($value) {{ return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }}
@@ -249,6 +250,17 @@ class BoostyPromoTest(unittest.TestCase):
         self.assertIn("manacost-site-navigation", result["styles"])
         self.assertIn("manacost-boosty-promo", result["styles"])
 
+    def test_paged_home_delivers_native_responsive_banner(self) -> None:
+        for args in ({"paged": 2}, {"page": 2}):
+            markup = self.run_plugin(True, **args)["shortcode"]
+            self.assertIn('<source type="image/avif"', markup)
+            self.assertIn('loading="eager" data-no-lazy=', markup)
+            self.assertIn('homepage-banner.webp', markup)
+            for width in (400, 800):
+                asset = HOMEPAGE_BANNER.with_name(f"homepage-banner-{width}.avif")
+                self.assertIn(asset.name, markup)
+                self.assertLess(asset.stat().st_size, 80_000)
+
     def test_promo_images_offer_small_renditions_and_allow_the_site_lazy_loader(self) -> None:
         for homepage in (True, False):
             result = self.run_plugin(is_front_page=homepage)
@@ -281,6 +293,7 @@ class BoostyPromoTest(unittest.TestCase):
         }}
         function wpm_apply_filters_typed($type, $hook, $value) {{ return $value; }}
         $markup = stream_get_contents(STDIN);
+        $markup = $image->lazyloadPictures($markup, $markup);
         echo $image->lazyloadImages($markup, $markup, false);
         """
         for homepage in (True, False):
@@ -302,6 +315,10 @@ class BoostyPromoTest(unittest.TestCase):
             self.assertEqual("350px", images[0]["data-lazy-sizes"].split(", ")[-1])
             self.assertIn('width="117', active)
             self.assertIn(markup.split("<img", 1)[1].split("</a>", 1)[0], fallback)
+
+        paged = self.run_plugin(True, paged=2)["shortcode"]
+        processed = subprocess.run([PHP_BINARY, "-r", script], input=paged, text=True, capture_output=True, check=True)
+        self.assertEqual(paged, processed.stdout)
 
     def test_replaces_only_the_legacy_article_sidebar_banner(self) -> None:
         result = self.run_plugin(is_front_page=False)
