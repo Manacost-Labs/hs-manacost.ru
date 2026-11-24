@@ -12,8 +12,9 @@ export function profileEditorHtml() {
       : script.id.endsWith('-js-extra') ? 'localized_data' : 'other_inline_js';
     const length = size(script.textContent);
     add(group, length);
-    if (group === 'localized_data' && /^[a-z][a-z0-9_-]{0,79}-js-extra$/i.test(script.id)) {
-      localized.push({handle: script.id.slice(0, -9), bytes: length});
+    if (group === 'localized_data') {
+      const handle = script.id.slice(0, -9);
+      localized.push({handle: /^[A-Za-z0-9_.:@/-]{1,120}$/.test(handle) ? handle : '(other)', bytes: length});
     }
   }
   const panels = [...document.querySelectorAll('#poststuff .postbox')].filter(
