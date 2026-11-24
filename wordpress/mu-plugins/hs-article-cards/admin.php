@@ -78,7 +78,7 @@ final class HS_Article_Cards_Admin {
 		}
 		HS_Article_Cards_Render::component_assets();
 		wp_enqueue_script( 'hs-article-cards-folded', plugins_url( 'folded.js', __FILE__ ), array(), '1.4.1', true );
-		wp_enqueue_script( 'hs-article-dialog-focus', plugins_url( 'dialog-focus.js', __FILE__ ), array(), '1.4.1', true );
+		wp_enqueue_script( 'hs-article-dialog-focus', plugins_url( 'dialog-focus.js', __FILE__ ), array(), '1.4.2', true );
 		wp_enqueue_style( 'hs-article-components-editor', plugins_url( 'components-editor.css', __FILE__ ), array(), '1.4.1' );
 		wp_enqueue_script( 'hs-article-components-editor', plugins_url( 'components-editor.js', __FILE__ ), array( 'hs-article-cards-picker', 'hs-article-components' ), '1.4.1', true );
 		wp_enqueue_style( 'hs-article-cards', HS_Article_Cards_Render::css_url(), array(), '1.4.1' );

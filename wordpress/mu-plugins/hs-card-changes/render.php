@@ -26,7 +26,7 @@ final class HS_Card_Changes_Render {
 		'card-changes.css' => 'ce890deb9a4a',
 		'editor.css'       => '6384378114f9',
 		'editor.js'        => 'df9a063c4802',
-		'dialog-focus.js'  => '7da5641f5c1a',
+		'dialog-focus.js'  => '5785aaa87b14',
 	);
 
 	/**
