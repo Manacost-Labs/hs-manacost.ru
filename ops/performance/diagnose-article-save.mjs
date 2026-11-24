@@ -64,6 +64,7 @@ const samples = [];
 const openSamples = [];
 const mediaSamples = [];
 const includeMedia = process.env.HS_STAGING_EDITOR_MEDIA === 'true';
+const batchOnly = includeMedia && process.env.HS_STAGING_EDITOR_BATCH_ONLY === 'true';
 const fixtureTitle = `Admin performance probe ${Date.now()}`;
 let postId;
 let cleaned = false;
@@ -229,8 +230,8 @@ try {
   }
   if (includeMedia) {
     stage = 'editor-media';
-    for (let sample = 0; sample < 5; sample++) {
-      for (const scenario of ['single1', 'single5', 'batch']) {
+    for (let sample = 0; sample < (batchOnly ? 1 : 5); sample++) {
+      for (const scenario of batchOnly ? ['batch'] : ['single1', 'single5', 'batch']) {
         mediaSamples.push(await measureEditorMedia(page, postId, scenario));
       }
     }
@@ -239,6 +240,7 @@ try {
   failure = {
     stage,
     failure_code: classifyDiagnosticFailure(error),
+    ...(error.mediaDiagnostic ? {media: error.mediaDiagnostic} : {}),
     ...(stage === 'editor-media' && /^hs-media-probe-[a-f0-9-]{36}$/.test(error.fixturePrefix || '')
       ? { fixture_prefix: error.fixturePrefix } : {}),
     error_type: ['TimeoutError', 'AbortError', 'TypeError', 'Error'].includes(error.name)
@@ -286,7 +288,7 @@ try {
   }
 }
 
-if (failure || (includeMedia && mediaSamples.length !== 15) || !cleaned || samples.length !== 5 || openSamples.length !== 5) {
+if (failure || (includeMedia && mediaSamples.length !== (batchOnly ? 1 : 15)) || !cleaned || samples.length !== 5 || openSamples.length !== 5) {
   throw new Error('Article save diagnosis was incomplete or fixture cleanup failed');
 }
 const responses = samples.map(sample => sample.response_ms).sort((a, b) => a - b);

@@ -82,6 +82,20 @@ export async function measureEditorMedia(page, postId, scenario) {
   let started = false;
   let completed = false;
   let owner;
+  let progress = 'open';
+  const network = [];
+  const isUpload = request => new URL(request.url()).pathname === '/wp-admin/async-upload.php';
+  const onFailure = request => {
+    if (!isUpload(request) || network.length >= 40) return;
+    const code = request.failure()?.errorText || '';
+    network.push({failed: /^net::ERR_[A-Z0-9_]+$/.test(code) ? code : 'other'});
+  };
+  const onResponse = response => {
+    if (isUpload(response.request()) && network.length < 40) network.push({status: response.status()});
+  };
+  page.on('requestfailed', onFailure);
+  page.on('response', onResponse);
+  const diagnose = error => Object.assign(error, {mediaDiagnostic: {scenario, progress, network}});
   let nonce;
   const rest = (route, method = 'GET') => admin.evaluate(async ({route, method, nonce}) => {
     const response = await fetch('/wp-json/wp/v2/' + route, { method, headers: {'X-WP-Nonce': nonce},
@@ -112,6 +126,7 @@ export async function measureEditorMedia(page, postId, scenario) {
     const [input] = await Promise.all([page.waitForEvent('filechooser'),
       dialog.getByRole('button', {name: /Select files|Выберите файлы|Выбрать файлы/i}).click()]);
     const start = performance.now();
+    progress = 'upload';
     started = true;
     await input.setFiles(files);
     const readyTime = async target => {
@@ -129,6 +144,7 @@ export async function measureEditorMedia(page, postId, scenario) {
     };
     const firstSelectableMs = await readyTime(1);
     const allReadyMs = await readyTime(count);
+    progress = 'selection';
     const ids = await page.evaluate(prefix => wp.media.frame.state().get('selection').filter(
       item => String(item.get('filename') || '').startsWith(prefix)).map(item => item.id), prefix);
     assert.equal(new Set(ids).size, count);
@@ -137,6 +153,7 @@ export async function measureEditorMedia(page, postId, scenario) {
       '&_fields=id,author,post,title,source_url,media_details');
     assert.equal(media.status, 200);
     assert.deepEqual(new Set(media.data.map(item => item.id)), new Set(ids));
+    progress = 'verify';
     for (const item of media.data) {
       const fixture = files.find(test => test.name === item.title.raw + '.png');
       assert.ok(fixture && item.author === owner && item.post === postId);
@@ -144,6 +161,8 @@ export async function measureEditorMedia(page, postId, scenario) {
     }
     return { originals_and_thumbnails_verified: count, scenario, count, bytes: files.reduce((sum, item) => sum + item.buffer.length, 0),
       first_selectable_ms: firstSelectableMs, all_ready_ms: allReadyMs, unique_attachments: ids.length };
+  } catch (error) {
+    throw diagnose(error);
   } finally {
     try {
       if (started) {
@@ -170,8 +189,10 @@ export async function measureEditorMedia(page, postId, scenario) {
     } catch (error) {
       // Allow operators to find only this run's fixtures after a lost response.
       error.fixturePrefix = prefix;
-      throw error;
+      throw diagnose(error);
     } finally {
+      page.off('requestfailed', onFailure);
+      page.off('response', onResponse);
       await cdp.send('Network.emulateNetworkConditions', {offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1});
       await cdp.send('Network.setCacheDisabled', {cacheDisabled: false});
       await cdp.detach();
