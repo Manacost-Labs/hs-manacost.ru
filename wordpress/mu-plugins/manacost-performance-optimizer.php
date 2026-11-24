@@ -399,8 +399,9 @@ final class Manacost_Performance_Optimizer {
 			return $url;
 		}
 
-		if ( preg_match( '#background-image:\s*url\((?:&quot;|["\']?)(https?://[^)"\']+)(?:&quot;|["\']?)\)#i', $tag, $match ) ) {
-			return html_entity_decode( $match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$style = self::extract_attr( $tag, 'style' );
+		if ( preg_match( '#\bbackground-image\s*:\s*url\(\s*(["\']?)(https?://[^)"\']+?)\1\s*\)#i', $style, $match ) ) {
+			return $match[2];
 		}
 
 		return '';
