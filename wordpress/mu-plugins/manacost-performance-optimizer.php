@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Manacost Performance Optimizer
  * Description: Public-page performance hardening for hs-manacost.ru without delaying partner advertising.
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: Manacost
  *
  * @package Manacost
@@ -14,8 +14,9 @@ require_once __DIR__ . '/manacost-performance-optimizer/thumbnail-loading.php';
 
 /** Optimizes listing images and guest-only page assets without changing private pages. */
 final class Manacost_Performance_Optimizer {
-	private const PRIMARY_HOST = 'hs-manacost.ru';
-	private const MIRROR_HOST  = 'hs-manacost.com';
+	private const GRID_MOBILE_MEDIA = '(max-width: 767px)';
+	private const PRIMARY_HOST      = 'hs-manacost.ru';
+	private const MIRROR_HOST       = 'hs-manacost.com';
 
 	/** 48px blur of temnaya-versiya-v2.png (2400x1500), shown until the real backdrop decodes. */
 	private const BACKGROUND_PLACEHOLDER = 'data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAACQBQCdASowAB4APuFYpE2opSOiOrZoARAcCUAZiwJr39O4eApc9EOSAGmvkn6ZFcL8Z/KpgAD+9Xvg6R1tVChfs4fKwM3mFt9uIfm+8Jj0VgDCeKljK2oiHdhL547r23128PJQEmvP7vKi6oYecncQAVXCQwKAAAA=';
@@ -202,23 +203,6 @@ final class Manacost_Performance_Optimizer {
 	}
 
 	/**
-	 * Detects mobile requests using WordPress and the legacy UA fallback.
-	 *
-	 * @return bool
-	 */
-	private static function is_mobile_request(): bool {
-		if ( function_exists( 'wp_is_mobile' ) && wp_is_mobile() ) {
-			return true;
-		}
-
-		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) && is_string( $_SERVER['HTTP_USER_AGENT'] )
-			? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
-			: '';
-
-		return (bool) preg_match( '/Mobile|Android|iPhone|iPod|Opera Mini|IEMobile/i', $user_agent );
-	}
-
-	/**
 	 * Makes listing covers visible without waiting for the theme's image loader.
 	 *
 	 * @param string $html Rendered listing HTML, including authenticated pages.
@@ -253,8 +237,9 @@ final class Manacost_Performance_Optimizer {
 			return $html;
 		}
 
-		$lcp_url = '';
-		$html    = self::promote_home_grid_cards( $html, $lcp_url );
+		$lcp_url    = '';
+		$html       = self::promote_home_grid_cards( $html, $lcp_url );
+		$mobile_url = self::mobile_size_url( $lcp_url );
 
 		if ( '' === $lcp_url ) {
 			$html = self::promote_first_listing_thumbnail( $html, $lcp_url );
@@ -270,7 +255,13 @@ final class Manacost_Performance_Optimizer {
 			$html
 		) ?? $html;
 
-		$preload = '<link id="manacost-lcp-preload" rel="preload" as="image" href="' . esc_url( $lcp_url ) . '" fetchpriority="high">' . "\n";
+		$preload       = '';
+		$desktop_media = '';
+		if ( '' !== $mobile_url && $mobile_url !== $lcp_url ) {
+			$preload       = '<link id="manacost-lcp-preload-mobile" rel="preload" as="image" media="' . self::GRID_MOBILE_MEDIA . '" href="' . esc_url( $mobile_url ) . '" fetchpriority="high">' . "\n";
+			$desktop_media = ' media="not all and ' . self::GRID_MOBILE_MEDIA . '"';
+		}
+		$preload .= '<link id="manacost-lcp-preload" rel="preload" as="image"' . $desktop_media . ' href="' . esc_url( $lcp_url ) . '" fetchpriority="high">' . "\n";
 
 		return self::inject_into_head( $html, $preload );
 	}
@@ -306,12 +297,12 @@ final class Manacost_Performance_Optimizer {
 				$seen++;
 
 				if ( $is_first ) {
-					$lcp_url = self::is_mobile_request() ? $mobile_url : $desktop_url;
+					$lcp_url = $desktop_url;
 				}
 
 				$thumb = '<span class="entry-thumb td-thumb-css manacost-lcp-thumb">'
 					. '<picture class="manacost-lcp-picture">'
-					. '<source media="(max-width: 767px)" srcset="' . esc_url( $mobile_url ) . '">'
+					. '<source media="' . self::GRID_MOBILE_MEDIA . '" srcset="' . esc_url( $mobile_url ) . '">'
 					. '<img src="' . esc_url( $desktop_url ) . '" alt="' . esc_attr( $alt ) . '" width="1068" height="542" decoding="async" loading="eager"'
 					. ' fetchpriority="high"'
 					. ' sizes="(max-width: 767px) 100vw, 50vw">'
