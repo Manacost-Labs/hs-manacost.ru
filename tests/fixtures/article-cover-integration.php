@@ -150,6 +150,35 @@ hs_integration_assert(Manacost_Article_Cover::filter_html($cover_page) === $cove
 wp_set_current_user(0);
 $GLOBALS['wp_query']->is_preview = true;
 hs_integration_assert(Manacost_Article_Cover::filter_html($cover_page) === $cover_page, 'preview was changed');
+// Reproduce Rocket disabling WordPress native image loading on previews.
+$cover_old_post = $GLOBALS['post'] ?? null;
+$GLOBALS['post'] = get_post($postId);
+add_filter('wp_lazy_loading_enabled', '__return_false', 10);
+hs_integration_assert(!wp_lazy_loading_enabled('img', 'the_content'), 'anonymous loading policy changed');
+wp_set_current_user(1);
+hs_integration_assert(wp_lazy_loading_enabled('img', 'the_content'), 'article preview did not restore native image loading');
+$preview_images = '';
+for ($image_index = 0; $image_index < 20; $image_index++) {
+    $preview_images .= '<img src="card-' . $image_index . '.jpg" width="300" height="400">';
+}
+$preview_images .= '<img src="priority-card.jpg" width="300" height="400" loading="eager" fetchpriority="high">';
+$preview_parser = new WP_HTML_Tag_Processor(wp_filter_content_tags($preview_images, 'the_content'));
+$preview_lazy = 0;
+while ($preview_parser->next_tag('IMG')) {
+    if ($preview_parser->get_attribute('src') === 'priority-card.jpg') {
+        hs_integration_assert($preview_parser->get_attribute('loading') === 'eager', 'explicit priority image deferred in preview');
+    } elseif ($preview_parser->get_attribute('loading') === 'lazy') {
+        $preview_lazy++;
+    }
+}
+hs_integration_assert($preview_lazy >= 16, 'distant cards eagerly loaded in preview');
+hs_integration_assert(!wp_lazy_loading_enabled('iframe', 'the_content'), 'preview iframe policy changed');
+hs_integration_assert(!wp_lazy_loading_enabled('img', 'wp_get_attachment_image'), 'preview cover policy changed');
+$GLOBALS['wp_query']->is_preview = false;
+hs_integration_assert(!wp_lazy_loading_enabled('img', 'the_content'), 'published content loading policy changed');
+remove_filter('wp_lazy_loading_enabled', '__return_false', 10);
+$GLOBALS['post'] = $cover_old_post;
+wp_set_current_user(0);
 $GLOBALS['wp_query'] = new WP_Query(['post_type' => 'post']);
 hs_integration_assert(Manacost_Article_Cover::filter_html($cover_page) === $cover_page, 'listing was changed');
 $GLOBALS['wp_query'] = $cover_previous_query;

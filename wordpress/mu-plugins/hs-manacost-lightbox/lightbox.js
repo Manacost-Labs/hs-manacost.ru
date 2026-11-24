@@ -351,6 +351,15 @@
     return figure;
   }
 
+  // Decorative arrow between the cards of a pair; it points down when the pair stacks on phones.
+  function pairArrow() {
+    const arrow = document.createElement('span');
+    arrow.className = 'hs-lightbox__pair-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.innerHTML = '<svg viewBox="0 0 64 44" focusable="false"><path d="M4 14h30V4l26 18-26 18V30H4z"/><path class="hs-lightbox__pair-arrow-shine" d="M8 18h26"/></svg>';
+    return arrow;
+  }
+
   // A trigger carrying [data-hs-lightbox-pair] shows its images side by side, e.g. a card before and after a change.
   function openPair(trigger) {
     const images = Array.from(trigger.querySelectorAll('img')).map(image => ({
@@ -360,7 +369,7 @@
     })).filter(item => item.source);
     if (!images.length) return false;
     if (!dialog) createDialog();
-    dialogNodes.pair.replaceChildren(...images.map(pairFigure));
+    dialogNodes.pair.replaceChildren(...images.flatMap((item, index) => (index ? [pairArrow(), pairFigure(item)] : [pairFigure(item)])));
     dialog.classList.add('is-pair');
     activeItems = [];
     activeIndex = 0;

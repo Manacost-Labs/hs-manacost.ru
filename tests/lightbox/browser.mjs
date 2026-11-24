@@ -293,8 +293,11 @@ try {
   assert.ok(pairRight.x >= pairLeft.x + pairLeft.width - 1 && Math.abs(pairLeft.y - pairRight.y) < 4, 'pair images sit side by side');
   const captionBottom = await pairDialog.locator('.hs-lightbox__pair-caption').first().evaluate(element => element.getBoundingClientRect().bottom);
   assert.ok(pairLeft.y - captionBottom >= 0 && pairLeft.y - captionBottom <= 24, 'captions sit directly above their images');
-  assert.ok(await pairDialog.evaluate(element => Number(getComputedStyle(element, '::backdrop').backgroundColor.match(/[\d.]+/g)[3]) >= 0.95), 'pair backdrop is nearly opaque');
-  assert.equal(await pairDialog.evaluate(element => getComputedStyle(element.querySelector('.hs-lightbox__surface')).backgroundColor.endsWith('0.97)')), true);
+  assert.match(await pairDialog.evaluate(element => getComputedStyle(element, '::backdrop').backdropFilter), /blur\(/, 'pair backdrop blurs the page behind');
+  assert.equal(await pairDialog.locator('.hs-lightbox__pair-arrow[aria-hidden="true"]').count(), 1, 'one decorative arrow between the two cards');
+  const pairArrow = await pairDialog.locator('.hs-lightbox__pair-arrow').evaluate(element => element.getBoundingClientRect().toJSON());
+  assert.ok(pairArrow.x >= pairLeft.x + pairLeft.width - 1 && pairArrow.x + pairArrow.width <= pairRight.x + 1, 'arrow sits between the cards');
+  assert.ok(Math.abs(pairArrow.y + pairArrow.height / 2 - (pairLeft.y + pairLeft.height / 2)) < 8, 'arrow is level with the middle of the cards');
   assert.equal(await pairDialog.locator('.hs-lightbox__nav').evaluateAll(list => list.every(button => getComputedStyle(button).display === 'none')), true, 'no gallery navigation in pair mode');
   await page.keyboard.press('ArrowRight');
   assert.equal(await pairDialog.locator('.hs-lightbox__pair-image').count(), 2, 'arrow keys do nothing in pair mode');
@@ -314,6 +317,18 @@ try {
   await phoneDialog.getByRole('button', { name: 'Закрыть' }).tap();
   await phoneDialog.waitFor({ state: 'hidden' });
   assert.equal(await phoneOpener.evaluate(element => document.activeElement === element), true, 'touch opening, navigation and closing restore the opener');
+  const phonePair = phone.locator('#pair-link');
+  await phonePair.tap();
+  const phonePairDialog = phone.getByRole('dialog', { name: 'Карта до и после' });
+  await phonePairDialog.waitFor();
+  const [phoneTop, phoneBottom] = await phonePairDialog.locator('.hs-lightbox__pair-image').evaluateAll(list => list.map(image => image.getBoundingClientRect().toJSON()));
+  const phoneArrow = await phonePairDialog.locator('.hs-lightbox__pair-arrow svg').evaluate(element => element.getBoundingClientRect().toJSON());
+  assert.ok(phoneBottom.y >= phoneTop.y + phoneTop.height - 1, 'pair stacks on phones');
+  assert.ok(phoneArrow.y >= phoneTop.y + phoneTop.height - 1 && phoneArrow.y + phoneArrow.height <= phoneBottom.y + 1, 'arrow points down between the stacked cards');
+  assert.ok(phoneArrow.height > phoneArrow.width, 'arrow turns downwards on phones');
+  assert.ok(phoneBottom.y + phoneBottom.height <= 844, 'both stacked cards fit the phone screen');
+  await phonePairDialog.getByRole('button', { name: 'Закрыть' }).tap();
+  await phonePairDialog.waitFor({ state: 'hidden' });
   await phone.close();
   console.log('content-lightbox-browser: pass');
 } finally {

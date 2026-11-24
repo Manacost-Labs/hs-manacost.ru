@@ -113,9 +113,11 @@ class PerformanceOptimizerTest(unittest.TestCase):
                 self.assertEqual("(max-width: 767px) 100vw, 50vw", image["sizes"])
             sources = [attributes for tag, attributes in tags.rows if tag == "source"]
             self.assertEqual([f"https://hs-manacost.ru/wp-content/uploads/grid-{index}-696x353.jpg" for index in [1, 2]], [source["srcset"] for source in sources])
-            preload = next(attributes for tag, attributes in tags.rows if tag == "link" and attributes.get("id") == "manacost-lcp-preload")
-            crop = "696x353" if mobile else "1068x542"
-            self.assertEqual(f"https://hs-manacost.ru/wp-content/uploads/grid-1-{crop}.jpg", preload["href"])
+            preloads = [attrs for tag, attrs in tags.rows if tag == "link" and attrs.get("as") == "image"]
+            self.assertEqual(2, len(preloads))
+            by_media = {attrs["media"]: attrs["href"] for attrs in preloads}
+            self.assertEqual(sources[0]["srcset"], by_media[sources[0]["media"]])
+            self.assertEqual(images[0]["src"], by_media["not all and " + sources[0]["media"]])
             self.assertIn('<style>@font-face{font-family:Test;src:url(font.woff2)}h1{font-family:Test}</style>', html)
             self.assertIn('data-bg="https://hs-manacost.ru/wp-content/uploads/grid-3-1068x542.jpg"', html)
 
@@ -229,13 +231,6 @@ class PerformanceOptimizerTest(unittest.TestCase):
         self.assertNotIn("remove_mobile_webfonts", source)
         self.assertNotIn("manacost-mobile-font-budget", source)
         self.assertNotIn('font-family:Arial,"Helvetica Neue",sans-serif!important', source)
-
-    def test_mobile_request_detection_remains_limited_to_image_preload_selection(self) -> None:
-        source = OPTIMIZER.read_text(encoding="utf-8")
-
-        self.assertIn("$lcp_url = self::is_mobile_request() ? $mobile_url : $desktop_url;", source)
-        self.assertNotIn("if ( self::is_mobile_request() ) {\n\t\t\t\t$html = self::remove_mobile_webfonts", source)
-
 
 if __name__ == "__main__":
     unittest.main()
