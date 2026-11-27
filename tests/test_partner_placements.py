@@ -198,10 +198,10 @@ class PartnerPlacementsTest(unittest.TestCase):
                     'src="/site-media/primary-mark/"', markup
                 )
                 self.assertIn(
-                    'src="/site-media/secondary-mark/"', markup
+                    'src="/site-media/secondary-mark/?v=neverest"', markup
                 )
                 self.assertIn(
-                    'src="/site-media/secondary-mark/" width="729" height="90"',
+                    'src="/site-media/secondary-mark/?v=neverest" width="729" height="90"',
                     markup,
                 )
                 self.assertNotIn('width="728" height="90"', markup)
@@ -267,9 +267,9 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertIn('aria-label="Реклама: Sirus"', content)
         self.assertNotIn('class="site-opening-note__label"', content)
         self.assertIn('href="/site-link/secondary/"', content)
-        self.assertIn('src="/site-media/secondary-mark/"', content)
+        self.assertIn('src="/site-media/secondary-mark/?v=neverest"', content)
         self.assertIn(
-            'src="/site-media/secondary-mark/" width="729" height="90"',
+            'src="/site-media/secondary-mark/?v=neverest" width="729" height="90"',
             content,
         )
         self.assertNotIn('width="728" height="90"', content)
@@ -288,41 +288,45 @@ class PartnerPlacementsTest(unittest.TestCase):
         self.assertLess(success_status, content_type)
         self.assertLess(content_type, body)
 
-    def test_fixed_image_routes_validate_upstream_and_never_accept_query_urls(self) -> None:
-        for route, filename in (("primary", "2026/07/728x90.jpg.webp"), ("secondary", "2026/03/728h90.png.webp")):
-            for invalid in (False, True):
-                with self.subTest(route=route, invalid=invalid):
-                    script = f"""
-                    define('ABSPATH', '/');
-                    $_SERVER['HTTP_HOST'] = 'hs-manacost.ru';
-                    $_SERVER['REQUEST_URI'] = '/site-media/{route}-mark/?url=https://example.invalid/';
-                    function add_action(...$args) {{}}
-                    function add_filter(...$args) {{}}
-                    function is_admin() {{ return false; }}
-                    function wp_doing_ajax() {{ return false; }}
-                    function wp_unslash($value) {{ return $value; }}
-                    function sanitize_text_field($value) {{ return $value; }}
-                    function wp_parse_url($value, $part) {{ return parse_url($value, $part); }}
-                    function status_header($status) {{ fwrite(STDERR, "status:$status"); }}
-                    function wp_safe_remote_get($url, $args) {{
-                        fwrite(STDERR, $url . json_encode($args));
-                        return [];
-                    }}
-                    function is_wp_error($value) {{ return false; }}
-                    function wp_remote_retrieve_response_code($value) {{ return 200; }}
-                    function wp_remote_retrieve_header($value, $name) {{ return {json.dumps('text/html' if invalid else 'image/webp')}; }}
-                    function wp_remote_retrieve_body($value) {{ return str_repeat('x', 2048); }}
-                    require {json.dumps(str(PLUGIN))};
-                    Manacost_Partner_Placements::maybe_serve_first_party_route();
-                    """
-                    result = subprocess.run([PHP_BINARY, "-r", script], capture_output=True, text=True, check=False)
-                    self.assertEqual(0, result.returncode, result.stderr)
-                    self.assertIn("https://hs-manacost.ru/wp-content/uploads/" + filename, result.stderr)
-                    self.assertNotIn("example.invalid", result.stderr)
-                    self.assertIn('"redirection":0', result.stderr)
-                    self.assertIn('"limit_response_size":1048576', result.stderr)
-                    self.assertIn("status:503" if invalid else "status:200", result.stderr)
-                    self.assertEqual("Asset temporarily unavailable" if invalid else "x" * 2048, result.stdout)
+    def test_fixed_image_routes_ignore_query_urls_and_validate_the_upstream(self) -> None:
+        for route, invalid in (("primary", False), ("primary", True), ("secondary", False)):
+            with self.subTest(route=route, invalid=invalid):
+                script = f"""
+                define('ABSPATH', '/');
+                $_SERVER['HTTP_HOST'] = 'hs-manacost.ru';
+                $_SERVER['REQUEST_URI'] = '/site-media/{route}-mark/?url=https://example.invalid/';
+                function add_action(...$args) {{}}
+                function add_filter(...$args) {{}}
+                function is_admin() {{ return false; }}
+                function wp_doing_ajax() {{ return false; }}
+                function wp_unslash($value) {{ return $value; }}
+                function sanitize_text_field($value) {{ return $value; }}
+                function wp_parse_url($value, $part) {{ return parse_url($value, $part); }}
+                function status_header($status) {{ fwrite(STDERR, "status:$status"); }}
+                function wp_safe_remote_get($url, $args) {{
+                    fwrite(STDERR, $url . json_encode($args));
+                    return [];
+                }}
+                function is_wp_error($value) {{ return false; }}
+                function wp_remote_retrieve_response_code($value) {{ return 200; }}
+                function wp_remote_retrieve_header($value, $name) {{ return {json.dumps('text/html' if invalid else 'image/webp')}; }}
+                function wp_remote_retrieve_body($value) {{ return str_repeat('x', 2048); }}
+                require {json.dumps(str(PLUGIN))};
+                Manacost_Partner_Placements::maybe_serve_first_party_route();
+                """
+                result = subprocess.run([PHP_BINARY, "-r", script], capture_output=True, check=False)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertNotIn(b"example.invalid", result.stderr)
+                if route == "secondary":
+                    creative = STYLESHEET.with_name("sirus-neverest.webp").read_bytes()
+                    self.assertEqual(b"status:200", result.stderr)
+                    self.assertEqual(creative, result.stdout)
+                else:
+                    self.assertIn(b"https://hs-manacost.ru/wp-content/uploads/2026/07/728x90.jpg.webp", result.stderr)
+                    self.assertIn(b'"redirection":0', result.stderr)
+                    self.assertIn(b'"limit_response_size":1048576', result.stderr)
+                    self.assertIn(b"status:503" if invalid else b"status:200", result.stderr)
+                    self.assertEqual(b"Asset temporarily unavailable" if invalid else b"x" * 2048, result.stdout)
 
     def test_skips_non_public_requests_and_unknown_hosts(self) -> None:
         contexts = (
