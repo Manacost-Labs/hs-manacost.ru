@@ -17,8 +17,8 @@ final class Manacost_Partner_Placements {
 	private const PLAYEROK_IMAGE  = '/site-media/primary-mark/';
 	private const PLAYEROK_SOURCE = 'https://hs-manacost.ru/wp-content/uploads/2026/07/728x90.jpg.webp';
 	private const SIRUS_IMAGE     = '/site-media/secondary-mark/';
+	private const SIRUS_CREATIVE  = self::SIRUS_IMAGE . '?v=neverest';
 	private const SIRUS_LINK      = '/site-link/secondary/';
-	private const SIRUS_SOURCE    = 'https://hs-manacost.ru/wp-content/uploads/2026/03/728h90.png.webp';
 	private const BRAND_IMAGE     = '/wp-content/uploads/2026/01/unnamed.png';
 
 	/**
@@ -171,16 +171,21 @@ final class Manacost_Partner_Placements {
 			exit;
 		}
 
-		$sources = array(
-			self::PLAYEROK_IMAGE => self::PLAYEROK_SOURCE,
-			self::SIRUS_IMAGE    => self::SIRUS_SOURCE,
-		);
-		if ( ! isset( $sources[ $path ] ) ) {
+		if ( self::SIRUS_IMAGE === $path ) {
+			$file = __DIR__ . '/manacost-partner-placements/sirus-neverest.webp';
+			if ( ! is_readable( $file ) ) {
+				self::render_asset_error();
+			}
+			$body = file_get_contents( $file, false, null, 0, 1048577 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Bundled local image.
+			self::render_webp( $body );
+		}
+
+		if ( self::PLAYEROK_IMAGE !== $path ) {
 			return;
 		}
 
 		$response = wp_safe_remote_get(
-			$sources[ $path ],
+			self::PLAYEROK_SOURCE,
 			array(
 				'timeout'             => 5,
 				'redirection'         => 0,
@@ -198,7 +203,20 @@ final class Manacost_Partner_Placements {
 		$content_type        = is_string( $content_type_header )
 			? strtolower( trim( $content_type_header ) )
 			: '';
-		if ( 'image/webp' !== $content_type || strlen( $body ) < 1024 || strlen( $body ) > 1048576 ) {
+		if ( 'image/webp' !== $content_type ) {
+			self::render_asset_error();
+		}
+
+		self::render_webp( $body );
+	}
+
+	/**
+	 * Sends the WebP bytes through the first-party image route.
+	 *
+	 * @param string|false $body Image bytes or local file read failure.
+	 */
+	private static function render_webp( string|false $body ): never {
+		if ( false === $body || strlen( $body ) < 1024 || strlen( $body ) > 1048576 ) {
 			self::render_asset_error();
 		}
 
@@ -233,7 +251,7 @@ final class Manacost_Partner_Placements {
 					</a>
 					<a class="site-partnership__item" href="<?php echo esc_url( self::SIRUS_LINK ); ?>" target="_blank" rel="sponsored noopener noreferrer" aria-label="<?php echo esc_attr( 'Sirus — партнёр Manacost' ); ?>">
 						<span class="site-partnership__fallback">Sirus</span>
-						<img src="<?php echo esc_url( self::SIRUS_IMAGE ); ?>" width="729" height="90" alt="Sirus" decoding="async" loading="eager" data-no-lazy="1">
+						<img src="<?php echo esc_url( self::SIRUS_CREATIVE ); ?>" width="729" height="90" alt="Sirus" decoding="async" loading="eager" data-no-lazy="1">
 					</a>
 				</div>
 				<div class="site-partnership__links">
@@ -249,7 +267,7 @@ final class Manacost_Partner_Placements {
 	private static function sirus_placement_markup(): string {
 		return '<aside class="site-opening-note" aria-label="' . esc_attr( 'Реклама: Sirus' ) . '">'
 			. '<a class="site-opening-note__link" href="' . esc_url( self::SIRUS_LINK ) . '" target="_blank" rel="sponsored noopener noreferrer" aria-label="' . esc_attr( 'Sirus — партнёр Manacost' ) . '">'
-			. '<img src="' . esc_url( self::SIRUS_IMAGE ) . '" width="729" height="90" alt="" decoding="async" loading="lazy">'
+			. '<img src="' . esc_url( self::SIRUS_CREATIVE ) . '" width="729" height="90" alt="" decoding="async" loading="lazy">'
 			. '</a></aside>';
 	}
 
@@ -264,7 +282,7 @@ final class Manacost_Partner_Placements {
 	}
 
 	/** Sends a bounded failure response without exposing the upstream error. */
-	private static function render_asset_error(): void {
+	private static function render_asset_error(): never {
 		status_header( 503 );
 		header( 'Cache-Control: no-store' );
 		header( 'Content-Type: text/plain; charset=utf-8' );
